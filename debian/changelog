@@ -7,8 +7,9 @@ opensc (0.9.4-1) unstable; urgency=low
     libscam0.install, libscam0.shlibs}: Renamed to change 0 to 1 to
     reflect new soname.
   * debian/control: Change package name to reflect new soname.
+  * debian/*.shlibs: Bump up sonames and versions.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 13 Nov 2004 00:41:51 -0500
 
 opensc (0.8.1-7) unstable; urgency=medium
 
