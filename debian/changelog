@@ -1,3 +1,16 @@
+opensc (0.8.1-5) unstable; urgency=low
+
+  * debian/control: 
+    - Make libopensc* and libscam0 optional and everything
+      else extra, to allow things in optional to link to the libs. I 
+      still need to resolve the dependency on libpcsc (it's in extra).
+    - Build depend on libssl-dev (>= 0.9.7d-2) for PIC libs. 
+  * configure.in: Use libcrypto-pic to work around build problems on
+    architectures that need PIC libs. (Closes: #239422)
+  * configure: Rebuild.
+
+ --
+
 opensc (0.8.1-4) unstable; urgency=low
 
   * debian/control: Build-Depend on libassuan-dev that provides PIC

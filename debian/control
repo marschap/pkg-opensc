@@ -1,7 +1,7 @@
 Source: opensc
-Priority: optional
+Priority: extra
 Maintainer: Eric Dorland <eric@debian.org>
-Build-Depends: cdbs, debhelper (>> 4.0.0), libssl-dev, libpcsclite-dev, libpam0g-dev, libldap-dev, libsasl-dev, libassuan-dev (>= 0.6.4-2), xlibs-dev, libopenct0-dev, flex
+Build-Depends: cdbs, debhelper (>> 4.0.0), libssl-dev (>= 0.9.7d-2), libpcsclite-dev, libpam0g-dev, libldap-dev, libsasl-dev, libassuan-dev (>= 0.6.4-2), xlibs-dev, libopenct0-dev, flex
 Standards-Version: 3.6.1
 
 Package: opensc
@@ -23,6 +23,7 @@ Description: SmartCard utilities with support for PKCS#15 compatible cards
 
 Package: libopensc0-dev
 Section: libdevel
+Priority: optional
 Architecture: any
 Provides: libopensc-dev
 Depends: libopensc0 (= ${Source-Version}), libscam0 (= ${Source-Version}), libssl-dev
@@ -32,6 +33,7 @@ Description: OpenSC development files
 
 Package: libopensc0
 Section: libs
+Priority: optional
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: SmartCard library with support for PKCS#15 compatible smart cards
@@ -72,6 +74,7 @@ Description: OpenSSL engine using PKCS#15 Smart Cards
 
 Package: libscam0
 Section: libs
+Priority: optional
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: Authentication modules for PKCS#15 Smart Cards
