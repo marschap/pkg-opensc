@@ -239,6 +239,10 @@ gpk_init(struct sc_card *card)
 	/* State that we have an RNG */
 	card->caps |= SC_CARD_CAP_RNG;
 
+	/* Make sure max send/receive size is 4 byte aligned. */
+	card->max_send_size &= ~3;
+	card->max_recv_size &= ~3;
+
 	return 0;
 }
 
@@ -547,7 +551,7 @@ gpk_select(struct sc_card *card, u8 kind,
 {
 	struct gpk_private_data *priv = DRVDATA(card);
 	struct sc_apdu	apdu;
-	u8		resbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8		resbuf[256];
 	int		r;
 
 	/* If we're about to select a DF, invalidate secure messaging keys */
@@ -566,8 +570,13 @@ gpk_select(struct sc_card *card, u8 kind,
 	apdu.data = buf;
 	apdu.datalen = buflen;
 	apdu.lc = apdu.datalen;
-	apdu.resp = resbuf;
-	apdu.resplen = file? sizeof(resbuf) : 0;
+
+	if (file) {
+		apdu.cse = SC_APDU_CASE_4_SHORT;
+		apdu.resp = resbuf;
+		apdu.resplen = sizeof(resbuf);
+		apdu.le = sizeof(resbuf);
+	}
 
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
@@ -598,7 +607,7 @@ gpk_select_id(struct sc_card *card, u8 kind, unsigned short int fid,
 {
 	struct sc_path	*cp = &card->cache.current_path;
 	u8		fbuf[2];
-	int		r, log_errs;
+	int		r;
 
 	if (card->ctx->debug)
 		sc_debug(card->ctx, "gpk_select_id(0x%04X, kind=%u)\n", fid, kind);
@@ -606,10 +615,9 @@ gpk_select_id(struct sc_card *card, u8 kind, unsigned short int fid,
 	fbuf[0] = fid >> 8;
 	fbuf[1] = fid & 0xff;
 
-	log_errs = card->ctx->log_errors;
-	card->ctx->log_errors = 0;
+	card->ctx->suppress_errors++;
 	r = gpk_select(card, kind, fbuf, 2, file);
-	card->ctx->log_errors = log_errs;
+	card->ctx->suppress_errors--;
 
 	/* Fix up the path cache.
 	 * NB we never cache the ID of an EF, just the DF path */
@@ -1528,6 +1536,52 @@ gpk_pkfile_init(struct sc_card *card, struct sc_cardctl_gpk_pkinit *args)
 }
 
 /*
+ * Initialize the private portion of a public key file
+ */
+static int
+gpk_generate_key(struct sc_card *card, struct sc_cardctl_gpk_genkey *args)
+{
+	struct sc_apdu	apdu;
+	int		r;
+	u8		buffer[256];
+
+	if (card->ctx->debug)
+		sc_debug(card->ctx, "gpk_generate_key(%u)\n", args->privlen);
+	if (args->privlen != 512 && args->privlen != 1024) {
+		sc_error(card->ctx,
+			"Key generation not supported for key length %d",
+			args->privlen);
+		return SC_ERROR_NOT_SUPPORTED;
+	}
+
+	memset(&apdu, 0, sizeof(apdu));
+	apdu.cse = SC_APDU_CASE_2_SHORT;
+	apdu.cla = 0x80;
+	apdu.ins = 0xD2;
+	apdu.p1  = 0x80 | (args->fid & 0x1F);
+	apdu.p2  = (args->privlen == 1024) ? 0x11 : 0;
+	apdu.le  = args->privlen / 8 + 2;
+	apdu.resp = buffer;
+	apdu.resplen = 256;
+
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	SC_TEST_RET(card->ctx, r, "Card returned error");
+
+	/* Return the public key, inverted.
+	 * The first two bytes must be stripped off. */
+	if (args->pubkey_len && apdu.resplen > 2) {
+		r = reverse(args->pubkey, args->pubkey_len,
+				buffer + 2, apdu.resplen - 2);
+		SC_TEST_RET(card->ctx, r, "Failed to reverse buffer");
+		args->pubkey_len = r;
+	}
+
+	return r;
+}
+
+/*
  * Store a privat key component
  */
 static int
@@ -1640,20 +1694,40 @@ int
 gpk_get_info(struct sc_card *card, u8 p1, u8 p2, u8 *buf, size_t buflen)
 {
 	struct sc_apdu	apdu;
-	int	r;
+	int	r, retry = 0;
 
-	memset(&apdu, 0, sizeof(apdu));
-	apdu.cse = SC_APDU_CASE_2_SHORT;
-	apdu.cla = 0x80;
-	apdu.ins = 0xC0;
-	apdu.p1  = p1;
-	apdu.p2  = p2;
-	apdu.le  = buflen;
-	apdu.resp = buf;
-	apdu.resplen = buflen;
+	/* We may have to retry the get info command. It
+	 * returns 6B00 if a previous command returned a 61xx response,
+	 * but the host failed to collect the results.
+	 *
+	 * Note the additional sc_lock/sc_unlock pair, which
+	 * is required to prevent sc_transmit_apdu from 
+	 * calling logout(), which in turn does a SELECT MF
+	 * without collecting the response :)
+	 */
+	r = sc_lock(card);
+	SC_TEST_RET(card->ctx, r, "sc_lock() failed");
 
-	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	do {
+		memset(&apdu, 0, sizeof(apdu));
+		apdu.cse = SC_APDU_CASE_2_SHORT;
+		apdu.cla = 0x80;
+		apdu.ins = 0xC0;
+		apdu.p1  = p1;
+		apdu.p2  = p2;
+		apdu.le  = buflen;
+		apdu.resp = buf;
+		apdu.resplen = buflen;
+
+		if ((r = sc_transmit_apdu(card, &apdu)) < 0) {
+			sc_error(card->ctx, "APDU transmit failed: %s",
+					sc_strerror(r));
+			sc_unlock(card);
+			return r;
+		}
+	} while (apdu.sw1 == 0x6B && apdu.sw2 == 0x00 && retry++ < 1);
+	sc_unlock(card);
+
 	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 	SC_TEST_RET(card->ctx, r, "Card returned error");
 
@@ -1686,7 +1760,12 @@ gpk_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
 	case SC_CARDCTL_GPK_IS_LOCKED:
 		*(int *) ptr = DRVDATA(card)->locked;
 		return 0;
+	case SC_CARDCTL_GPK_GENERATE_KEY:
+		return gpk_generate_key(card,
+				(struct sc_cardctl_gpk_genkey *) ptr);
 	}
+
+
 	return SC_ERROR_NOT_SUPPORTED;
 }
 
