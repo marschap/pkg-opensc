@@ -1,9 +1,7 @@
-
-
-OpenSC Release 0.8.1
+OpenSC Release 0.9.4
 ====================
 
-We are pleased to announce the availability of OpenSC 0.8.1.
+We are pleased to announce the availability of OpenSC 0.9.4.
 
 OpenSC provides a set of libraries and utilities to access smart
 cards. Its main focus is on cards that support cryptographic operations,
@@ -13,21 +11,22 @@ authentication, and digital signature.
 OpenSC can be used with the following applications and libraries:
 
  -	Netscape Communicator and Mozilla (through its PKCS#11 module),
- 	for secure email (SMIME) and SSL authentication
+ 	for secure email (S/MIME) and SSL authentication
  -	OpenSSH, for user authentication
- -	FreeSWAN, for authentication and key management
+ -	FreeSWAN, StrongSWAN and OpenSWAN,
+        for authentication and key management
  -	OpenSSL, for key and certificate storage, key generation and
  	signing of certificate requests
  -	GNUpg 1.9 (experimental), for key storage
  -	Smart card login, through a PAM module
  -	Using the included utilities, to perform RSA decryption and
- 	digitial signing
+ 	digital signing
 
 OpenSC is capable of personalizing various types of smart cards, but
 also works with personalized cards such as the Finnish FINEID.
 
 OpenSC can currently be used on Linux, Windows and MacOS X. It supports
-PC/SC, CTAPI and OpenCT to talk to card terminals.
+PC/SC, CT-API and OpenCT to talk to card terminals.
 
 
 
@@ -38,16 +37,16 @@ The following card operating systems are supported at the moment (where
 read-only means that personalized cards can be used, but OpenSC does not
 provide personalization support for these).
 
- -	Gemplus GPK cards (except Gemsafe)
- -	Schlumberger Cryptoflex
  -	CardOS/M4 (Aladdin eToken PRO, etc)
- -	Starcos SPK (read-only)
- -	Micardo (read-only)
+ -	Schlumberger/Axalto Cryptoflex and Cyberflex
+ -	IBM JCOP
+ -	Starcos SPK
+ -	Oberthur AuthentIC v5
+ -	Estonian ID card (read-only)
  -	MioCOS (read-only)
  -	Setcos (read-only)
  -	TCOS (read-only)
 
-Note that Java cards are not supported at the moment.
 
 
 
