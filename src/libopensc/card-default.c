@@ -19,6 +19,7 @@
  */
 
 #include "internal.h"
+#include <string.h>
 
 static struct sc_card_operations default_ops;
 static struct sc_card_driver default_drv = {
@@ -50,6 +51,7 @@ static int autodetect_class(struct sc_card *card)
 	for (i = 0; i < class_count; i++) {
 		if (card->ctx->debug >= 2)
 			sc_debug(card->ctx, "trying with 0x%02X\n", classes[i]);
+		memset(&apdu, 0, sizeof(apdu));
 		apdu.cla = classes[i];
 		apdu.cse = SC_APDU_CASE_2_SHORT;
 		apdu.ins = 0xC0;
@@ -92,7 +94,7 @@ static int autodetect_class(struct sc_card *card)
 		struct sc_card_driver *drv;
 		if (card->ctx->debug >= 2)
 			sc_debug(card->ctx, "SELECT FILE seems to return Schlumberger 'flex stuff\n");
-		drv = sc_get_flex_driver();
+		drv = sc_get_cryptoflex_driver();
 		card->ops->select_file = drv->ops->select_file;
 		return 0;
 	}
