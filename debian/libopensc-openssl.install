@@ -1,2 +1,2 @@
-debian/tmp/usr/lib/opensc/*
+debian/tmp/usr/lib/opensc/engine_*
 

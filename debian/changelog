@@ -1,3 +1,12 @@
+opensc (0.9.4-6) unstable; urgency=medium
+
+  * The "I really need to pay more attention" release.
+  * debian/libopensc-openssl.install: Install only the engine files, not
+    the signer.
+  * debian/control: Have mozilla-opensc replace libopensc-openssl. 
+
+ -- Eric Dorland <eric@debian.org>  Sat, 27 Nov 2004 14:46:40 -0500
+
 opensc (0.9.4-5) unstable; urgency=medium
 
   * debian/libscam1.install: Allow libopensc1-dev install libscam's .la
