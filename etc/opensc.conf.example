@@ -1,0 +1,227 @@
+# Configuration file for OpenSC
+# Example configuration file
+
+# NOTE: All key-value pairs must be terminated by a semicolon.
+
+# Default values for any application
+# These can be overrided by an application
+# specific configuration block.
+app default {
+	# Amount of debug info to print
+	#
+	# A greater value means more debug info.
+	# Default: 0
+	#
+	debug = 0;
+
+	# The file to which debug output will be written
+	#
+	# A special value of 'stdout' is recognized.
+	# Default: stdout
+	#
+	# debug_file = /tmp/opensc-debug.log;
+
+	# The file to which errors will be written
+	#
+	# A special value of 'stderr' is recognized.
+	# Default: stderr
+	#
+	# error_file = /tmp/opensc-errors.log;
+
+	# What reader drivers to load at start-up
+	#
+	# A special value of 'internal' will load all
+	# statically linked drivers. If an unknown (ie. not
+	# internal) driver is supplied, a separate configuration
+	# configuration block has to be written for the driver.
+	# Default: internal
+	#
+	# reader_drivers = pcsc, ctapi;
+
+	reader_driver ctapi {
+		module /usr/local/towitoko/lib/libtowitoko.so {
+			# CT-API ports:
+			# 0..3		COM1..4
+			# 4		Printer
+			# 5		Modem
+			# 6..7		LPT1..2
+			ports = 0;
+		}
+		# module /usr/local/lib/ctapi/ctapi2.so {
+		#	ports = 1, 6;
+		# }
+	}
+
+	reader_driver pcsc {
+		# Whether to convert Case 4 APDUs to Case 3
+		#
+		# At least SCM SCR111 reader seems to require this.
+		# Default: false
+		#
+		apdu_fix = false;
+	}
+
+	# What card drivers to load at start-up
+	#
+	# A special value of 'internal' will load all
+	# statically linked drivers. If an unknown (ie. not
+	# internal) driver is supplied, a separate configuration
+	# configuration block has to be written for the driver.
+	# Default: internal
+	#
+	# card_drivers = internal, customcos;
+
+	# Card driver configuration blocks. For card drivers loaded
+	# from an external shared library/DLL, you need to specify
+	# the path name of the module, and the name of the constructor
+	# function.
+	# WARNING: this is not implemented yet.
+	#
+	# For all drivers, you can specify ATRs of cards that
+	# should be handled by this driver (in addition to the
+	# list of compiled-in ATRs). To do so, specify
+	#
+	# card_driver foo {
+	#	atr = 00:11:22:33:44;
+	#	atr = 55:66:77:88:99:aa:bb;
+	# }
+	#
+	# The card driver names are
+	#  flex		Cryptoflex/Multiflex
+	#  setcos	Setec
+	#  etoken	Aladdin eToken
+	#  gpk		GPK 4K/8K/16K
+	#  mcrd		MICARDO 2
+	#  miocos	MioCOS 1.1
+	#  tcos		TCOS 2.0
+	#  emv		EMV compatible cards
+
+	# card_driver customcos {
+		# The location of the driver library
+		#
+		# module = /usr/lib/opensc/drivers/card_customcos.so
+	# }
+
+	# GPK card driver
+	card_driver gpk {
+		# atr = 00:11:22;
+	}
+
+	# Force using specific card driver
+	#
+	# If this option is present, OpenSC will use the supplied
+	# driver with all inserted cards.
+	#
+	# Default: autodetect
+	#
+	# force_card_driver = miocos;
+
+	# Below are the framework specific configuration blocks.
+
+	# PKCS #15
+	framework pkcs15 {
+		# Whether to use the cache files in the user's
+		# home directory.
+		#
+		# At the moment you have to 'teach' the card to the
+		# system by:
+		# pkcs15-tool -L
+		#
+		# WARNING: Caching shouldn't be used in setuid root
+		# applications.
+		# Default: false
+		#
+		use_caching = true;
+		# Use the following dynamic libraries for a read-only
+		# PKCS#15 emulation of non pkcs15 cards.
+		#
+		# pkcs15_syn = p15_starcert.so;
+	}
+}
+
+# For applications that use SCAM (pam_opensc, sia_opensc)
+app scam {
+	framework pkcs15 {
+		use_caching = false;
+	}
+}
+
+# Parameters for the OpenSC PKCS11 module
+app opensc-pkcs11 {
+	pkcs11 {
+		# Maxmimum number of slots per smart card.
+		# If the card has fewer keys than defined here,
+		# the remaining number of slots will be empty.
+		#
+		# Note that there is currently a compile time
+		# maximum on the overall number of slots
+		# the pkcs11 module is able to handle.
+		num_slots = 4;
+
+		# Normally, the pkcs11 module will create
+		# the full number of slots defined above by
+		# num_slots. If there are fewer pins/keys on
+		# the card, the remaining keys will be empty
+		# (and you will be able to create new objects
+		# within them).
+		#
+		# Set this option to true to hide these empty
+		# slots.
+		hide_empty_slots = false;
+
+		# By default, the OpenSC PKCS#11 module will
+		# try to lock this card once you have authenticated
+		# to the card via C_Login. This is done so that no
+		# other user can connect to the card and perform
+		# crypto operations (which may be possible because
+		# you have already authenticated with the card).
+		#
+		# However, this also means that no other application
+		# that _you_ run can use the card until your application
+		# has done a C_Logout or C_Finalize. In the case of
+		# Netscape or Mozilla, this does not happen until
+		# you exit the browser.
+		lock_login = true;
+
+		# Normally, the pkcs11 module will not cache PINs
+		# presented via C_Login. However, some cards
+		# may not work properly with OpenSC; for instance
+		# when you have two keys on your card that get
+		# stored in two different directories.
+		#
+		# In this case, you can turn on PIN caching by setting
+		# cache_pins = true
+		#
+		# Default: false
+		cache_pins = false;
+
+		# Set this value to false if you want to enfore on-card
+		# keypair generation
+		#
+		# Default: true
+		soft_keygen_allowed = true;
+	}
+}
+
+# Parameters for the OpenSC PKCS11-Spy module, that logs all the
+# communication between a pkcs11 module and it's calling application:
+#    app <--> pkcs11-spy <--> pkcs11 module
+app pkcs11-spy {
+	spy {
+		# Where to log to.
+		#
+		# By default, the value of the PKCS11SPY_OUTPUT environment
+		# variable is used. And if that one isn't defined: stderr
+		# is used.
+		#
+		#output = /tmp/pkcs11-spy.log;
+
+		# Which PKCS11 module to load.
+		#
+		# By default, the value of the PKCS11SPY environment
+		# variable is used. And if that one isn't defined,
+		# opensc-pkcs11.so is used.
+		#
+		#module = opensc-pkcs11.so;
+	}
+}
