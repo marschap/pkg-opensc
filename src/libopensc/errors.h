@@ -63,6 +63,7 @@ extern "C" {
 #define SC_ERROR_UNKNOWN_DATA_RECEIVED		-1213
 #define SC_ERROR_PIN_CODE_INCORRECT		-1214
 #define SC_ERROR_FILE_ALREADY_EXISTS		-1215
+#define SC_ERROR_DATA_OBJECT_NOT_FOUND		-1216
 
 /* Returned by OpenSC library when called with invalid arguments */
 #define SC_ERROR_INVALID_ARGUMENTS		-1300
@@ -70,6 +71,7 @@ extern "C" {
 #define SC_ERROR_CMD_TOO_LONG			-1302
 #define SC_ERROR_BUFFER_TOO_SMALL		-1303
 #define SC_ERROR_INVALID_PIN_LENGTH		-1304
+#define SC_ERROR_INVALID_DATA			-1305
 
 /* Resulting from OpenSC internal operation */
 #define SC_ERROR_INTERNAL			-1400
@@ -86,6 +88,7 @@ extern "C" {
 #define SC_ERROR_DECRYPT_FAILED			-1411
 #define SC_ERROR_WRONG_PADDING			-1412
 #define SC_ERROR_WRONG_CARD			-1413
+#define SC_ERROR_CANNOT_LOAD_MODULE		-1414
 
 /* Relating to PKCS #15 init stuff */
 #define SC_ERROR_PKCS15INIT			-1500
@@ -95,6 +98,10 @@ extern "C" {
 #define SC_ERROR_NO_DEFAULT_KEY			-1504
 #define SC_ERROR_ID_NOT_UNIQUE			-1505
 #define SC_ERROR_CANNOT_LOAD_KEY		-1006
+#define SC_ERROR_INCOMPATIBLE_OBJECT		-1007
+#define SC_ERROR_TEMPLATE_NOT_FOUND		-1008
+#define SC_ERROR_INVALID_PIN_REFERENCE		-1009
+#define SC_ERROR_FILE_TOO_SMALL			-1010
 
 /* Errors that do not fit the categories above */
 #define SC_ERROR_UNKNOWN			-1900
