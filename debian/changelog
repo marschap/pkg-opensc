@@ -1,11 +1,12 @@
-opensc (0.8.1-7) unstable; urgency=low
+opensc (0.8.1-7) unstable; urgency=medium
 
+  * Urgency medium since this reenables pcsclite support. 
   * {configure,configure.in}: Replace /pcsc with /PCSC for new pcsclite
     include location.
   * src/libopensc/reader-pcsc.c: Replace LPCSTR with LPCTSTR for new
     libpcsclite.
 
- -- Eric Dorland <eric@debian.org>  Tue, 20 Jul 2004 22:38:39 -0400
+ -- Eric Dorland <eric@debian.org>  Tue, 20 Jul 2004 23:04:27 -0400
 
 opensc (0.8.1-6) unstable; urgency=low
 
