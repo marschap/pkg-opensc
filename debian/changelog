@@ -1,3 +1,9 @@
+opensc (0.9.4-4) unstable; urgency=medium
+
+  * Target unstable. Urgency medium since I'd like to see this in testing.
+
+ -- Eric Dorland <eric@debian.org>  Thu, 25 Nov 2004 23:50:05 -0500
+
 opensc (0.9.4-3) experimental; urgency=low
 
   * debian/control: Add mozilla-opensc package. 
