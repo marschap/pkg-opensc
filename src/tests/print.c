@@ -9,9 +9,39 @@
 #endif
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <opensc/opensc.h>
 #include <opensc/pkcs15.h>
 #include "sc-test.h"
+
+void sc_test_print_card(const sc_pkcs15_card_t *card)
+{
+	const char *flags[] = {
+		"Read-only",
+		"Login required",
+		"PRN generation",
+		"EID compliant"
+	};
+	int i, count = 0;
+
+	assert(card != NULL);
+	printf("PKCS#15 Card [%s]:\n", card->label);
+	printf("\tVersion        : %d\n", card->version);
+	printf("\tSerial number  : %s\n", card->serial_number);
+	printf("\tManufacturer ID: %s\n", card->manufacturer_id);
+	if (card->preferred_language)
+		printf("\tLanguage       : %s\n", card->preferred_language);
+	printf("\tFlags          : ");
+	for (i = 0; i < 4; i++) {
+		if ((card->flags >> i) & 1) {
+			if (count)
+				printf(", ");
+			printf("%s", flags[i]);
+			count++;
+		}
+	}
+	printf("\n");
+}
 
 static void print_pin(const struct sc_pkcs15_object *obj)
 {
@@ -29,9 +59,7 @@ static void print_pin(const struct sc_pkcs15_object *obj)
 	char *p;
 
 	pin = (struct sc_pkcs15_pin_info *) obj->data;
-	printf("\tAuth ID     : ");
-	sc_pkcs15_print_id(&pin->auth_id);
-	printf("\n");
+	printf("\tAuth ID     : %s\n", sc_pkcs15_print_id(&pin->auth_id));
 	printf("\tFlags       : [0x%02X]", pin->flags);
 	for (i = 0; i < pf_count; i++)
 		if (pin->flags & (1 << i)) {
@@ -56,12 +84,16 @@ static void print_pin(const struct sc_pkcs15_object *obj)
 	default:
 		printf("[encoding %d]\n", pin->type);
 	}
-	printf("\tPath        : ");
-	for (i = 0; i < pin->path.len; i++) {
-		printf("%02X", pin->path.value[i]);
-		p += 2;
+	if (pin->path.len) {
+		printf("\tPath        : ");
+		for (i = 0; i < pin->path.len; i++) {
+			printf("%02X", pin->path.value[i]);
+			p += 2;
+		}
+		printf("\n");
 	}
-	printf("\n");
+	if (pin->tries_left >= 0)
+		printf("\tTries left  : %d\n", pin->tries_left);
 }
 
 static void print_prkey(const struct sc_pkcs15_object *obj)
@@ -100,15 +132,15 @@ static void print_prkey(const struct sc_pkcs15_object *obj)
 		printf("\tModLength   : %d\n", prkey->modulus_length);
 	printf("\tKey ref     : %d\n", prkey->key_reference);
 	printf("\tNative      : %s\n", prkey->native ? "yes" : "no");
-	printf("\tPath        : ");
-	for (i = 0; i < prkey->path.len; i++)
-		printf("%02X", prkey->path.value[i]);
-	if (prkey->path.type == SC_PATH_TYPE_PATH_PROT)
-		printf(" (protected)");
-	printf("\n");
-	printf("\tID          : ");
-	sc_pkcs15_print_id(&prkey->id);
-	printf("\n");
+	if (prkey->path.len) {
+		printf("\tPath        : ");
+		for (i = 0; i < prkey->path.len; i++)
+			printf("%02X", prkey->path.value[i]);
+		if (prkey->path.type == SC_PATH_TYPE_PATH_PROT)
+			printf(" (protected)");
+		printf("\n");
+	}
+	printf("\tID          : %s\n", sc_pkcs15_print_id(&prkey->id));
 }
 
 static void print_pubkey(const struct sc_pkcs15_object *obj)
@@ -151,25 +183,18 @@ static void print_pubkey(const struct sc_pkcs15_object *obj)
 	for (i = 0; i < pubkey->path.len; i++)
 		printf("%02X", pubkey->path.value[i]);
 	printf("\n");
-	printf("\tID          : ");
-	sc_pkcs15_print_id(&pubkey->id);
-	printf("\n");
+	printf("\tID          : %s\n", sc_pkcs15_print_id(&pubkey->id));
 }
 
 static void print_cert_x509(const struct sc_pkcs15_object *obj)
 {
 	struct sc_pkcs15_cert_info *cert;
-	int i;
 
 	cert = (struct sc_pkcs15_cert_info *) obj->data;
 	printf("\tAuthority   : %s\n", cert->authority ? "yes" : "no");
-	printf("\tPath        : ");
-	for (i = 0; i < cert->path.len; i++)
-		printf("%02X", cert->path.value[i]);
-	printf("\n");
-	printf("\tID          : ");
-	sc_pkcs15_print_id(&cert->id);
-	printf("\n");
+	printf("\tPath        : %s\n",
+		       	cert->path.len? sc_print_path(&cert->path) : "<direct encoding>");
+	printf("\tID          : %s\n", sc_pkcs15_print_id(&cert->id));
 
 	/* XXX original p15dump code would read the certificate
 	 * and dump the label */
@@ -185,9 +210,7 @@ static void print_data_object_summary(const struct sc_pkcs15_object *obj)
 	for (i = 0; i < data_object->path.len; i++)
 		printf("%02X", data_object->path.value[i]);
 	printf("\n");
-	printf("\tID          : ");
-	sc_pkcs15_print_id(&data_object->id);
-	printf("\n");
+	printf("\tID          : %s\n", sc_pkcs15_print_id(&data_object->id));
 
 	/* XXX original p15dump code would read the data object
 	 * and dump the label */
@@ -238,12 +261,15 @@ void sc_test_print_object(const struct sc_pkcs15_object *obj)
 		printf(" [%s]\n", obj->label);
 	else
 		printf(" (no label)\n");
-	printf("\tCom. Flags  : 0x%X\n", obj->flags);
-	if (obj->auth_id.len) {
-		printf("\tCom. Auth ID: ");
-		sc_pkcs15_print_id(&obj->auth_id);
-		printf("\n");
+	printf("\tCom. Flags  : ");
+	switch (obj->flags) {
+	case 0x01: printf("private\n"); break;
+	case 0x02: printf("modifiable\n"); break;
+	case 0x03: printf("private, modifiable\n"); break;
+	default:   printf("0x%X\n", obj->flags);
 	}
+	if (obj->auth_id.len)
+		printf("\tCom. Auth ID: %s\n", sc_pkcs15_print_id(&obj->auth_id));
 	if (obj->user_consent)
 		printf("\tUser consent: %u\n", obj->user_consent);
 
