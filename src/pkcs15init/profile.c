@@ -16,6 +16,9 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ * Random notes
+ *  -	the "key" command should go away, it's obsolete
  */
 
 #ifdef HAVE_CONFIG_H
@@ -35,6 +38,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <opensc/scconf.h>
+#include <opensc/log.h>
 #include "pkcs15-init.h"
 #include "profile.h"
 
@@ -190,13 +194,19 @@ static void		init_state(struct state *, struct state *);
 static int		get_authid(struct state *, const char *,
 				unsigned int *, unsigned int *);
 static int		get_uint(struct state *, const char *, unsigned int *);
+static int		get_bool(struct state *, const char *, unsigned int *);
+static int		get_uint_eval(struct state *, int, char **,
+				unsigned int *);
 static int		map_str2int(struct state *, const char *,
 				unsigned int *, struct map *);
 static int		setstr(char **strp, const char *value);
 static void		parse_error(struct state *, const char *, ...);
 
+static file_info *	sc_profile_instantiate_file(sc_profile_t *,
+				struct file_info *, struct file_info *,
+				unsigned int);
 static file_info *	sc_profile_find_file(struct sc_profile *,
-				const char *);
+				const sc_path_t *, const char *);
 static file_info *	sc_profile_find_file_by_path(
 				struct sc_profile *,
 				const struct sc_path *);
@@ -204,10 +214,16 @@ static file_info *	sc_profile_find_file_by_path(
 static pin_info *	new_pin(struct sc_profile *, unsigned int);
 static file_info *	new_file(struct state *, const char *,
 				unsigned int);
+static file_info *	add_file(sc_profile_t *, const char *,
+				sc_file_t *, file_info *);
+static void		free_file_list(struct file_info **);
+static void		append_file(sc_profile_t *, struct file_info *);
 static auth_info *	new_key(struct sc_profile *,
 				unsigned int, unsigned int);
 static void		set_pin_defaults(struct sc_profile *,
 				struct pin_info *);
+static void		new_macro(sc_profile_t *, const char *, scconf_list *);
+static sc_macro_t *	find_macro(sc_profile_t *, const char *);
 
 static struct sc_file *
 init_file(unsigned int type)
@@ -235,7 +251,7 @@ sc_profile_new()
 	struct sc_profile *pro;
 
 	pro = (struct sc_profile *) calloc(1, sizeof(*pro));
-	pro->p15_card = p15card = sc_pkcs15_card_new();
+	pro->p15_spec = p15card = sc_pkcs15_card_new();
 
 	/* Set up EF(TokenInfo) and EF(ODF) */
 	p15card->file_tokeninfo = init_file(SC_FILE_TYPE_WORKING_EF);
@@ -255,6 +271,7 @@ sc_profile_new()
 	pro->pin_encoding = 0x01;
 	pro->pin_minlen = 4;
 	pro->pin_maxlen = 8;
+	pro->keep_public_key = 1;
 
 	return pro;
 }
@@ -271,8 +288,10 @@ sc_profile_load(struct sc_profile *profile, const char *filename)
 	res = scconf_parse(conf);
 	if (res < 0)
 		return SC_ERROR_FILE_NOT_FOUND;
-	if (res == 0)
+	if (res == 0) {
+		/* FIXME - we may want to display conf->errmsg here. */
 		return SC_ERROR_SYNTAX_ERROR;
+	}
 
 	res = process_conf(profile, conf);
 	scconf_free(conf);
@@ -284,65 +303,83 @@ sc_profile_finish(struct sc_profile *profile)
 {
 	struct file_info *fi;
 	struct pin_info	*pi;
-	const char	*reason, *name;
+	char		reason[64];
 
-	reason = "Profile doesn't define a MF";
-	if (!(profile->mf_info = sc_profile_find_file(profile, "MF")))
+	profile->mf_info = sc_profile_find_file(profile, NULL, "MF");
+	if (!profile->mf_info) {
+		strcpy(reason, "Profile doesn't define a MF");
 		goto whine;
-	reason = "Profile doesn't define a PKCS15-AppDF";
-	if (!(profile->df_info = sc_profile_find_file(profile, "PKCS15-AppDF")))
+	}
+	profile->df_info = sc_profile_find_file(profile, NULL, "PKCS15-AppDF");
+	if (!profile->df_info) {
+		strcpy(reason, "Profile doesn't define a PKCS15-AppDF");
 		goto whine;
-	profile->p15_card->file_app = profile->df_info->file;
+	}
+	profile->p15_spec->file_app = profile->df_info->file;
 	profile->df_info->dont_free = 1;
 
 	for (pi = profile->pin_list; pi; pi = pi->next) {
+		const char	*name;
+
 		set_pin_defaults(profile, pi);
 		if (!(name = pi->file_name))
 			continue;
-		if (!(fi = sc_profile_find_file(profile, name))) {
-			if (profile->cbs)
-				profile->cbs->error(
-					"unknown PIN file \"%s\"\n", name);
-			return SC_ERROR_INCONSISTENT_PROFILE;
+		if (!(fi = sc_profile_find_file(profile, NULL, name))) {
+			snprintf(reason, sizeof(reason),
+				"unknown PIN file \"%s\"\n", name);
+			goto whine;
 		}
 		pi->file = fi;
 	}
 	return 0;
 
-whine:	if (profile->cbs)
-		profile->cbs->error("%s\n", reason);
+whine:	sc_error(profile->card->ctx, "%s", reason);
 	return SC_ERROR_INCONSISTENT_PROFILE;
 }
 
 void
 sc_profile_free(struct sc_profile *profile)
 {
-	struct file_info *fi;
 	struct auth_info *ai;
 	struct pin_info *pi;
+	sc_macro_t	*mi;
+	sc_template_t	*ti;
 
-	while ((fi = profile->ef_list) != NULL) {
-		profile->ef_list = fi->next;
-		if (fi->dont_free == 0)
-			sc_file_free(fi->file);
-		free(fi->ident);
-		free(fi);
-	}
+	if (profile->name)
+		free(profile->name);
+
+	free_file_list(&profile->ef_list);
 
 	while ((ai = profile->auth_list) != NULL) {
 		profile->auth_list = ai->next;
 		free(ai);
 	}
 
+	while ((ti = profile->template_list) != NULL) {
+		profile->template_list = ti->next;
+		if (ti->data)
+			free(ti->data);
+		if (ti->name)
+			free(ti->name);
+		free(ti);
+	}
+
+	while ((mi = profile->macro_list) != NULL) {
+		profile->macro_list = mi->next;
+		if (mi->name)
+			free(mi->name);
+		free(mi);
+	}
+
 	while ((pi = profile->pin_list) != NULL) {
+		profile->pin_list = pi->next;
 		if (pi->file_name)
 			free(pi->file_name);
-		profile->pin_list = pi->next;
 		free(pi);
 	}
 
-	if (profile->p15_card)
-		sc_pkcs15_card_free(profile->p15_card);
+	if (profile->p15_spec)
+		sc_pkcs15_card_free(profile->p15_spec);
 	memset(profile, 0, sizeof(*profile));
 	free(profile);
 }
@@ -402,16 +439,6 @@ sc_profile_locate(const char *name)
 }
 
 void
-sc_profile_set_pin_info(struct sc_profile *profile,
-		unsigned int id, const struct sc_pkcs15_pin_info *info)
-{
-	struct pin_info	*pi;
-
-	pi = new_pin(profile, id);
-	pi->pin = *info;
-}
-
-void
 sc_profile_get_pin_info(struct sc_profile *profile,
 		unsigned int id, struct sc_pkcs15_pin_info *info)
 {
@@ -419,6 +446,15 @@ sc_profile_get_pin_info(struct sc_profile *profile,
 
 	pi = new_pin(profile, id);
 	*info = pi->pin;
+}
+
+int
+sc_profile_get_pin_retries(sc_profile_t *profile, unsigned int id)
+{
+	struct pin_info	*pi;
+
+	pi = new_pin(profile, id);
+	return pi->pin.tries_left;
 }
 
 int
@@ -438,12 +474,24 @@ sc_profile_get_pin_id(struct sc_profile *profile,
 }
 
 int
+sc_profile_get_file_in(sc_profile_t *profile,
+		const sc_path_t *path, const char *name, sc_file_t **ret)
+{
+	struct file_info *fi;
+
+	if ((fi = sc_profile_find_file(profile, path, name)) == NULL)
+		return SC_ERROR_FILE_NOT_FOUND;
+	sc_file_dup(ret, fi->file);
+	return 0;
+}
+
+int
 sc_profile_get_file(struct sc_profile *profile,
 		const char *name, struct sc_file **ret)
 {
 	struct file_info *fi;
 
-	if ((fi = sc_profile_find_file(profile, name)) == NULL)
+	if ((fi = sc_profile_find_file(profile, NULL, name)) == NULL)
 		return SC_ERROR_FILE_NOT_FOUND;
 	sc_file_dup(ret, fi->file);
 	return 0;
@@ -455,7 +503,7 @@ sc_profile_get_path(struct sc_profile *profile,
 {
 	struct file_info *fi;
 
-	if ((fi = sc_profile_find_file(profile, name)) == NULL)
+	if ((fi = sc_profile_find_file(profile, NULL, name)) == NULL)
 		return SC_ERROR_FILE_NOT_FOUND;
 	*ret = fi->file->path;
 	return 0;
@@ -471,6 +519,133 @@ sc_profile_get_file_by_path(struct sc_profile *profile,
 		return SC_ERROR_FILE_NOT_FOUND;
 	sc_file_dup(ret, fi->file);
 	return 0;
+}
+
+int
+sc_profile_add_file(sc_profile_t *profile, const char *name, sc_file_t *file)
+{
+	sc_path_t	path = file->path;
+	file_info	*parent;
+
+	path.len -= 2;
+	if (!(parent = sc_profile_find_file_by_path(profile, &path))) {
+		/* XXX perror */
+		return SC_ERROR_FILE_NOT_FOUND;
+	}
+	sc_file_dup(&file, file);
+	add_file(profile, name, file, parent);
+	return 0;
+}
+
+/*
+ * Instantiate template
+ */
+int
+sc_profile_instantiate_template(sc_profile_t *profile,
+		const char *template_name, const sc_path_t *base_path,
+		const char *file_name, const sc_pkcs15_id_t *id,
+		sc_file_t **ret)
+{
+	sc_card_t	*card = profile->card;
+	sc_profile_t	*tmpl;
+	sc_template_t	*info;
+	unsigned int	index;
+	struct file_info *fi, *base_file, *match = NULL;
+
+	for (info = profile->template_list; info; info = info->next) {
+		if (!strcmp(info->name, template_name))
+			break;
+	}
+	if (info == NULL)
+		return SC_ERROR_TEMPLATE_NOT_FOUND;
+
+	tmpl = info->data;
+	index = id->value[id->len-1];
+	for (fi = profile->ef_list; fi; fi = fi->next) {
+		if (fi->base_template == tmpl
+		 && fi->inst_index == index
+		 && sc_compare_path(&fi->inst_path, base_path)
+		 && !strcmp(fi->ident, file_name)) {
+			sc_file_dup(ret, fi->file);
+			return 0;
+		}
+	}
+
+	if (profile->card->ctx->debug >= 2) {
+		sc_debug(profile->card->ctx,
+			"Instantiating template %s at %s",
+			template_name, sc_print_path(base_path));
+	}
+
+	base_file = sc_profile_find_file_by_path(profile, base_path);
+	if (base_file == NULL) {
+		sc_error(card->ctx, "Directory %s not defined in profile",
+					sc_print_path(base_path));
+		return SC_ERROR_OBJECT_NOT_FOUND;
+	}
+
+	/* This loop relies on the fact that new files are always
+	 * appended to the list, after the parent files they refer to
+	 */
+	assert(base_file->instance);
+	for (fi = tmpl->ef_list; fi; fi = fi->next) {
+		file_info	*parent, *instance;
+		unsigned int	skew = 0;
+
+		fi->instance = NULL;
+		if ((parent = fi->parent) == NULL) {
+			parent = base_file;
+			skew = index;
+		}
+		parent = parent->instance;
+
+		instance = sc_profile_instantiate_file(profile, fi, parent, skew);
+		instance->base_template = tmpl;
+		instance->inst_index = index;
+		instance->inst_path = *base_path;
+
+		if (!strcmp(instance->ident, file_name))
+			match = instance;
+	}
+
+	if (match == NULL) {
+		sc_error(card->ctx, "No file named \"%s\" in template \"%s\"",
+				file_name, template_name);
+		return SC_ERROR_OBJECT_NOT_FOUND;
+	}
+	sc_file_dup(ret, match->file);
+	return 0;
+}
+
+static file_info *
+sc_profile_instantiate_file(sc_profile_t *profile, file_info *ft,
+		file_info *parent, unsigned int skew)
+{
+	struct file_info *fi;
+	sc_card_t	*card = profile->card;
+
+	fi = (file_info *) calloc(1, sizeof(*fi));
+	fi->instance = fi;
+	fi->parent = parent;
+	fi->ident = strdup(ft->ident);
+	sc_file_dup(&fi->file, ft->file);
+	fi->file->path = parent->file->path;
+	fi->file->id += skew;
+	sc_append_file_id(&fi->file->path, fi->file->id);
+
+	append_file(profile, fi);
+
+	ft->instance = fi;
+
+	if (card->ctx->debug >= 2) {
+		sc_debug(card->ctx, "Instantiated %s at %s",
+				ft->ident, sc_print_path(&fi->file->path));
+		sc_debug(card->ctx, "  parent=%s@%s",
+				parent->ident,
+				sc_print_path(&parent->file->path));
+	}
+
+	return fi;
 }
 
 /*
@@ -518,9 +693,27 @@ do_pin_pad_char(struct state *cur, int argc, char **argv)
 }
 
 static int
+do_pin_domains(struct state *cur, int argc, char **argv)
+{
+	return get_bool(cur, argv[0], &cur->profile->pin_domains);
+}
+
+static int
+do_protect_certificates(struct state *cur, int argc, char **argv)
+{
+	return get_bool(cur, argv[0], &cur->profile->protect_certificates);
+}
+
+static int
+do_keep_public_key(struct state *cur, int argc, char **argv)
+{
+	return get_bool(cur, argv[0], &cur->profile->keep_public_key);
+}
+
+static int
 do_card_label(struct state *cur, int argc, char **argv)
 {
-	struct sc_pkcs15_card	*p15card = cur->profile->p15_card;
+	struct sc_pkcs15_card	*p15card = cur->profile->p15_spec;
 
 	return setstr(&p15card->label, argv[0]);
 }
@@ -528,9 +721,41 @@ do_card_label(struct state *cur, int argc, char **argv)
 static int
 do_card_manufacturer(struct state *cur, int argc, char **argv)
 {
-	struct sc_pkcs15_card	*p15card = cur->profile->p15_card;
+	struct sc_pkcs15_card	*p15card = cur->profile->p15_spec;
 
 	return setstr(&p15card->manufacturer_id, argv[0]);
+}
+
+/*
+ * Command related to the pkcs15 we generate
+ */
+static int
+do_direct_certificates(struct state *cur, int argc, char **argv)
+{
+	return get_bool(cur, argv[0], &cur->profile->pkcs15.direct_certificates);
+}
+
+static int
+do_encode_df_length(struct state *cur, int argc, char **argv)
+{
+	return get_bool(cur, argv[0], &cur->profile->pkcs15.encode_df_length);
+}
+
+/*
+ * Process an option block
+ */
+static int
+process_option(struct state *cur, struct block *info,
+		const char *name, scconf_block *blk)
+{
+	sc_profile_t	*profile = cur->profile;
+	int		match = 0, i;
+
+	for (i = 0; profile->options[i]; i++)
+		match |= !strcmp(profile->options[i], name);
+	if (!match && strcmp("default", name))
+		return 0;
+	return process_block(cur, info, name, blk);
 }
 
 /*
@@ -630,29 +855,114 @@ process_ef(struct state *cur, struct block *info,
 	return process_block(&state, info, name, blk);
 }
 
+static int
+process_tmpl(struct state *cur, struct block *info,
+		const char *name, scconf_block *blk)
+{
+	struct state	state;
+	sc_template_t	*tinfo;
+	sc_profile_t	*templ;
+
+	if (name == NULL) {
+		parse_error(cur, "No name given for template.");
+		return 1;
+	}
+
+	templ = (sc_profile_t *) calloc(1, sizeof(*templ));
+	templ->cbs = cur->profile->cbs;
+
+	tinfo = (sc_template_t *) calloc(1, sizeof(*tinfo));
+	tinfo->name = strdup(name);
+	tinfo->data = templ;
+
+	tinfo->next = cur->profile->template_list;
+	cur->profile->template_list = tinfo;
+
+	init_state(cur, &state);
+	state.profile = tinfo->data;
+	state.file = NULL;
+
+	return process_block(&state, info, name, blk);
+}
+
+/*
+ * Append new file at the end of the ef_list.
+ * This is crucial; the profile instantiation code relies on it
+ */
+void
+append_file(sc_profile_t *profile, struct file_info *new_file)
+{
+	struct file_info	**list, *fi;
+
+	list = &profile->ef_list;
+	while ((fi = *list) != NULL)
+		list = &fi->next;
+	*list = new_file;
+}
+
+/*
+ * Add a new file to the profile.
+ * This function is called by sc_profile_add_file.
+ */
+static file_info *
+add_file(sc_profile_t *profile, const char *name,
+		sc_file_t *file, file_info *parent)
+{
+	file_info	*info;
+
+	info = (struct file_info *) calloc(1, sizeof(*info));
+	info->instance = info;
+	info->ident = strdup(name);
+
+	info->parent = parent;
+	info->file = file;
+
+	append_file(profile, info);
+	return info;
+}
+
+/*
+ * Free file_info list
+ */
+static void
+free_file_list(struct file_info **list)
+{
+	struct file_info	*fi;
+
+	while ((fi = *list) != NULL) {
+		*list = fi->next;
+
+		if (fi->dont_free == 0)
+			sc_file_free(fi->file);
+		free(fi->ident);
+		free(fi);
+	}
+}
+
+/*
+ * Create a new file info object.
+ * This function is called by the profile parser.
+ */
 static struct file_info *
 new_file(struct state *cur, const char *name, unsigned int type)
 {
-	struct sc_profile *profile = cur->profile;
-	struct file_info *info;
-	struct sc_file	*file;
+	sc_profile_t	*profile = cur->profile;
+	file_info	*info;
+	sc_file_t	*file;
 	unsigned int	df_type = 0, dont_free = 0;
 
-	if ((info = sc_profile_find_file(profile, name)) != NULL)
+	if ((info = sc_profile_find_file(profile, NULL, name)) != NULL)
 		return info;
-
-	info = (struct file_info *) calloc(1, sizeof(*info));
-	info->ident = strdup(name);
 
 	/* Special cases for those EFs handled separately
 	 * by the PKCS15 logic */
 	if (strncasecmp(name, "PKCS15-", 7)) {
 		file = init_file(type);
 	} else if (!strcasecmp(name+7, "TokenInfo")) {
-		file = profile->p15_card->file_tokeninfo;
+		file = profile->p15_spec->file_tokeninfo;
 		dont_free = 1;
 	} else if (!strcasecmp(name+7, "ODF")) {
-		file = profile->p15_card->file_odf;
+		file = profile->p15_spec->file_odf;
 		dont_free = 1;
 	} else if (!strcasecmp(name+7, "AppDF")) {
 		file = init_file(SC_FILE_TYPE_DF);
@@ -670,13 +980,8 @@ new_file(struct state *cur, const char *name, unsigned int type)
 		return NULL;
 	}
 
-	info->parent = cur->file;
-	info->file = file;
+	info = add_file(profile, name, file, cur->file);
 	info->dont_free = dont_free;
-
-	info->next = profile->ef_list;
-	profile->ef_list = info;
-
 	return info;
 }
 
@@ -759,7 +1064,7 @@ do_size(struct state *cur, int argc, char **argv)
 {
 	unsigned int	size;
 
-	if (get_uint(cur, argv[0], &size))
+	if (get_uint_eval(cur, argc, argv, &size))
 		return 1;
 	cur->file->file->size = size;
 	return 0;
@@ -811,12 +1116,13 @@ static int
 do_acl(struct state *cur, int argc, char **argv)
 {
 	struct sc_file	*file = cur->file->file;
-	char		*oper = 0, *what = 0;
+	char		oper[64], *what = 0;
 
+	memset(oper, 0, sizeof(oper));
 	while (argc--) {
 		unsigned int	op, method, id;
 
-		oper = *argv++;
+		strncpy(oper, *argv++, sizeof(oper)-1);
 		if ((what = strchr(oper, '=')) == NULL)
 			goto bad;
 		*what++ = '\0';
@@ -996,6 +1302,17 @@ do_pin_maxlength(struct state *cur, int argc, char **argv)
 
 	if (get_uint(cur, argv[0], &len))
 		return 1;
+	cur->pin->pin.max_length = len;
+	return 0;
+}
+
+static int
+do_pin_storedlength(struct state *cur, int argc, char **argv)
+{
+	unsigned int	len;
+
+	if (get_uint(cur, argv[0], &len))
+		return 1;
 	cur->pin->pin.stored_length = len;
 	return 0;
 }
@@ -1004,13 +1321,64 @@ static int
 do_pin_flags(struct state *cur, int argc, char **argv)
 {
 	unsigned int	flags;
+	int		i, r;
 
-	if (map_str2int(cur, argv[0], &flags, pinTypeNames))
-		return 1;
-	cur->pin->pin.flags = flags;
+	cur->pin->pin.flags = 0;
+	for (i = 0; i < argc; i++) {
+		if ((r = map_str2int(cur, argv[i], &flags, pinFlagNames)) < 0)
+			return r;
+		cur->pin->pin.flags |= flags;
+	}
+
 	return 0;
 }
 
+static int
+process_macros(struct state *cur, struct block *info,
+		const char *dummy, scconf_block *blk)
+{
+	scconf_item	*item;
+	const char	*name;
+
+	for (item = blk->items; item; item = item->next) {
+		name = item->key;
+		if (item->type != SCCONF_ITEM_TYPE_VALUE)
+			continue;
+#if 0
+		printf("Defining %s\n", name);
+#endif
+		new_macro(cur->profile, name, item->value.list);
+	}
+
+	return 0;
+}
+
+static void
+new_macro(sc_profile_t *profile, const char *name, scconf_list *value)
+{
+	sc_macro_t	*mac;
+
+	if ((mac = find_macro(profile, name)) == NULL) {
+		mac = (sc_macro_t *) calloc(1, sizeof(*mac));
+		mac->name = strdup(name);
+		mac->next = profile->macro_list;
+		profile->macro_list = mac;
+	}
+
+	mac->value = value;
+}
+
+static sc_macro_t *
+find_macro(sc_profile_t *profile, const char *name)
+{
+	sc_macro_t	*mac;
+
+	for (mac = profile->macro_list; mac; mac = mac->next) {
+		if (!strcmp(mac->name, name))
+			return mac;
+	}
+	return NULL;
+}
 
 /*
  * Key section
@@ -1029,8 +1397,11 @@ static struct command	ci_commands[] = {
  { "min-pin-length",	1,	1,	do_minpinlength	},
  { "pin-encoding",	1,	1,	do_default_pin_type },
  { "pin-pad-char",	1,	1,	do_pin_pad_char },
+ { "pin-domains",	1,	1,	do_pin_domains	},
+ { "protect-certificates", 1,	1,	do_protect_certificates },
  { "label",		1,	1,	do_card_label	},
  { "manufacturer",	1,	1,	do_card_manufacturer},
+ { "keep-public-key",	1,	1,	do_keep_public_key },
 
  { NULL, 0, 0, NULL }
 };
@@ -1049,7 +1420,7 @@ static struct command	fs_commands[] = {
  { "path",		1,	1,	do_file_path	},
  { "file-id",		1,	1,	do_fileid	},
  { "structure",		1,	1,	do_structure	},
- { "size",		1,	1,	do_size		},
+ { "size",		1,	-1,	do_size		},
  { "record-length",	1,	1,	do_reclength	},
  { "AID",		1,	1,	do_aid		},
  { "ACL",		1,	-1,	do_acl		},
@@ -1060,6 +1431,7 @@ static struct command	fs_commands[] = {
 static struct block	fs_blocks[] = {
  { "DF",		process_df,	fs_commands,	fs_blocks },
  { "EF",		process_ef,	fs_commands,	fs_blocks },
+ { "template",		process_tmpl,	fs_commands,	fs_blocks },
 
  { NULL, NULL, NULL, NULL }
 };
@@ -1076,7 +1448,17 @@ static struct command	pi_commands[] = {
  { "auth-id",		1,	1,	do_pin_authid	},
  { "max-length",	1,	1,	do_pin_maxlength},
  { "min-length",	1,	1,	do_pin_minlength},
- { "flags",		1,	1,	do_pin_flags	},
+ { "stored-length",	1,	1,	do_pin_storedlength},
+ { "flags",		1,	-1,	do_pin_flags	},
+ { NULL, 0, 0, NULL }
+};
+
+/*
+ * pkcs15 dialect section
+ */
+static struct command	p15_commands[] = {
+ { "direct-certificates", 1,	1,	do_direct_certificates },
+ { "encode-df-length",	1,	1,	do_encode_df_length },
  { NULL, 0, 0, NULL }
 };
 
@@ -1084,6 +1466,9 @@ static struct block	root_blocks[] = {
  { "filesystem",	process_block,	NULL,		fs_blocks },
  { "cardinfo",		process_block,	ci_commands,	ci_blocks },
  { "pin",		process_pin,	pi_commands,	NULL	},
+ { "option",		process_option,	NULL,		root_blocks },
+ { "macros",		process_macros,	NULL,		NULL	},
+ { "pkcs15",		process_block,	p15_commands,	NULL	},
 
  { NULL, NULL , NULL }
 };
@@ -1093,25 +1478,69 @@ static struct block	root_ops = {
 };
 
 static int
+build_argv(struct state *cur, const char *cmdname,
+		scconf_list *list, char **argv, unsigned int max)
+{
+	unsigned int	argc;
+	const char	*str;
+	sc_macro_t	*mac;
+	int		r;
+
+	for (argc = 0; list; list = list->next) {
+		if (argc >= max) {
+			parse_error(cur, "%s: too many arguments", cmdname);
+			return SC_ERROR_INVALID_ARGUMENTS;
+		}
+
+		str = list->data;
+		if (str[0] != '$') {
+			argv[argc++] = list->data;
+			continue;
+		}
+
+		/* Expand macro reference */
+		if (!(mac = find_macro(cur->profile, str + 1))) {
+			parse_error(cur, "%s: unknown macro \"%s\"",
+					cmdname, str);
+			return SC_ERROR_SYNTAX_ERROR;
+		}
+
+#if 0
+		{
+			scconf_list *list;
+
+			printf("Expanding macro %s:", mac->name);
+			for (list = mac->value; list; list = list->next)
+				printf(" %s", list->data);
+			printf("\n");
+		}
+#endif
+		r = build_argv(cur, cmdname, mac->value,
+				argv + argc, max - argc);
+		if (r < 0)
+			return r;
+
+		argc += r;
+	}
+
+	return argc;
+}
+
+static int
 process_command(struct state *cur, struct command *cmd_info, scconf_list *list)
 {
 	const char	*cmd = cmd_info->name;
-	char		*argv[16];
-	unsigned int	argc, max = 16;
+	char		*argv[32];
+	int		argc, max = 32;
 
-	/* count arguments first */
-	for (argc = 0; list; list = list->next) {
-		if (argc >= max)
-			goto toomany;
-		argv[argc++] = list->data;
-	}
+	if (cmd_info->max_args >= 0 && max > cmd_info->max_args)
+		max = cmd_info->max_args;
+
+	if ((argc = build_argv(cur, cmd, list, argv, max)) < 0)
+		return argc;
 
 	if (argc < cmd_info->min_args) {
 		parse_error(cur, "%s: not enough arguments\n", cmd);
-		return 1;
-	}
-	if (0 <= cmd_info->max_args && cmd_info->max_args < argc) {
-toomany:	parse_error(cur, "%s: too many arguments\n", cmd);
 		return 1;
 	}
 	return cmd_info->func(cur, argc, argv);
@@ -1179,6 +1608,9 @@ process_block(struct state *cur, struct block *info,
 			}
 		} else
 		if (item->type == SCCONF_ITEM_TYPE_VALUE) {
+#if 0
+			printf("Processing %s\n", cmd);
+#endif
 			if ((cp = find_cmd_handler(info->cmd_info, cmd))) {
 				res = process_command(cur, cp,
 						item->value.list);
@@ -1207,12 +1639,19 @@ process_conf(struct sc_profile *profile, scconf_context *conf)
 }
 
 static struct file_info *
-sc_profile_find_file(struct sc_profile *pro, const char *name)
+sc_profile_find_file(struct sc_profile *pro,
+		const sc_path_t *path, const char *name)
 {
 	struct file_info	*fi;
+	unsigned int		len;
 
+	len = path? path->len : 0;
 	for (fi = pro->ef_list; fi; fi = fi->next) {
-		if (!strcasecmp(fi->ident, name)) 
+		sc_path_t *fpath = &fi->file->path;
+
+		if (!strcasecmp(fi->ident, name)
+		 && fpath->len >= len
+		 && !memcmp(fpath->value, path->value, len))
 			return fi;
 	}
 	return NULL;
@@ -1231,75 +1670,6 @@ sc_profile_find_file_by_path(struct sc_profile *pro, const struct sc_path *path)
 			return fi;
 	}
 	return NULL;
-}
-
-void
-sc_profile_set_secret(struct sc_profile *profile,
-		unsigned int type, unsigned int ref,
-		const u8 *key, size_t key_len)
-{
-	struct auth_info *ai;
-
-	ai = new_key(profile, type, ref);
-	if (key_len)
-		memcpy(ai->key, key, key_len);
-	ai->key_len = key_len;
-}
-
-int
-sc_profile_get_secret(struct sc_profile *profile,
-		unsigned int type, unsigned int ref,
-		u8 *key, size_t *len)
-{
-	struct auth_info *ai, **aip;
-
-	for (aip = &profile->auth_list; (ai = *aip); aip = &ai->next) {
-		if (ai->type == type && ai->ref == ref) {
-			if (ai->key_len > *len)
-				return SC_ERROR_BUFFER_TOO_SMALL;
-			memcpy(key, ai->key, ai->key_len);
-			*len = ai->key_len;
-			return 0;
-		}
-	}
-
-	return SC_ERROR_OBJECT_NOT_FOUND;
-}
-
-void
-sc_profile_forget_secrets(struct sc_profile *profile,
-		unsigned int type, int ref)
-{
-	struct auth_info *ai, **aip;
-
-	aip = &profile->auth_list;
-	while ((ai = *aip) != NULL) {
-		if (ai->type == type
-		 && (ref < 0 || ai->ref == (unsigned int) ref)) {
-			*aip = ai->next;
-			free(ai);
-		} else {
-			aip = &ai->next;
-		}
-	}
-}
-
-void
-sc_profile_set_so_pin(struct sc_profile *profile, const char *value)
-{
-	if (!value)
-		return;
-	sc_profile_set_secret(profile, SC_AC_SYMBOLIC,
-			SC_PKCS15INIT_SO_PIN, (u8 *) value, strlen(value));
-}
-
-void
-sc_profile_set_user_pin(struct sc_profile *profile, const char *value)
-{
-	if (!value)
-		return;
-	sc_profile_set_secret(profile, SC_AC_SYMBOLIC,
-			SC_PKCS15INIT_USER_PIN, (u8 *) value, strlen(value));
 }
 
 /*
@@ -1344,6 +1714,25 @@ get_uint(struct state *cur, const char *value, unsigned int *vp)
 }
 
 static int
+get_bool(struct state *cur, const char *value, unsigned int *vp)
+{
+	if (!strcasecmp(value, "on")
+	 || !strcasecmp(value, "yes")
+	 || !strcasecmp(value, "true")) {
+		*vp = 1;
+	} else
+	if (!strcasecmp(value, "off")
+	 || !strcasecmp(value, "no")
+	 || !strcasecmp(value, "false")) {
+		*vp = 0;
+	} else {
+		parse_error(cur, "invalid boolean argument \"%s\"\n", value);
+		return 1;
+	}
+	return 0;
+}
+
+static int
 map_str2int(struct state *cur, const char *value,
 		unsigned int *vp, struct map *map)
 {
@@ -1369,7 +1758,7 @@ map_str2int(struct state *cur, const char *value,
 	}
 
 	parse_error(cur, "invalid %s \"%s\"\n", what, value);
-	return 1;
+	return SC_ERROR_SYNTAX_ERROR;
 }
 
 static int
@@ -1378,6 +1767,218 @@ setstr(char **strp, const char *value)
 	if (*strp)
 		free(*strp);
 	*strp = strdup(value);
+	return 0;
+}
+
+/*
+ * Evaluate numeric expressions
+ */
+#include <setjmp.h>
+
+struct num_exp_ctx {
+	struct state *	state;
+	jmp_buf		error;
+
+	int		j;
+	char		word[64];
+
+	char *		unget;
+	char *		str;
+	int		argc;
+	char **		argv;
+};
+
+static void	expr_eval(struct num_exp_ctx *, unsigned int *, unsigned int);
+
+static void
+expr_fail(struct num_exp_ctx *ctx)
+{
+	longjmp(ctx->error, 1);
+}
+
+static void
+expr_put(struct num_exp_ctx *ctx, char c)
+{
+	if (ctx->j >= sizeof(ctx->word))
+		expr_fail(ctx);
+	ctx->word[ctx->j++] = c;
+}
+
+static char *
+__expr_get(struct num_exp_ctx *ctx, int eof_okay)
+{
+	char	*s;
+
+	if ((s = ctx->unget) != NULL) {
+		ctx->unget = NULL;
+		return s;
+	}
+
+	ctx->j = 0;
+	do {
+		if ((s = ctx->str) == NULL || *s == '\0') {
+			if (ctx->argc == 0) {
+				if (eof_okay)
+					return NULL;
+				expr_fail(ctx);
+			}
+			ctx->str = s = *(ctx->argv++);
+			ctx->argc--;
+		}
+
+		while (isspace(*s))
+			s++;
+	} while (*s == '\0');
+
+	if (isdigit(*s)) {
+		while (isdigit(*s))
+			expr_put(ctx, *s++);
+	} else if (*s == '$') {
+		expr_put(ctx, *s++);
+		while (isalnum(*s) || *s == '-' || *s == '_')
+			expr_put(ctx, *s++);
+	} else if (strchr("*/+-()|&", *s)) {
+		expr_put(ctx, *s++);
+	} else {
+		expr_fail(ctx);
+	}
+	ctx->str = s;
+
+	expr_put(ctx, '\0');
+	return ctx->word;
+}
+
+static char *
+expr_get(struct num_exp_ctx *ctx)
+{
+	return __expr_get(ctx, 0);
+}
+
+static void
+expr_unget(struct num_exp_ctx *ctx, char *s)
+{
+	if (ctx->unget)
+		expr_fail(ctx);
+	ctx->unget = s;
+}
+
+static void
+expr_expect(struct num_exp_ctx *ctx, char c)
+{
+	char	*tok;
+
+	tok = expr_get(ctx);
+	if (tok[0] != c || tok[1])
+		expr_fail(ctx);
+}
+
+static void
+expr_term(struct num_exp_ctx *ctx, unsigned int *vp)
+{
+	char	*tok;
+
+	tok = expr_get(ctx);
+	if (*tok == '(') {
+		expr_eval(ctx, vp, 1);
+		expr_expect(ctx, ')');
+	} else if (isdigit(*tok)) {
+		char	*ep;
+
+		*vp = strtoul(tok, &ep, 0);
+		if (*ep)
+			expr_fail(ctx);
+	} else if (*tok == '$') {
+		sc_macro_t	*mac;
+		char		*argv[32];
+		int		argc;
+
+		if (!(mac = find_macro(ctx->state->profile, tok + 1)))
+			expr_fail(ctx);
+		argc = build_argv(ctx->state, "<expr>", mac->value, argv, 32);
+		if (argc < 0
+		 || get_uint_eval(ctx->state, argc, argv, vp) < 0)
+			expr_fail(ctx);
+	} else {
+		parse_error(ctx->state,
+			"Unexpected token \"%s\" in expression",
+			tok);
+		expr_fail(ctx);
+	}
+}
+
+static void
+expr_eval(struct num_exp_ctx *ctx, unsigned int *vp, unsigned int pri)
+{
+	unsigned int	left, right, new_pri;
+	char		*tok, op;
+
+	expr_term(ctx, &left);
+
+	while (1) {
+		tok = __expr_get(ctx, 1);
+		if (tok == NULL)
+			break;
+
+		op = tok[0];
+
+		new_pri = 0;
+		switch (op) {
+		case '*':
+		case '/':
+			new_pri++;
+		case '+':
+		case '-':
+			new_pri++;
+		case '&':
+			new_pri++;
+		case '|':
+			new_pri++;
+		case ')':
+			break;
+		default:
+			expr_fail(ctx);
+		}
+
+		if (new_pri < pri) {
+			expr_unget(ctx, tok);
+			break;
+		}
+		pri = new_pri;
+
+		expr_eval(ctx, &right, new_pri + 1);
+		switch (op) {
+		case '*': left *= right; break;
+		case '/': left /= right; break;
+		case '+': left += right; break;
+		case '-': left -= right; break;
+		case '&': left &= right; break;
+		case '|': left |= right; break;
+		default: expr_fail(ctx);
+		}
+	}
+
+	*vp = left;
+}
+
+static int
+get_uint_eval(struct state *cur, int argc, char **argv, unsigned int *vp)
+{
+	struct num_exp_ctx	ctx;
+
+	memset(&ctx, 0, sizeof(ctx));
+	ctx.state = cur;
+	ctx.argc  = argc;
+	ctx.argv  = argv;
+
+	if (setjmp(ctx.error)) {
+		parse_error(cur, "invalid numeric expression\n");
+		return SC_ERROR_SYNTAX_ERROR;
+	}
+
+	expr_eval(&ctx, vp, 0);
+	if (ctx.str[0] || ctx.argc)
+		expr_fail(&ctx);
+
 	return 0;
 }
 
@@ -1394,7 +1995,5 @@ parse_error(struct state *cur, const char *fmt, ...)
 	if ((sp = strchr(buffer, '\n')) != NULL)
 		*sp = '\0';
 
-	if (cur->profile->cbs)
-		cur->profile->cbs->error("%s: %s",
-			cur->filename, buffer);
+	sc_error(cur->profile->card->ctx, "%s: %s", cur->filename, buffer);
 }
