@@ -487,7 +487,7 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 	LONG rv;
 	DWORD reader_buf_size;
 	char *reader_buf, *p;
-	LPCSTR mszGroups = NULL;
+	LPCTSTR mszGroups = NULL;
 	SCARDCONTEXT pcsc_ctx;
 	int r, i;
 	struct pcsc_global_private_data *gpriv;
