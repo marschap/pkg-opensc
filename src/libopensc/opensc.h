@@ -112,9 +112,9 @@ extern "C" {
 #define SC_MAX_CARD_DRIVER_SNAME_SIZE	16
 #define SC_MAX_READERS			16
 #define SC_MAX_SLOTS			4
-#define SC_MAX_CARD_APPS		4
+#define SC_MAX_CARD_APPS		8
 #define SC_MAX_APDU_BUFFER_SIZE		258
-#define SC_MAX_PIN_SIZE			16
+#define SC_MAX_PIN_SIZE			256 /* OpenPGP card has 254 max */
 #define SC_MAX_ATR_SIZE			33
 #define SC_MAX_AID_SIZE			16
 /* Beware: the following needs to be a mutiple of 4
@@ -257,7 +257,16 @@ struct sc_reader_driver {
 	const char *name;
 	const char *short_name;
 	struct sc_reader_operations *ops;
+
+	size_t max_send_size, max_recv_size;
+	int apdu_masquerade;
+	unsigned int forced_protocol;
+	void *dll;
 };
+#define SC_APDU_MASQUERADE_NONE		0x00
+#define SC_APDU_MASQUERADE_4AS3		0x01
+#define SC_APDU_MASQUERADE_1AS2		0x02
+#define SC_APDU_MASQUERADE_1AS2_ALWAYS	0x04
 
 /* slot flags */
 #define SC_SLOT_CARD_PRESENT	0x00000001
@@ -327,9 +336,8 @@ struct sc_pin_cmd_pin {
 	int encoding;		/* ASCII-numeric, BCD, etc */
 	size_t pad_length;	/* filled in by the card driver */
 	u8 pad_char;
-	size_t offset;		/* offset relative to the APDU's
-				 * argument buffer, where the
-				 * PIN should go */
+	size_t offset;          /* PIN offset in the APDU */
+	size_t length_offset;	/* Effective PIN length offset in the APDU */
 };
 
 struct sc_pin_cmd_data {
@@ -374,10 +382,6 @@ struct sc_reader_operations {
 	int (*unlock)(struct sc_reader *reader, struct sc_slot_info *slot);
 	int (*set_protocol)(struct sc_reader *reader, struct sc_slot_info *slot,
 			    unsigned int proto);
-	/* Not sure what that is supposed to do --okir */
-	int (*add_callback)(struct sc_reader *reader, struct sc_slot_info *slot,
-			    const struct sc_event_listener *, void *arg);
-
 	/* Pin pad functions */
 	int (*display_message)(struct sc_reader *, struct sc_slot_info *,
 			       const char *);
@@ -394,12 +398,16 @@ struct sc_reader_operations {
 			      int timeout);
 };
 
-
 /* Mutexes - this is just a dummy struct used for type
  * safety; internally we use objects defined by the
  * underlying thread model
  */
 typedef struct sc_mutex sc_mutex_t;
+
+struct sc_mutex *sc_mutex_new(void);
+void sc_mutex_lock(struct sc_mutex *p);
+void sc_mutex_unlock(struct sc_mutex *p);
+void sc_mutex_free(struct sc_mutex *p);
 
 /*
  * Card flags
@@ -428,7 +436,8 @@ struct sc_card {
 	int cla;
 	u8 atr[SC_MAX_ATR_SIZE];
 	size_t atr_len;
-	size_t max_le;
+	size_t max_send_size;
+	size_t max_recv_size;
 
 	struct sc_app_info *app[SC_MAX_CARD_APPS];
 	int app_count;
@@ -527,6 +536,7 @@ struct sc_card_operations {
 	 *   restore_security_env. */
 	int (*decipher)(struct sc_card *card, const u8 * crgram,
 		        size_t crgram_len, u8 * out, size_t outlen);
+	
 	/* compute_signature:  Generates a digital signature on the card.  Similiar
 	 *   to the function decipher. */
 	int (*compute_signature)(struct sc_card *card, const u8 * data,
@@ -563,6 +573,11 @@ struct sc_card_operations {
 	 */
 	int (*pin_cmd)(struct sc_card *, struct sc_pin_cmd_data *,
 				int *tries_left);
+
+	int (*get_data)(sc_card_t *, unsigned int, u8 *, size_t);
+	int (*put_data)(sc_card_t *, unsigned int, const u8 *, size_t);
+
+	int (*delete_record)(sc_card_t *card, unsigned int rec_nr);
 };
 
 struct sc_card_driver {
@@ -571,6 +586,7 @@ struct sc_card_driver {
 	struct sc_card_operations *ops;
 	struct sc_atr_table *atr_map;
 	unsigned int natrs;
+	void *dll;
 };
 
 struct sc_context {
@@ -579,8 +595,9 @@ struct sc_context {
 	char *app_name;
 	int debug;
 
+	int suppress_errors;
 	FILE *debug_file, *error_file;
-	int log_errors;
+	char *preferred_language;
 
 	const struct sc_reader_driver *reader_drivers[SC_MAX_READER_DRIVERS+1];
 	void *reader_drv_data[SC_MAX_READER_DRIVERS];
@@ -741,6 +758,11 @@ int sc_append_record(struct sc_card *card, const u8 * buf, size_t count,
 		     unsigned long flags);
 int sc_update_record(struct sc_card *card, unsigned int rec_nr, const u8 * buf,
 		     size_t count, unsigned long flags);
+int sc_delete_record(struct sc_card *card, unsigned int rec_nr);
+
+/* get/put data functions */
+int sc_get_data(sc_card_t *, unsigned int, u8 *, size_t);
+int sc_put_data(sc_card_t *, unsigned int, const u8 *, size_t);
 
 int sc_get_challenge(struct sc_card *card, u8 * rndout, size_t len);
 
@@ -805,8 +827,10 @@ int sc_file_set_type_attr(struct sc_file *file, const u8 *type_attr,
 
 void sc_format_path(const char *path_in, struct sc_path *path_out);
 const char *sc_print_path(const sc_path_t *path_in);
+int sc_compare_path(const sc_path_t *, const sc_path_t *);
 int sc_append_path(struct sc_path *dest, const struct sc_path *src);
 int sc_append_path_id(struct sc_path *dest, const u8 *id, size_t idlen);
+int sc_append_file_id(struct sc_path *dest, unsigned int fid);
 int sc_hex_to_bin(const char *in, u8 *out, size_t *outlen);
 int sc_bin_to_hex(const u8 *, size_t, char *, size_t, char separator);
 
@@ -828,15 +852,22 @@ struct sc_card_error {
 
 extern const char *sc_get_version(void);
 
-extern const struct sc_reader_driver *sc_get_pcsc_driver(void);
-extern const struct sc_reader_driver *sc_get_ctapi_driver(void);
-extern const struct sc_reader_driver *sc_get_usbtoken_driver(void);
-extern const struct sc_reader_driver *sc_get_openct_driver(void);
+#define SC_IMPLEMENT_DRIVER_VERSION(a) \
+	static const char *drv_version = (a); \
+	const char *sc_driver_version()\
+	{ \
+		return drv_version; \
+	}
+
+extern struct sc_reader_driver *sc_get_pcsc_driver(void);
+extern struct sc_reader_driver *sc_get_ctapi_driver(void);
+extern struct sc_reader_driver *sc_get_openct_driver(void);
 
 extern struct sc_card_driver *sc_get_default_driver(void);
 extern struct sc_card_driver *sc_get_emv_driver(void);
 extern struct sc_card_driver *sc_get_etoken_driver(void);
-extern struct sc_card_driver *sc_get_flex_driver(void);
+extern struct sc_card_driver *sc_get_cryptoflex_driver(void);
+extern struct sc_card_driver *sc_get_cyberflex_driver(void);
 extern struct sc_card_driver *sc_get_gpk_driver(void);
 extern struct sc_card_driver *sc_get_iso7816_driver(void);
 extern struct sc_card_driver *sc_get_miocos_driver(void);
@@ -844,6 +875,9 @@ extern struct sc_card_driver *sc_get_mcrd_driver(void);
 extern struct sc_card_driver *sc_get_setcos_driver(void);
 extern struct sc_card_driver *sc_get_starcos_driver(void);
 extern struct sc_card_driver *sc_get_tcos_driver(void);
+extern struct sc_card_driver *sc_get_openpgp_driver(void);
+extern struct sc_card_driver *sc_get_jcop_driver(void);
+extern struct sc_card_driver *sc_get_oberthur_driver(void);
 
 #ifdef  __cplusplus
 }
