@@ -2,7 +2,10 @@ opensc (0.9.4-3) experimental; urgency=low
 
   * debian/control: Add mozilla-opensc package. 
   * debian/mozilla-opensc.install: Added file, install plugin files. 
-  * debian/rules: Add AUTHORS file to all docs. 
+  * debian/rules: 
+    - Add AUTHORS file to all docs.
+    - Add DEB_SHLIBDEPS_INCLUDE so we can find our own libs. 
+  * debian/libopensc1.shlibs: Add info for libpkcs11.
   * debian/opensc.docs: Added file, install QUICKSTART doc.
   * debian/libpam-opensc.docs: Added file, install PAM_README file. 
   * debian/libscam1.install: libscam is now a full lib, install just the
@@ -10,7 +13,7 @@ opensc (0.9.4-3) experimental; urgency=low
   * debian/libopensc1-dev.install: Install libscam's .so and .la.
   * debian/libscam1.shlibs: Add scam shlib.
 
- -- Eric Dorland <eric@debian.org>  Thu, 18 Nov 2004 00:34:18 -0500
+ -- Eric Dorland <eric@debian.org>  Thu, 18 Nov 2004 00:57:10 -0500
 
 opensc (0.9.4-2) experimental; urgency=low
 
