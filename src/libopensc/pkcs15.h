@@ -30,13 +30,9 @@ extern "C" {
 #define SC_PKCS15_CACHE_DIR		".eid"
 
 #define SC_PKCS15_PIN_MAGIC		0x31415926
-#define SC_PKCS15_MAX_PINS		2
-#define SC_PKCS15_MAX_PRKEYS		2
-#define SC_PKCS15_MAX_PUBKEYS		2
+#define SC_PKCS15_MAX_PINS		8
 #define SC_PKCS15_MAX_LABEL_SIZE	255
 #define SC_PKCS15_MAX_ID_SIZE		255
-#define SC_PKCS15_MAX_DFS		4
-#define SC_PKCS15_MAX_CERTS		4	/* Total certificates */
 
 struct sc_pkcs15_id {
 	u8 value[SC_PKCS15_MAX_ID_SIZE];
@@ -70,7 +66,7 @@ typedef struct sc_pkcs15_id sc_pkcs15_id_t;
 struct sc_pkcs15_pin_info {
 	struct sc_pkcs15_id auth_id;
 	int reference;
-	int flags, type;
+	unsigned int flags, type;
 	size_t min_length, stored_length, max_length;
 	u8 pad_char;
 	struct sc_path path;
@@ -204,6 +200,8 @@ struct sc_pkcs15_cert_info {
 	int authority;		/* boolean */
 	/* identifiers [2] SEQUENCE OF CredentialIdentifier{{KeyIdentifiers}} */
 	struct sc_path path;
+
+	sc_pkcs15_der_t value;
 };
 typedef struct sc_pkcs15_cert_info sc_pkcs15_cert_info_t;
 
@@ -257,7 +255,7 @@ struct sc_pkcs15_pubkey_info {
 	struct sc_pkcs15_id id;	/* correlates to private key id */
 	unsigned int usage, access_flags;
 	int native, key_reference;
-	int modulus_length;
+	size_t modulus_length;
 
 	struct sc_path path;
 };
@@ -281,11 +279,18 @@ typedef struct sc_pkcs15_pubkey_info sc_pkcs15_pubkey_info_t;
 #define SC_PKCS15_TYPE_AUTH			0x600
 #define SC_PKCS15_TYPE_AUTH_PIN			0x601
 
+#define SC_PKCS15_TYPE_TO_CLASS(t)		(1 << ((t) >> 8))
+#define SC_PKCS15_SEARCH_CLASS_PRKEY		0x0002U
+#define SC_PKCS15_SEARCH_CLASS_PUBKEY		0x0004U
+#define SC_PKCS15_SEARCH_CLASS_CERT		0x0010U
+#define SC_PKCS15_SEARCH_CLASS_DATA		0x0020U
+#define SC_PKCS15_SEARCH_CLASS_AUTH		0x0040U
+
 struct sc_pkcs15_object {
 	int type;
 	/* CommonObjectAttributes */
 	char label[SC_PKCS15_MAX_LABEL_SIZE];	/* zero terminated */
-	int flags;
+	unsigned int flags;
 	struct sc_pkcs15_id auth_id;
 
 	int user_consent;
@@ -321,6 +326,7 @@ struct sc_pkcs15_df {
 
 	struct sc_pkcs15_df *next, *prev;
 };
+typedef struct sc_pkcs15_df sc_pkcs15_df_t;
 
 #define SC_PKCS15_CARD_MAGIC		0x10203040
 
@@ -330,7 +336,7 @@ typedef struct sc_pkcs15_card {
 	/* fields from TokenInfo: */
 	int version;
 	char *serial_number, *manufacturer_id;
-	unsigned long flags;
+	unsigned int flags;
 	struct sc_pkcs15_algorithm_info alg_info[1];
 
 	sc_file_t *file_app;
@@ -345,6 +351,9 @@ typedef struct sc_pkcs15_card {
 	} opts;
 
 	unsigned int magic;
+
+	void *dll_handle;		/* shared lib for emulated cards */
+	char *preferred_language;
 } sc_pkcs15_card_t;
 
 #define SC_PKCS15_CARD_FLAG_READONLY		0x01
@@ -368,11 +377,13 @@ int sc_pkcs15_get_objects_cond(struct sc_pkcs15_card *card, int type,
 			       int (* func)(struct sc_pkcs15_object *, void *),
 			       void *func_arg,
 			       struct sc_pkcs15_object **ret, int ret_count);
+int sc_pkcs15_find_object_by_id(sc_pkcs15_card_t *, int,
+				const sc_pkcs15_id_t *,
+				sc_pkcs15_object_t **);
 
 struct sc_pkcs15_card * sc_pkcs15_card_new(void);
 void sc_pkcs15_card_free(struct sc_pkcs15_card *p15card);
-
-void sc_pkcs15_print_card(const struct sc_pkcs15_card *card);
+void sc_pkcs15_card_clear(sc_pkcs15_card_t *p15card);
 
 int sc_pkcs15_decipher(struct sc_pkcs15_card *p15card,
 		       const struct sc_pkcs15_object *prkey_obj,
@@ -447,6 +458,9 @@ int sc_pkcs15_find_prkey_by_id_usage(struct sc_pkcs15_card *card,
 			       const struct sc_pkcs15_id *id,
 			       unsigned int usage,
 			       struct sc_pkcs15_object **out);
+int sc_pkcs15_find_prkey_by_reference(sc_pkcs15_card_t *,
+			       const sc_path_t *, int,
+			       sc_pkcs15_object_t **);
 int sc_pkcs15_find_pubkey_by_id(struct sc_pkcs15_card *card,
 			       const struct sc_pkcs15_id *id,
 			       struct sc_pkcs15_object **out);
@@ -466,7 +480,7 @@ int sc_pkcs15_find_pin_by_auth_id(struct sc_pkcs15_card *card,
 				  const struct sc_pkcs15_id *id,
 				  struct sc_pkcs15_object **out);
 int sc_pkcs15_find_pin_by_reference(struct sc_pkcs15_card *card,
-				    int reference,
+				    const sc_path_t *path, int reference,
 				    struct sc_pkcs15_object **out);
 int sc_pkcs15_find_so_pin(struct sc_pkcs15_card *card,
 			struct sc_pkcs15_object **out);
@@ -564,10 +578,66 @@ int sc_pkcs15_cache_file(struct sc_pkcs15_card *p15card,
 /* PKCS #15 ID handling functions */
 int sc_pkcs15_compare_id(const struct sc_pkcs15_id *id1,
 			 const struct sc_pkcs15_id *id2);
-void sc_pkcs15_print_id(const struct sc_pkcs15_id *id);
+const char *sc_pkcs15_print_id(const struct sc_pkcs15_id *id);
 void sc_pkcs15_format_id(const char *id_in, struct sc_pkcs15_id *id_out);
 int sc_pkcs15_hex_string_to_id(const char *in, struct sc_pkcs15_id *out);
+void sc_der_copy(sc_pkcs15_der_t *, const sc_pkcs15_der_t *);
+void sc_der_clear(sc_pkcs15_der_t *);
 
+/* New object search API.
+ * More complex, but also more powerful.
+ */
+typedef struct sc_pkcs15_search_key {
+	unsigned int		class_mask;
+	unsigned int		type;
+	const sc_pkcs15_id_t *	id;
+	const sc_path_t *	path;
+	unsigned int		usage_mask, usage_value;
+	unsigned int		flags_mask, flags_value;
+
+	unsigned int		match_reference : 1;
+	int			reference;
+} sc_pkcs15_search_key_t;
+
+int sc_pkcs15_search_objects(sc_pkcs15_card_t *, sc_pkcs15_search_key_t *,
+			sc_pkcs15_object_t **, size_t);
+
+/* This structure is passed to the new sc_pkcs15emu_*_init functions */
+typedef struct sc_pkcs15emu_opt {
+	scconf_block *blk;
+	unsigned int flags;
+} sc_pkcs15emu_opt_t;
+
+#define SC_PKCS15EMU_FLAGS_NO_CHECK	0x00000001
+
+extern int sc_pkcs15_bind_synthetic(sc_pkcs15_card_t *);
+
+sc_pkcs15_df_t *sc_pkcs15emu_get_df(sc_pkcs15_card_t *p15card,
+			int type);
+int sc_pkcs15emu_add_object(sc_pkcs15_card_t *p15card, int type,
+			const char *label, void *data,
+			const sc_pkcs15_id_t *auth_id, int obj_flags);
+int sc_pkcs15emu_add_pin(sc_pkcs15_card_t *p15card,
+                	const sc_pkcs15_id_t *id, const char *label,
+                	const sc_path_t *path, int ref, int type,
+                	unsigned int min_length, unsigned int max_length,
+                	int flags, int tries_left, const char pad_char,
+			int obj_flags);
+int sc_pkcs15emu_add_cert(sc_pkcs15_card_t *p15card, int type,
+        		int authority, const sc_path_t *path,
+			const sc_pkcs15_id_t *id, const char *label,
+			int obj_flags);
+int sc_pkcs15emu_add_prkey(sc_pkcs15_card_t *p15card,
+			const sc_pkcs15_id_t *id, const char *label,
+			int type, unsigned int modulus_length, int usage,
+			const sc_path_t *path, int ref,
+			const sc_pkcs15_id_t *auth_id,
+			int obj_flags);
+int sc_pkcs15emu_add_pubkey(sc_pkcs15_card_t *p15card,
+			const sc_pkcs15_id_t *id, const char *label,
+			int type, unsigned int modulus_length, int usage,
+			const sc_path_t *path, int ref,
+			const sc_pkcs15_id_t *auth_id, int obj_flags);
 #ifdef  __cplusplus
 }
 #endif
