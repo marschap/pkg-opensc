@@ -1,3 +1,15 @@
+opensc (0.9.4-1) unstable; urgency=low
+
+  * New upstream release.
+  * src/libopensc/reader-pcsc.c: Resolve some conflicts from previous
+    patches, now in synch with upstream.
+  * debian/{libopensc0-dev.install, libopensc0.install, libopensc0.shlibs,
+    libscam0.install, libscam0.shlibs}: Renamed to change 0 to 1 to
+    reflect new soname.
+  * debian/control: Change package name to reflect new soname.
+
+ --
+
 opensc (0.8.1-7) unstable; urgency=medium
 
   * Urgency medium since this reenables pcsclite support. 

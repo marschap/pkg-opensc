@@ -1,0 +1,3 @@
+libopensc       1 libopensc1 (>> 0.9.4)
+libpkcs15init   1 libopensc1 (>> 0.9.4)
+libscconf       1 libopensc1 (>> 0.9.4)

@@ -21,17 +21,17 @@ Description: SmartCard utilities with support for PKCS#15 compatible cards
  Supported cards include Gemplus GPK, Schlumberger Cryptoflex,
  Finnish FINEID, Swedish eID, MioCOS and TCOS cards.
 
-Package: libopensc0-dev
+Package: libopensc1-dev
 Section: libdevel
 Priority: optional
 Architecture: any
 Provides: libopensc-dev
-Depends: libopensc0 (= ${Source-Version}), libscam0 (= ${Source-Version}), libssl-dev
+Depends: libopensc1 (= ${Source-Version}), libscam1 (= ${Source-Version}), libssl-dev
 Description: OpenSC development files
  Files necessary for developing applications with the libopensc 
  libraries from OpenSC.org.
 
-Package: libopensc0
+Package: libopensc1
 Section: libs
 Priority: optional
 Architecture: any
@@ -50,7 +50,7 @@ Description: SmartCard library with support for PKCS#15 compatible smart cards
 Package: libpam-opensc
 Section: admin
 Architecture: any
-Depends: ${shlibs:Depends}, libscam0 (= ${Source-Version})
+Depends: ${shlibs:Depends}, libscam1 (= ${Source-Version})
 Recommends: opensc
 Description: Pluggable Authentication Module for using PKCS#15 Smart Cards
  This package allows an administrator to configure a host to
@@ -72,7 +72,7 @@ Description: OpenSSL engine using PKCS#15 Smart Cards
  .
  Card initialization can be performed by utilities in the opensc package.
 
-Package: libscam0
+Package: libscam1
 Section: libs
 Priority: optional
 Architecture: any
