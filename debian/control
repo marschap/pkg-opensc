@@ -75,6 +75,6 @@ Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: Authentication modules for PKCS#15 Smart Cards
- 
+ LDAP and eid authentication libraries for use with the PAM modules. 
  .
  Card initialization can be performed by utilities in the opensc package.
