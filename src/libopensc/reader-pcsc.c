@@ -1,5 +1,5 @@
 /*
- * reader-pcsc.c: Reader driver for PC/SC Lite
+ * reader-pcsc.c: Reader driver for PC/SC interface
  *
  * Copyright (C) 2002  Juha Yrjölä <juha.yrjola@iki.fi>
  *
@@ -42,9 +42,10 @@
 #define SC_STATUS_TIMEOUT SC_CUSTOM_STATUS_TIMEOUT
 #endif
 
-#ifdef _WIN32
 /* Some windows specific kludge */
+#undef SCARD_PROTOCOL_ANY
 #define SCARD_PROTOCOL_ANY (SCARD_PROTOCOL_T0 | SCARD_PROTOCOL_T1)
+#ifdef _WIN32
 #define SCARD_SCOPE_GLOBAL SCARD_SCOPE_USER
 
 /* Error printing */
@@ -56,20 +57,12 @@
 
 #endif
 
-/* Default value for apdu_fix option */
-#ifndef _WIN32
-# define DEF_APDU_FIX	0
-#else
-# define DEF_APDU_FIX	1
-#endif
-
 #define GET_SLOT_PTR(s, i) (&(s)->slot[(i)])
 #define GET_PRIV_DATA(r) ((struct pcsc_private_data *) (r)->drv_data)
 #define GET_SLOT_DATA(r) ((struct pcsc_slot_data *) (r)->drv_data)
 
 struct pcsc_global_private_data {
 	SCARDCONTEXT pcsc_ctx;
-	int apdu_fix;  /* flag to indicate whether to 'fix' some T=0 APDUs */
 };
 
 struct pcsc_private_data {
@@ -139,7 +132,6 @@ static int pcsc_transmit(struct sc_reader *reader, struct sc_slot_info *slot,
 	LONG rv;
 	SCARDHANDLE card;
 	struct pcsc_slot_data *pslot = GET_SLOT_DATA(slot);
-	struct pcsc_private_data *prv = GET_PRIV_DATA(reader);
 
 	assert(pslot != NULL);
 	card = pslot->pcsc_card;
@@ -149,34 +141,17 @@ static int pcsc_transmit(struct sc_reader *reader, struct sc_slot_info *slot,
 	sRecvPci.dwProtocol = opensc_proto_to_pcsc(slot->active_protocol);
 	sRecvPci.cbPciLength = sizeof(sRecvPci);
 	
-	if (prv->gpriv->apdu_fix && sendsize >= 6
-	 && slot->active_protocol == SC_PROTO_T0) {
-		/* Check if the APDU in question is of Case 4 */
-		const u8 *p = sendbuf;
-		int lc;
-		
-		p += 4;
-		lc = *p;
-		if (lc == 0)
-			lc = 256;
-		if (sendsize == lc + 6) {
-			/* Le is present, cut it out */
-			sc_debug(reader->ctx, "Cutting out Le byte from Case 4 APDU\n");
-			sendsize--;
-		}
-	}
-	
 	dwSendLength = sendsize;
 	dwRecvLength = *recvsize;
 
-        if (dwRecvLength > 256)
-		dwRecvLength = 256;
+        if (dwRecvLength > 258)
+		dwRecvLength = 258;
 
 	if (!control) {
 		rv = SCardTransmit(card, &sSendPci, sendbuf, dwSendLength,
 				   &sRecvPci, recvbuf, &dwRecvLength);
 	} else {
-#ifndef _WIN32
+#ifdef HAVE_PCSC_OLD
 		rv = SCardControl(card, sendbuf, dwSendLength,
 				  recvbuf, &dwRecvLength);
 #else
@@ -404,7 +379,7 @@ static int pcsc_wait_for_event(struct sc_reader **readers,
 
 static int pcsc_connect(struct sc_reader *reader, struct sc_slot_info *slot)
 {
-	DWORD active_proto;
+	DWORD active_proto, protocol;
 	SCARDHANDLE card_handle;
 	LONG rv;
 	struct pcsc_private_data *priv = GET_PRIV_DATA(reader);
@@ -416,12 +391,17 @@ static int pcsc_connect(struct sc_reader *reader, struct sc_slot_info *slot)
 		return r;
 	if (!(slot->flags & SC_SLOT_CARD_PRESENT))
 		return SC_ERROR_CARD_NOT_PRESENT;
-        rv = SCardConnect(priv->pcsc_ctx, priv->reader_name,
-			  SCARD_SHARE_SHARED, SCARD_PROTOCOL_ANY,
-                          &card_handle, &active_proto);
+
+	/* force a protocol, addon by -mp */	
+	if (reader->driver->forced_protocol) {
+		protocol = opensc_proto_to_pcsc(reader->driver->forced_protocol);
+	} else
+		protocol = SCARD_PROTOCOL_ANY;
+		
+	rv = SCardConnect(priv->pcsc_ctx, priv->reader_name,
+		SCARD_SHARE_SHARED, protocol, &card_handle, &active_proto);
 	if (rv != 0) {
 		PCSC_ERROR(reader->ctx, "SCardConnect failed", rv);
-		free(pslot);
 		return pcsc_ret_to_error(rv);
 	}
 	slot->active_protocol = pcsc_proto_to_opensc(active_proto);
@@ -472,17 +452,24 @@ static int pcsc_unlock(struct sc_reader *reader, struct sc_slot_info *slot)
 
 static int pcsc_release(struct sc_reader *reader)
 {
+	int i;
 	struct pcsc_private_data *priv = GET_PRIV_DATA(reader);
 
 	free(priv->reader_name);
 	free(priv);
+	for (i = 0; i < reader->slot_count; i++) {
+		if (reader->slot[i].drv_data != NULL) {
+			free(reader->slot[i].drv_data);
+			reader->slot[i].drv_data = NULL;
+		}
+	}
 	return 0;
 }
 
 static struct sc_reader_operations pcsc_ops;
 
-static const struct sc_reader_driver pcsc_drv = {
-	"PC/SC Lite Resource Manager",
+static struct sc_reader_driver pcsc_drv = {
+	"PC/SC reader",
 	"pcsc",
 	&pcsc_ops
 };
@@ -492,7 +479,7 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 	LONG rv;
 	DWORD reader_buf_size;
 	char *reader_buf, *p;
-	LPCSTR mszGroups = NULL;
+	const char *mszGroups = NULL;
 	SCARDCONTEXT pcsc_ctx;
 	int r, i;
 	struct pcsc_global_private_data *gpriv;
@@ -504,11 +491,11 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 				   &pcsc_ctx);
 	if (rv != SCARD_S_SUCCESS)
 		return pcsc_ret_to_error(rv);
-	SCardListReaders(pcsc_ctx, NULL, NULL,
+	rv = SCardListReaders(pcsc_ctx, NULL, NULL,
 			 (LPDWORD) &reader_buf_size);
-	if (reader_buf_size < 2) {
+	if (rv != SCARD_S_SUCCESS || reader_buf_size < 2) {
 		SCardReleaseContext(pcsc_ctx);
-		return 0;	/* No readers configured */
+		return pcsc_ret_to_error(rv);	/* No readers configured */
 	}
 	gpriv = (struct pcsc_global_private_data *) malloc(sizeof(struct pcsc_global_private_data));
 	if (gpriv == NULL) {
@@ -516,12 +503,24 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 		return SC_ERROR_OUT_OF_MEMORY;
 	}
 	gpriv->pcsc_ctx = pcsc_ctx;
-	gpriv->apdu_fix = DEF_APDU_FIX;
 	*reader_data = gpriv;
 	
 	reader_buf = (char *) malloc(sizeof(char) * reader_buf_size);
-	SCardListReaders(pcsc_ctx, mszGroups, reader_buf,
-			 (LPDWORD) &reader_buf_size);
+	if (!reader_buf) {
+		free(gpriv);
+		*reader_data = NULL;
+		SCardReleaseContext(pcsc_ctx);
+		return SC_ERROR_OUT_OF_MEMORY;
+	}
+	rv = SCardListReaders(pcsc_ctx, mszGroups, reader_buf,
+				(LPDWORD) &reader_buf_size);
+	if (rv != SCARD_S_SUCCESS) {
+		free(reader_buf);
+		free(gpriv);
+		*reader_data = NULL;
+		SCardReleaseContext(pcsc_ctx);
+		return pcsc_ret_to_error(rv);
+	}
 	p = reader_buf;
 	do {
 		struct sc_reader *reader = (struct sc_reader *) malloc(sizeof(struct sc_reader));
@@ -534,6 +533,8 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 				free(reader);
 			if (priv)
 				free(priv);
+			if (pslot)
+				free(pslot);
 			break;
 		}
 
@@ -552,6 +553,7 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 			free(priv);
 			free(reader->name);
 			free(reader);
+			free(pslot);
 			break;
 		}
 		slot = &reader->slot[0];
@@ -573,9 +575,6 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 			break;
 	}
 
-	if (conf_block != NULL)
-		gpriv->apdu_fix = scconf_get_bool(conf_block, "apdu_fix", DEF_APDU_FIX);
-	
 	return 0;
 }
 
@@ -591,7 +590,7 @@ static int pcsc_finish(struct sc_context *ctx, void *prv_data)
 	return 0;
 }
 
-const struct sc_reader_driver * sc_get_pcsc_driver(void)
+struct sc_reader_driver * sc_get_pcsc_driver(void)
 {
 	pcsc_ops.init = pcsc_init;
 	pcsc_ops.finish = pcsc_finish;
