@@ -1,5 +1,5 @@
 /*
- * $Id: scconf.h,v 1.9 2003/01/03 11:54:02 okir Exp $
+ * $Id: scconf.h,v 1.12 2003/12/03 14:09:15 aet Exp $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -84,6 +84,7 @@ typedef struct {
 	char *filename;
 	int debug;
 	scconf_block *root;
+	char *errmsg;
 } scconf_context;
 
 /* Allocate scconf_context
@@ -212,6 +213,13 @@ extern int scconf_list_strings_length(const scconf_list * list);
  * The filler can be NULL
  */
 extern char *scconf_list_strdup(const scconf_list * list, const char *filler);
+
+/* Returns an allocated array of const char *pointers to
+ * list elements.
+ * Last pointer is NULL
+ * Array must be freed, but pointers to strings belong to scconf_list
+ */
+extern const char **scconf_list_toarray(const scconf_list * list);
 
 #ifdef __cplusplus
 }

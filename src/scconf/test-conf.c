@@ -1,5 +1,5 @@
 /*
- * $Id: test-conf.c,v 1.11 2002/11/11 22:26:06 aet Exp $
+ * $Id: test-conf.c,v 1.13 2003/12/03 14:09:15 aet Exp $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 		return 1;
 	}
 	if (scconf_parse(conf) < 1) {
-		printf("scconf_parse failed\n");
+		printf("scconf_parse failed: %s\n", conf->errmsg);
 		scconf_free(conf);
 		return 1;
 	}
