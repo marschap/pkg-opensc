@@ -1,5 +1,6 @@
-opensc (0.9.4-8) unstable; urgency=medium
+opensc (0.9.4-8) unstable; urgency=high
 
+  * Still yearning for testing.
   * debian/libopensc1.examples, debian/libscam1.examples: Install example
     configuration files. (Closes: #286629)
   * debian/rules: Have config files under /etc/opensc.
@@ -7,8 +8,10 @@ opensc (0.9.4-8) unstable; urgency=medium
     tell you to look at the examples.
   * debian/libopensc1.install, debian/libscam1.install: Install config
     files.
+  * src/pam/pam_support.c: Fix compile problem under gcc-4.0. Thanks
+    Andreas Jochens. (Closes: #287877)
 
- -- Eric Dorland <eric@debian.org>  Tue, 21 Dec 2004 23:25:58 -0500
+ -- Eric Dorland <eric@debian.org>  Fri, 31 Dec 2004 21:42:53 -0500
 
 opensc (0.9.4-7) unstable; urgency=high
 

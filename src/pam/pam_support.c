@@ -205,7 +205,7 @@ int opensc_pam_set_ctrl(pam_handle_t * pamh, int flags, int argc, const char **a
 
 static void _cleanup(pam_handle_t * pamh, void *x, int error_status)
 {
-	_pam_delete((char *) x);
+	_pam_delete(x);
 }
 
 /* ************************************************************** *
