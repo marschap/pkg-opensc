@@ -7,7 +7,6 @@ debian/tmp/usr/bin/pkcs11-tool
 debian/tmp/usr/sbin/*
 debian/tmp/usr/share/man/man7/*
 debian/tmp/usr/share/man/man5/*
-debian/tmp/usr/share/man/man3/*
 debian/tmp/usr/share/man/man1/opensc-tool.1
 debian/tmp/usr/share/man/man1/opensc-explorer.1
 debian/tmp/usr/share/man/man1/pkcs15*

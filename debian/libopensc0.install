@@ -1,5 +1,9 @@
-usr/lib/lib*.so.*
-etc/opensc/*.profile
-usr/share/opensc/*.profile
-usr/lib/pkcs11/opensc-pkcs11.so
-usr/lib/pkcs11/libpkcs11.so.0*
+debian/tmp/usr/lib/lib*.so.*
+debian/tmp/etc/opensc/*.profile
+debian/tmp/usr/share/opensc/*.profile
+debian/tmp/usr/lib/pkcs11/opensc-pkcs11.so
+debian/tmp/usr/lib/pkcs11/opensc-pkcs11.la
+debian/tmp/usr/lib/pkcs11/pkcs11-spy.so
+debian/tmp/usr/lib/pkcs11/pkcs11-spy.la
+debian/tmp/usr/lib/pkcs11/libpkcs11.so.*
+

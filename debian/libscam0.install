@@ -1,0 +1,3 @@
+tmp/debian/usr/lib/libscam.so
+tmp/debian/usr/lib/libscam.la
+tmp/debian/usr/lib/libscldap.so.*
