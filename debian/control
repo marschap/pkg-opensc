@@ -22,7 +22,7 @@ Description: SmartCard utilities with support for PKCS#15 compatible cards
  Finnish FINEID, Swedish eID, MioCOS and TCOS cards.
 
 Package: libopensc0-dev
-Section: libsdevel
+Section: libdevel
 Architecture: any
 Provides: libopensc-dev
 Depends: libopensc0 (= ${Source-Version}), libscam0 (= ${Source-Version}), libssl-dev

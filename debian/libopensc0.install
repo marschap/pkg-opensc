@@ -1,4 +1,6 @@
-debian/tmp/usr/lib/lib*.so.*
+debian/tmp/usr/lib/libopensc.so.*
+debian/tmp/usr/lib/libpkcs15init.so.*
+debian/tmp/usr/lib/libscconf.so.*
 debian/tmp/etc/opensc/*.profile
 debian/tmp/usr/share/opensc/*.profile
 debian/tmp/usr/lib/pkcs11/opensc-pkcs11.so
