@@ -1,5 +1,5 @@
 /*
- * $Id: parse.c,v 1.10 2003/01/03 11:54:02 okir Exp $
+ * $Id: parse.c,v 1.14 2004/01/22 12:37:26 aet Exp $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -28,6 +28,7 @@
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
+#include <errno.h>
 #include "scconf.h"
 #include "internal.h"
 
@@ -53,7 +54,7 @@ static void scconf_parse_error(scconf_parser * parser, const char *error)
 	/* FIXME: save the error somewhere */
 	parser->error = 1;
 
-	fprintf(stderr, "Line %d: %s\n", parser->line, error);
+	snprintf(parser->emesg, sizeof(parser->emesg), "Line %d: %s\n", parser->line, error);
 }
 
 static void scconf_parse_error_not_expect(scconf_parser * parser,
@@ -62,7 +63,7 @@ static void scconf_parse_error_not_expect(scconf_parser * parser,
 	/* FIXME: save the error somewhere */
 	parser->error = 1;
 
-	fprintf(stderr, "Line %d: not expecting '%s'\n", parser->line, token);
+	snprintf(parser->emesg, sizeof(parser->emesg), "Line %d: not expecting '%s'\n", parser->line, token);
 }
 
 static void scconf_parse_warning_expect(scconf_parser * parser, const char *token)
@@ -70,7 +71,8 @@ static void scconf_parse_warning_expect(scconf_parser * parser, const char *toke
 	/* FIXME: save the warnings somewhere */
 	parser->warnings = 1;
 
-	fprintf(stderr, "Line %d: missing '%s', ignoring\n",
+	snprintf(parser->emesg, sizeof(parser->emesg), 
+		"Line %d: missing '%s', ignoring\n",
 		parser->line, token);
 }
 
@@ -342,15 +344,19 @@ void scconf_parse_token(scconf_parser * parser, int token_type, const char *toke
 			parser->state = STATE_VALUE;
 			break;
 		case ';':
+#if 0
 			if ((parser->state & STATE_VALUE) == 0 ||
 			    (parser->state & STATE_SET) == 0) {
 				scconf_parse_error_not_expect(parser, ";");
 				break;
 			}
+#endif
 			scconf_parse_reset_state(parser);
 			break;
 		default:
-			fprintf(stderr, "scconf_parse_token: shouldn't happen\n");
+			snprintf(parser->emesg, sizeof(parser->emesg), 
+				"Line %d: bad token ignoring\n",
+				parser->line);
 		}
 		break;
 	}
@@ -360,7 +366,9 @@ void scconf_parse_token(scconf_parser * parser, int token_type, const char *toke
 
 int scconf_parse(scconf_context * config)
 {
+	static char buffer[256];
 	scconf_parser p;
+	int r = 1;
 
 	memset(&p, 0, sizeof(p));
 	p.config = config;
@@ -368,14 +376,27 @@ int scconf_parse(scconf_context * config)
 	p.line = 1;
 
 	if (!scconf_lex_parse(&p, config->filename)) {
-		return -1;
+		snprintf(buffer, sizeof(buffer),
+				"Unable to open \"%s\": %s",
+				config->filename, strerror(errno));
+		r = -1;
+	} else if (p.error) {
+		strncpy(buffer, p.emesg, sizeof(buffer)-1);
+		r = 0;
+	} else {
+		r = 1;
 	}
-	return p.error ? 0 : 1;
+
+	if (r <= 0)
+		config->errmsg = buffer;
+	return r;
 }
 
 int scconf_parse_string(scconf_context * config, const char *string)
 {
+	static char buffer[256];
 	scconf_parser p;
+	int r;
 
 	memset(&p, 0, sizeof(p));
 	p.config = config;
@@ -383,7 +404,17 @@ int scconf_parse_string(scconf_context * config, const char *string)
 	p.line = 1;
 
 	if (!scconf_lex_parse_string(&p, string)) {
-		return -1;
+		snprintf(buffer, sizeof(buffer),
+				"Failed to parse configuration string");
+		r = -1;
+	} else if (p.error) {
+		strncpy(buffer, p.emesg, sizeof(buffer)-1);
+		r = 0;
+	} else {
+		r = 1;
 	}
-	return p.error ? 0 : 1;
+
+	if (r <= 0)
+		config->errmsg = buffer;
+	return r;
 }
