@@ -61,7 +61,7 @@ const static struct sc_card_error iso7816_errors[] = {
 	{ 0x6A85, SC_ERROR_INCORRECT_PARAMETERS,"Lc inconsistent with TLV structure" },
 	{ 0x6A86, SC_ERROR_INCORRECT_PARAMETERS,"Incorrect parameters P1-P2" },
 	{ 0x6A87, SC_ERROR_INCORRECT_PARAMETERS,"Lc inconsistent with P1-P2" },
-	{ 0x6A88, SC_ERROR_CARD_CMD_FAILED,	"Referenced data not found" },
+	{ 0x6A88, SC_ERROR_DATA_OBJECT_NOT_FOUND,"Referenced data not found" },
 
 	{ 0x6B00, SC_ERROR_INCORRECT_PARAMETERS,"Wrong parameter(s) P1-P2" },
 	{ 0x6D00, SC_ERROR_INS_NOT_SUPPORTED,	"Instruction code not supported or invalid" },
@@ -110,6 +110,7 @@ static int iso7816_read_binary(struct sc_card *card,
 	u8 recvbuf[SC_MAX_APDU_BUFFER_SIZE];
 	int r;
 
+	assert(count <= card->max_recv_size);
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xB0,
 		       (idx >> 8) & 0x7F, idx & 0xFF);
 	apdu.le = count;
@@ -237,7 +238,7 @@ static int iso7816_write_binary(struct sc_card *card,
 	struct sc_apdu apdu;
 	int r;
 
-	assert(count <= card->max_le);
+	assert(count <= card->max_send_size);
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xD0,
 		       (idx >> 8) & 0x7F, idx & 0xFF);
 	apdu.lc = count;
@@ -258,7 +259,7 @@ static int iso7816_update_binary(struct sc_card *card,
 	struct sc_apdu apdu;
 	int r;
 
-	assert(count <= card->max_le);
+	assert(count <= card->max_send_size);
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xD6,
 		       (idx >> 8) & 0x7F, idx & 0xFF);
 	apdu.lc = count;
@@ -791,7 +792,7 @@ static int iso7816_build_pin_apdu(struct sc_card *card,
 		struct sc_pin_cmd_data *data)
 {
 	static u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
-	int r, len, pad = 0, ins, p1 = 0;
+	int r, len = 0, pad = 0, use_pin_pad = 0, ins, p1 = 0;
 	
 	switch (data->pin_type) {
 	case SC_AC_CHV:
@@ -802,37 +803,52 @@ static int iso7816_build_pin_apdu(struct sc_card *card,
 
 	if (data->flags & SC_PIN_CMD_NEED_PADDING)
 		pad = 1;
+	if (data->flags & SC_PIN_CMD_USE_PINPAD)
+		use_pin_pad = 1;
 
-	data->pin1.offset = 0;
-	if ((r = sc_build_pin(sbuf, sizeof(sbuf), &data->pin1, pad)) < 0)
-		return r;
-	len = r;
+	data->pin1.offset = 5;
 
 	switch (data->cmd) {
 	case SC_PIN_CMD_VERIFY:
 		ins = 0x20;
+		if ((r = sc_build_pin(sbuf, sizeof(sbuf), &data->pin1, pad)) < 0)
+			return r;
+		len = r;
 		break;
 	case SC_PIN_CMD_CHANGE:
-		data->pin1.offset = len;
+		ins = 0x24;
+		if (data->pin1.len != 0 || use_pin_pad) {
+			if ((r = sc_build_pin(sbuf, sizeof(sbuf), &data->pin1, pad)) < 0)
+				return r;
+			len += r;
+		} else {
+			/* implicit test */
+			p1 = 1;
+		}
+
+		data->pin2.offset = data->pin1.offset + len;
 		if ((r = sc_build_pin(sbuf+len, sizeof(sbuf)-len, &data->pin2, pad)) < 0)
 			return r;
 		len += r;
-
-		ins = 0x24;
-		if (data->pin1.len == 0)
-			p1 = 1;
 		break;
 	case SC_PIN_CMD_UNBLOCK:
-		data->pin1.offset = len;
-		if ((r = sc_build_pin(sbuf+len, sizeof(sbuf)-len, &data->pin2, pad)) < 0)
-			return r;
-		len += r;
-
 		ins = 0x2C;
-		if (data->pin1.len == 0)
-			p1 |= 2;
-		if (data->pin2.len == 0)
-			p1 |= 1;
+		if (data->pin1.len != 0 || use_pin_pad) {
+			if ((r = sc_build_pin(sbuf, sizeof(sbuf), &data->pin1, pad)) < 0)
+				return r;
+			len += r;
+		} else {
+			p1 |= 0x02;
+		}
+
+		if (data->pin2.len != 0 || use_pin_pad) {
+			data->pin2.offset = data->pin1.offset + len;
+			if ((r = sc_build_pin(sbuf+len, sizeof(sbuf)-len, &data->pin2, pad)) < 0)
+				return r;
+			len += r;
+		} else {
+			p1 |= 0x01;
+		}
 		break;
 	default:
 		return SC_ERROR_NOT_SUPPORTED;
