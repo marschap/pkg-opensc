@@ -1,3 +1,9 @@
+opensc (0.8.1-2) unstable; urgency=low
+
+  * debian/control: Build with libopenct0-dev.
+
+ -- Eric Dorland <eric@debian.org>  Tue, 27 Jan 2004 23:34:43 -0500
+
 opensc (0.8.1-1) unstable; urgency=low
 
   * Initial release. (Based loosely on the packaging by Joe Phillips
