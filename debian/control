@@ -27,7 +27,7 @@ Section: libdevel
 Priority: optional
 Architecture: any
 Conflicts: libopensc0-dev
-Replaces: libopensc0-dev
+Replaces: libopensc0-dev, libscam1 (<< 0.9.4-5)
 Provides: libopensc-dev
 Depends: libopensc1 (= ${Source-Version}), libscam1 (= ${Source-Version}), libssl-dev
 Description: OpenSC development files
