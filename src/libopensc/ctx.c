@@ -27,6 +27,15 @@
 #include <sys/stat.h>
 #include <limits.h>
 
+#include <opensc/scdl.h>
+
+/* Default value for apdu_masquerade option */
+#ifndef _WIN32
+# define DEF_APDU_MASQ		SC_APDU_MASQUERADE_NONE
+#else
+# define DEF_APDU_MASQ		SC_APDU_MASQUERADE_4AS3
+#endif
+
 int _sc_add_reader(struct sc_context *ctx, struct sc_reader *reader)
 {
 	assert(reader != NULL);
@@ -48,9 +57,9 @@ struct _sc_driver_entry {
 };
 
 static const struct _sc_driver_entry internal_card_drivers[] = {
-	{ "emv", (void *) sc_get_emv_driver, NULL },
 	{ "etoken", (void *) sc_get_etoken_driver, NULL },
-	{ "flex", (void *) sc_get_flex_driver, NULL },
+	{ "flex", (void *) sc_get_cryptoflex_driver, NULL },
+	{ "cyberflex", (void *) sc_get_cyberflex_driver, NULL },
 #ifdef HAVE_OPENSSL
 	{ "gpk", (void *) sc_get_gpk_driver, NULL },
 #endif
@@ -59,6 +68,12 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 	{ "setcos", (void *) sc_get_setcos_driver, NULL },
 	{ "starcos", (void *) sc_get_starcos_driver, NULL },
 	{ "tcos", (void *) sc_get_tcos_driver, NULL },
+	{ "opengpg", (void *) sc_get_openpgp_driver, NULL },
+	{ "jcop", (void *) sc_get_jcop_driver, NULL },
+#ifdef HAVE_OPENSSL
+	{ "oberthur", (void *) sc_get_oberthur_driver, NULL },
+#endif
+	{ "emv", (void *) sc_get_emv_driver, NULL },
 	/* The default driver should be last, as it handles all the
 	 * unrecognized cards. */
 	{ "default", (void *) sc_get_default_driver, NULL },
@@ -73,9 +88,6 @@ static const struct _sc_driver_entry internal_reader_drivers[] = {
 	{ "ctapi", (void *) sc_get_ctapi_driver, NULL },
 #ifdef HAVE_OPENCT
 	{ "openct", (void *) sc_get_openct_driver, NULL },
-#endif
-#ifdef HAVE_USBTOKEN
-	{ "usbtoken", (void *) sc_get_usbtoken_driver, NULL },
 #endif
 #endif
 	{ NULL, NULL, NULL }
@@ -154,7 +166,7 @@ static void set_defaults(struct sc_context *ctx, struct _sc_ctx_options *opts)
 	if (ctx->debug_file && ctx->debug_file != stdout)
 		fclose(ctx->debug_file);
 	ctx->debug_file = stdout;
-	ctx->log_errors = 1;
+	ctx->suppress_errors = 0;
 	if (ctx->error_file && ctx->error_file != stderr)
 		fclose(ctx->error_file);
 	ctx->error_file = stderr;
@@ -218,7 +230,164 @@ static int load_parameters(struct sc_context *ctx, scconf_block *block,
 		list = list->next;
 	}
 
+	val = scconf_get_str(block, "preferred_language", "en");
+	if (val)
+		sc_ui_set_language(ctx, val);
+
 	return err;
+}
+
+static void load_reader_driver_options(sc_context_t *ctx,
+			struct sc_reader_driver *driver)
+{
+	const char	*name = driver->short_name;
+	scconf_block	*conf_block = NULL;
+	int		i;
+
+	for (i = 0; ctx->conf_blocks[i] != NULL; i++) {
+		scconf_block **blocks;
+
+		blocks = scconf_find_blocks(ctx->conf, ctx->conf_blocks[i],
+					    "reader_driver", name);
+		conf_block = blocks[0];
+		free(blocks);
+		if (conf_block != NULL)
+			break;
+	}
+
+	driver->apdu_masquerade = DEF_APDU_MASQ;
+	driver->max_send_size = SC_APDU_CHOP_SIZE;
+	driver->max_recv_size = SC_APDU_CHOP_SIZE;
+	if (conf_block != NULL) {
+		const scconf_list *list;
+		const char *forcestr;
+		
+		if (scconf_get_bool(conf_block, "apdu_fix", 0))
+			driver->apdu_masquerade |= SC_APDU_MASQUERADE_4AS3;
+		/* protocol force in action, addon by -mp */
+		forcestr=scconf_get_str(conf_block, "force_protocol",NULL);
+		if (forcestr){
+			sc_debug(ctx,"Protocol force in action : %s",forcestr);
+			if (!strcmp(forcestr,"t0"))
+				driver->forced_protocol = SC_PROTO_T0;
+			else if (!strcmp(forcestr,"t1"))
+				driver->forced_protocol = SC_PROTO_T1;
+			else if (!strcmp(forcestr,"raw"))
+				driver->forced_protocol = SC_PROTO_RAW;
+			else
+				sc_error(ctx,"Unknown protocol: %s in force_protocol; ignored.",forcestr);
+		} else 
+			driver->forced_protocol = 0;
+		                                                                                                                              
+		list = scconf_find_list(conf_block, "apdu_masquerade");
+		if (list)
+			driver->apdu_masquerade = 0;
+		for (; list; list = list->next) {
+			if (!strcmp(list->data, "case4as3")) {
+				driver->apdu_masquerade |= SC_APDU_MASQUERADE_4AS3;
+			} else if (!strcmp(list->data, "case1as2")) {
+				driver->apdu_masquerade |= SC_APDU_MASQUERADE_1AS2;
+			} else if (!strcmp(list->data, "case1as2_always")) {
+				driver->apdu_masquerade |= SC_APDU_MASQUERADE_1AS2_ALWAYS;
+			} else if (!strcmp(list->data, "none")) {
+				driver->apdu_masquerade = 0;
+			} else {
+				/* no match. Should something be logged? */
+				sc_error(ctx,
+					"Unexpected keyword \"%s\" in "
+					"apdu_masquerade; ignored\n",
+					list->data);
+			}
+		}
+
+		driver->max_send_size = scconf_get_int(conf_block,
+						"max_send_size",
+						SC_APDU_CHOP_SIZE);
+		driver->max_recv_size = scconf_get_int(conf_block,
+						"max_recv_size",
+						SC_APDU_CHOP_SIZE);
+	}
+}
+
+/**
+ * find library module for provided driver in configuration file
+ * if not found assume library name equals to module name
+ */
+static const char *find_library(struct sc_context *ctx, const char *name, int type)
+{
+	int          i;
+	const char   *libname = NULL;
+	scconf_block **blocks, *blk;
+
+	for (i = 0; ctx->conf_blocks[i]; i++) {
+		blocks = scconf_find_blocks(ctx->conf, ctx->conf_blocks[i],
+			(type==0) ? "reader_driver" : "card_driver", name);
+		blk = blocks[0];
+		free(blocks);
+		if (blk == NULL)
+			continue;
+		libname = scconf_get_str(blk, "module", name);
+#ifdef _WIN32
+		if (libname && libname[0] != '\\' ) {
+#else
+		if (libname && libname[0] != '/' ) {
+#endif
+			sc_debug(ctx, "warning: relative path to driver '%s' used\n",
+				 libname);
+		}
+		break;
+	}
+
+	return libname;
+}
+
+/**
+ * load card/reader driver modules
+ * Every module should contain a function " void * sc_module_init(char *) "
+ * that returns a pointer to the function _sc_get_xxxx_driver()
+ * used to initialize static modules
+ * Also, an exported "char *sc_module_version" variable should exist in module
+ * type=1 -> carddriver Type=0 -> readerdriver
+ */
+static void *load_dynamic_driver(struct sc_context *ctx, void **dll,
+	const char *name, int type)
+{
+	const char *version, *libname;
+	void *handler;
+	void *(*modinit)(const char *) = NULL;
+	const char *(*modversion)(void) = NULL;
+
+	if (name == NULL) { /* should not occurr, but... */
+		sc_error(ctx,"No module specified\n",name);
+		return NULL;
+	}
+	libname = find_library(ctx, name, type);
+	if (libname == NULL)
+		return NULL;
+	handler = scdl_open(libname);
+	if (handler == NULL) {
+		sc_error(ctx, "Module %s: cannot load %s library\n",name,libname);
+		return NULL;
+	}
+	/* verify correctness of module */
+	modinit    = scdl_get_address(handler, "sc_module_init");
+	modversion = scdl_get_address(handler, "sc_driver_version");
+	if (modinit == NULL || modversion == NULL) {
+		sc_error(ctx, "dynamic library '%s' is not a OpenSC module\n",libname);
+		scdl_close(handler);
+		return NULL;
+	}
+	/* verify module version */
+	version = modversion();
+	if (version == NULL || strncmp(version, "0.9.", strlen("0.9.")) > 0) {
+		sc_error(ctx,"dynamic library '%s': invalid module version\n",libname);
+		scdl_close(handler);
+		return NULL;
+	}
+	*dll = handler;
+	sc_debug(ctx, "successfully loaded %s driver '%s'\n",
+		type ? "card" : "reader", name);
+	return modinit(name);
 }
 
 static int load_reader_drivers(struct sc_context *ctx,
@@ -231,24 +400,31 @@ static int load_reader_drivers(struct sc_context *ctx,
 	for (drv_count = 0; ctx->reader_drivers[drv_count] != NULL; drv_count++);
 
 	for (i = 0; i < opts->rcount; i++) {
-		const struct sc_reader_driver * (* func)(void) = NULL;
-		int j;
+		struct sc_reader_driver *driver;
+		struct sc_reader_driver * (*func)(void) = NULL;
+		int  j;
+		void *dll = NULL;
 
 		ent = &opts->rdrv[i];
 		for (j = 0; internal_reader_drivers[j].name != NULL; j++)
 			if (strcmp(ent->name, internal_reader_drivers[j].name) == 0) {
-				func = (const struct sc_reader_driver * (*)(void)) internal_reader_drivers[j].func;
+				func = (struct sc_reader_driver * (*)(void)) internal_reader_drivers[j].func;
 				break;
 			}
+		/* if not initialized assume external module */
+		if (func == NULL)
+			func = load_dynamic_driver(ctx, &dll, ent->name, 0);
+		/* if still null, assume driver not found */
 		if (func == NULL) {
-			/* External driver */
-			/* FIXME: Load shared library */
-			sc_error(ctx, "Unable to load '%s'. External drivers not supported yet.\n",
-			      ent->name);
+			sc_error(ctx, "Unable to load '%s'.\n", ent->name);
 			continue;
 		}
-		ctx->reader_drivers[drv_count] = func();
-		ctx->reader_drivers[drv_count]->ops->init(ctx, &ctx->reader_drv_data[i]);
+		driver = func();
+		driver->dll = dll;
+		load_reader_driver_options(ctx, driver);
+		driver->ops->init(ctx, &ctx->reader_drv_data[i]);
+
+		ctx->reader_drivers[drv_count] = driver;
                 drv_count++;
 	}
 	return 0;	
@@ -304,7 +480,8 @@ static int load_card_drivers(struct sc_context *ctx,
 
 	for (i = 0; i < opts->ccount; i++) {
 		struct sc_card_driver * (* func)(void) = NULL;
-		int j;
+		void *dll = NULL;
+		int  j;
 
 		ent = &opts->cdrv[i];
 		for (j = 0; internal_card_drivers[j].name != NULL; j++)
@@ -312,14 +489,17 @@ static int load_card_drivers(struct sc_context *ctx,
 				func = (struct sc_card_driver * (*)(void)) internal_card_drivers[j].func;
 				break;
 			}
+		/* if not initialized assume external module */
+		if (func == NULL)
+			func = load_dynamic_driver(ctx, &dll, ent->name, 1);
+		/* if still null, assume driver not found */
 		if (func == NULL) {
-			/* External driver */
-			/* FIXME: Load shared library */
-			sc_error(ctx, "Unable to load '%s'. External drivers not supported yet.\n",
-			      ent->name);
+			sc_error(ctx, "Unable to load '%s'.\n", ent->name);
 			continue;
 		}
+
 		ctx->card_drivers[drv_count] = func();
+		ctx->card_drivers[drv_count]->dll = dll;
 
 		load_card_driver_options(ctx, ctx->card_drivers[drv_count]);
                 drv_count++;
@@ -349,10 +529,18 @@ void process_config_file(struct sc_context *ctx, struct _sc_ctx_options *opts)
 		return;
 	r = scconf_parse(ctx->conf);
 #ifdef OPENSC_CONFIG_STRING
-	if (r < 1)
+	/* Parse the string if config file didn't exist */
+	if (r < 0)
 		r = scconf_parse_string(ctx->conf, OPENSC_CONFIG_STRING);
 #endif
 	if (r < 1) {
+		/* A negative return value means the config file isn't
+		 * there, which is not an error. Nevertheless log this
+		 * fact. */
+		if (r < 0)
+			sc_debug(ctx, "scconf_parse failed: %s", ctx->conf->errmsg);
+		else
+			sc_error(ctx, "scconf_parse failed: %s", ctx->conf->errmsg);
 		scconf_free(ctx->conf);
 		ctx->conf = NULL;
 		return;
@@ -425,8 +613,17 @@ int sc_release_context(struct sc_context *ctx)
 		
 		if (drv->ops->finish != NULL)
 			drv->ops->finish(ctx, ctx->reader_drv_data[i]);
+		if (drv->dll)
+			scdl_close(drv->dll);
+	}
+	for (i = 0; ctx->card_drivers[i]; i++) {
+		struct sc_card_driver *drv = ctx->card_drivers[i];
+		if (drv->dll)
+			scdl_close(drv->dll);
 	}
 	ctx->debug_file = ctx->error_file = NULL;
+	if (ctx->preferred_language)
+		free(ctx->preferred_language);
 	if (ctx->conf)
 		scconf_free(ctx->conf);
 	sc_mutex_free(ctx->mutex);
