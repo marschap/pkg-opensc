@@ -1,0 +1,2 @@
+debian/tmp/usr/lib/mozilla
+debian/tmp/usr/lib/opensc/opensc-signer.*

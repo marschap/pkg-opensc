@@ -8,6 +8,8 @@ debian/tmp/usr/lib/libscconf.so
 debian/tmp/usr/lib/libscconf.la
 debian/tmp/usr/lib/libscldap.so
 debian/tmp/usr/lib/libscldap.la
+debian/tmp/usr/lib/libscam.so
+debian/tmp/usr/lib/libscam.la
 debian/tmp/usr/bin/opensc-config
 debian/tmp/usr/lib/pkgconfig
 debian/tmp/usr/share/man/man1/opensc-config.1

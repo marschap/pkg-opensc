@@ -88,3 +88,13 @@ Description: Authentication modules for PKCS#15 Smart Cards
  LDAP and eid authentication libraries for use with the PAM modules. 
  .
  Card initialization can be performed by utilities in the opensc package.
+
+Package: mozilla-opensc
+Section: web
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Mozilla plugin for authentication using OpenSC
+ A plugin for mozilla that allows S/MIME and SSL authentication using
+ OpenSC.
+ .
+ Card initialization can be performed by utilities in the opensc package. 
