@@ -30,7 +30,7 @@ libpkcs11_la_LIBADD = ../scdl/libscdl.la @LIBDL@
 
 pkcs11_spy_la_SOURCES = pkcs11-spy.c pkcs11-display.c pkcs11-display.h
 pkcs11_spy_la_LDFLAGS = -module -avoid-version
-pkcs11_spy_la_LIBADD = @LIBCRYPTO@ libpkcs11.la
+pkcs11_spy_la_LIBADD = @LIBOPENSC@ @LIBCRYPTO@ libpkcs11.la
 
 include_HEADERS = pkcs11.h
 
@@ -49,4 +49,10 @@ if HAVE_BUNDLES
 		$(DESTDIR)$(bundledir)/
 	-${top_srcdir}/macos/libtool-bundle $(DESTDIR)$(libdir)/pkcs11-spy.so \
 		$(DESTDIR)$(bundledir)/
+endif
+
+uninstall-local: uninstall-libLTLIBRARIES
+if HAVE_BUNDLES
+	rm -rf $(DESTDIR)$(bundledir)/opensc-pkcs11.bundle/
+	rm -rf $(DESTDIR)$(bundledir)/pkcs11-spy.bundle/
 endif
