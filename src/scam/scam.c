@@ -1,5 +1,5 @@
 /*
- * $Id: scam.c,v 1.18 2003/09/17 19:03:48 aet Exp $
+ * $Id: scam.c,v 1.16.2.1 2003/09/17 19:02:40 aet Exp $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -36,7 +36,9 @@ struct scam_framework_ops *scam_frameworks[] =
 #ifdef HAVE_OPENSSL
 	&scam_fw_p15_eid,
 #ifdef HAVE_LDAP
+#if 0
 	&scam_fw_p15_ldap,
+#endif
 #endif
 #endif
 	NULL
