@@ -42,6 +42,7 @@ enum {
 	SC_CARDCTL_GPK_PKINIT,
 	SC_CARDCTL_GPK_PKLOAD,
 	SC_CARDCTL_GPK_IS_LOCKED,
+	SC_CARDCTL_GPK_GENERATE_KEY,
 
 	/*
 	 * Cryptoflex specific calls
@@ -74,11 +75,23 @@ enum {
 	 * Starcos specific calls
 	 */
 	SC_CARDCTL_STARCOS_BASE = _CTL_PREFIX('S', 'T', 'A'),
-	SC_CARDCTL_STARCOS_SET_EX_DATA,
-	SC_CARDCTL_STARCOS_GET_EX_DATA,
-	SC_CARDCTL_STARCOS_FREE_EX_DATA,
-	SC_CARDCTL_STARCOS_FREE_ALL_EX_DATA,
+	/* some Starcos SPK 2.3 specific commands */
+	SC_CARDCTL_STARCOS_CREATE_FILE,
+	SC_CARDCTL_STARCOS_CREATE_END,
+	SC_CARDCTL_STARCOS_WRITE_KEY,
+	SC_CARDCTL_STARCOS_GENERATE_KEY,
 
+	SC_CARDCTL_JCOP_BASE = _CTL_PREFIX('J', 'C', 'P'),
+	SC_CARDCTL_JCOP_LOCK,
+	SC_CARDCTL_JCOP_GENERATE_KEY,
+
+	/*
+	 * Oberthur specific calls
+	 */
+	SC_CARDCTL_OBERTHUR_BASE = _CTL_PREFIX('O', 'B', 'R'),
+	SC_CARDCTL_OBERTHUR_UPDATE_KEY,
+	SC_CARDCTL_OBERTHUR_GENERATE_KEY,
+	SC_CARDCTL_OBERTHUR_CREATE_PIN,
 };
 
 enum {
@@ -127,6 +140,13 @@ struct sc_cardctl_gpk_pkload {
 	unsigned int		datalen;
 };
 
+struct sc_cardctl_gpk_genkey {
+	unsigned int		fid;
+	unsigned int		privlen;
+	unsigned char *		pubkey;
+	unsigned int		pubkey_len;
+};
+
 enum {
 	SC_CARDCTL_MIOCOS_AC_PIN,
 	SC_CARDCTL_MIOCOS_AC_CHAL,
@@ -167,6 +187,7 @@ struct sc_cardctl_etoken_genkey_info {
  * Cryptoflex info
  */
 struct sc_cardctl_cryptoflex_genkey_info {
+	unsigned int	key_num;
 	unsigned int	key_bits;
 	unsigned long	exponent;
 	unsigned char *	pubkey;
@@ -174,30 +195,91 @@ struct sc_cardctl_cryptoflex_genkey_info {
 };
 
 /*
- * Starcos ex_data stuff
+ * Starcos stuff
  */
-typedef struct sc_starcos_ex_data {
-	struct sc_starcos_ex_data *next;
-	unsigned long              key;
-	void                      *data;
-	void (*free_func)(void *);
-} sc_starcos_ex_data_t;
+#define	SC_STARCOS_MF_DATA	0x01
+#define SC_STARCOS_DF_DATA	0x02
+#define SC_STARCOS_EF_DATA	0x04
 
-#define SC_STARCOS_PRV_DATA	0x0001	/* for internal use only  */
-#define SC_STARCOS_KEY_ATTR	0x0002	/* set the key attributes */
-#define SC_STARCOS_PIN_ATTR	0x0004	/* set PIN attribute      */
+typedef struct sc_starcos_create_data_st {
+	unsigned int type;
+	union {
+		struct {
+			u8 header[19];	/* see starcos manual */
+		} mf;
+		struct {
+			u8 header[25];	/* see starcos manual */
+			u8 size[2];
+		} df;
+		struct {
+			u8 header[16];	/* see starcos manual */
+		} ef;
+	} data;
+} sc_starcos_create_data;
 
-#define SC_STARCOS_EX_KEY(c,v) (((v) << 16) | (c))
+typedef struct sc_starcos_write_key_data_st {
+	u8	mode;		/* 1 = Update, 0 = Install */
+	u8	kid;		/* key id                  */
+	u8	key_header[12];	/* see starcos manual      */
+	const u8 *key;
+	size_t	key_len;
+} sc_starcos_wkey_data;
 
-struct sc_cardctl_starcos_key_attr_st {
-	unsigned long flag;	/* key attributes, e.g. SC_SEC_OPERATION_SIGN
-				 * or SC_SEC_OPERATION_AUTHENTICATE */
+typedef struct sc_starcos_gen_key_data_st {
+	u8	key_id;
+	size_t	key_length;
+	u8	*modulus;
+} sc_starcos_gen_key_data;
+	
+
+
+struct sc_cardctl_jcop_genkey  {
+     unsigned long exponent;
+     sc_path_t pub_file_ref;
+     sc_path_t pri_file_ref;
+     unsigned char *	pubkey;
+     unsigned int	pubkey_len;
+};
+     
+/*
+ * Oberthur ex_data stuff
+ */
+enum SC_CARDCTL_OBERTHUR_KEY_TYPE {
+	SC_CARDCTL_OBERTHUR_KEY_DES = 0x80,
+	
+	SC_CARDCTL_OBERTHUR_KEY_RSA_PUBLIC = 0xA1,
+	SC_CARDCTL_OBERTHUR_KEY_RSA_SFM,
+	SC_CARDCTL_OBERTHUR_KEY_RSA_CRT,
+	SC_CARDCTL_OBERTHUR_KEY_DSA_PUBLIC,
+	SC_CARDCTL_OBERTHUR_KEY_DSA_PRIVATE,
 };
 
-struct sc_cardctl_starcos_pin_attr_st {
-	int	verify_once;
+struct sc_cardctl_oberthur_genkey_info {
+	unsigned int    id_prv, id_pub;
+	unsigned int    key_bits;
+	unsigned long   exponent;
+	unsigned char * pubkey;
+	unsigned int    pubkey_len;
+};
+	  
+struct sc_cardctl_oberthur_updatekey_info {
+	enum SC_CARDCTL_OBERTHUR_KEY_TYPE  type;
+	unsigned int    component;
+	unsigned char 	*data;
+	unsigned int    len;
 };
 
+struct sc_cardctl_oberthur_createpin_info {
+	unsigned int type;
+	unsigned int ref;
+	unsigned char *pin;
+	unsigned int pin_len;
+	unsigned int pin_tries;
+	unsigned char *puk;
+	unsigned int puk_len;
+	unsigned int puk_tries;
+};
+	  
 #ifdef  __cplusplus
 }
 #endif

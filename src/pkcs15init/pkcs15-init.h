@@ -13,21 +13,117 @@ extern "C" {
 
 #include <opensc/pkcs15.h>
 
-struct sc_profile; /* opaque type */
+typedef struct sc_profile sc_profile_t; /* opaque type */
 
 struct sc_pkcs15init_operations {
 	/*
 	 * Erase everything that's on the card
-	 * So far, only the GPK supports this
-	 */
+	 * So far, only the GPK supports this */
 	int	(*erase_card)(struct sc_profile *, struct sc_card *);
+
+	/*
+	 * New style API
+	 */
+
+	/*
+	 * Card-specific initialization of PKCS15 meta-information.
+	 * Currently used by the cflex driver to read the card's
+	 * serial number and use it as the pkcs15 serial number.
+	 */
+	int	(*init_card)(sc_profile_t *, sc_card_t *);
+
+	/*
+	 * Create a DF
+	 */
+	int	(*create_dir)(sc_profile_t *, sc_card_t *, sc_file_t *);
+
+	/*
+	 * Create a "pin domain". This is for cards such as
+	 * the cryptoflex that need to put their pins into
+	 * separate directories
+	 */
+	int	(*create_domain)(sc_profile_t *, sc_card_t *,
+			const sc_pkcs15_id_t *, sc_file_t **);
+
+	/*
+	 * Select a PIN reference
+	 */
+	int	(*select_pin_reference)(sc_profile_t *, sc_card_t *,
+			sc_pkcs15_pin_info_t *);
+
+	/*
+	 * Create a PIN object within the given DF.
+	 *
+	 * The pin_info object is completely filled in by the caller.
+	 * The card driver can reject the pin reference; in this case
+	 * the caller needs to adjust it.
+	 */
+	int	(*create_pin)(sc_profile_t *, sc_card_t *, sc_file_t *,
+			sc_pkcs15_object_t *,
+			const u8 *pin, size_t pin_len,
+			const u8 *puk, size_t puk_len);
+
+	/*
+	 * Select a reference for a private key object
+	 */
+	int	(*select_key_reference)(sc_profile_t *, sc_card_t *,
+			sc_pkcs15_prkey_info_t *);
+
+	/*
+	 * Create an empty key object.
+	 * @index is the number key objects already on the card.
+	 * @pin_info contains information on the PIN protecting
+	 * 		the key. NULL if the key should be
+	 * 		unprotected.
+	 * @key_info should be filled in by the function
+	 */
+	int	(*create_key)(sc_profile_t *, sc_card_t *,
+			sc_pkcs15_object_t *o);
+
+	/*
+	 * Store a key on the card
+	 */
+	int	(*store_key)(sc_profile_t *, sc_card_t *,
+			sc_pkcs15_object_t *,
+			sc_pkcs15_prkey_t *);
+
+	/*
+	 * Generate key
+	 */
+	int	(*generate_key)(sc_profile_t *, sc_card_t *,
+			sc_pkcs15_object_t *,
+			sc_pkcs15_pubkey_t *);
+
+	/*
+	 * Encode private/public key
+	 * These are used mostly by the Cryptoflex/Cyberflex drivers.
+	 */
+	int	(*encode_private_key)(sc_profile_t *, sc_card_t *,
+			struct sc_pkcs15_prkey_rsa *,
+			u8 *buf, size_t *bufsize, int key_ref);
+	int	(*encode_public_key)(sc_profile_t *, sc_card_t *,
+			struct sc_pkcs15_prkey_rsa *,
+			u8 *buf, size_t *bufsize, int key_ref);
+
+	/*
+	 * Finalize card
+	 * Ends the initialization phase of the smartcard/token
+	 * (actually this command is currently only for starcos spk 2.3
+	 * cards).
+	 */
+	int	(*finalize_card)(sc_card_t *);
+
+	/*
+	 * Old-style API
+	 */
 
 	/*
 	 * Initialize application, and optionally set a SO pin
 	 */
 	int	(*init_app)(struct sc_profile *, struct sc_card *,
-			const unsigned char *pin, size_t pin_len,
-			const unsigned char *puk, size_t puk_len);
+			struct sc_pkcs15_pin_info *,
+			const u8 *pin, size_t pin_len,
+			const u8 *puk, size_t puk_len);
 
 	/*
 	 * Store a new PIN
@@ -39,8 +135,8 @@ struct sc_pkcs15init_operations {
 	 */
 	int	(*new_pin)(struct sc_profile *, struct sc_card *,
 			struct sc_pkcs15_pin_info *, unsigned int index,
-			const unsigned char *pin, size_t pin_len,
-			const unsigned char *puk, size_t puk_len);
+			const u8 *pin, size_t pin_len,
+			const u8 *puk, size_t puk_len);
 
 	/*
 	 * Store a key on the card
@@ -58,7 +154,7 @@ struct sc_pkcs15init_operations {
 	/*
 	 * Generate a new key pair
 	 */
-	int	(*generate_key)(struct sc_profile *, struct sc_card *,
+	int	(*old_generate_key)(struct sc_profile *, struct sc_card *,
 			unsigned int index, unsigned int keybits,
 			sc_pkcs15_pubkey_t *pubkey_res,
 			struct sc_pkcs15_prkey_info *);
@@ -73,10 +169,6 @@ struct sc_pkcs15init_operations {
 #define SC_PKCS15INIT_NPINS		4
 
 struct sc_pkcs15init_callbacks {
-	/* Error and debug output */
-	void	(*error)(const char *, ...);
-	void	(*debug)(const char *, ...);
-
 	/*
 	 * Get a PIN from the front-end. The first argument is
 	 * one of the SC_PKCS15INIT_XXX_PIN/PUK macros.
@@ -100,6 +192,7 @@ struct sc_pkcs15init_initargs {
 	size_t			so_pin_len;
 	const u8 *		so_puk;
 	size_t			so_puk_len;
+	const char *		so_pin_label;
 	const char *		label;
 	const char *		serial;
 };
@@ -126,6 +219,12 @@ struct sc_pkcs15init_prkeyargs {
 	/* support for non-native keys */
 	char *			passphrase;
 };
+
+struct sc_pkcs15init_keygen_args {
+	struct sc_pkcs15init_prkeyargs prkey_args;
+	const char *                   pubkey_label;
+};
+
 #define SC_PKCS15INIT_EXTRACTABLE	0x0001
 #define SC_PKCS15INIT_NO_PASSPHRASE	0x0002
 #define SC_PKCS15INIT_SPLIT_KEY		0x0004
@@ -166,8 +265,13 @@ extern void	sc_pkcs15init_set_callbacks(struct sc_pkcs15init_callbacks *);
 extern int	sc_pkcs15init_bind(struct sc_card *, const char *, const char *,
 				struct sc_profile **);
 extern void	sc_pkcs15init_unbind(struct sc_profile *);
+extern void	sc_pkcs15init_set_p15card(sc_profile_t *,
+				sc_pkcs15_card_t *);
 extern int	sc_pkcs15init_set_lifecycle(sc_card_t *card, int lcycle);
 extern int	sc_pkcs15init_erase_card(struct sc_card *,
+				struct sc_profile *);
+/* XXX could this function be merged with ..._set_lifecycle ?? */
+extern int	sc_pkcs15init_finalize_card(sc_card_t *,
 				struct sc_profile *);
 extern int	sc_pkcs15init_add_app(struct sc_card *,
 				struct sc_profile *,
@@ -177,7 +281,7 @@ extern int	sc_pkcs15init_store_pin(struct sc_pkcs15_card *,
 				struct sc_pkcs15init_pinargs *);
 extern int	sc_pkcs15init_generate_key(struct sc_pkcs15_card *,
 				struct sc_profile *,
-				struct sc_pkcs15init_prkeyargs *,
+				struct sc_pkcs15init_keygen_args *,
 				unsigned int keybits,
 				struct sc_pkcs15_object **);
 extern int	sc_pkcs15init_store_private_key(struct sc_pkcs15_card *,
@@ -220,8 +324,6 @@ extern int	sc_pkcs15init_update_file(struct sc_profile *,
 				struct sc_card *, struct sc_file *, void *, unsigned int);
 extern int	sc_pkcs15init_authenticate(struct sc_profile *,
 				struct sc_card *, struct sc_file *, int);
-extern int	sc_pkcs15init_present_pin(struct sc_profile *,
-				struct sc_card *, unsigned int);
 extern int	sc_pkcs15init_fixup_file(struct sc_profile *, struct sc_file *);
 extern int	sc_pkcs15init_fixup_acls(struct sc_profile *,
 				struct sc_file *,
@@ -229,18 +331,17 @@ extern int	sc_pkcs15init_fixup_acls(struct sc_profile *,
 				struct sc_acl_entry *);
 extern int	sc_pkcs15init_get_pin_info(struct sc_profile *, unsigned int,
 				struct sc_pkcs15_pin_info *);
+extern int	sc_profile_get_pin_retries(sc_profile_t *, unsigned int);
 extern int	sc_pkcs15init_get_manufacturer(struct sc_profile *,
 				const char **);
 extern int	sc_pkcs15init_get_serial(struct sc_profile *, const char **);
 extern int	sc_pkcs15init_set_serial(struct sc_profile *, const char *);
 extern int	sc_pkcs15init_get_label(struct sc_profile *, const char **);
 
-extern void	sc_pkcs15init_set_pin_data(struct sc_profile *, int,
-				const void *, size_t);
 extern void	sc_pkcs15init_set_secret(struct sc_profile *,
 				int, int, u8 *, size_t);
-extern int	sc_pkcs15init_get_secret(struct sc_profile *,
-				struct sc_card *, int, int, u8 *, size_t *);
+extern int	sc_pkcs15init_verify_key(struct sc_profile *, struct sc_card *,
+				sc_file_t *,  unsigned int, unsigned int);
 
 /* Erasing the card structure via rm -rf */
 extern int	sc_pkcs15init_erase_card_recursively(struct sc_card *,
@@ -253,6 +354,18 @@ extern int	sc_pkcs15init_requires_restrictive_usage(
 				struct sc_pkcs15_card *,
 				struct sc_pkcs15init_prkeyargs *,
 				unsigned int);
+
+extern int	sc_pkcs15_create_pin_domain(sc_profile_t *, sc_card_t *,
+				const sc_pkcs15_id_t *, sc_file_t **);
+
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_gpk_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_miocos_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_cryptoflex_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_cyberflex_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_etoken_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_jcop_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_starcos_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_oberthur_ops(void);
 
 #ifdef  __cplusplus
 }
