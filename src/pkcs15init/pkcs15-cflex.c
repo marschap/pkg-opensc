@@ -26,20 +26,29 @@
 #include <sys/types.h>
 #include <opensc/opensc.h>
 #include <opensc/cardctl.h>
+#include <opensc/log.h>
 #include "pkcs15-init.h"
+#include "keycache.h"
 #include "profile.h"
 
-static const char *TMP_PIN 		= "0000";
-static const char *TMP_PUK 		= "000000";
-
 static void	invert_buf(u8 *dest, const u8 *src, size_t c);
-static int cflex_update_pin(struct sc_profile *profile, struct sc_card *card,
-			    sc_file_t *file,
-			    const u8 *pin, size_t pin_len, int pin_tries,
-			    const u8 *puk, size_t puk_len, int puk_tries);
+static int	cflex_create_dummy_chvs(sc_profile_t *, sc_card_t *,
+			sc_file_t *, int,
+			sc_file_t **);
+static void	cflex_delete_dummy_chvs(sc_profile_t *, sc_card_t *,
+			int, sc_file_t **);
+static int	cflex_create_pin_file(sc_profile_t *, sc_card_t *,
+			sc_path_t *, int,
+			const u8 *, size_t, int,
+			const u8 *, size_t, int,
+			sc_file_t **, int);
+static int	cflex_create_empty_pin_file(sc_profile_t *, sc_card_t *,
+			sc_path_t *, int, sc_file_t **);
+static int	cflex_get_keyfiles(sc_profile_t *, sc_card_t *,
+			const sc_path_t *, sc_file_t **, sc_file_t **);
 
-static int cflex_delete_file(struct sc_card *card, struct sc_profile *profile,
-                struct sc_file *df)
+static int
+cflex_delete_file(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
 {
         struct sc_path  path;
         struct sc_file  *parent;
@@ -63,9 +72,9 @@ static int cflex_delete_file(struct sc_card *card, struct sc_profile *profile,
         path.value[1] = df->id & 0xFF;
         path.len = 2;
 
-        card->ctx->log_errors = 0;
+        card->ctx->suppress_errors++;
         r = sc_delete_file(card, &path);
-        card->ctx->log_errors = 1;
+        card->ctx->suppress_errors--;
         return r;
 }
 
@@ -84,25 +93,26 @@ static int cflex_erase_card(struct sc_profile *profile, struct sc_card *card)
          * it *after* the DF. 
          * */
         if (sc_profile_get_file(profile, "DIR", &dir) >= 0) {
-                r = cflex_delete_file(card, profile, dir);
+                r = cflex_delete_file(profile, card, dir);
                 sc_file_free(dir);
                 if (r < 0 && r != SC_ERROR_FILE_NOT_FOUND)
                         goto out;
         }
 
-	r=cflex_delete_file(card, profile, df);
+	r=cflex_delete_file(profile, card, df);
 
 	/* If the user pin file isn't in a sub-DF of the pkcs15 DF, delete it */
 	if (sc_profile_get_file(profile, "pinfile-1", &userpinfile) >= 0 &&
 	    userpinfile->path.len <= profile->df_info->file->path.len + 2 &&
 	    memcmp(userpinfile->path.value, profile->df_info->file->path.value,
 	           userpinfile->path.len) != 0) {
-           	r = cflex_delete_file(card, profile, userpinfile);
+           	r = cflex_delete_file(profile, card, userpinfile);
 		sc_file_free(userpinfile);
 	}
 
-        /* Unfrob the SO pin reference, and return */
-out:    sc_profile_forget_secrets(profile, SC_AC_CHV, -1);
+
+out:	/* Forget all cached keys, the pin files on card are all gone. */
+	sc_keycache_forget_key(NULL, -1, -1);
         sc_free_apps(card);
         if (r == SC_ERROR_FILE_NOT_FOUND)
                 r=0;
@@ -110,306 +120,222 @@ out:    sc_profile_forget_secrets(profile, SC_AC_CHV, -1);
 }
 
 /*
- * Initialize the Application DF
+ * Card initialization.
+ * For the cryptoflex, read the card's serial number from 3F00 0002
  */
-static int cflex_init_app(struct sc_profile *profile, struct sc_card *card,
-		const u8 *pin, size_t pin_len, const u8 *puk, size_t puk_len)
+static int
+cryptoflex_init_card(sc_profile_t *profile, sc_card_t *card)
 {
-     sc_file_t *pinfile, *keyfile, *userpinfile;
-     struct sc_pkcs15_pin_info sopin, tmpinfo;
-     int pin_tries, puk_tries;
-     int r;
-     char extkey_contents[15];
-     
-     if (pin && pin_len) {
-	  
-	  if (sc_profile_get_file(profile, "sopinfile", &pinfile) < 0) {
-	       profile->cbs->error("Profile doesn't define \"sopinfile\"");
-	       return SC_ERROR_NOT_SUPPORTED;
-	  }
-	  if (sc_profile_get_file(profile, "extkey", &keyfile) < 0) { 
-	       profile->cbs->error("Profile doesn't define \"extkey\"");
-	       return SC_ERROR_NOT_SUPPORTED;
-	  }
-	  if (pin_len > 8)
-	       pin_len = 8;
-	  if (puk_len > 8)
-	       puk_len = 8;
-	  sc_profile_get_pin_info(profile, SC_PKCS15INIT_SO_PIN, &sopin);
-	  sopin.reference=0x2; /* XXX where did this come from? */
-	  memcpy(&sopin.path, &profile->df_info->file->path, sizeof(sc_path_t));
-	  sc_profile_set_pin_info(profile, SC_PKCS15INIT_SO_PIN, &sopin);
-     }
+	sc_path_t	path;
+	sc_file_t	*file;
+	u8		buf[32];
+	char		serial[128];
+	size_t		len;
+	int		r;
 
-	/* If the user pin file isn't in the pkcs15 DF, create it first.
-	 * This is the case if the "flex-onepin.profile" is used. */
-	if (sc_profile_get_file(profile, "pinfile-1", &userpinfile) >= 0 &&
-	    userpinfile->path.len <= profile->df_info->file->path.len) {
-
-		sc_profile_get_pin_info(profile, SC_PKCS15INIT_USER_PIN, &tmpinfo);
-		pin_tries = tmpinfo.tries_left;
-		sc_profile_get_pin_info(profile, SC_PKCS15INIT_USER_PUK, &tmpinfo);
-		puk_tries = tmpinfo.tries_left;
-
-		r = cflex_update_pin(profile, card, userpinfile,
-			(const u8 *) TMP_PIN, strlen(TMP_PIN), pin_tries,
-			(const u8 *) TMP_PUK, strlen(TMP_PUK), puk_tries);
-		if (r != 0) {
-			profile->cbs->error("Couldn't create PIN file\n");
-			return r;
-		}
-
-		sc_profile_get_pin_info(profile, SC_PKCS15INIT_SO_PIN, &tmpinfo);
-		tmpinfo.reference = 0x1;
-		memcpy(&tmpinfo.path, &userpinfile->path, sizeof(sc_path_t));
-		sc_profile_set_pin_info(profile, SC_PKCS15INIT_USER_PIN, &tmpinfo);
-
-		sc_profile_set_secret(profile, SC_AC_CHV, 1, (const u8 *) TMP_PIN, strlen(TMP_PIN));
+	sc_format_path("3F000002", &path);
+	if ((r = sc_select_file(card, &path, &file)) < 0) {
+		if (r == SC_ERROR_FILE_NOT_FOUND)
+			return 0;
+		return r;
 	}
 
-     /* Create the application DF */
-     if (sc_pkcs15init_create_file(profile, card, profile->df_info->file))
-	  return 1;
-
-     if (pin && pin_len) {
-	  pin_tries = sopin.tries_left;
-	  sc_profile_get_pin_info(profile, SC_PKCS15INIT_SO_PUK, &tmpinfo);
-	  puk_tries = tmpinfo.tries_left;
-	  r = cflex_update_pin(profile, card, pinfile, pin, pin_len, pin_tries,
-			       puk, puk_len, puk_tries);
-	  if (r) {
-	       profile->cbs->error("update_pin failed for SOPIN\n");
-	       return r;
-	  }
-	  memset(&extkey_contents, 0, sizeof(extkey_contents));
-	  extkey_contents[0]=0; /* RFU */
-	  extkey_contents[1]=1; /* skip AUT0 */
-	  extkey_contents[2]=8; /* AUT1 length; single DES */
-	  extkey_contents[3]=0; /* single DES */
-	  extkey_contents[12]=1; /* # allowed verification attempts */
-	  extkey_contents[13]=255; /* block key */
-	  extkey_contents[14]=0;  /* no more keys */
-	  r=sc_pkcs15init_update_file(profile, card, keyfile, 
-				      extkey_contents, 15);
-	  if (r != 15) {
-	       profile->cbs->error("update_file failed for extkey file\n");
-	       return r;
-	  }
-     }
-     
-     return 0;
-}
-
-/*
- * Update the contents of a PIN file
- */
-static int cflex_update_pin(struct sc_profile *profile, struct sc_card *card,
-		sc_file_t *file,
-		const u8 *pin, size_t pin_len, int pin_tries,
-		const u8 *puk, size_t puk_len, int puk_tries)
-{
-	u8		buffer[23], *p = buffer;
-	int		r;
-	size_t		len;
-
-	memset(p, 0xFF, 3);
-	p += 3;
-	memset(p, profile->pin_pad_char, 8);
-	strncpy((char *) p, (const char *) pin, pin_len);
-	p += 8;
-	*p++ = pin_tries;
-	*p++ = pin_tries;
-	memset(p, profile->pin_pad_char, 8);
-	strncpy((char *) p, (const char *) puk, puk_len);
-	p += 8;
-	*p++ = puk_tries;
-	*p++ = puk_tries;
-	len = 23;
-
-	r = sc_pkcs15init_update_file(profile, card, file, buffer, len);
-	if (r < 0)
+	if ((len = file->size) > sizeof(buf))
+		len = sizeof(buf);
+	if ((r = sc_read_binary(card, 0, buf, len, 0)) < 0)
 		return r;
+	len = r;
+	if (len == 0)
+		return 0;
+
+	if ((r = sc_bin_to_hex(buf, len, serial, sizeof(serial), '\0')) < 0)
+		return r;
+	sc_pkcs15init_set_serial(profile, serial);
 	return 0;
 }
 
 /*
- * Store a PIN
+ * Create a DF
  */
 static int
-cflex_new_pin(struct sc_profile *profile, struct sc_card *card,
-		struct sc_pkcs15_pin_info *info, unsigned int index,
+cflex_create_dir(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
+{
+	/* Create the application DF */
+	return sc_pkcs15init_create_file(profile, card, df);
+}
+
+/*
+ * Create a PIN domain (i.e. a sub-directory holding a user PIN)
+ */
+static int
+cflex_create_domain(sc_profile_t *profile, sc_card_t *card,
+		const sc_pkcs15_id_t *id, sc_file_t **ret)
+{
+	return sc_pkcs15_create_pin_domain(profile, card, id, ret);
+}
+
+/*
+ * Select the PIN reference
+ */
+static int
+cflex_select_pin_reference(sc_profile_t *profike, sc_card_t *card,
+		sc_pkcs15_pin_info_t *pin_info)
+{
+	int	preferred;
+
+	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
+		preferred = 2;
+	} else {
+		preferred = 1;
+	}
+	if (pin_info->reference <= preferred) {
+		pin_info->reference = preferred;
+		return 0;
+	}
+
+	if (pin_info->reference > 2)
+		return SC_ERROR_INVALID_ARGUMENTS;
+
+	/* Caller, please select a different PIN reference */
+	return SC_ERROR_INVALID_PIN_REFERENCE;
+}
+
+
+/*
+ * Create a new PIN inside a DF
+ */
+static int
+cflex_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
+		sc_pkcs15_object_t *pin_obj,
 		const u8 *pin, size_t pin_len,
 		const u8 *puk, size_t puk_len)
 {
-	sc_file_t *pinfile;
-	struct sc_pkcs15_pin_info tmpinfo;
-	char _template[30];
-	int pin_tries, puk_tries;
-	int r;
+	sc_pkcs15_pin_info_t *pin_info = (sc_pkcs15_pin_info_t *) pin_obj->data;
+	sc_file_t	*dummies[2];
+	int		ndummies, pin_type, puk_type, r;
 
-	index++;
-	sprintf(_template, "pinfile-%d", index);
-	/* Profile must define a "pinfile" for each PIN */
-	if (sc_profile_get_file(profile, _template, &pinfile) < 0) {
-		profile->cbs->error("Profile doesn't define \"%s\"", _template);
-		return SC_ERROR_INVALID_ARGUMENTS;
+	/* If the profile doesn't specify a reference for this PIN, guess */
+	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
+		pin_type = SC_PKCS15INIT_SO_PIN;
+		puk_type = SC_PKCS15INIT_SO_PUK;
+		if (pin_info->reference != 2)
+			return SC_ERROR_INVALID_ARGUMENTS;
+	} else {
+		pin_type = SC_PKCS15INIT_USER_PIN;
+		puk_type = SC_PKCS15INIT_USER_PUK;
+		if (pin_info->reference != 1)
+			return SC_ERROR_INVALID_ARGUMENTS;
 	}
-	info->path = pinfile->path;
-	if (info->path.len > 2)
-		info->path.len -= 2;
-	info->reference = 1;
-	if (pin_len > 8)
-		pin_len = 8;
-	if (puk_len > 8)
-		puk_len = 8;
-	sc_profile_get_pin_info(profile, SC_PKCS15INIT_USER_PIN, &tmpinfo);
-	pin_tries = tmpinfo.tries_left;
-	sc_profile_get_pin_info(profile, SC_PKCS15INIT_USER_PUK, &tmpinfo);
-	puk_tries = tmpinfo.tries_left;
-	
-	r = cflex_update_pin(profile, card, pinfile, pin, pin_len, pin_tries,
-				puk, puk_len, puk_tries);
-	sc_file_free(pinfile);
+
+	ndummies = cflex_create_dummy_chvs(profile, card,
+				df, SC_AC_OP_CREATE,
+				dummies);
+	if (ndummies < 0)
+		return ndummies;
+
+	r = cflex_create_pin_file(profile, card, &df->path,
+			pin_info->reference,
+			pin, pin_len, sc_profile_get_pin_retries(profile, pin_type),
+			puk, puk_len, sc_profile_get_pin_retries(profile, puk_type),
+			NULL, 0);
+
+	cflex_delete_dummy_chvs(profile, card, ndummies, dummies);
 	return r;
 }
 
 /*
- * Allocate a file
+ * Create a new key file
  */
 static int
-cflex_new_file(struct sc_profile *profile, struct sc_card *card,
-		unsigned int type, unsigned int num,
-		struct sc_file **out)
+cflex_create_key(sc_profile_t *profile, sc_card_t *card, sc_pkcs15_object_t *obj)
 {
-	struct sc_file	*file;
-	char		name[64], *tag, *desc;
+	sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
+	sc_file_t	*prkf = NULL, *pukf = NULL;
+	size_t		size;
+	int		r;
 
-	desc = tag = NULL;
-	while (1) {
-		switch (type) {
-		case SC_PKCS15_TYPE_PRKEY_RSA:
-			desc = "RSA private key";
-			tag = "private-key";
-			break;
-		case SC_PKCS15_TYPE_PUBKEY_RSA:
-			desc = "RSA public key";
-			tag = "public-key";
-			break;
-		case SC_PKCS15_TYPE_PUBKEY_DSA:
-			desc = "DSA public key";
-			tag = "public-key";
-			break;
-		case SC_PKCS15_TYPE_PRKEY:
-			desc = "extractable private key";
-			tag = "extractable-key";
-			break;
-		case SC_PKCS15_TYPE_CERT:
-			desc = "certificate";
-			tag = "certificate";
-			break;
-		case SC_PKCS15_TYPE_DATA_OBJECT:
-			desc = "data object";
-			tag = "data";
-			break;
-		}
-		if (tag)
-			break;
-		/* If this is a specific type such as
-		 * SC_PKCS15_TYPE_CERT_FOOBAR, fall back to
-		 * the generic class (SC_PKCS15_TYPE_CERT)
-		 */
-		if (!(type & ~SC_PKCS15_TYPE_CLASS_MASK)) {
-			profile->cbs->error("File type %X not supported by card driver", type);
-			return SC_ERROR_INVALID_ARGUMENTS;
-		}
-		type &= SC_PKCS15_TYPE_CLASS_MASK;
-	}
-
-	snprintf(name, sizeof(name), "template-%s-%d", tag, num+1);
-	if (sc_profile_get_file(profile, name, &file) < 0) {
-		profile->cbs->error("Profile doesn't define %s template '%s'\n",
-				desc, name);
+	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
+		sc_error(card->ctx, "Cryptoflex supports only RSA keys.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 
-	*out = file;
-	return 0;
-}
+	/* Get the public and private key file */
+	r = cflex_get_keyfiles(profile, card,  &key_info->path, &prkf, &pukf);
+	if (r < 0)
+		return r;
 
-/*
- * Get the EF-pubkey corresponding to the EF-prkey
- */
-int
-cflex_pubkey_file(struct sc_file **ret, struct sc_file *prkf, unsigned int size)
-{
-	struct sc_file	*pukf;
-
-	sc_file_dup(&pukf, prkf);
-	sc_file_clear_acl_entries(pukf, SC_AC_OP_READ);
-	sc_file_add_acl_entry(pukf, SC_AC_OP_READ, SC_AC_NONE, SC_AC_KEY_REF_NONE);
-	pukf->path.len -= 2;
-	sc_append_path_id(&pukf->path, (const u8 *) "\x10\x12", 2);
-	pukf->id = 0x1012;
-	pukf->size = size;
-
-	*ret = pukf;
-	return 0;
-}
-
-/*
- * RSA key generation
- */
-static int
-cflex_generate_key(struct sc_profile *profile, struct sc_card *card,
-		unsigned int index, unsigned int keybits,
-		sc_pkcs15_pubkey_t *pubkey,
-		struct sc_pkcs15_prkey_info *info)
-{
-	struct sc_cardctl_cryptoflex_genkey_info args;
-	struct sc_file	*prkf = NULL, *pukf = NULL;
-	unsigned char	raw_pubkey[256];
-	unsigned char	pinbuf[12];
-	size_t		pinlen;
-	int		r, delete_pukf = 0;
-
-	if ((r = cflex_new_file(profile, card, SC_PKCS15_TYPE_PRKEY_RSA, index, &prkf)) < 0) 
-	 	goto failed;
-
-	switch (keybits) {
-	case  512: prkf->size = 166; break;
-	case  768: prkf->size = 246; break;
-	case 1024: prkf->size = 326; break;
-	case 2048: prkf->size = 646; break;
+	/* Adjust the file sizes, if necessary */
+	switch (key_info->modulus_length) {
+	case  512: size = 166; break;
+	case  768: size = 246; break;
+	case 1024: size = 326; break;
+	case 2048: size = 646; break;
 	default:
-		profile->cbs->error("Unsupported key size %u\n", keybits);
-		return SC_ERROR_INVALID_ARGUMENTS;
+		sc_error(card->ctx, "Unsupported key size %u\n",
+				key_info->modulus_length);
+		r = SC_ERROR_INVALID_ARGUMENTS;
+		goto out;
 	}
 
-	if ((r = cflex_pubkey_file(&pukf, prkf, prkf->size + 3)) < 0)
-		goto failed;
+	if (prkf->size < size)
+		prkf->size = size;
+	if (pukf->size < size + 4)
+		pukf->size = size + 4;
 
-	/* Get the CHV1 PIN */
-	pinlen = sizeof(pinbuf);
-	memset(pinbuf, 0, sizeof(pinbuf));
-	if ((r = sc_pkcs15init_get_secret(profile, card, SC_AC_CHV, 1, pinbuf, &pinlen)) < 0)
-		goto failed;
-
+	/* Now create the files */
 	if ((r = sc_pkcs15init_create_file(profile, card, prkf)) < 0
 	 || (r = sc_pkcs15init_create_file(profile, card, pukf)) < 0)
-		goto failed;
-	delete_pukf = 1;
+		goto out;
 
-	/* Present the PIN */
-	if ((r = sc_select_file(card, &pukf->path, NULL))
-	 || (r = sc_verify(card, SC_AC_CHV, 1, pinbuf, pinlen, NULL)) < 0)
-		goto failed;
+	key_info->key_reference = 0;
 
+out:	if (prkf)
+		sc_file_free(prkf);
+	if (pukf)
+		sc_file_free(pukf);
+	return r;
+}
+
+/*
+ * Generate key
+ */
+static int
+cflex_generate_key(sc_profile_t *profile, sc_card_t *card,
+			sc_pkcs15_object_t *obj,
+			sc_pkcs15_pubkey_t *pubkey)
+{
+	struct sc_cardctl_cryptoflex_genkey_info args;
+	sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
+	unsigned int	keybits;
+	unsigned char	raw_pubkey[256];
+	sc_file_t	*prkf = NULL, *pukf = NULL;
+	int		r;
+
+	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
+		sc_error(card->ctx, "Cryptoflex supports only RSA keys.");
+		return SC_ERROR_NOT_SUPPORTED;
+	}
+
+	/* Get the public and private key file */
+	r = cflex_get_keyfiles(profile, card, &key_info->path, &prkf, &pukf);
+	if (r < 0)
+		return r;
+
+	/* Make sure we authenticate first */
+	r = sc_pkcs15init_authenticate(profile, card, prkf, SC_AC_OP_CRYPTO);
+	if (r < 0)
+		goto out;
+
+	keybits = key_info->modulus_length;
+
+	/* Perform key generation */
 	memset(&args, 0, sizeof(args));
 	args.exponent = 0x10001;
 	args.key_bits = keybits;
+	args.key_num  = key_info->key_reference;
 	r = sc_card_ctl(card, SC_CARDCTL_CRYPTOFLEX_GENERATE_KEY, &args);
 	if (r < 0)
-		goto failed;
+		goto out;
 
 	/* extract public key */
 	pubkey->algorithm = SC_ALGORITHM_RSA;
@@ -419,221 +345,555 @@ cflex_generate_key(struct sc_profile *profile, struct sc_card *card,
 	pubkey->u.rsa.exponent.data = (u8 *) malloc(3);
 	memcpy(pubkey->u.rsa.exponent.data, "\x01\x00\x01", 3);
 	if ((r = sc_select_file(card, &pukf->path, NULL)) < 0
-	 || (r = sc_read_binary(card, 3, raw_pubkey, pubkey->u.rsa.modulus.len, 0)) < 0)
-		goto failed;
+	 || (r = sc_read_binary(card, 3, raw_pubkey, keybits / 8, 0)) < 0)
+		goto out;
+
 	invert_buf(pubkey->u.rsa.modulus.data, raw_pubkey, pubkey->u.rsa.modulus.len);
 
-	info->key_reference = 1;
-	info->path = prkf->path;
-
-failed:	if (delete_pukf)
-		sc_pkcs15init_rmdir(card, profile, pukf);
-	if (r < 0)
-		sc_pkcs15init_rmdir(card, profile, prkf);
-	sc_file_free(pukf);
-	sc_file_free(prkf);
+out:	if (pukf)
+		sc_file_free(pukf);
+	if (prkf)
+		sc_file_free(prkf);
 	return r;
-}
-
-static void invert_buf(u8 *dest, const u8 *src, size_t c)
-{
-        int i;
-
-        for (i = 0; i < c; i++)
-                dest[i] = src[c-1-i];
-}
-
-static int bn2cf(sc_pkcs15_bignum_t *num, u8 *buf)
-{
-	invert_buf(buf, num->data, num->len);
-	return num->len;
-}
-
-static int cflex_encode_private_key(struct sc_pkcs15_prkey_rsa *rsa, u8 *key, size_t *keysize, int key_num)
-{
-        u8 buf[5 * 128 + 6], *p = buf;
-	u8 bnbuf[256];
-        int base = 0; 
-        int r;
-        
-        switch (rsa->modulus.len) {
-        case 512 / 8:
-                base = 32;
-                break;
-        case 768 / 8:
-                base = 48;
-                break;
-        case 1024 / 8:
-                base = 64;
-                break;
-        case 2048 / 8:
-                base = 128;
-                break;
-        }
-        if (base == 0) {
-                fprintf(stderr, "Key length invalid.\n");
-                return 2;
-        }
-        *p++ = (5 * base + 3) >> 8;
-        *p++ = (5 * base + 3) & 0xFF;
-        *p++ = key_num;
-        r = bn2cf(&rsa->p, bnbuf);
-        if (r != base) {
-                fprintf(stderr, "Invalid private key.\n");
-                return 2;
-        }
-        memcpy(p, bnbuf, base);
-        p += base;
-
-        r = bn2cf(&rsa->q, bnbuf);
-        if (r != base) {
-                fprintf(stderr, "Invalid private key.\n");
-                return 2;
-        }
-        memcpy(p, bnbuf, base);
-        p += base;
-
-        r = bn2cf(&rsa->iqmp, bnbuf);
-        if (r != base) {
-                fprintf(stderr, "Invalid private key.\n");
-                return 2;
-        }
-        memcpy(p, bnbuf, base);
-        p += base;
-
-        r = bn2cf(&rsa->dmp1, bnbuf);
-        if (r != base) {
-                fprintf(stderr, "Invalid private key.\n");
-                return 2;
-        }
-        memcpy(p, bnbuf, base);
-        p += base;
-
-        r = bn2cf(&rsa->dmq1, bnbuf);
-        if (r != base) {
-                fprintf(stderr, "Invalid private key.\n");
-                return 2;
-        }
-        memcpy(p, bnbuf, base);
-        p += base;
-	*p++ = 0;
-	*p++ = 0;
-	*p++ = 0;
-	
-        memcpy(key, buf, p - buf);
-        *keysize = p - buf;
-
-        return 0;
-}
-
-static int cflex_encode_public_key(struct sc_pkcs15_prkey_rsa *rsa, u8 *key, size_t *keysize, int key_num)
-{
-        u8 buf[5 * 128 + 10], *p = buf;
-        u8 bnbuf[256];
-        int base = 0; 
-        int r;
-        
-        switch (rsa->modulus.len) {
-        case 512 / 8:
-                base = 32;
-                break;
-        case 768 / 8:
-                base = 48;
-                break;
-        case 1024 / 8:
-                base = 64;
-                break;
-        case 2048 / 8:
-                base = 128;
-                break;
-        }
-        if (base == 0) {
-                fprintf(stderr, "Key length invalid.\n");
-                return 2;
-        }
-        *p++ = (5 * base + 7) >> 8;
-        *p++ = (5 * base + 7) & 0xFF;
-        *p++ = key_num;
-        r = bn2cf(&rsa->modulus, bnbuf);
-        if (r != 2*base) {
-                fprintf(stderr, "Invalid public key.\n");
-                return 2;
-        }
-        memcpy(p, bnbuf, 2*base);
-        p += 2*base;
-
-        memset(p, 0, base);
-        p += base;
-
-	memset(bnbuf, 0, 2*base);
-        memcpy(p, bnbuf, 2*base);
-        p += 2*base;
-	r = bn2cf(&rsa->exponent, bnbuf);
-	memcpy(p, bnbuf, 4);
-        p += 4;
-	*p++ = 0;
-	*p++ = 0;
-	*p++ = 0;
-
-        memcpy(key, buf, p - buf);
-        *keysize = p - buf;
-
-        return 0;
 }
 
 /*
  * Store a private key
  */
 static int
-cflex_new_key(struct sc_profile *profile, struct sc_card *card,
-		struct sc_pkcs15_prkey *key, unsigned int index,
-		struct sc_pkcs15_prkey_info *info)
+cflex_store_key(sc_profile_t *profile, sc_card_t *card,
+		sc_pkcs15_object_t *obj,
+		sc_pkcs15_prkey_t *key)
 {
-	u8 prv[1024], pub[1024];
-	size_t prvsize, pubsize;
-	struct sc_file *keyfile = NULL, *tmpfile = NULL;
-	struct sc_pkcs15_prkey_rsa *rsa = NULL;
-        int r;
+	sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
+	sc_file_t	*prkf, *pukf;
+	unsigned char	keybuf[1024];
+	size_t		size;
+	int		r;
 
-	if (key->algorithm != SC_ALGORITHM_RSA) {
-		profile->cbs->error("Cryptoflex supports only RSA keys.");
+	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
+		sc_error(card->ctx, "Cryptoflex supports only RSA keys.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
-	rsa = &key->u.rsa;
-	r = cflex_encode_private_key(rsa, prv, &prvsize, 1);
-	if (r)
-		goto err;
-	r = cflex_encode_public_key(rsa, pub, &pubsize, 1);
-	if (r)
-		goto err;
-	printf("Updating RSA private key...\n");
-	r = cflex_new_file(profile, card, SC_PKCS15_TYPE_PRKEY_RSA, index,
-			    &keyfile);
-	if (r < 0)
-		goto err;
-	keyfile->size = prvsize;
-	r = sc_pkcs15init_update_file(profile, card, keyfile, prv, prvsize);
-	if (r < 0)
-		goto err;
-	info->path = keyfile->path;
-	info->modulus_length = rsa->modulus.len << 3;
 
-	if ((r = cflex_pubkey_file(&tmpfile, keyfile, pubsize)) < 0)
-		goto err;
+	/* Get the public and private key file */
+	r = cflex_get_keyfiles(profile, card, &key_info->path, &prkf, &pukf);
+	if (r < 0)
+		return r;
 
-	printf("Updating RSA public key...\n");
-	r = sc_pkcs15init_update_file(profile, card, tmpfile, pub, pubsize);
-err:
-	if (tmpfile)
-		sc_file_free(tmpfile);
+	/* Write the private key */
+	size = sizeof(keybuf);
+	r = profile->ops->encode_private_key(profile, card,
+				&key->u.rsa, keybuf, &size,
+				key_info->key_reference);
+	if (r < 0)
+		goto out;
+
+	r = sc_pkcs15init_update_file(profile, card, prkf, keybuf, size);
+	if (r < 0)
+		goto out;
+
+	/* Write the public key */
+	size = sizeof(keybuf);
+	r = profile->ops->encode_public_key(profile, card,
+				&key->u.rsa, keybuf, &size,
+				key_info->key_reference);
+	if (r < 0)
+		goto out;
+
+	r = sc_pkcs15init_update_file(profile, card, pukf, keybuf, size);
+
+out:	sc_file_free(prkf);
+	sc_file_free(pukf);
 	return r;
 }
 
-struct sc_pkcs15init_operations sc_pkcs15init_cflex_operations = {
-	cflex_erase_card,
-	cflex_init_app,
-	cflex_new_pin,
-	cflex_new_key,
-	cflex_new_file,
-	cflex_generate_key,
-};
+/*
+ * If an access condition references e.g. CHV1, but we don't have
+ * a CHV1 file yet, create an unprotected dummy file in the MF.
+ */
+static int
+cflex_create_dummy_chvs(sc_profile_t *profile, sc_card_t *card,
+			sc_file_t *file, int op,
+			sc_file_t **dummies)
+{
+	const sc_acl_entry_t *acl;
+	int		r = 0, ndummies = 0;
+
+	/* See if the DF is supposed to be PIN protected, and if
+	 * it is, whether that CHV file actually exists. If it doesn't,
+	 * create it.
+	 */
+	acl = sc_file_get_acl_entry(file, op);
+	for (; acl; acl = acl->next) {
+		sc_path_t	parent, ef;
+
+		if (acl->method != SC_AC_CHV)
+			continue;
+
+		parent = file->path;
+		parent.len -= 2;
+
+		r = SC_ERROR_FILE_NOT_FOUND;
+		while (parent.len >= 2 && r == SC_ERROR_FILE_NOT_FOUND) {
+			ef = parent;
+			ef.value[ef.len++] = acl->key_ref - 1;
+			ef.value[ef.len++] = 0;
+			parent.len -= 2;
+
+			if (ef.len == parent.len
+			 && !memcmp(ef.value, parent.value, ef.len))
+				continue;
+
+			card->ctx->suppress_errors++;
+			r = sc_select_file(card, &ef, NULL);
+			card->ctx->suppress_errors--;
+		}
+
+		/* If a valid EF(CHVx) was found, we're fine */
+		if (r == 0)
+			continue;
+		if (r != SC_ERROR_FILE_NOT_FOUND)
+			break;
+
+		/* Create a CHV file in the MF */
+		parent = file->path;
+		parent.len = 2;
+		r = cflex_create_empty_pin_file(profile, card, &parent,
+				acl->key_ref, &dummies[ndummies]);
+		if (r < 0)
+			break;
+		ndummies++;
+	}
+
+	if (r < 0) {
+		cflex_delete_dummy_chvs(profile, card, ndummies, dummies);
+		return r;
+	}
+	return ndummies;
+}
+
+static void
+cflex_delete_dummy_chvs(sc_profile_t *profile, sc_card_t *card,
+			int ndummies, sc_file_t **dummies)
+{
+	while (ndummies--) {
+		cflex_delete_file(profile, card, dummies[ndummies]);
+		sc_file_free(dummies[ndummies]);
+	}
+}
+
+/*
+ * Create a pin file
+ */
+static inline void
+put_pin(sc_profile_t *profile, unsigned char *buf,
+		const u8 *pin, size_t len, int retry)
+{
+	if (len > 8)
+		len = 8;
+	memset(buf, profile->pin_pad_char, 8);
+	memcpy(buf, pin, len);
+	buf[8] = retry;
+	buf[9] = retry;
+}
+
+static int
+cflex_create_pin_file(sc_profile_t *profile, sc_card_t *card,
+			sc_path_t *df_path, int ref,
+			const u8 *pin, size_t pin_len, int pin_tries,
+			const u8 *puk, size_t puk_len, int puk_tries,
+			sc_file_t **file_ret, int unprotected)
+{
+	unsigned char	buffer[23];
+	sc_path_t	path;
+	sc_file_t	*dummies[2], *file;
+	int		r, ndummies;
+
+	if (file_ret)
+		*file_ret = NULL;
+
+	/* Build the CHV path */
+	path = *df_path;
+	path.value[path.len++] = ref - 1;
+	path.value[path.len++] = 0;
+
+	/* See if the CHV already exists */
+        card->ctx->suppress_errors++;
+        r = sc_select_file(card, &path, NULL);
+        card->ctx->suppress_errors--;
+	if (r >= 0)
+		return SC_ERROR_FILE_ALREADY_EXISTS;
+
+	/* Get the file definition from the profile */
+	if (sc_profile_get_file_by_path(profile, &path, &file) < 0
+	 && sc_profile_get_file(profile, (ref == 1)? "CHV1" : "CHV2", &file) < 0
+	 && sc_profile_get_file(profile, "CHV", &file) < 0) {
+		sc_error(card->ctx, "profile does not define pin file ACLs\n");
+		return SC_ERROR_FILE_NOT_FOUND;
+	}
+
+	file->path = path;
+	file->size = 23;
+	file->id = (ref == 1)? 0x0000 : 0x0100;
+
+	if (unprotected) {
+		sc_file_add_acl_entry(file, SC_AC_OP_UPDATE,
+				SC_AC_NONE, SC_AC_KEY_REF_NONE);
+	}
+
+
+	/* Build the contents of the file */
+	buffer[0] = buffer[1] = buffer[2] = 0xFF;
+	put_pin(profile, buffer + 3, pin, pin_len, pin_tries);
+	put_pin(profile, buffer + 13, puk, puk_len, puk_tries);
+
+	/* For updating the file, create a dummy CHV files if
+	 * necessary */
+	ndummies = cflex_create_dummy_chvs(profile, card,
+				file, SC_AC_OP_UPDATE,
+				dummies);
+	if (ndummies < 0) {
+		sc_error(card->ctx,
+			"Unable to create dummy CHV file: %s",
+			sc_strerror(ndummies));
+		return ndummies;
+	}
+
+	r = sc_pkcs15init_update_file(profile, card, file, buffer, 23);
+	if (r >= 0)
+		sc_keycache_put_key(df_path, SC_AC_CHV, ref, pin, pin_len);
+
+	if (r < 0 || file_ret == NULL) {
+		sc_file_free(file);
+	} else {
+		*file_ret = file;
+	}
+
+	/* Delete the dummy CHV files */
+	cflex_delete_dummy_chvs(profile, card, ndummies, dummies);
+	return r;
+}
+
+/*
+ * Create a faux pin file
+ */
+static int
+cflex_create_empty_pin_file(sc_profile_t *profile, sc_card_t *card,
+			sc_path_t *path, int ref, sc_file_t **file_ret)
+{
+	int		r;
+
+	*file_ret = NULL;
+	r = cflex_create_pin_file(profile, card, path, ref,
+			(const u8 *) "0000", 4, 8,
+			NULL, 0, 0,
+			file_ret, 1);
+	if (r == SC_ERROR_FILE_ALREADY_EXISTS)
+		return 0;
+
+	return r;
+}
+
+/*
+ * Get private and public key file
+ */
+int
+cflex_get_keyfiles(sc_profile_t *profile, sc_card_t *card,
+			const sc_path_t *df_path,
+			sc_file_t **prkf, sc_file_t **pukf)
+{
+	sc_path_t	path = *df_path;
+	int		r;
+
+	/* Get the private key file */
+	r = sc_profile_get_file_by_path(profile, &path, prkf);
+	if (r < 0) {
+		sc_error(card->ctx, "Cannot find private key file info "
+				"in profile (path=%s).",
+				sc_print_path(&path));
+		return r;
+	}
+
+	/* Get the public key file */
+	path.len -= 2;
+	sc_append_file_id(&path, 0x1012);
+	r = sc_profile_get_file_by_path(profile, &path, pukf);
+	if (r < 0) {
+		sc_error(card->ctx, "Cannot find public key file info in profile.");
+		sc_file_free(*prkf);
+		return r;
+	}
+
+	return 0;
+}
+
+static void
+invert_buf(u8 *dest, const u8 *src, size_t c)
+{
+	unsigned int i;
+
+	for (i = 0; i < c; i++)
+		dest[i] = src[c-1-i];
+}
+
+static int
+bn2cf(sc_pkcs15_bignum_t *num, u8 *buf, size_t bufsize)
+{
+	size_t	len = num->len;
+
+	if (len > bufsize)
+		return SC_ERROR_INVALID_ARGUMENTS;
+
+	invert_buf(buf, num->data, len);
+	while (len < bufsize)
+		buf[len++] = 0;
+	return 0;
+}
+
+static int
+bn2cft(sc_pkcs15_bignum_t *num, u8 tag, u8 *buf, size_t bufsize)
+{
+	size_t	len = num->len;
+
+	if (len + 3 > bufsize)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	memset(buf, 0, bufsize);
+	buf[0] = tag;
+	buf[1] = len + 1;
+	memcpy(buf + 3, num->data, len);
+	return 0;
+}
+
+/*
+ * Cryptoflex key encoding
+ */
+static int
+cryptoflex_encode_private_key(sc_profile_t *profile, sc_card_t *card,
+			struct sc_pkcs15_prkey_rsa *rsa,
+			u8 *key, size_t *keysize, int key_ref)
+{
+        size_t base = rsa->modulus.len / 2, key_blob_size;
+        int r, key_num = key_ref + 1;
+        
+        switch (rsa->modulus.len) {
+	case  512 / 8:
+	case  768 / 8:
+	case 1024 / 8:
+	case 2048 / 8:
+                break;
+	default:
+		return SC_ERROR_INVALID_ARGUMENTS;
+        }
+
+	key_blob_size = 5 * base + 3;
+	if (*keysize < key_blob_size + 3)
+		return SC_ERROR_BUFFER_TOO_SMALL;
+	*keysize = key_blob_size + 3;
+
+        *key++ = key_blob_size >> 8;
+        *key++ = key_blob_size & 0xFF;
+        *key++ = key_num;
+
+	if ((r = bn2cf(&rsa->p,    key + 0 * base, base)) < 0
+	 || (r = bn2cf(&rsa->q,    key + 1 * base, base)) < 0
+	 || (r = bn2cf(&rsa->iqmp, key + 2 * base, base)) < 0
+	 || (r = bn2cf(&rsa->dmp1, key + 3 * base, base)) < 0
+	 || (r = bn2cf(&rsa->dmq1, key + 4 * base, base)) < 0)
+		return r;
+
+        key += 5 * base;
+	*key++ = 0;
+	*key++ = 0;
+	*key++ = 0;
+	
+        return 0;
+}
+
+static int
+cryptoflex_encode_public_key(sc_profile_t *profile, sc_card_t *card,
+			struct sc_pkcs15_prkey_rsa *rsa,
+			u8 *key, size_t *keysize, int key_ref)
+{
+        size_t base;
+        int r, key_num = key_ref + 1;
+        
+        switch (rsa->modulus.len) {
+	case  512 / 8:
+	case  768 / 8:
+	case 1024 / 8:
+	case 2048 / 8:
+                break;
+	default:
+		return SC_ERROR_INVALID_ARGUMENTS;
+        }
+
+	base = rsa->modulus.len / 2;
+	if (*keysize < (5 * base + 10))
+		return SC_ERROR_BUFFER_TOO_SMALL;
+	*keysize = 5 * base + 10;
+        
+	memset(key, 0, *keysize);
+        *key++ = (5 * base + 7) >> 8;
+        *key++ = (5 * base + 7) & 0xFF;
+        *key++ = key_num;
+
+	/* Funny code - not sure why we do it this way:
+	 * 
+	 * Specs say:		We store:	(Length)
+	 *  modulus		 modulus	(N bytes)
+	 *  J0 Montgomery const	 0		(N/2 bytes)
+	 *  H Montgomery const	 0		(N bytes)
+	 *  exponent		 exponent	4
+	 *
+	 * 				--okir */
+	if ((r = bn2cf(&rsa->modulus,  key + 0 * base, 2 * base)) < 0
+	 || (r = bn2cf(&rsa->exponent, key + 5 * base, 4)) < 0)
+		return r;
+
+        return 0;
+}
+
+/*
+ * Cyberflex key encoding
+ */
+static int
+cyberflex_encode_private_key(sc_profile_t *profile, sc_card_t *card,
+			struct sc_pkcs15_prkey_rsa *rsa,
+			u8 *key, size_t *keysize, int key_ref)
+{
+        size_t base = rsa->modulus.len / 2, key_blob_size, bnlen;
+        int r, key_num = key_ref + 1, alg_id;
+        
+        switch (rsa->modulus.len) {
+	case  512 / 8: alg_id = 0xC4; break;
+	case  768 / 8: alg_id = 0xC6; break;
+	case 1024 / 8: alg_id = 0xC8; break;
+	default:
+		return SC_ERROR_INVALID_ARGUMENTS;
+        }
+
+	key_blob_size = 12 + 5 * (base + 3) + 4;
+	if (*keysize < key_blob_size)
+		return SC_ERROR_BUFFER_TOO_SMALL;
+	*keysize = key_blob_size;
+
+	memset(key, 0, *keysize);
+        *key++ = key_blob_size >> 8;
+        *key++ = key_blob_size & 0xFF;
+        *key++ = key_num;
+        *key++ = alg_id;
+
+	/* key blob header:
+	 * "C2:06:C1:08:13:00:00:05"
+	 */
+	memcpy(key, "\xc2\x06\xc1\x08\x12\x00\x00\x05", 8);
+	key += 8;
+
+	/* Each bignum is encoded with a 2 byte header and a
+	 * NULL pad byte */
+	bnlen = base + 3;
+
+	if ((r = bn2cft(&rsa->q,    0xC2, key + 0 * bnlen, bnlen)) < 0
+	 || (r = bn2cft(&rsa->p,    0xC2, key + 1 * bnlen, bnlen)) < 0
+	 || (r = bn2cft(&rsa->iqmp, 0xC2, key + 2 * bnlen, bnlen)) < 0
+	 || (r = bn2cft(&rsa->dmq1, 0xC2, key + 3 * bnlen, bnlen)) < 0
+	 || (r = bn2cft(&rsa->dmp1, 0xC2, key + 4 * bnlen, bnlen)) < 0)
+		return r;
+
+        key += 5 * bnlen;
+	key[0] = 0x0A;
+	key[1] = 0x0A;
+	key[2] = 0x00;
+	key[3] = 0x00;
+
+        return 0;
+}
+
+static int
+cyberflex_encode_public_key(sc_profile_t *profile, sc_card_t *card,
+			struct sc_pkcs15_prkey_rsa *rsa,
+			u8 *key, size_t *keysize, int key_ref)
+{
+	size_t base = rsa->modulus.len, key_blob_size, bnlen;
+        int r, key_num = key_ref + 1, alg_id;
+        
+        switch (rsa->modulus.len) {
+	case  512 / 8: alg_id = 0xC5; break;
+	case  768 / 8: alg_id = 0xC7; break;
+	case 1024 / 8: alg_id = 0xC9; break;
+	default:
+		return SC_ERROR_INVALID_ARGUMENTS;
+        }
+
+	key_blob_size = 12 + 3 + base + 7 + 4;
+	if (*keysize < key_blob_size)
+		return SC_ERROR_BUFFER_TOO_SMALL;
+	*keysize = key_blob_size;
+        
+	memset(key, 0, *keysize);
+        *key++ = key_blob_size >> 8;
+        *key++ = key_blob_size & 0xFF;
+        *key++ = key_num;
+	*key++ = alg_id;
+
+	/* Key blob header */
+	memcpy(key, "\xC1\x06\xC0\x08\x13\x00\x00\x05", 8);
+	key += 8;
+
+	bnlen = rsa->modulus.len + 3;
+	if ((r = bn2cft(&rsa->modulus, 0xC0, key, bnlen)) < 0
+	 || (r = bn2cft(&rsa->exponent, 0xC0, key + bnlen, 3 + 4)) < 0)
+	 	return r;
+
+	key += bnlen + 3 + 4;
+	key[0] = 0x0A;
+	key[1] = 0x0A;
+	key[2] = 0x00;
+	key[3] = 0x00;
+        return 0;
+}
+
+static struct sc_pkcs15init_operations sc_pkcs15init_cryptoflex_operations;
+static struct sc_pkcs15init_operations sc_pkcs15init_cyberflex_operations;
+
+struct sc_pkcs15init_operations *
+sc_pkcs15init_get_cryptoflex_ops(void)
+{
+	struct sc_pkcs15init_operations *ops;
+	
+	ops = &sc_pkcs15init_cryptoflex_operations;
+	ops->erase_card = cflex_erase_card;
+	ops->init_card = cryptoflex_init_card;
+	ops->create_dir = cflex_create_dir;
+	ops->create_domain = cflex_create_domain;
+	ops->select_pin_reference = cflex_select_pin_reference;
+	ops->create_pin = cflex_create_pin;
+	ops->create_key = cflex_create_key;
+	ops->generate_key = cflex_generate_key;
+	ops->store_key = cflex_store_key;
+	ops->encode_private_key = cryptoflex_encode_private_key;
+	ops->encode_public_key = cryptoflex_encode_public_key;
+
+	return ops;
+}
+
+struct sc_pkcs15init_operations *
+sc_pkcs15init_get_cyberflex_ops(void)
+{
+	struct sc_pkcs15init_operations *ops;
+	
+	ops = &sc_pkcs15init_cyberflex_operations;
+	ops->erase_card = cflex_erase_card;
+	ops->create_dir = cflex_create_dir;
+	ops->create_domain = cflex_create_domain;
+	ops->select_pin_reference = cflex_select_pin_reference;
+	ops->create_pin = cflex_create_pin;
+	ops->create_key = cflex_create_key;
+	ops->generate_key = cflex_generate_key;
+	ops->store_key = cflex_store_key;
+	ops->encode_private_key = cyberflex_encode_private_key;
+	ops->encode_public_key = cyberflex_encode_public_key;
+
+	return ops;
+}
