@@ -37,23 +37,21 @@
 const char *app_name = "cardos-info";
 
 int opt_reader = -1, opt_debug = 0, opt_wait = 0;
-int quiet = 0;
+int verbose = 0;
 
 const struct option options[] = {
 	{"reader",	1, 0, 'r'},
 	{"card-driver", 1, 0, 'c'},
-	{"quiet",	0, 0, 'q'},
 	{"wait",	0, 0, 'w'},
-	{"debug",	0, 0, 'd'},
+	{"verbose",	0, 0, 'v'},
 	{0, 0, 0, 0}
 };
 
 const char *option_help[] = {
 	"Uses reader number <arg> [0]",
 	"Forces the use of driver <arg> [auto-detect]",
-	"Quiet operation",
 	"Wait for a card to be inserted",
-	"Debug output -- may be supplied several times",
+	"Verbose operation. Use several times to enable debug output.",
 };
 
 struct sc_context *ctx = NULL;
@@ -338,7 +336,7 @@ int main(int argc, char *const argv[])
 	const char *opt_driver = NULL;
 
 	while (1) {
-		c = getopt_long(argc, argv, "r:qdc:w", options,
+		c = getopt_long(argc, argv, "r:vc:w", options,
 				&long_optind);
 		if (c == -1)
 			break;
@@ -349,8 +347,8 @@ int main(int argc, char *const argv[])
 		case 'r':
 			opt_reader = atoi(optarg);
 			break;
-		case 'q':
-			quiet++;
+		case 'v':
+			verbose++;
 			break;
 		case 'd':
 			opt_debug++;
@@ -381,18 +379,10 @@ int main(int argc, char *const argv[])
 		}
 	}
 
-	err = connect_card(ctx, &card, opt_reader, 0, opt_wait, quiet);
+	err = connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
 	if (err)
 		goto end;
 
-	printf("Using card driver: %s\n", card->driver->name);
-	r = sc_lock(card);
-	if (r) {
-		fprintf(stderr, "Unable to lock card: %s\n",
-			sc_strerror(r));
-		err = 1;
-		goto end;
-	}
 	if ((err = cardos_info())) {
 		goto end;
 	}

@@ -35,10 +35,11 @@
 
 const char *app_name = "opensc-tool";
 
-int opt_reader = -1, opt_no_cache = 0, opt_debug = 0, opt_wait = 0;
-char * opt_apdus[8];
-int opt_apdu_count = 0;
-int quiet = 0;
+static int	opt_reader = -1,
+		opt_wait = 0;
+static char **	opt_apdus;
+static int	opt_apdu_count = 0;
+static int	verbose = 0;
 
 const struct option options[] = {
 	{ "atr",		0, 0,		'a' },
@@ -50,9 +51,8 @@ const struct option options[] = {
 	{ "send-apdu",		1, 0,		's' },
 	{ "reader",		1, 0,		'r' },
 	{ "card-driver",	1, 0,		'c' },
-	{ "quiet",		0, 0,		'q' },
 	{ "wait",		0, 0,		'w' },
-	{ "debug",		0, 0,		'd' },
+	{ "verbose",		0, 0,		'v' },
 	{ 0, 0, 0, 0 }
 };
 
@@ -66,9 +66,8 @@ const char *option_help[] = {
 	"Sends an APDU in format AA:BB:CC:DD:EE:FF...",
 	"Uses reader number <arg> [0]",
 	"Forces the use of driver <arg> [auto-detect]",
-	"Quiet operation",
 	"Wait for a card to be inserted",
-	"Debug output -- may be supplied several times",
+	"Verbose operation. Use several times to enable debug output.",
 };
 
 struct sc_context *ctx = NULL;
@@ -245,10 +244,13 @@ int enum_dir(struct sc_path path, int depth)
 		int i;
 
 		r = sc_list_files(card, files, sizeof(files));
-		if (r <= 0) {
+		if (r < 0) {
 			fprintf(stderr, "sc_list_files() failed: %s\n", sc_strerror(r));
 			return 1;
 		}
+		if (r == 0) {
+			printf("Empty directory\n");
+		} else
 		for (i = 0; i < r/2; i++) {
 			struct sc_path tmppath;
 
@@ -332,13 +334,7 @@ int send_apdu(void)
 		for (r = 0; r < len0; r++)
 			printf("%02X ", buf[r]);
 		printf("\n");
-	#if 0
-		ctx->debug = 5;
-	#endif
 		r = sc_transmit_apdu(card, &apdu);
-	#if 0
-		ctx->debug = opt_debug;
-	#endif
 		if (r) {
 			fprintf(stderr, "APDU transmit failed: %s\n", sc_strerror(r));
 			return 1;
@@ -364,8 +360,11 @@ int main(int argc, char * const argv[])
 	int action_count = 0;
 	const char *opt_driver = NULL;
 		
+	setbuf(stderr, NULL);
+	setbuf(stdout, NULL);
+
 	while (1) {
-		c = getopt_long(argc, argv, "nlfr:qds:DRc:aw", options, &long_optind);
+		c = getopt_long(argc, argv, "nlfr:vs:DRc:aw", options, &long_optind);
 		if (c == -1)
 			break;
 		if (c == '?')
@@ -388,6 +387,8 @@ int main(int argc, char * const argv[])
 			action_count++;
 			break;
 		case 's':
+			opt_apdus = (char **) realloc(opt_apdus,
+					(opt_apdu_count + 1) * sizeof(char *));
 			opt_apdus[opt_apdu_count] = optarg;
 			do_send_apdu++;
 			if (opt_apdu_count == 0)
@@ -405,11 +406,8 @@ int main(int argc, char * const argv[])
 		case 'r':
 			opt_reader = atoi(optarg);
 			break;
-		case 'q':
-			quiet++;
-			break;
-		case 'd':
-			opt_debug++;
+		case 'v':
+			verbose++;
 			break;
 		case 'c':
 			opt_driver = optarg;
@@ -426,8 +424,8 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
-	if (opt_debug)
-		ctx->debug = opt_debug;
+	if (verbose > 1)
+		ctx->debug = verbose-1;
 	if (do_list_rdrivers) {
 		if ((err = list_reader_drivers()))
 			goto end;
@@ -455,26 +453,18 @@ int main(int argc, char * const argv[])
 		}
 	}
 
-	err = connect_card(ctx, &card, opt_reader, 0, opt_wait, quiet);
+	err = connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
 	if (err)
 		goto end;
 
-	if (!quiet)
-		printf("Using card driver: %s\n", card->driver->name);
-	r = sc_lock(card);
-	if (r) {
-		fprintf(stderr, "Unable to lock card: %s\n", sc_strerror(r));
-		err = 1;
-		goto end;
-	}
 	if (do_print_atr) {
-		if (!quiet)
+		if (verbose)
 			printf("Card ATR: ");
 		hex_dump_asc(stdout, card->atr, card->atr_len, -1);
 		action_count--;
 	}
 	if (do_print_name) {
-		if (!quiet)
+		if (verbose)
 			printf("Card name: ");
 		printf("%s\n", card->name);
 		action_count--;
