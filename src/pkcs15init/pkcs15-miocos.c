@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <opensc/opensc.h>
 #include <opensc/cardctl.h>
+#include <opensc/log.h>
 #include "pkcs15-init.h"
 #include "profile.h"
 
@@ -32,6 +33,7 @@
  * Initialize the Application DF
  */
 static int miocos_init_app(struct sc_profile *profile, struct sc_card *card,
+		struct sc_pkcs15_pin_info *pin_info,
 		const u8 *pin, size_t pin_len, const u8 *puk, size_t puk_len)
 {
 	/* Create the application DF */
@@ -120,7 +122,8 @@ miocos_new_file(struct sc_profile *profile, struct sc_card *card,
 		 * the generic class (SC_PKCS15_TYPE_CERT)
 		 */
 		if (!(type & ~SC_PKCS15_TYPE_CLASS_MASK)) {
-			profile->cbs->error("File type not supported by card driver");
+			sc_error(card->ctx,
+				"File type not supported by card driver");
 			return SC_ERROR_INVALID_ARGUMENTS;
 		}
 		type &= SC_PKCS15_TYPE_CLASS_MASK;
@@ -128,7 +131,7 @@ miocos_new_file(struct sc_profile *profile, struct sc_card *card,
 
 	snprintf(name, sizeof(name), "template-%s", tag);
 	if (sc_profile_get_file(profile, name, &file) < 0) {
-		profile->cbs->error("Profile doesn't define %s template (%s)\n",
+		sc_error(card->ctx, "Profile doesn't define %s template (%s)",
 				desc, name);
 		return SC_ERROR_NOT_SUPPORTED;
 	}
@@ -174,12 +177,12 @@ miocos_new_key(struct sc_profile *profile, struct sc_card *card,
 	int r;
 	
 	if (key->algorithm != SC_ALGORITHM_RSA) {
-		profile->cbs->error("MioCOS supports only 1024-bit RSA keys.");
+		sc_error(card->ctx, "MioCOS supports only 1024-bit RSA keys.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 	rsa = &key->u.rsa;
 	if (rsa->modulus.len != 128) {
-		profile->cbs->error("MioCOS supports only 1024-bit RSA keys.");
+		sc_error(card->ctx, "MioCOS supports only 1024-bit RSA keys.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 	r = miocos_new_file(profile, card, SC_PKCS15_TYPE_PRKEY_RSA, index,
@@ -198,10 +201,14 @@ miocos_new_key(struct sc_profile *profile, struct sc_card *card,
 	return r;
 }
 
-struct sc_pkcs15init_operations sc_pkcs15init_miocos_operations = {
-	NULL,
-	miocos_init_app,
-	miocos_new_pin,
-	miocos_new_key,
-	miocos_new_file,
-};
+static struct sc_pkcs15init_operations sc_pkcs15init_miocos_operations;
+
+struct sc_pkcs15init_operations *sc_pkcs15init_get_miocos_ops(void)
+{
+	sc_pkcs15init_miocos_operations.init_app = miocos_init_app;
+	sc_pkcs15init_miocos_operations.new_pin = miocos_new_pin;
+	sc_pkcs15init_miocos_operations.new_key = miocos_new_key;
+	sc_pkcs15init_miocos_operations.new_file = miocos_new_file;
+
+	return &sc_pkcs15init_miocos_operations;
+}
