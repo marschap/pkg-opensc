@@ -1,5 +1,5 @@
 /*
- * $Id: cert_support.c,v 1.2 2003/09/10 10:42:34 aet Exp $
+ * $Id: cert_support.c,v 1.4 2004/06/09 18:40:33 nils Exp $
  *
  * Copyright (C) 2001, 2002
  *  Anna Erika Suortti <asuortti@cc.hut.fi>
@@ -32,6 +32,7 @@
 #include <ctype.h>
 #include <sys/types.h>
 #include <openssl/err.h>
+#include <openssl/opensslv.h>
 #include "cert_support.h"
 
 #define CHECK_CTX(ctx, val)			\
@@ -208,7 +209,7 @@ int certCheckKeyUsage(X509 * cert, unsigned int bit)
     return -1;
   }
   /* Try to parse keyUsage extension out of the certificate */
-  loc = X509_get_ext_by_NID(cert, NID_key_usage, 0);
+  loc = X509_get_ext_by_NID(cert, NID_key_usage, -1);
   /* No keyUsage existing, bail out */
   if (loc < 0) {
     return -1;
@@ -372,14 +373,46 @@ int certIsSelfSigned(X509 * cert)
   }
 }
 
+#if OPENSSL_VERSION_NUMBER >= 0x00906000L
+static char *printDN(X509_NAME *name)
+{
+	char *ret;
+	int  r;
+	BIO  *bp;
+
+	bp = BIO_new(BIO_s_mem());
+	if (!bp)
+		return NULL;
+	r = X509_NAME_print_ex(bp, name, 0, XN_FLAG_ONELINE);
+	if (r < 0) {
+		BIO_free(bp);
+		return NULL;
+	}
+	ret = malloc((r + 1) * sizeof(char));
+	if (!ret) {
+		BIO_free(bp);
+		return NULL;
+	}
+	BIO_gets(bp, ret, r + 1);
+	BIO_free(bp);
+
+	return ret;
+}
+#else
+static char *printDN(X509_NAME *name)
+{
+	return X509_NAME_oneline(name, NULL, 0);
+}
+#endif
+
 /* This function returns the issuer of the X.509 format certificate 
    cert.
  */
 
 char *certGetIssuer(X509 * cert)
 {
-  CHECK_CTX(cert, NULL);
-  return X509_NAME_oneline(X509_get_issuer_name(cert), NULL, 0);
+	CHECK_CTX(cert, NULL);
+	return printDN(X509_get_issuer_name(cert));
 }
 
 /* This function returns the subject of the X.509 format certificate 
@@ -387,8 +420,8 @@ char *certGetIssuer(X509 * cert)
  */
 char *certGetSubject(X509 * cert)
 {
-  CHECK_CTX(cert, NULL);
-  return X509_NAME_oneline(X509_get_subject_name(cert), NULL, 0);
+	CHECK_CTX(cert, NULL);
+	return printDN(X509_get_subject_name(cert));
 }
 
 char *certParseDN(char *entry, char *field)
