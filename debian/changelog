@@ -1,3 +1,10 @@
+opensc (0.8.1-7) unstable; urgency=low
+
+  * {configure,configure.in}: Replace /pcsc with /PCSC for new pcsclite
+    include location.
+
+ -- Eric Dorland <eric@debian.org>  Tue, 20 Jul 2004 22:38:39 -0400
+
 opensc (0.8.1-6) unstable; urgency=low
 
   * configure.in: use _pic.a instead of -pic.a, openssl changed.

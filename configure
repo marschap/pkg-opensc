@@ -22929,7 +22929,7 @@ fi
 if test "x$pcsc_path" != "xno" -a "x$PCSC_MSG" != "xyes"; then
 	echo "$as_me:$LINENO: checking for PC/SC-Lite support" >&5
 echo $ECHO_N "checking for PC/SC-Lite support... $ECHO_C" >&6
-	for pcscdir in /pcsc ""; do
+	for pcscdir in /PCSC ""; do
 		CPPFLAGS="$saved_CPPFLAGS"
 		LDFLAGS="$saved_LDFLAGS"
 		LIBS="-lpcsclite $saved_LIBS"
