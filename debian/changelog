@@ -1,7 +1,7 @@
 opensc (0.9.4-1) experimental; urgency=low
 
   * New upstream release. Target experimental to give freeswan guys a
-    chance.
+    chance. (Closes: #279968, #260828)
   * src/libopensc/reader-pcsc.c: Resolve some conflicts from previous
     patches, now in synch with upstream.
   * debian/{libopensc0-dev.install, libopensc0.install, libopensc0.shlibs,
