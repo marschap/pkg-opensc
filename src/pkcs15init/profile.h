@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <opensc/pkcs15.h>
+#include "keycache.h"
 
 #ifndef SC_PKCS15_PROFILE_DIRECTORY
 #define SC_PKCS15_PROFILE_DIRECTORY	"/usr/lib/opensc/profiles"
@@ -20,6 +21,7 @@ extern "C" {
 #define SC_PKCS15_PROFILE_SUFFIX	"profile"
 #endif
 
+/* Obsolete */
 struct auth_info {
 	struct auth_info *	next;
 	unsigned int		type;		/* CHV, AUT, PRO */
@@ -34,6 +36,12 @@ struct file_info {
 	struct sc_file *	file;
 	unsigned int		dont_free;
 	struct file_info *	parent;
+
+	/* Template support */
+	struct file_info *	instance;
+	struct sc_profile *	base_template;
+	unsigned int		inst_index;
+	sc_path_t		inst_path;
 };
 
 /* For now, we assume the PUK always resides
@@ -42,17 +50,43 @@ struct file_info {
 struct pin_info {
 	unsigned int		id;
 	struct pin_info *	next;
-	char *			file_name;
-	unsigned int		file_offset;
-	struct file_info *	file;
+	char *			file_name;	/* obsolete */
+	unsigned int		file_offset;	/* obsolete */
+	struct file_info *	file;		/* obsolete */
 
-	struct sc_pkcs15_pin_info pin;
+	sc_pkcs15_pin_info_t	pin;
 };
 
+typedef struct sc_macro {
+	char *			name;
+	struct sc_macro *	next;
+	scconf_list *		value;
+} sc_macro_t;
+
+/* Template support.
+ *
+ * Templates are EFs or entire hierarchies of DFs/EFs.
+ * When instantiating a template, the file IDs of the
+ * EFs and DFs are combined from the value given in the
+ * profile, and the last octet of the pkcs15 ID.
+ */
+typedef struct sc_template {
+	char *			name;
+	struct sc_template *	next;
+	struct sc_profile *	data;
+	struct file_info *	file;
+} sc_template_t;
+
+#define SC_PKCS15INIT_MAX_OPTIONS 16
 struct sc_profile {
+	char *			name;
+	char *			options[SC_PKCS15INIT_MAX_OPTIONS];
+
+	sc_card_t *		card;
 	char *			driver;
 	struct sc_pkcs15init_operations *ops;
 	struct sc_pkcs15init_callbacks *cbs;
+	void *			dll;	/* handle for dynamic modules */
 
 	struct file_info *	mf_info;
 	struct file_info *	df_info;
@@ -61,7 +95,10 @@ struct sc_profile {
 
 	struct pin_info *	pin_list;
 	struct auth_info *	auth_list;
+	sc_template_t *		template_list;
+	sc_macro_t *		macro_list;
 
+	unsigned int		pin_domains;
 	unsigned int		pin_maxlen;
 	unsigned int		pin_minlen;
 	unsigned int		pin_pad_char;
@@ -70,9 +107,17 @@ struct sc_profile {
 	unsigned int		puk_attempts;
 	unsigned int		rsa_access_flags;
 	unsigned int		dsa_access_flags;
+	unsigned int		protect_certificates;
+	unsigned int		keep_public_key;
+
+	struct {
+		unsigned int	direct_certificates;
+		unsigned int	encode_df_length;
+	} pkcs15;
 
 	/* PKCS15 information */
-	struct sc_pkcs15_card *	p15_card;
+	sc_pkcs15_card_t *	p15_spec; /* as given by profile */
+	sc_pkcs15_card_t *	p15_data; /* as found on card */
 };
 
 struct sc_profile *sc_profile_new();
@@ -80,26 +125,24 @@ int		sc_profile_load(struct sc_profile *, const char *);
 int		sc_profile_finish(struct sc_profile *);
 void		sc_profile_free(struct sc_profile *);
 int		sc_profile_build_pkcs15(struct sc_profile *);
-void		sc_profile_set_so_pin(struct sc_profile *, const char *);
-void		sc_profile_set_user_pin(struct sc_profile *, const char *);
-void		sc_profile_set_secret(struct sc_profile *,
-			unsigned int, unsigned int, const u8 *, size_t);
-int		sc_profile_get_secret(struct sc_profile *,
-			unsigned int, unsigned int, u8 *, size_t *);
-void		sc_profile_forget_secrets(struct sc_profile *,
-			unsigned int, int);
 void		sc_profile_get_pin_info(struct sc_profile *,
 			unsigned int, struct sc_pkcs15_pin_info *);
 int		sc_profile_get_pin_id(struct sc_profile *,
 			unsigned int, unsigned int *);
-void		sc_profile_set_pin_info(struct sc_profile *,
-			unsigned int, const struct sc_pkcs15_pin_info *);
 int		sc_profile_get_file(struct sc_profile *, const char *,
 			struct sc_file **);
 int		sc_profile_get_file_by_path(struct sc_profile *,
 			const struct sc_path *, struct sc_file **);
 int		sc_profile_get_path(struct sc_profile *,
 			const char *, struct sc_path *);
+int		sc_profile_get_file_in(struct sc_profile *,
+			const sc_path_t *, const char *, sc_file_t **);
+int		sc_profile_instantiate_template(struct sc_profile *,
+			const char *, const sc_path_t *,
+			const char *, const sc_pkcs15_id_t *,
+			sc_file_t **);
+int		sc_profile_add_file(struct sc_profile *,
+			const char *, sc_file_t *);
 
 #ifdef  __cplusplus
 }
