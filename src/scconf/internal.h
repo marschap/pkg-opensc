@@ -1,5 +1,5 @@
 /*
- * $Id: internal.h,v 1.2 2003/01/03 11:54:02 okir Exp $
+ * $Id: internal.h,v 1.3 2003/11/20 14:15:32 aet Exp $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -46,6 +46,7 @@ typedef struct _scconf_parser {
 
 	unsigned int error:1;
 	unsigned int warnings:1;
+	char emesg[256];
 } scconf_parser;
 
 extern int scconf_lex_parse(scconf_parser * parser, const char *filename);
