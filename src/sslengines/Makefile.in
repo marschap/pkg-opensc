@@ -1,0 +1,663 @@
+# Makefile.in generated automatically by automake 1.5 from Makefile.am.
+
+# Copyright 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001
+# Free Software Foundation, Inc.
+# This Makefile.in is free software; the Free Software Foundation
+# gives unlimited permission to copy and/or distribute it,
+# with or without modifications, as long as this notice is preserved.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY, to the extent permitted by law; without
+# even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+# PARTICULAR PURPOSE.
+
+@SET_MAKE@
+
+# Process this file with automake to create Makefile.in
+
+SHELL = @SHELL@
+
+srcdir = @srcdir@
+top_srcdir = @top_srcdir@
+VPATH = @srcdir@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+
+bindir = @bindir@
+sbindir = @sbindir@
+libexecdir = @libexecdir@
+datadir = @datadir@
+sysconfdir = @sysconfdir@
+sharedstatedir = @sharedstatedir@
+localstatedir = @localstatedir@
+infodir = @infodir@
+mandir = @mandir@
+includedir = @includedir@
+oldincludedir = /usr/include
+pkgdatadir = $(datadir)/@PACKAGE@
+pkglibdir = $(libdir)/@PACKAGE@
+pkgincludedir = $(includedir)/@PACKAGE@
+top_builddir = ../..
+
+ACLOCAL = @ACLOCAL@
+AUTOCONF = @AUTOCONF@
+AUTOMAKE = @AUTOMAKE@
+AUTOHEADER = @AUTOHEADER@
+
+INSTALL = @INSTALL@
+INSTALL_PROGRAM = @INSTALL_PROGRAM@
+INSTALL_DATA = @INSTALL_DATA@
+INSTALL_SCRIPT = @INSTALL_SCRIPT@
+INSTALL_HEADER = $(INSTALL_DATA)
+transform = @program_transform_name@
+NORMAL_INSTALL = :
+PRE_INSTALL = :
+POST_INSTALL = :
+NORMAL_UNINSTALL = :
+PRE_UNINSTALL = :
+POST_UNINSTALL = :
+host_alias = @host_alias@
+host_triplet = @host@
+AMTAR = @AMTAR@
+AR = @AR@
+AS = @AS@
+AWK = @AWK@
+BUNDLEDIR = @BUNDLEDIR@
+CC = @CC@
+CFLAGS_ASSUAN = @CFLAGS_ASSUAN@
+CFLAGS_PCSC = @CFLAGS_PCSC@
+CPP = @CPP@
+CXX = @CXX@
+CXXCPP = @CXXCPP@
+DEPDIR = @DEPDIR@
+DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EGREP = @EGREP@
+EXEEXT = @EXEEXT@
+F77 = @F77@
+GCJ = @GCJ@
+GCJFLAGS = @GCJFLAGS@
+GETOPTSRC = @GETOPTSRC@
+INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+LEX = @LEX@
+LIBASSUAN = @LIBASSUAN@
+LIBCRYPTO = @LIBCRYPTO@
+LIBCRYPTOA = @LIBCRYPTOA@
+LIBDL = @LIBDL@
+LIBFL = @LIBFL@
+LIBLDAP = @LIBLDAP@
+LIBOPENSC = @LIBOPENSC@
+LIBPAM = @LIBPAM@
+LIBPCSC = @LIBPCSC@
+LIBREADLINE = @LIBREADLINE@
+LIBSCCONF = @LIBSCCONF@
+LIBSCLDAP = @LIBSCLDAP@
+LIBSIA = @LIBSIA@
+LIBTOOL = @LIBTOOL@
+LN_S = @LN_S@
+OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
+OPENCT_CFLAGS = @OPENCT_CFLAGS@
+OPENCT_LDFLAGS = @OPENCT_LDFLAGS@
+OPENCT_LIBS = @OPENCT_LIBS@
+OPENSC_CFLAGS = @OPENSC_CFLAGS@
+OPENSC_LIBS = @OPENSC_LIBS@
+OPENSC_LT_AGE = @OPENSC_LT_AGE@
+OPENSC_LT_CURRENT = @OPENSC_LT_CURRENT@
+OPENSC_LT_REVISION = @OPENSC_LT_REVISION@
+OPENSSL_LDFLAGS = @OPENSSL_LDFLAGS@
+PACKAGE = @PACKAGE@
+PLUGINDIR = @PLUGINDIR@
+PTHREAD_CC = @PTHREAD_CC@
+PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
+PTHREAD_LIBS = @PTHREAD_LIBS@
+RANDOM_POOL = @RANDOM_POOL@
+RANLIB = @RANLIB@
+RC = @RC@
+STRIP = @STRIP@
+TEST_MINUS_S_SH = @TEST_MINUS_S_SH@
+VERSION = @VERSION@
+XSLTPROC = @XSLTPROC@
+am__include = @am__include@
+am__quote = @am__quote@
+install_sh = @install_sh@
+pkgdata = @pkgdata@
+libdir = @libdir@/opensc
+
+bundledir = @BUNDLEDIR@/opensc
+
+MAINTAINERCLEANFILES = Makefile.in
+
+EXTRA_DIST = Makefile.mak engine_pkcs11.def test_engine.sh \
+	$(engine_opensc_la_SOURCES) $(engine_pkcs11_la_SOURCES) 
+
+
+@HAVE_ENGINE_TRUE@lib_LTLIBRARIES = engine_opensc.la engine_pkcs11.la
+
+OPENSSL_CFLAGS = \
+	-DOPENSSL_THREADS -D_REENTRANT -DDSO_DLFCN -DHAVE_DLFCN_H \
+	-DOPENSSL_NO_KRB5 -DL_ENDIAN -DTERMIO -DENGINE_DYNAMIC_SUPPORT \
+	-DSHA1_ASM -DMD5_ASM -DRMD160_ASM
+
+
+engine_opensc_la_SOURCES = hw_opensc.c engine_opensc.c engine_opensc.h
+engine_opensc_la_CFLAGS = $(OPENSSL_CFLAGS)
+engine_opensc_la_LIBADD = @LIBCRYPTOA@ @LIBOPENSC@
+engine_opensc_la_LDFLAGS = @OPENSSL_LDFLAGS@ -module -avoid-version
+
+engine_pkcs11_la_SOURCES = \
+	hw_pkcs11.c engine_pkcs11.c engine_pkcs11.h \
+	p11_attr.c p11_cert.c p11_err.c p11_key.c \
+	p11_load.c p11_misc.c p11_rsa.c p11_slot.c \
+	pkcs11-internal.h
+
+engine_pkcs11_la_CFLAGS = $(OPENSSL_CFLAGS)
+engine_pkcs11_la_LIBADD = @LIBCRYPTOA@ ../pkcs11/libpkcs11.la
+engine_pkcs11_la_LDFLAGS = @OPENSSL_LDFLAGS@ -module -avoid-version
+subdir = src/sslengines
+mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
+CONFIG_HEADER = $(top_builddir)/config.h
+CONFIG_CLEAN_FILES =
+LTLIBRARIES = $(lib_LTLIBRARIES)
+
+engine_opensc_la_DEPENDENCIES =
+am_engine_opensc_la_OBJECTS = engine_opensc_la-hw_opensc.lo \
+	engine_opensc_la-engine_opensc.lo
+engine_opensc_la_OBJECTS = $(am_engine_opensc_la_OBJECTS)
+engine_pkcs11_la_DEPENDENCIES = ../pkcs11/libpkcs11.la
+am_engine_pkcs11_la_OBJECTS = engine_pkcs11_la-hw_pkcs11.lo \
+	engine_pkcs11_la-engine_pkcs11.lo engine_pkcs11_la-p11_attr.lo \
+	engine_pkcs11_la-p11_cert.lo engine_pkcs11_la-p11_err.lo \
+	engine_pkcs11_la-p11_key.lo engine_pkcs11_la-p11_load.lo \
+	engine_pkcs11_la-p11_misc.lo engine_pkcs11_la-p11_rsa.lo \
+	engine_pkcs11_la-p11_slot.lo
+engine_pkcs11_la_OBJECTS = $(am_engine_pkcs11_la_OBJECTS)
+
+DEFS = @DEFS@
+DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
+CPPFLAGS = @CPPFLAGS@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+depcomp = $(SHELL) $(top_srcdir)/depcomp
+@AMDEP_TRUE@DEP_FILES = $(DEPDIR)/engine_opensc_la-engine_opensc.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_opensc_la-hw_opensc.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_attr.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_cert.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_err.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_key.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_load.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_misc.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_rsa.Plo \
+@AMDEP_TRUE@	$(DEPDIR)/engine_pkcs11_la-p11_slot.Plo
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) \
+	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+CCLD = $(CC)
+LINK = $(LIBTOOL) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+CFLAGS = @CFLAGS@
+DIST_SOURCES = $(engine_opensc_la_SOURCES) $(engine_pkcs11_la_SOURCES)
+DIST_COMMON = Makefile.am Makefile.in
+SOURCES = $(engine_opensc_la_SOURCES) $(engine_pkcs11_la_SOURCES)
+
+all: all-am
+
+.SUFFIXES:
+.SUFFIXES: .c .lo .o .obj
+
+mostlyclean-libtool:
+	-rm -f *.lo
+
+clean-libtool:
+	-rm -rf .libs _libs
+
+distclean-libtool:
+	-rm -f libtool
+$(srcdir)/Makefile.in:  Makefile.am  $(top_srcdir)/configure.in $(ACLOCAL_M4)
+	cd $(top_srcdir) && \
+	  $(AUTOMAKE) --gnu  src/sslengines/Makefile
+Makefile:  $(srcdir)/Makefile.in  $(top_builddir)/config.status
+	cd $(top_builddir) && \
+	  CONFIG_HEADERS= CONFIG_LINKS= \
+	  CONFIG_FILES=$(subdir)/$@ $(SHELL) ./config.status
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	$(mkinstalldirs) $(DESTDIR)$(libdir)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  if test -f $$p; then \
+	    echo " $(LIBTOOL) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(libdir)/$$p"; \
+	    $(LIBTOOL) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$p $(DESTDIR)$(libdir)/$$p; \
+	  else :; fi; \
+	done
+
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  echo " $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p"; \
+	  $(LIBTOOL) --mode=uninstall rm -f $(DESTDIR)$(libdir)/$$p; \
+	done
+
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+engine_opensc_la-hw_opensc.lo: hw_opensc.c
+engine_opensc_la-engine_opensc.lo: engine_opensc.c
+engine_opensc.la: $(engine_opensc_la_OBJECTS) $(engine_opensc_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(engine_opensc_la_LDFLAGS) $(engine_opensc_la_OBJECTS) $(engine_opensc_la_LIBADD) $(LIBS)
+engine_pkcs11_la-hw_pkcs11.lo: hw_pkcs11.c
+engine_pkcs11_la-engine_pkcs11.lo: engine_pkcs11.c
+engine_pkcs11_la-p11_attr.lo: p11_attr.c
+engine_pkcs11_la-p11_cert.lo: p11_cert.c
+engine_pkcs11_la-p11_err.lo: p11_err.c
+engine_pkcs11_la-p11_key.lo: p11_key.c
+engine_pkcs11_la-p11_load.lo: p11_load.c
+engine_pkcs11_la-p11_misc.lo: p11_misc.c
+engine_pkcs11_la-p11_rsa.lo: p11_rsa.c
+engine_pkcs11_la-p11_slot.lo: p11_slot.c
+engine_pkcs11.la: $(engine_pkcs11_la_OBJECTS) $(engine_pkcs11_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(engine_pkcs11_la_LDFLAGS) $(engine_pkcs11_la_OBJECTS) $(engine_pkcs11_la_LIBADD) $(LIBS)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT) core *.core
+
+distclean-compile:
+	-rm -f *.tab.c
+
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_opensc_la-engine_opensc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_opensc_la-hw_opensc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_attr.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_cert.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_err.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_key.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_load.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_misc.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_rsa.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/engine_pkcs11_la-p11_slot.Plo@am__quote@
+
+distclean-depend:
+	-rm -rf $(DEPDIR)
+
+.c.o:
+@AMDEP_TRUE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(COMPILE) -c `test -f $< || echo '$(srcdir)/'`$<
+
+.c.obj:
+@AMDEP_TRUE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(COMPILE) -c `cygpath -w $<`
+
+.c.lo:
+@AMDEP_TRUE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/$*.Plo' tmpdepfile='$(DEPDIR)/$*.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LTCOMPILE) -c -o $@ `test -f $< || echo '$(srcdir)/'`$<
+
+engine_opensc_la-hw_opensc.o: hw_opensc.c
+@AMDEP_TRUE@	source='hw_opensc.c' object='engine_opensc_la-hw_opensc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_opensc_la-hw_opensc.Po' tmpdepfile='$(DEPDIR)/engine_opensc_la-hw_opensc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_opensc_la_CFLAGS) $(CFLAGS) -c -o engine_opensc_la-hw_opensc.o `test -f hw_opensc.c || echo '$(srcdir)/'`hw_opensc.c
+
+engine_opensc_la-hw_opensc.obj: hw_opensc.c
+@AMDEP_TRUE@	source='hw_opensc.c' object='engine_opensc_la-hw_opensc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_opensc_la-hw_opensc.Po' tmpdepfile='$(DEPDIR)/engine_opensc_la-hw_opensc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_opensc_la_CFLAGS) $(CFLAGS) -c -o engine_opensc_la-hw_opensc.obj `cygpath -w hw_opensc.c`
+
+engine_opensc_la-hw_opensc.lo: hw_opensc.c
+@AMDEP_TRUE@	source='hw_opensc.c' object='engine_opensc_la-hw_opensc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_opensc_la-hw_opensc.Plo' tmpdepfile='$(DEPDIR)/engine_opensc_la-hw_opensc.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_opensc_la_CFLAGS) $(CFLAGS) -c -o engine_opensc_la-hw_opensc.lo `test -f hw_opensc.c || echo '$(srcdir)/'`hw_opensc.c
+
+engine_opensc_la-engine_opensc.o: engine_opensc.c
+@AMDEP_TRUE@	source='engine_opensc.c' object='engine_opensc_la-engine_opensc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_opensc_la-engine_opensc.Po' tmpdepfile='$(DEPDIR)/engine_opensc_la-engine_opensc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_opensc_la_CFLAGS) $(CFLAGS) -c -o engine_opensc_la-engine_opensc.o `test -f engine_opensc.c || echo '$(srcdir)/'`engine_opensc.c
+
+engine_opensc_la-engine_opensc.obj: engine_opensc.c
+@AMDEP_TRUE@	source='engine_opensc.c' object='engine_opensc_la-engine_opensc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_opensc_la-engine_opensc.Po' tmpdepfile='$(DEPDIR)/engine_opensc_la-engine_opensc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_opensc_la_CFLAGS) $(CFLAGS) -c -o engine_opensc_la-engine_opensc.obj `cygpath -w engine_opensc.c`
+
+engine_opensc_la-engine_opensc.lo: engine_opensc.c
+@AMDEP_TRUE@	source='engine_opensc.c' object='engine_opensc_la-engine_opensc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_opensc_la-engine_opensc.Plo' tmpdepfile='$(DEPDIR)/engine_opensc_la-engine_opensc.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_opensc_la_CFLAGS) $(CFLAGS) -c -o engine_opensc_la-engine_opensc.lo `test -f engine_opensc.c || echo '$(srcdir)/'`engine_opensc.c
+
+engine_pkcs11_la-hw_pkcs11.o: hw_pkcs11.c
+@AMDEP_TRUE@	source='hw_pkcs11.c' object='engine_pkcs11_la-hw_pkcs11.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-hw_pkcs11.o `test -f hw_pkcs11.c || echo '$(srcdir)/'`hw_pkcs11.c
+
+engine_pkcs11_la-hw_pkcs11.obj: hw_pkcs11.c
+@AMDEP_TRUE@	source='hw_pkcs11.c' object='engine_pkcs11_la-hw_pkcs11.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-hw_pkcs11.obj `cygpath -w hw_pkcs11.c`
+
+engine_pkcs11_la-hw_pkcs11.lo: hw_pkcs11.c
+@AMDEP_TRUE@	source='hw_pkcs11.c' object='engine_pkcs11_la-hw_pkcs11.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-hw_pkcs11.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-hw_pkcs11.lo `test -f hw_pkcs11.c || echo '$(srcdir)/'`hw_pkcs11.c
+
+engine_pkcs11_la-engine_pkcs11.o: engine_pkcs11.c
+@AMDEP_TRUE@	source='engine_pkcs11.c' object='engine_pkcs11_la-engine_pkcs11.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-engine_pkcs11.o `test -f engine_pkcs11.c || echo '$(srcdir)/'`engine_pkcs11.c
+
+engine_pkcs11_la-engine_pkcs11.obj: engine_pkcs11.c
+@AMDEP_TRUE@	source='engine_pkcs11.c' object='engine_pkcs11_la-engine_pkcs11.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-engine_pkcs11.obj `cygpath -w engine_pkcs11.c`
+
+engine_pkcs11_la-engine_pkcs11.lo: engine_pkcs11.c
+@AMDEP_TRUE@	source='engine_pkcs11.c' object='engine_pkcs11_la-engine_pkcs11.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-engine_pkcs11.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-engine_pkcs11.lo `test -f engine_pkcs11.c || echo '$(srcdir)/'`engine_pkcs11.c
+
+engine_pkcs11_la-p11_attr.o: p11_attr.c
+@AMDEP_TRUE@	source='p11_attr.c' object='engine_pkcs11_la-p11_attr.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_attr.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_attr.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_attr.o `test -f p11_attr.c || echo '$(srcdir)/'`p11_attr.c
+
+engine_pkcs11_la-p11_attr.obj: p11_attr.c
+@AMDEP_TRUE@	source='p11_attr.c' object='engine_pkcs11_la-p11_attr.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_attr.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_attr.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_attr.obj `cygpath -w p11_attr.c`
+
+engine_pkcs11_la-p11_attr.lo: p11_attr.c
+@AMDEP_TRUE@	source='p11_attr.c' object='engine_pkcs11_la-p11_attr.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_attr.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_attr.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_attr.lo `test -f p11_attr.c || echo '$(srcdir)/'`p11_attr.c
+
+engine_pkcs11_la-p11_cert.o: p11_cert.c
+@AMDEP_TRUE@	source='p11_cert.c' object='engine_pkcs11_la-p11_cert.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_cert.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_cert.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_cert.o `test -f p11_cert.c || echo '$(srcdir)/'`p11_cert.c
+
+engine_pkcs11_la-p11_cert.obj: p11_cert.c
+@AMDEP_TRUE@	source='p11_cert.c' object='engine_pkcs11_la-p11_cert.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_cert.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_cert.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_cert.obj `cygpath -w p11_cert.c`
+
+engine_pkcs11_la-p11_cert.lo: p11_cert.c
+@AMDEP_TRUE@	source='p11_cert.c' object='engine_pkcs11_la-p11_cert.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_cert.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_cert.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_cert.lo `test -f p11_cert.c || echo '$(srcdir)/'`p11_cert.c
+
+engine_pkcs11_la-p11_err.o: p11_err.c
+@AMDEP_TRUE@	source='p11_err.c' object='engine_pkcs11_la-p11_err.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_err.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_err.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_err.o `test -f p11_err.c || echo '$(srcdir)/'`p11_err.c
+
+engine_pkcs11_la-p11_err.obj: p11_err.c
+@AMDEP_TRUE@	source='p11_err.c' object='engine_pkcs11_la-p11_err.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_err.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_err.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_err.obj `cygpath -w p11_err.c`
+
+engine_pkcs11_la-p11_err.lo: p11_err.c
+@AMDEP_TRUE@	source='p11_err.c' object='engine_pkcs11_la-p11_err.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_err.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_err.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_err.lo `test -f p11_err.c || echo '$(srcdir)/'`p11_err.c
+
+engine_pkcs11_la-p11_key.o: p11_key.c
+@AMDEP_TRUE@	source='p11_key.c' object='engine_pkcs11_la-p11_key.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_key.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_key.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_key.o `test -f p11_key.c || echo '$(srcdir)/'`p11_key.c
+
+engine_pkcs11_la-p11_key.obj: p11_key.c
+@AMDEP_TRUE@	source='p11_key.c' object='engine_pkcs11_la-p11_key.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_key.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_key.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_key.obj `cygpath -w p11_key.c`
+
+engine_pkcs11_la-p11_key.lo: p11_key.c
+@AMDEP_TRUE@	source='p11_key.c' object='engine_pkcs11_la-p11_key.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_key.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_key.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_key.lo `test -f p11_key.c || echo '$(srcdir)/'`p11_key.c
+
+engine_pkcs11_la-p11_load.o: p11_load.c
+@AMDEP_TRUE@	source='p11_load.c' object='engine_pkcs11_la-p11_load.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_load.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_load.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_load.o `test -f p11_load.c || echo '$(srcdir)/'`p11_load.c
+
+engine_pkcs11_la-p11_load.obj: p11_load.c
+@AMDEP_TRUE@	source='p11_load.c' object='engine_pkcs11_la-p11_load.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_load.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_load.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_load.obj `cygpath -w p11_load.c`
+
+engine_pkcs11_la-p11_load.lo: p11_load.c
+@AMDEP_TRUE@	source='p11_load.c' object='engine_pkcs11_la-p11_load.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_load.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_load.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_load.lo `test -f p11_load.c || echo '$(srcdir)/'`p11_load.c
+
+engine_pkcs11_la-p11_misc.o: p11_misc.c
+@AMDEP_TRUE@	source='p11_misc.c' object='engine_pkcs11_la-p11_misc.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_misc.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_misc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_misc.o `test -f p11_misc.c || echo '$(srcdir)/'`p11_misc.c
+
+engine_pkcs11_la-p11_misc.obj: p11_misc.c
+@AMDEP_TRUE@	source='p11_misc.c' object='engine_pkcs11_la-p11_misc.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_misc.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_misc.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_misc.obj `cygpath -w p11_misc.c`
+
+engine_pkcs11_la-p11_misc.lo: p11_misc.c
+@AMDEP_TRUE@	source='p11_misc.c' object='engine_pkcs11_la-p11_misc.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_misc.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_misc.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_misc.lo `test -f p11_misc.c || echo '$(srcdir)/'`p11_misc.c
+
+engine_pkcs11_la-p11_rsa.o: p11_rsa.c
+@AMDEP_TRUE@	source='p11_rsa.c' object='engine_pkcs11_la-p11_rsa.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_rsa.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_rsa.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_rsa.o `test -f p11_rsa.c || echo '$(srcdir)/'`p11_rsa.c
+
+engine_pkcs11_la-p11_rsa.obj: p11_rsa.c
+@AMDEP_TRUE@	source='p11_rsa.c' object='engine_pkcs11_la-p11_rsa.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_rsa.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_rsa.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_rsa.obj `cygpath -w p11_rsa.c`
+
+engine_pkcs11_la-p11_rsa.lo: p11_rsa.c
+@AMDEP_TRUE@	source='p11_rsa.c' object='engine_pkcs11_la-p11_rsa.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_rsa.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_rsa.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_rsa.lo `test -f p11_rsa.c || echo '$(srcdir)/'`p11_rsa.c
+
+engine_pkcs11_la-p11_slot.o: p11_slot.c
+@AMDEP_TRUE@	source='p11_slot.c' object='engine_pkcs11_la-p11_slot.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_slot.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_slot.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_slot.o `test -f p11_slot.c || echo '$(srcdir)/'`p11_slot.c
+
+engine_pkcs11_la-p11_slot.obj: p11_slot.c
+@AMDEP_TRUE@	source='p11_slot.c' object='engine_pkcs11_la-p11_slot.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_slot.Po' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_slot.TPo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_slot.obj `cygpath -w p11_slot.c`
+
+engine_pkcs11_la-p11_slot.lo: p11_slot.c
+@AMDEP_TRUE@	source='p11_slot.c' object='engine_pkcs11_la-p11_slot.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@	depfile='$(DEPDIR)/engine_pkcs11_la-p11_slot.Plo' tmpdepfile='$(DEPDIR)/engine_pkcs11_la-p11_slot.TPlo' @AMDEPBACKSLASH@
+@AMDEP_TRUE@	$(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+	$(LIBTOOL) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(engine_pkcs11_la_CFLAGS) $(CFLAGS) -c -o engine_pkcs11_la-p11_slot.lo `test -f p11_slot.c || echo '$(srcdir)/'`p11_slot.c
+CCDEPMODE = @CCDEPMODE@
+uninstall-info-am:
+
+tags: TAGS
+
+ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	mkid -fID $$unique $(LISP)
+
+TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+		$(TAGS_FILES) $(LISP)
+	tags=; \
+	here=`pwd`; \
+	list='$(SOURCES) $(HEADERS) $(TAGS_FILES)'; \
+	unique=`for i in $$list; do \
+	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
+	  done | \
+	  $(AWK) '    { files[$$0] = 1; } \
+	       END { for (i in files) print i; }'`; \
+	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
+	  || etags $(ETAGS_ARGS) $$tags  $$unique $(LISP)
+
+GTAGS:
+	here=`CDPATH=: && cd $(top_builddir) && pwd` \
+	  && cd $(top_srcdir) \
+	  && gtags -i $(GTAGS_ARGS) $$here
+
+distclean-tags:
+	-rm -f TAGS ID GTAGS GRTAGS GSYMS GPATH
+
+DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+
+top_distdir = ../..
+distdir = $(top_distdir)/$(PACKAGE)-$(VERSION)
+
+distdir: $(DISTFILES)
+	@for file in $(DISTFILES); do \
+	  if test -f $$file; then d=.; else d=$(srcdir); fi; \
+	  dir=`echo "$$file" | sed -e 's,/[^/]*$$,,'`; \
+	  if test "$$dir" != "$$file" && test "$$dir" != "."; then \
+	    $(mkinstalldirs) "$(distdir)/$$dir"; \
+	  fi; \
+	  if test -d $$d/$$file; then \
+	    cp -pR $$d/$$file $(distdir) \
+	    || exit 1; \
+	  else \
+	    test -f $(distdir)/$$file \
+	    || cp -p $$d/$$file $(distdir)/$$file \
+	    || exit 1; \
+	  fi; \
+	done
+check-am: all-am
+check: check-am
+all-am: Makefile $(LTLIBRARIES)
+
+installdirs:
+	$(mkinstalldirs) $(DESTDIR)$(libdir)
+
+install: install-am
+install-exec: install-exec-am
+install-data: install-data-am
+uninstall: uninstall-am
+
+install-am: all-am
+	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
+
+installcheck: installcheck-am
+install-strip:
+	$(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
+	  `test -z '$(STRIP)' || \
+	    echo "INSTALL_PROGRAM_ENV=STRIPPROG='$(STRIP)'"` install
+mostlyclean-generic:
+
+clean-generic:
+
+distclean-generic:
+	-rm -f Makefile $(CONFIG_CLEAN_FILES) stamp-h stamp-h[0-9]*
+
+maintainer-clean-generic:
+	@echo "This command is intended for maintainers to use"
+	@echo "it deletes files that may require special tools to rebuild."
+	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
+clean: clean-am
+
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
+	mostlyclean-am
+
+distclean: distclean-am
+
+distclean-am: clean-am distclean-compile distclean-depend \
+	distclean-generic distclean-libtool distclean-tags
+
+dvi: dvi-am
+
+dvi-am:
+
+info: info-am
+
+info-am:
+
+install-data-am:
+
+install-exec-am: install-exec-local install-libLTLIBRARIES
+
+install-info: install-info-am
+
+install-man:
+
+installcheck-am:
+
+maintainer-clean: maintainer-clean-am
+
+maintainer-clean-am: distclean-am maintainer-clean-generic
+
+mostlyclean: mostlyclean-am
+
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
+
+uninstall-am: uninstall-info-am uninstall-libLTLIBRARIES
+
+.PHONY: GTAGS all all-am check check-am clean clean-generic \
+	clean-libLTLIBRARIES clean-libtool distclean distclean-compile \
+	distclean-depend distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am info info-am install \
+	install-am install-data install-data-am install-exec \
+	install-exec-am install-exec-local install-info install-info-am \
+	install-libLTLIBRARIES install-man install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
+	maintainer-clean-generic mostlyclean mostlyclean-compile \
+	mostlyclean-generic mostlyclean-libtool tags uninstall \
+	uninstall-am uninstall-info-am uninstall-libLTLIBRARIES
+
+
+install-exec-local: install-libLTLIBRARIES
+@HAVE_BUNDLES_TRUE@	-${top_srcdir}/macos/libtool-bundle $(DESTDIR)$(libdir)/engine_opensc.so \
+@HAVE_BUNDLES_TRUE@		$(DESTDIR)$(bundledir)/
+@HAVE_BUNDLES_TRUE@	-${top_srcdir}/macos/libtool-bundle $(DESTDIR)$(libdir)/engine_pkcs11.so \
+@HAVE_BUNDLES_TRUE@		$(DESTDIR)$(bundledir)/
+# Tell versions [3.59,3.63) of GNU make to not export all variables.
+# Otherwise a system limit (for SysV at least) may be exceeded.
+.NOEXPORT:
