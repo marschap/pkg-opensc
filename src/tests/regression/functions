@@ -13,6 +13,7 @@ if [ -z "$__p15init__" ]; then
 	p15crypt=$p15base/tools/pkcs15-crypt
 	p15tool=$p15base/tools/pkcs15-tool
 	p15init=$p15base/tools/pkcs15-init
+	p15dump=$p15base/tests/p15dump
 	p11tool=$p15base/tools/pkcs11-tool
 	p15log=$p15temp/test.log
 
@@ -21,9 +22,6 @@ if [ -z "$__p15init__" ]; then
 		echo "*** Missing binary $bin" >&2
 		exit 1
 	done
-
-	mkdir -p $p15temp
-	trap atexit 0 1 2 13 15
 
 	# Eat any arguments given on the command line
 	while [ $# -ne 0 ]; do
@@ -35,7 +33,9 @@ if [ -z "$__p15init__" ]; then
 		case $1 in
 		-T|--use-default-transport-keys|\
 		--split-key|\
-		--no-prompt)
+		--no-prompt|\
+		--soft|\
+		-v*)
 			p15init="$p15init $1";;
 		--reader)
 			P15_READER=$2
@@ -50,6 +50,7 @@ if [ -z "$__p15init__" ]; then
 		p15crypt="$p15crypt --reader $P15_READER"
 		p15tool="$p15tool --reader $P15_READER"
 		p15init="$p15init --reader $P15_READER"
+		p15dump="$p15dump --reader $P15_READER"
 		osctool="$osctool --reader $P15_READER"
 	fi
 
@@ -64,27 +65,30 @@ if [ -z "$__p15init__" ]; then
 		__black=
 	fi
 
+	test_failed=false
+
+	function atexit {
+
+		if ! $test_failed; then
+			test "$p15temp" && rm -rf $p15temp
+			msg <<-EOF
+			:::
+			::: ${__green}Test set completed successfully${__black}
+			:::
+EOF
+		fi
+	}
+
+	mkdir -p $p15temp
+	trap atexit 0 1 2 13 15
+
 	# Redirect output to log file, but keep copies of
 	# stdout/stderr descriptors on fd 3 and 4
 	exec 3>&1 4>&2 >$p15log 2>&1
-
-	test_failed=false
 fi
 
 # Clobber log file
 cp /dev/null $p15log
-
-function atexit {
-
-	if ! $test_failed; then
-		test "$p15temp" && rm -rf $p15temp
-		msg <<-EOF
-		:::
-		::: ${__green}Test set completed successfully${__black}
-		:::
-EOF
-	fi
-}
 
 function msg {
 
@@ -175,7 +179,7 @@ function run_check_output {
 
 function skip_if_card {
 
-	name=`$osctool -q --name`
+	name=`$osctool --name`
 	for __pat in "$@"; do
 		if expr "$name" : "${__pat}.*" >/dev/null; then
 			msg "Detected $name; skipping test"
@@ -186,7 +190,7 @@ function skip_if_card {
 
 function skip_unless_card {
 
-	name=`$osctool -q --name`
+	name=`$osctool --name`
 	for __pat in "$@"; do
 		if expr "$name" : "${__pat}.*" >/dev/null; then
 			return
@@ -213,7 +217,7 @@ function p15_init {
 	:::
 EOF
 
-	$p15init --assert-pristine -q ||
+	$p15init --assert-pristine ||
 		fail "This test requires a clean card, please erase existing pkcs15 structure"
 
 	msg "Initializing card ($*)"
@@ -242,6 +246,28 @@ function p15_set_pin {
 		"$@"
 	success
 
+}
+
+function p15_change_pin {
+
+	msg "Changing user PIN ($*)"
+	run_display_output $p15tool \
+		--change-pin \
+		--pin 0000 \
+		--new-pin 2222 \
+		"$@"
+	success
+}
+
+function p15_unblock_pin {
+
+	msg "Changing user PIN ($*)"
+	run_display_output $p15tool \
+		--unblock-pin \
+		--puk 111111 \
+		--new-pin 2222 \
+		"$@"
+	success
 }
 
 function p15_gen_key {
@@ -295,6 +321,8 @@ function p15_crypt {
 
 function p15_validate {
 
+	msg "Card contents according to p15dump"
+	run_display_output $p15dump < /dev/null
 	msg "Validating card using pkcs11-tool"
 	run_display_output $p11tool -t --pin 0000 \
 		--slot-label "OpenSC Test Card" $* < /dev/null
