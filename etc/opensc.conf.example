@@ -35,30 +35,54 @@ app default {
 	# internal) driver is supplied, a separate configuration
 	# configuration block has to be written for the driver.
 	# Default: internal
+	# NOTE: if "internal" keyword is used, must be the 
+	# last entry in reader_drivers list
 	#
-	# reader_drivers = pcsc, ctapi;
+	# reader_drivers = openct, pcsc, ctapi;
 
 	reader_driver ctapi {
-		module /usr/local/towitoko/lib/libtowitoko.so {
+		# module /usr/local/towitoko/lib/libtowitoko.so {
 			# CT-API ports:
 			# 0..3		COM1..4
 			# 4		Printer
 			# 5		Modem
 			# 6..7		LPT1..2
-			ports = 0;
-		}
-		# module /usr/local/lib/ctapi/ctapi2.so {
-		#	ports = 1, 6;
+			# ports = 0;
 		# }
 	}
 
+	# Define parameters specific to your readers.
+	# The following section shows definitions for PC/SC readers,
+	# but the same set of variables are applicatable to ctapi and
+	# openct readers, simply by using "reader_driver ctapi" and
+	# "reader_driver openct", respectively.
 	reader_driver pcsc {
-		# Whether to convert Case 4 APDUs to Case 3
+		# Whether to transform some APDU's from one case to another
+		# Possible values:
+		#            none:   Don't transform any APDU's
+		#        case4as3:   For T=0, send a case 4 APDU as case 3,
+		#                    (no Lc byte) the card will send back
+		# 		     a 61xx SW, and we will follow up with a
+		#                    GetResponse command
+		#                    The SCM SCR111, Sun SCF, and e-gate readers
+		#                    seem to require this.
+		#        case1as2:   For T=0, send a case 1 APDU as case 2.
+		#                    (append an Le byte of 0)
+		#                    The Sun SCF and e-gate readers seem to
+		#                    require this
+		# case1as2_always:   for any T=0/1, send a case 1 APDU as
+		#		     case 2.
+		#                    The Sun SCF reader may require this
+		# Default: none
 		#
-		# At least SCM SCR111 reader seems to require this.
-		# Default: false
+		apdu_masquerade = none;
 		#
-		apdu_fix = false;
+		# This sets the maximum send and receive sizes.
+		# Some IFD handlers do not properly handle APDUs with
+		# large lc or le bytes.
+		#
+		max_send_size = 252;
+		max_recv_size = 252;
 	}
 
 	# What card drivers to load at start-up
@@ -68,44 +92,41 @@ app default {
 	# internal) driver is supplied, a separate configuration
 	# configuration block has to be written for the driver.
 	# Default: internal
+	# NOTE: When "internal" keyword is used, must be last entry 
 	#
-	# card_drivers = internal, customcos;
+	# card_drivers = customcos, internal;
 
-	# Card driver configuration blocks. For card drivers loaded
-	# from an external shared library/DLL, you need to specify
-	# the path name of the module, and the name of the constructor
-	# function.
-	# WARNING: this is not implemented yet.
-	#
+	# Card driver configuration blocks. 
+
 	# For all drivers, you can specify ATRs of cards that
 	# should be handled by this driver (in addition to the
-	# list of compiled-in ATRs). To do so, specify
+	# list of compiled-in ATRs). 
 	#
-	# card_driver foo {
-	#	atr = 00:11:22:33:44;
-	#	atr = 55:66:77:88:99:aa:bb;
-	# }
-	#
-	# The card driver names are
+	# The supported internal card driver names are
 	#  flex		Cryptoflex/Multiflex
 	#  setcos	Setec
-	#  etoken	Aladdin eToken
+	#  etoken	Aladdin eToken and other CardOS based cards
 	#  gpk		GPK 4K/8K/16K
 	#  mcrd		MICARDO 2
 	#  miocos	MioCOS 1.1
+	#  openpgp	OpenPGP card
 	#  tcos		TCOS 2.0
 	#  emv		EMV compatible cards
 
-	# card_driver customcos {
-		# The location of the driver library
-		#
-		# module = /usr/lib/opensc/drivers/card_customcos.so
-	# }
-
-	# GPK card driver
+	# GPK card driver additional ATR entry:
 	card_driver gpk {
 		# atr = 00:11:22;
 	}
+
+	# For card drivers loaded from an external shared library/DLL, 
+	# you need to specify the path name of the module
+	#
+	# card_driver customcos {
+		# The location of the driver library
+		# module = /usr/lib/opensc/drivers/card_customcos.so;
+		# atr = 00:11:22:33:44;
+		# atr = 55:66:77:88:99:aa:bb;
+	# }
 
 	# Force using specific card driver
 	#
@@ -132,10 +153,26 @@ app default {
 		# Default: false
 		#
 		use_caching = true;
-		# Use the following dynamic libraries for a read-only
-		# PKCS#15 emulation of non pkcs15 cards.
-		#
-		# pkcs15_syn = p15_starcert.so;
+		# Enable pkcs15 emulation
+		# Default: yes
+		enable_pkcs15_emulation = yes;
+		# Try pkcs15 emulation code first (before the normal
+		# pkcs15 processing).
+		# Default: no
+		try_emulation_first = no;
+		# Enable builtin emulators
+		# Default: yes
+		enable_builtin_emulation = yes;
+		# list of the builtin pkcs15 emulators to test
+		# possible values: esteid, openpgp, netkey, netkey, starcert, infocamere
+		builtin_emulators = esteid, openpgp, netkey, netkey, starcert, infocamere;
+
+		# additional pkcs15 emulators (dynamic or builtin with
+		# a different atr etc.) 
+		# emulate foo {
+			# module = builtin;
+			# atr = 11:22:33:44;
+		#}
 	}
 }
 
@@ -167,7 +204,7 @@ app opensc-pkcs11 {
 		#
 		# Set this option to true to hide these empty
 		# slots.
-		hide_empty_slots = false;
+		hide_empty_tokens = false;
 
 		# By default, the OpenSC PKCS#11 module will
 		# try to lock this card once you have authenticated
