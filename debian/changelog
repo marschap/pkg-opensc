@@ -9,7 +9,7 @@ opensc (0.8.1-5) unstable; urgency=low
     architectures that need PIC libs. (Closes: #239422)
   * configure: Rebuild.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sun, 16 May 2004 20:41:43 -0400
 
 opensc (0.8.1-4) unstable; urgency=low
 
