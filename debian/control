@@ -1,5 +1,6 @@
 Source: opensc
 Priority: extra
+Section: utils
 Maintainer: Eric Dorland <eric@debian.org>
 Build-Depends: cdbs, debhelper (>> 4.1.0), libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libpam0g-dev, libldap-dev, libsasl-dev, libassuan-dev (>= 0.6.4-2), xlibs-dev, libopenct0-dev, flex, pkg-config
 Standards-Version: 3.6.1
@@ -25,6 +26,8 @@ Package: libopensc1-dev
 Section: libdevel
 Priority: optional
 Architecture: any
+Conflicts: libopensc0-dev
+Replaces: libopensc0-dev
 Provides: libopensc-dev
 Depends: libopensc1 (= ${Source-Version}), libscam1 (= ${Source-Version}), libssl-dev
 Description: OpenSC development files
@@ -35,6 +38,8 @@ Package: libopensc1
 Section: libs
 Priority: optional
 Architecture: any
+Conflicts: libopensc0
+Replaces: libopensc0
 Depends: ${shlibs:Depends}
 Description: SmartCard library with support for PKCS#15 compatible smart cards
  This package contains the libopensc libraries from OpenSC.org.
@@ -76,6 +81,8 @@ Package: libscam1
 Section: libs
 Priority: optional
 Architecture: any
+Conflicts: libscam0
+Replaces: libscam0
 Depends: ${shlibs:Depends}
 Description: Authentication modules for PKCS#15 Smart Cards
  LDAP and eid authentication libraries for use with the PAM modules. 

@@ -1,3 +1,11 @@
+opensc (0.9.4-2) experimental; urgency=low
+
+  * debian/control: 
+    - Add section to source headers.
+    - Add appropriate conflicts and replaces for the library packages.
+
+ -- Eric Dorland <eric@debian.org>  Sat, 13 Nov 2004 12:33:03 -0500
+
 opensc (0.9.4-1) experimental; urgency=low
 
   * New upstream release. Target experimental to give freeswan guys a
