@@ -81,8 +81,8 @@ static int parse_dir_record(struct sc_card *card, u8 ** buf, size_t *buflen,
 	int r;
 	u8 aid[128], label[128], path[128];
 	u8 ddo[128];
-	int aid_len = sizeof(aid), label_len = sizeof(label),
-	    path_len = sizeof(path), ddo_len = sizeof(ddo);
+	size_t aid_len = sizeof(aid), label_len = sizeof(label),
+	       path_len = sizeof(path), ddo_len = sizeof(ddo);
 
 	sc_copy_asn1_entry(c_asn1_dirrecord, asn1_dirrecord);
 	sc_copy_asn1_entry(c_asn1_dir, asn1_dir);
@@ -122,6 +122,10 @@ static int parse_dir_record(struct sc_card *card, u8 ** buf, size_t *buflen,
 		memcpy(app->path.value, path, path_len);
 		app->path.len = path_len;	
 		app->path.type = SC_PATH_TYPE_PATH;
+	} else if (aid_len < sizeof(app->path.value)) {
+		memcpy(app->path.value, aid, aid_len);
+		app->path.len = aid_len;
+		app->path.type = SC_PATH_TYPE_DF_NAME;
 	} else
 		app->path.len = 0;
 	if (asn1_dirrecord[3].flags & SC_ASN1_PRESENT) {
@@ -151,7 +155,7 @@ int sc_enum_apps(struct sc_card *card)
 	struct sc_path path;
 	int ef_structure;
 	size_t file_size;
-	int r, log_errors;
+	int r;
 
 	if (card->app_count < 0)
 		card->app_count = 0;
@@ -160,10 +164,9 @@ int sc_enum_apps(struct sc_card *card)
 		sc_file_free(card->ef_dir);
 		card->ef_dir = NULL;
 	}
-	log_errors = card->ctx->log_errors;
-	card->ctx->log_errors = 0;
+	card->ctx->suppress_errors++;
 	r = sc_select_file(card, &path, &card->ef_dir);
-	card->ctx->log_errors = log_errors;
+	card->ctx->suppress_errors--;
 	if (r)
 		return r;
 	if (card->ef_dir->type != SC_FILE_TYPE_WORKING_EF) {
@@ -204,11 +207,14 @@ int sc_enum_apps(struct sc_card *card)
 
 	} else {	/* record structure */
 		u8 buf[256], *p;
-		int rec_nr;
-		size_t rec_size;
+		unsigned int rec_nr;
+		size_t       rec_size;
 		
 		for (rec_nr = 1; ; rec_nr++) {
-			r = sc_read_record(card, rec_nr, buf, sizeof(buf), 0);
+			card->ctx->suppress_errors++;
+			r = sc_read_record(card, rec_nr, buf, sizeof(buf), 
+						SC_RECORD_BY_REC_NR);
+			card->ctx->suppress_errors--;
 			if (r == SC_ERROR_RECORD_NOT_FOUND)
 				break;
 			SC_TEST_RET(card->ctx, r, "read_record() failed");
@@ -218,7 +224,7 @@ int sc_enum_apps(struct sc_card *card)
 			}
 			rec_size = r;
 			p = buf;
-			parse_dir_record(card, &p, &rec_size, rec_nr);
+			parse_dir_record(card, &p, &rec_size, (int)rec_nr);
 		}
 	}
 	return card->app_count;
@@ -256,23 +262,24 @@ static int encode_dir_record(struct sc_context *ctx, const struct sc_app_info *a
 			     u8 **buf, size_t *buflen)
 {
 	struct sc_asn1_entry asn1_dirrecord[5], asn1_dir[2];
+	struct sc_app_info   tapp = *app;
 	int r;
 	size_t label_len;
 
 	sc_copy_asn1_entry(c_asn1_dirrecord, asn1_dirrecord);
 	sc_copy_asn1_entry(c_asn1_dir, asn1_dir);
 	sc_format_asn1_entry(asn1_dir + 0, asn1_dirrecord, NULL, 1);
-	sc_format_asn1_entry(asn1_dirrecord + 0, (void *) app->aid, (void *) &app->aid_len, 1);
-	if (app->label != NULL) {
-		label_len = strlen(app->label);
-		sc_format_asn1_entry(asn1_dirrecord + 1, app->label, &label_len, 1);
+	sc_format_asn1_entry(asn1_dirrecord + 0, (void *) tapp.aid, (void *) &tapp.aid_len, 1);
+	if (tapp.label != NULL) {
+		label_len = strlen(tapp.label);
+		sc_format_asn1_entry(asn1_dirrecord + 1, tapp.label, &label_len, 1);
 	}
-	if (app->path.len)
-		sc_format_asn1_entry(asn1_dirrecord + 2, (void *) app->path.value,
-				     (void *) &app->path.len, 1);
-	if (app->ddo != NULL)
-		sc_format_asn1_entry(asn1_dirrecord + 3, (void *) app->ddo,
-				     (void *) &app->ddo_len, 1);
+	if (tapp.path.len)
+		sc_format_asn1_entry(asn1_dirrecord + 2, (void *) tapp.path.value,
+				     (void *) &tapp.path.len, 1);
+	if (tapp.ddo != NULL)
+		sc_format_asn1_entry(asn1_dirrecord + 3, (void *) tapp.ddo,
+				     (void *) &tapp.ddo_len, 1);
 	r = sc_asn1_encode(ctx, asn1_dir, buf, buflen);
 	if (r) {
 		sc_error(ctx, "sc_asn1_encode() failed: %s\n",
@@ -284,30 +291,44 @@ static int encode_dir_record(struct sc_context *ctx, const struct sc_app_info *a
 
 static int update_transparent(struct sc_card *card, struct sc_file *file)
 {
-	u8 *rec, *buf = NULL;
+	u8 *rec, *buf = NULL, *tmp;
 	size_t rec_size, buf_size = 0;
 	int i, r;
 
 	for (i = 0; i < card->app_count; i++) {
 		r = encode_dir_record(card->ctx, card->app[i], &rec, &rec_size);
 		if (r) {
-			free(buf);
+			if (rec)
+				free(rec);
+			if (buf)
+				free(buf);
 			return r;
 		}
-		buf = (u8 *) realloc(buf, buf_size + rec_size);
-		if (buf == NULL) {
-			free(rec);
+		tmp = (u8 *) realloc(buf, buf_size + rec_size);
+		if (!tmp) {
+			if (rec)
+				free(rec);
+			if (buf)
+				free(buf);
 			return SC_ERROR_OUT_OF_MEMORY;
 		}
+		buf = tmp;
 		memcpy(buf + buf_size, rec, rec_size);
 		buf_size += rec_size;
+		free(rec);
 	}
 	if (file->size > buf_size) {
-		buf = (u8 *) realloc(buf, file->size);
+		tmp = (u8 *) realloc(buf, file->size);
+		if (!tmp) {
+			free(buf);
+			return SC_ERROR_OUT_OF_MEMORY;
+		}
+		buf = tmp;
 		memset(buf + buf_size, 0, file->size - buf_size);
 		buf_size = file->size;
 	}
 	r = sc_update_binary(card, 0, buf, buf_size, 0);
+	free(buf);
 	SC_TEST_RET(card->ctx, r, "Unable to update EF(DIR)");
 	
 	return 0;
@@ -323,7 +344,7 @@ static int update_single_record(struct sc_card *card, struct sc_file *file,
 	r = encode_dir_record(card->ctx, app, &rec, &rec_size);
 	if (r)
 		return r;
-	r = sc_update_record(card, app->rec_nr, rec, rec_size, 0);
+	r = sc_update_record(card, (unsigned int)app->rec_nr, rec, rec_size, 0);
 	free(rec);
 	SC_TEST_RET(card->ctx, r, "Unable to update EF(DIR) record");
 	return 0;
