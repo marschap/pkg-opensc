@@ -22,10 +22,10 @@ key is generated and stored on the token), the cache should
 be updated or operations may show stale results.
 .TP
 .BR "\-\-read\-certificate " \fIcert\fP ", \-r " \fIcert\fP
-Read the certificate with the given id
+Reads the certificate with the given id.
 .TP
 .BR \-\-list\-certificates ", " \-c
-Lists all certificates stored on the token
+Lists all certificates stored on the token.
 .TP
 .BR \-\-list\-pins
 Lists all PINs stored on the token.  General information about
@@ -49,11 +49,12 @@ Reads the public key with id \fIid\fP, allowing the user to
 extract and store or use the public key.
 .TP
 .BR "\-\-output " \fIfilename\fP ", \-o " \fIfilename\fP
-Specifies where key output should be written.  If this option is not
-given, keys will be printed to standard output.
+Specifies where key output should be written.  If \fIfilename\fP already
+exists, it will be overwritten.  If this option is not given, keys will
+be printed to standard output.
 .TP
 .BR \-\-no\-cache
-Disable token data caching.
+Disables token data caching.
 .TP
 .BR "\-\-pin\-id " \fIpin\fP ", \-a " \fIpin\fP
 Specifies the auth id of the PIN to use for the operation.  This
@@ -63,13 +64,9 @@ is useful with the \-\-change\-pin operation.
 Forces \*(nm to use reader number \fInum\fP for operations.  The default
 is to use reader number 0, the first reader in the system.
 .TP
-.BR \-\-quiet ", " \-q
-Perform operations quietly.  This causes \*(nm to be less 'chatty'
-about the status of the operation.
-.TP
-.BR \-\-debug ", " \-d
-Print debug output.  This option may be supplied many times each
-increasing the verbosity of debug messages.
+.BR \-\-verbose ", " \-v
+Causes \*(nm to be more verbose. Specify this flag several times
+to enable debug output in the opensc library.
 .SH SEE ALSO
 .BR opensc (7),
 .BR pkcs15-init (1),
