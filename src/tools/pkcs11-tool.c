@@ -76,8 +76,8 @@ const struct option options[] = {
 const char *option_help[] = {
 	"Show global token information",
 	"List slots available on the token",
-	"Show slot information",
 	"List mechanisms supported by the token",
+	"Show objects on token",
 
 	"Sign some data",
 	"Hash some data",
@@ -91,9 +91,9 @@ const char *option_help[] = {
 	"Specify the type of object (e.g. cert, privkey, pubkey)",
 	"Specify the id of the object",
 	"Specify the label of the object",
-	"Set the CKA_ID of an object, <args>= the (new) CKA_ID",
 	"Specify number of the slot to use",
 	"Specify label of the slot to use",
+	"Set the CKA_ID of an object, <args>= the (new) CKA_ID",
 	"Specify the input file",
 	"Specify the output file",
 	"Specify the module to load",

@@ -1,3 +1,14 @@
+opensc (0.9.4-7) unstable; urgency=high
+
+  * Urgency high because the new openct is in testing and the borked s390
+    buildd is the only thing holding it back. 
+  * src/tools/pkcs11-tool.c: Apply by hand patch from Ph. Marek to fix bad
+    --help documentation. (Closes: #284605)
+  * debian/mozilla-opensc.links: Added, add link for mozilla-firefox
+    plugins.
+
+ -- Eric Dorland <eric@debian.org>  Tue,  7 Dec 2004 22:09:28 -0500
+
 opensc (0.9.4-6) unstable; urgency=medium
 
   * The "I really need to pay more attention" release.
