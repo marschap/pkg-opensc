@@ -32,12 +32,12 @@
 #include <opensc/log.h>
 
 #ifndef _WIN32
-#include "rsaref/unix.h"
-#include "rsaref/pkcs11.h"
+#include <opensc/rsaref/unix.h>
+#include <opensc/rsaref/pkcs11.h>
 #else
-#include "rsaref/win32.h"
+#include <opensc/rsaref/win32.h>
 #pragma pack(push, cryptoki, 1)
-#include "rsaref/pkcs11.h"
+#include <opensc/rsaref/pkcs11.h>
 #pragma pack(pop, cryptoki)
 #endif
 
@@ -104,12 +104,20 @@ struct sc_pkcs11_object_ops {
         CK_RV (*get_size)(struct sc_pkcs11_session *, void *);
 
 	/* Cryptographic methods */
-	CK_RV (*sign)(struct sc_pkcs11_session *, void *, CK_MECHANISM_PTR pMechanism, CK_BYTE_PTR pData, CK_ULONG ulDataLen, CK_BYTE_PTR pSignature, CK_ULONG_PTR pulDataLen);
+	CK_RV (*sign)(struct sc_pkcs11_session *, void *,
+			CK_MECHANISM_PTR,
+			CK_BYTE_PTR pData, CK_ULONG ulDataLen,
+			CK_BYTE_PTR pSignature, CK_ULONG_PTR pulDataLen);
 	CK_RV (*unwrap_key)(struct sc_pkcs11_session *, void *,
 			CK_MECHANISM_PTR,
 			CK_BYTE_PTR pData, CK_ULONG ulDataLen,
 			CK_ATTRIBUTE_PTR, CK_ULONG,
 			void **);
+	CK_RV (*decrypt)(struct sc_pkcs11_session *, void *,
+			CK_MECHANISM_PTR,
+			CK_BYTE_PTR pEncryptedData, CK_ULONG ulEncryptedDataLen,
+			CK_BYTE_PTR pData, CK_ULONG_PTR pulDataLen);
+
         /* Others to be added when implemented */
 };
 
@@ -224,6 +232,7 @@ enum {
 	SC_PKCS11_OPERATION_SIGN,
 	SC_PKCS11_OPERATION_VERIFY,
 	SC_PKCS11_OPERATION_DIGEST,
+	SC_PKCS11_OPERATION_DECRYPT,
 	SC_PKCS11_OPERATION_MAX
 };
 
@@ -260,6 +269,11 @@ struct sc_pkcs11_mechanism_type {
 	CK_RV		  (*verif_final)(sc_pkcs11_operation_t *,
 					CK_BYTE_PTR, CK_ULONG);
 #endif
+	CK_RV		  (*decrypt_init)(sc_pkcs11_operation_t *,
+					struct sc_pkcs11_object *);
+	CK_RV		  (*decrypt)(sc_pkcs11_operation_t *,
+					CK_BYTE_PTR, CK_ULONG,
+					CK_BYTE_PTR, CK_ULONG_PTR);
 	/* mechanism specific data */
 	const void *		  mech_data;
 };
@@ -385,8 +399,8 @@ CK_RV sc_pkcs11_verif_init(struct sc_pkcs11_session *, CK_MECHANISM_PTR,
 CK_RV sc_pkcs11_verif_update(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG);
 CK_RV sc_pkcs11_verif_final(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG);
 #endif
-CK_RV sc_pkcs11_sign_hash(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG,
-				CK_BYTE_PTR, CK_ULONG_PTR);
+CK_RV sc_pkcs11_decr_init(struct sc_pkcs11_session *, CK_MECHANISM_PTR, struct sc_pkcs11_object *, CK_MECHANISM_TYPE);
+CK_RV sc_pkcs11_decr(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR);
 sc_pkcs11_mechanism_type_t *sc_pkcs11_find_mechanism(struct sc_pkcs11_card *,
 				CK_MECHANISM_TYPE, int);
 sc_pkcs11_mechanism_type_t *sc_pkcs11_new_fw_mechanism(CK_MECHANISM_TYPE,
