@@ -1,0 +1,6 @@
+opensc (0.8.1-1) unstable; urgency=low
+
+  * Initial release. (Based loosely on the packaging by Joe Phillips
+    <joe.phillips@innovationsw.com>)
+
+ -- Eric Dorland <eric@debian.org>  Mon, 22 Dec 2003 22:56:55 -0500

@@ -1,0 +1,17 @@
+debian/tmp/usr/include/*
+debian/tmp/usr/lib/lib*.a
+debian/tmp/usr/lib/lib*.la
+debian/tmp/usr/lib/libopensc.so
+debian/tmp/usr/lib/libpkcs15init.so
+debian/tmp/usr/lib/libscconf.so
+debian/tmp/usr/lib/libscldap.so
+debian/tmp/usr/bin/opensc-config
+debian/tmp/usr/share/man/man1/opensc-config.1
+debian/tmp/usr/lib/pkcs11/libpkcs11.a
+debian/tmp/usr/lib/pkcs11/libpkcs11.so
+debian/tmp/usr/lib/pkcs11/opensc-pkcs11.la
+debian/tmp/usr/lib/pkcs11/pkcs11-spy.la
+debian/tmp/usr/lib/pkcs11/libpkcs11.la
+debian/tmp/usr/lib/pkcs11/opensc-pkcs11.a
+debian/tmp/usr/lib/pkcs11/pkcs11-spy.a
+debian/tmp/usr/lib/pkcs11/pkcs11-spy.so

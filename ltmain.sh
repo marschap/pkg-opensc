@@ -55,8 +55,8 @@ modename="$progname"
 # Constants.
 PROGRAM=ltmain.sh
 PACKAGE=libtool
-VERSION=1.5.0a
-TIMESTAMP=" (1.1220.2.25 2003/08/01 19:08:35) Debian$Rev: 49 $"
+VERSION=1.5a
+TIMESTAMP=" (1.1296 2003/10/21 15:03:52) Debian$Rev: 117 $"
 
 default_mode=
 help="Try \`$progname --help' for more information."
@@ -141,7 +141,7 @@ win32_libid () {
       fi
     fi
     ;;
-  *DLL*) 
+  *DLL*)
     win32_libid_type="x86 DLL"
     ;;
   *executable*) # but shell scripts are "executable" too...
@@ -157,6 +157,31 @@ win32_libid () {
 
 # End of Shell function definitions
 #####################################
+
+# Shorthand for --mode=foo
+case $1 in
+clean|clea|cle|cl)
+  shift; set -- --mode=clean ${1+"$@"}
+  ;;
+compile|compil|compi|comp|com|co|c)
+  shift; set -- --mode=compile ${1+"$@"}
+  ;;
+execute|execut|execu|exec|exe|ex|e)
+  shift; set -- --mode=execute ${1+"$@"}
+  ;;
+finish|finis|fini|fin|fi|f)
+  shift; set -- --mode=finish ${1+"$@"}
+  ;;
+install|instal|insta|inst|ins|in|i)
+  shift; set -- --mode=install ${1+"$@"}
+  ;;
+link|lin|li|l)
+  shift; set -- --mode=link ${1+"$@"}
+  ;;
+uninstall|uninstal|uninsta|uninst|unins|unin|uni|un|u)
+  shift; set -- --mode=uninstall ${1+"$@"}
+  ;;
+esac
 
 # Parse our command line options once, thoroughly.
 while test "$#" -gt 0
@@ -177,6 +202,7 @@ do
       ;;
     tag)
       tagname="$arg"
+      preserve_args="${preserve_args}=$arg"
 
       # Check whether tagname contains only valid characters
       case $tagname in
@@ -239,6 +265,7 @@ do
   --debug)
     $echo "$progname: enabling shell trace mode"
     set -x
+    preserve_args="$preserve_args $arg"
     ;;
 
   --dry-run | -n)
@@ -269,6 +296,7 @@ do
 
   --quiet | --silent)
     show=:
+    preserve_args="$preserve_args $arg"
     ;;
 
   --tag) prevopt="--tag" prev=tag ;;
@@ -276,6 +304,7 @@ do
     set tag "$optarg" ${1+"$@"}
     shift
     prev=tag
+    preserve_args="$preserve_args --tag"
     ;;
 
   -dlopen)
@@ -307,49 +336,11 @@ fi
 # left over by shells.
 exec_cmd=
 
-if test -z "$show_help"; then
-
-  # Infer the operation mode.
-  if test -z "$mode"; then
-    $echo "*** Warning: inferring the mode of operation is deprecated." 1>&2
-    $echo "*** Future versions of Libtool will require -mode=MODE be specified." 1>&2
-    case $nonopt in
-    *cc | cc* | *++ | gcc* | *-gcc* | g++* | xlc*)
-      mode=link
-      for arg
-      do
-	case $arg in
-	-c)
-	   mode=compile
-	   break
-	   ;;
-	esac
-      done
-      ;;
-    *db | *dbx | *strace | *truss)
-      mode=execute
-      ;;
-    *install*|cp|mv)
-      mode=install
-      ;;
-    *rm)
-      mode=uninstall
-      ;;
-    *)
-      # If we have no mode, but dlfiles were specified, then do execute mode.
-      test -n "$execute_dlfiles" && mode=execute
-
-      # Just use the default operation mode.
-      if test -z "$mode"; then
-	if test -n "$nonopt"; then
-	  $echo "$modename: warning: cannot infer operation mode from \`$nonopt'" 1>&2
-	else
-	  $echo "$modename: warning: cannot infer operation mode without MODE-ARGS" 1>&2
-	fi
-      fi
-      ;;
-    esac
-  fi
+  if test -z "$show_help"; then
+    if test -z "$mode"; then
+      $echo "$modename: error: you must specify a MODE." 1>&2
+      exit 1
+    fi
 
   # Only execute mode is allowed to have -dlopen flags.
   if test -n "$execute_dlfiles" && test "$mode" != execute; then
@@ -370,6 +361,7 @@ if test -z "$show_help"; then
     # Get the compilation command and the source file.
     base_compile=
     srcfile="$nonopt"  #  always keep a non-empty value in "srcfile"
+    suppress_opt=yes
     suppress_output=
     arg_mode=normal
     libobj=
@@ -401,7 +393,18 @@ if test -z "$show_help"; then
 	  continue
 	  ;;
 
+	-shared)
+	  if test "$build_libtool_libs" != yes; then
+	    $echo "$modename: can not build a shared library" 1>&2
+	    $echo "Fatal configuration error." 1>&2
+	    exit 1
+	  fi
+	  build_old_libs=no
+	  continue
+	  ;;
+
 	-static)
+	  build_libtool_libs=no
 	  build_old_libs=yes
 	  continue
 	  ;;
@@ -413,6 +416,11 @@ if test -z "$show_help"; then
 
 	-prefer-non-pic)
 	  pic_mode=no
+	  continue
+	  ;;
+
+	-no-suppress)
+	  suppress_opt=no
 	  continue
 	  ;;
 
@@ -723,7 +731,9 @@ pic_object='$objdir/$objname'
 EOF
 
       # Allow error messages only from the first compilation.
-      suppress_output=' >/dev/null 2>&1'
+      if test "$suppress_opt" = yes; then
+        suppress_output=' >/dev/null 2>&1'
+      fi
     else
       # No PIC object so indicate it doesn't exist in the libtool
       # object file.
@@ -885,6 +895,15 @@ EOF
     for arg
     do
       case $arg in
+      -shared)
+	if test "$build_libtool_libs" != yes; then
+	  $echo "$modename: can not build a shared library" 1>&2
+	  $echo "Fatal configuration error." 1>&2
+	  exit 1
+	fi
+	build_old_libs=no
+	break
+	;;
       -all-static | -static)
 	if test "X$arg" = "X-all-static"; then
 	  if test "$build_libtool_libs" = yes && test -z "$link_static_flag"; then
@@ -892,6 +911,9 @@ EOF
 	  fi
 	  if test -n "$link_static_flag"; then
 	    dlopen_self=$dlopen_self_static
+	    # See comment for -static flag below, for more details.
+	    compile_command="$compile_command $link_static_flag"
+	    finalize_command="$finalize_command $link_static_flag"
 	  fi
 	else
 	  if test -z "$pic_flag" && test -n "$link_static_flag"; then
@@ -1149,6 +1171,19 @@ EOF
 	  finalize_command="$finalize_command $qarg"
 	  continue
 	  ;;
+	framework)
+	  case $host in
+	    *-*-darwin*)
+	      case "$deplibs " in
+	        *" $qarg.framework "*) ;;
+		*) deplibs="$deplibs $qarg.framework" # this is fixed later
+		   ;;
+              esac
+              ;;
+   	  esac
+	  prev=
+	  continue
+	  ;;
 	*)
 	  eval "$prev=\"\$arg\""
 	  prev=
@@ -1161,17 +1196,14 @@ EOF
 
       case $arg in
       -all-static)
-	if test -n "$link_static_flag"; then
-	  compile_command="$compile_command $link_static_flag"
-	  finalize_command="$finalize_command $link_static_flag"
-	fi
+	# The effects of -all-static are defined in a previous loop.
 	continue
 	;;
 
       -allow-undefined)
 	# FIXME: remove this flag sometime in the future.
-	$echo "$modename: \`-allow-undefined' is deprecated because it is the default" 1>&2
-	continue
+	$echo "$modename: \`-allow-undefined' must not be used because it is the default" 1>&2
+	exit 1
 	;;
 
       -avoid-version)
@@ -1273,7 +1305,7 @@ EOF
 	    ;;
 	  *-*-rhapsody* | *-*-darwin1.[012])
 	    # Rhapsody C and math libraries are in the System framework
-	    deplibs="$deplibs -framework System"
+	    deplibs="$deplibs System.framework"
 	    continue
 	  esac
 	elif test "X$arg" = "X-lc_r"; then
@@ -1384,6 +1416,11 @@ EOF
 	continue
 	;;
 
+      -shared)
+	# The effects of -shared are defined in a previous loop.
+	continue
+	;;
+
       -static)
 	# The effects of -static are defined in a previous loop.
 	# We used to do the same as -all-static on platforms that
@@ -1457,6 +1494,11 @@ EOF
 
       -XCClinker)
 	prev=xcclinker
+	continue
+	;;
+
+      -framework)
+        prev=framework
 	continue
 	;;
 
@@ -1875,6 +1917,18 @@ EOF
 	    fi
 	  fi
 	  ;; # -l
+	*.framework)
+	  if test "$linkmode,$pass" = "prog,link"; then
+	    compile_deplibs="$deplib $compile_deplibs"
+	    finalize_deplibs="$deplib $finalize_deplibs"
+	  else
+	    deplibs="$deplib $deplibs"
+	    if test "$linkmode" = lib ; then
+	      newdependency_libs="$deplib $newdependency_libs"
+	    fi
+	  fi
+	  continue
+	  ;;
 	-L*)
 	  case $linkmode in
 	  lib)
@@ -2003,6 +2057,13 @@ EOF
 	*) . ./$lib ;;
 	esac
 
+	case $host in
+	*-*-darwin*)
+	  # Convert "-framework foo" to "foo.framework" in dependency_libs
+	  test -n "$dependency_libs" && dependency_libs=`$echo "X$dependency_libs" | $Xsed -e 's/-framework \([^ $]*\)/\1.framework/g'`
+	  ;;
+	esac
+
 	if test "$linkmode,$pass" = "lib,link" ||
 	   test "$linkmode,$pass" = "prog,scan" ||
 	   { test "$linkmode" != prog && test "$linkmode" != lib; }; then
@@ -2038,7 +2099,7 @@ EOF
 	  continue
 	fi # $pass = conv
 
-    
+
 	# Get the name of the library we link against.
 	linklib=
 	for l in $old_library $library_names; do
@@ -2093,10 +2154,17 @@ EOF
 	    absdir="$libdir"
 	  fi
 	else
-	  dir="$ladir/$objdir"
-	  absdir="$abs_ladir/$objdir"
-	  # Remove this search path later
-	  notinst_path="$notinst_path $abs_ladir"
+	  if test ! -f "$ladir/$objdir/$linklib" && test -f "$abs_ladir/$linklib"; then
+	    dir="$ladir"
+	    absdir="$abs_ladir"
+	    # Remove this search path later
+	    notinst_path="$notinst_path $abs_ladir"
+	  else
+	    dir="$ladir/$objdir"
+	    absdir="$abs_ladir/$objdir"
+	    # Remove this search path later
+	    notinst_path="$notinst_path $abs_ladir"
+	  fi
 	fi # $installed = yes
 	name=`$echo "X$laname" | $Xsed -e 's/\.la$//' -e 's/^lib//'`
 
@@ -2131,7 +2199,7 @@ EOF
 	  continue
 	fi
 
-    
+
 	if test "$linkmode" = prog && test "$pass" != link; then
 	  newlib_search_path="$newlib_search_path $ladir"
 	  deplibs="$lib $deplibs"
@@ -2218,7 +2286,7 @@ EOF
 	    need_relink=yes
 	  fi
 	  # This is a shared library
-	
+
       # Warn about portability, can't link against -module's on some systems (darwin)
       if test "$shouldnotlink" = yes && test "$pass" = link ; then
 	    $echo
@@ -2227,8 +2295,8 @@ EOF
 	    else
 	      $echo "*** Warning: Linking the shared library $output against the loadable module"
 	    fi
-	    $echo "*** $linklib is not portable!"    
-      fi	  
+	    $echo "*** $linklib is not portable!"
+      fi
 	  if test "$linkmode" = lib &&
 	     test "$hardcode_into_libs" = yes; then
 	    # Hardcode the library path.
@@ -2334,7 +2402,7 @@ EOF
 		        $echo "** The link will probably fail, sorry"
 		      else
 		        add="$dir/$old_library"
-		      fi 
+		      fi
 		    fi
 		esac
 	      elif test "$hardcode_minus_L" = no; then
@@ -2359,7 +2427,7 @@ EOF
 		if test -n "$inst_prefix_dir"; then
 		  case "$libdir" in
 		    [\\/]*)
-		      add_dir="$add_dir -L$inst_prefix_dir$libdir"
+		      add_dir="-L$inst_prefix_dir$libdir $add_dir"
 		      ;;
 		  esac
 		fi
@@ -2431,7 +2499,7 @@ EOF
 	      if test -n "$inst_prefix_dir"; then
 		case "$libdir" in
 		  [\\/]*)
-		    add_dir="$add_dir -L$inst_prefix_dir$libdir"
+		    add_dir="-L$inst_prefix_dir$libdir $add_dir"
 		    ;;
 		esac
 	      fi
@@ -2586,8 +2654,8 @@ EOF
 		*)
 		path="-L$path"
 		;;
-		esac 
-		
+		esac
+
 		;;
 		  -l*)
 		case $host in
@@ -2598,19 +2666,28 @@ EOF
 		     if test -f "$tmp/lib$tmp_libs.dylib" ; then
 		       eval depdepl="$tmp/lib$tmp_libs.dylib"
 		       break
-		     fi  
-         done
-         path=""
-		  ;;
+		     fi
+		 done
+	         path=""
+		 ;;
 		*) continue ;;
-		esac  		  
+		esac
 		;;
+
+	      *.framework)
+		case $host in
+		  *-*-darwin*)
+		    depdepl="$deplib"
+		    ;;
+		esac
+		;;
+
 	      *) continue ;;
 	      esac
 	      case " $deplibs " in
 	      *" $depdepl "*) ;;
 	      *) deplibs="$deplibs $depdepl" ;;
-	      esac	      
+	      esac
 	      case " $deplibs " in
 	      *" $path "*) ;;
 	      *) deplibs="$deplibs $path" ;;
@@ -2837,7 +2914,7 @@ EOF
 	# convert absolute version numbers to libtool ages
 	# this retains compatibility with .la files and attempts
 	# to make the code below a bit more comprehensible
-	
+
 	case $vinfo_number in
 	yes)
 	  number_major="$2"
@@ -3118,7 +3195,7 @@ EOF
 	    ;;
 	  *-*-rhapsody* | *-*-darwin1.[012])
 	    # Rhapsody C library is in the System framework
-	    deplibs="$deplibs -framework System"
+	    deplibs="$deplibs System.framework"
 	    ;;
 	  *-*-netbsd*)
 	    # Don't link with libc until the a.out ld.so is fixed.
@@ -3411,7 +3488,7 @@ EOF
 	case $host in
 	*-*-rhapsody* | *-*-darwin1.[012])
 	  # On Rhapsody replace the C library is the System framework
-	  newdeplibs=`$echo "X $newdeplibs" | $Xsed -e 's/ -lc / -framework System /'`
+	  newdeplibs=`$echo "X $newdeplibs" | $Xsed -e 's/ -lc / System.framework /'`
 	  ;;
 	esac
 
@@ -3457,6 +3534,13 @@ EOF
 	    fi
 	  fi
 	fi
+	# Time to change all our "foo.framework" stuff back to "-framework foo"
+	case $host in
+	  *-*-darwin*)
+	    newdeplibs=`$echo "X $newdeplibs" | $Xsed -e 's% \([^ $]*\).framework% -framework \1%g'`
+	    dependency_libs=`$echo "X $dependency_libs" | $Xsed -e 's% \([^ $]*\).framework% -framework \1%g'`
+	    ;;
+	esac
 	# Done checking deplibs!
 	deplibs=$newdeplibs
       fi
@@ -3591,12 +3675,12 @@ EOF
 	for test_deplib in $deplibs; do
 		case " $convenience " in
 		*" $test_deplib "*) ;;
-		*) 
+		*)
 			tmp_deplibs="$tmp_deplibs $test_deplib"
 			;;
 		esac
 	done
-	deplibs="$tmp_deplibs" 
+	deplibs="$tmp_deplibs"
 
 	if test -n "$convenience"; then
 	  if test -n "$whole_archive_flag_spec"; then
@@ -4030,18 +4114,21 @@ EOF
       case $host in
       *-*-rhapsody* | *-*-darwin1.[012])
 	# On Rhapsody replace the C library is the System framework
-	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
-	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / -framework System /'`
+	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's/ -lc / System.framework /'`
+	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's/ -lc / System.framework /'`
 	;;
       esac
 
       case $host in
-      *darwin*)
+      *-*-darwin*)
         # Don't allow lazy linking, it breaks C++ global constructors
         if test "$tagname" = CXX ; then
         compile_command="$compile_command ${wl}-bind_at_load"
         finalize_command="$finalize_command ${wl}-bind_at_load"
         fi
+	# Time to change all our "foo.framework" stuff back to "-framework foo"
+	compile_deplibs=`$echo "X $compile_deplibs" | $Xsed -e 's% \([^ $]*\).framework% -framework \1%g'`
+	finalize_deplibs=`$echo "X $finalize_deplibs" | $Xsed -e 's% \([^ $]*\).framework% -framework \1%g'`
         ;;
       esac
 
@@ -4504,7 +4591,7 @@ static const void *lt_preloaded_setup() {
 
    The $output program cannot be directly executed until all the libtool
    libraries that it depends on are installed.
-   
+
    This wrapper executable should never be moved out of the build directory.
    If it is, it will not operate correctly.
 
@@ -4536,7 +4623,7 @@ EOF
 #if defined (_WIN32) || defined (__MSDOS__) || defined (__DJGPP__) || \
   defined (__OS2__)
 #define HAVE_DOS_BASED_FILE_SYSTEM
-#ifndef DIR_SEPARATOR_2 
+#ifndef DIR_SEPARATOR_2
 #define DIR_SEPARATOR_2 '\\'
 #endif
 #endif
@@ -4567,7 +4654,7 @@ main (int argc, char *argv[])
 {
   char **newargz;
   int i;
-  
+
   program_name = (char *) xstrdup ((char *) basename (argv[0]));
   newargz = XMALLOC(char *, argc+2);
 EOF
@@ -4580,7 +4667,7 @@ EOF
   newargz[1] = fnqualify(argv[0]);
   /* we know the script has the same name, without the .exe */
   /* so make sure newargz[1] doesn't end in .exe */
-  strendzap(newargz[1],".exe"); 
+  strendzap(newargz[1],".exe");
   for (i = 1; i < argc; i++)
     newargz[i+1] = xstrdup(argv[i]);
   newargz[argc+1] = NULL;
@@ -4603,7 +4690,7 @@ xmalloc (size_t num)
   return p;
 }
 
-char * 
+char *
 xstrdup (const char *string)
 {
   return string ? strcpy ((char *) xmalloc (strlen (string) + 1), string) : NULL
@@ -4617,7 +4704,7 @@ basename (const char *name)
 
 #if defined (HAVE_DOS_BASED_FILE_SYSTEM)
   /* Skip over the disk name in MSDOS pathnames. */
-  if (isalpha (name[0]) && name[1] == ':') 
+  if (isalpha (name[0]) && name[1] == ':')
     name += 2;
 #endif
 
@@ -4627,7 +4714,7 @@ basename (const char *name)
   return (char *) base;
 }
 
-char * 
+char *
 fnqualify(const char *path)
 {
   size_t size;
@@ -4655,7 +4742,7 @@ fnqualify(const char *path)
 }
 
 char *
-strendzap(char *str, const char *pat) 
+strendzap(char *str, const char *pat)
 {
   size_t len, patlen;
 
@@ -4675,7 +4762,7 @@ strendzap(char *str, const char *pat)
 }
 
 static void
-lt_error_core (int exit_status, const char * mode, 
+lt_error_core (int exit_status, const char * mode,
           const char * message, va_list ap)
 {
   fprintf (stderr, "%s: %s: ", program_name, mode);
@@ -4998,7 +5085,7 @@ fi\
 	  for obj in $save_oldobjs
 	  do
 	    last_oldobj=$obj
-	  done  
+	  done
 	  for obj in $save_oldobjs
 	  do
 	    oldobjs="$objlist $obj"
@@ -5012,7 +5099,7 @@ fi\
 	      oldobjs=$objlist
 	      if test "$obj" = "$last_oldobj" ; then
 	        RANLIB=$save_RANLIB
-	      fi  
+	      fi
 	      test -z "$concat_cmds" || concat_cmds=$concat_cmds~
 	      eval concat_cmds=\"\${concat_cmds}$old_archive_cmds\"
 	      objlist=
@@ -5060,11 +5147,11 @@ fi\
 	fi
       done
       # Quote the link command for shipping.
-      relink_command="(cd `pwd`; $SHELL $0 --mode=relink $libtool_args @inst_prefix_dir@)"
+      relink_command="(cd `pwd`; $SHELL $0 $preserve_args --mode=relink $libtool_args @inst_prefix_dir@)"
       relink_command=`$echo "X$relink_command" | $Xsed -e "$sed_quote_subst"`
       if test "$hardcode_automatic" = yes ; then
         relink_command=
-      fi  
+      fi
       # Only create the output if not a dry run.
       if test -z "$run"; then
 	for installed in no yes; do
@@ -5115,7 +5202,7 @@ fi\
 	  else
 	    newdlfiles=
 	    for lib in $dlfiles; do
-	      case $lib in 
+	      case $lib in
 		[\\/]* | [A-Za-z]:[\\/]*) abs="$lib" ;;
 		*) abs=`pwd`"/$lib" ;;
 	      esac
@@ -5124,7 +5211,7 @@ fi\
 	    dlfiles="$newdlfiles"
 	    newdlprefiles=
 	    for lib in $dlprefiles; do
-	      case $lib in 
+	      case $lib in
 		[\\/]* | [A-Za-z]:[\\/]*) abs="$lib" ;;
 		*) abs=`pwd`"/$lib" ;;
 	      esac
@@ -5685,7 +5772,7 @@ relink_command=\"$relink_command\""
     if test -n "$current_libdirs"; then
       # Maybe just do a dry run.
       test -n "$run" && current_libdirs=" -n$current_libdirs"
-      exec_cmd='$SHELL $0 --finish$current_libdirs'
+      exec_cmd='$SHELL $0 $preserve_args --finish$current_libdirs'
     else
       exit 0
     fi
@@ -6040,7 +6127,7 @@ relink_command=\"$relink_command\""
 	if test "$mode" = clean ; then
 	  noexename=$name
 	  case $file in
-	  *.exe) 
+	  *.exe)
 	    file=`$echo $file|${SED} 's,.exe$,,'`
 	    noexename=`$echo $name|${SED} 's,.exe$,,'`
 	    # $file with .exe has already been added to rmfiles,
@@ -6114,7 +6201,7 @@ Provide generalized library-building support services.
     --features        display basic configuration information and exit
     --finish          same as \`--mode=finish'
     --help            display this help message and exit
-    --mode=MODE       use operation mode MODE [default=inferred from MODE-ARGS]
+    --mode=MODE       use operation mode MODE
     --quiet           same as \`--silent'
     --silent          don't print informational messages
     --tag=TAG         use configuration variables from tag TAG
@@ -6160,9 +6247,11 @@ Compile a source file into a libtool library object.
 This mode accepts the following additional options:
 
   -o OUTPUT-FILE    set the output file name to OUTPUT-FILE
+  -no-suppress      do not suppress compiler output for multiple passes  
   -prefer-pic       try to building PIC objects only
   -prefer-non-pic   try to building non-PIC objects only
-  -static           always build a \`.o' file suitable for static linking
+  -shared           do not build a \`.o' file suitable for static linking
+  -static           only build a \`.o' file suitable for static linking
 
 COMPILE-COMMAND is a command to be used in creating a \`standard' object file
 from the given SOURCEFILE.
@@ -6249,6 +6338,7 @@ The following components of LINK-COMMAND are treated specially:
   -release RELEASE  specify package release information
   -rpath LIBDIR     the created library will eventually be installed in LIBDIR
   -R[ ]LIBDIR       add LIBDIR to the runtime path of programs and libraries
+  -shared           only do dynamic linking of libtool libraries
   -static           do not do any dynamic linking of libtool libraries
   -version-info CURRENT[:REVISION[:AGE]]
 		    specify library version info [each variable defaults to 0]
