@@ -523,7 +523,6 @@ CK_RV C_Sign(CK_SESSION_HANDLE hSession,        /* the session's handle */
 out:	sc_debug(context, "Signing result was %d\n", rv);
 	sc_pkcs11_unlock();
         return rv;
-
 }
 
 CK_RV C_SignUpdate(CK_SESSION_HANDLE hSession,  /* the session's handle */
@@ -679,7 +678,48 @@ CK_RV C_DecryptInit(CK_SESSION_HANDLE hSession,    /* the session's handle */
 		    CK_MECHANISM_PTR  pMechanism,  /* the decryption mechanism */
 		    CK_OBJECT_HANDLE  hKey)        /* handle of the decryption key */
 {
-        return CKR_FUNCTION_NOT_SUPPORTED;
+        CK_BBOOL can_decrypt;
+	CK_KEY_TYPE key_type;
+	CK_ATTRIBUTE decrypt_attribute = { CKA_DECRYPT, &can_decrypt, sizeof(can_decrypt) };
+	CK_ATTRIBUTE key_type_attr = { CKA_KEY_TYPE, &key_type, sizeof(key_type) };
+	struct sc_pkcs11_session *session;
+	struct sc_pkcs11_object *object;
+        int rv;
+
+	rv = sc_pkcs11_lock();
+	if (rv != CKR_OK)
+		return rv;
+
+	rv = pool_find(&session_pool, hSession, (void**) &session);
+	if (rv != CKR_OK)
+		goto out;
+
+	rv = pool_find(&session->slot->object_pool, hKey, (void**) &object);
+	if (rv != CKR_OK)
+		goto out;
+
+	if (object->ops->decrypt == NULL_PTR) {
+                rv = CKR_KEY_TYPE_INCONSISTENT;
+		goto out;
+	}
+
+	rv = object->ops->get_attribute(session, object, &decrypt_attribute);
+        if (rv != CKR_OK || !can_decrypt) {
+                rv = CKR_KEY_TYPE_INCONSISTENT;
+		goto out;
+	}
+	rv = object->ops->get_attribute(session, object, &key_type_attr);
+        if (rv != CKR_OK) {
+                rv = CKR_KEY_TYPE_INCONSISTENT;
+		goto out;
+	}
+
+	rv = sc_pkcs11_decr_init(session, pMechanism, object, key_type);
+
+out:	sc_debug(context, "Decrypt initialization returns %d\n", rv);
+	sc_pkcs11_unlock();
+
+        return rv;
 }
 
 CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,           /* the session's handle */
@@ -688,7 +728,23 @@ CK_RV C_Decrypt(CK_SESSION_HANDLE hSession,           /* the session's handle */
 		CK_BYTE_PTR       pData,              /* receives decrypted output */
 		CK_ULONG_PTR      pulDataLen)         /* receives decrypted byte count */
 {
-        return CKR_FUNCTION_NOT_SUPPORTED;
+        int rv;
+	struct sc_pkcs11_session *session;
+
+	rv = sc_pkcs11_lock();
+	if (rv != CKR_OK)
+		return rv;
+
+	rv = pool_find(&session_pool, hSession, (void**) &session);
+	if (rv != CKR_OK)
+		goto out;
+
+	rv = sc_pkcs11_decr(session, pEncryptedData, ulEncryptedDataLen,
+	                    pData, pulDataLen);
+
+out:	sc_debug(context, "Decryption result was %d\n", rv);
+	sc_pkcs11_unlock();
+        return rv;
 }
 
 CK_RV C_DecryptUpdate(CK_SESSION_HANDLE hSession,            /* the session's handle */
@@ -1066,18 +1122,36 @@ sc_pkcs11_any_cmp_attribute(struct sc_pkcs11_session *session,
 		void *ptr, CK_ATTRIBUTE_PTR attr)
 {
 	struct sc_pkcs11_object *object;
-	u8		temp[1024];
+	u8		temp1[1024];
+	u8		*temp2 = NULL; /* dynamic allocation for large attributes */
 	CK_ATTRIBUTE	temp_attr;
-	int		rv;
+	int		rv, res;
 
 	object = (struct sc_pkcs11_object *) ptr;
 	temp_attr.type = attr->type;
-	temp_attr.pValue = temp;
-	temp_attr.ulValueLen = sizeof(temp);
+	temp_attr.pValue = NULL;
+	temp_attr.ulValueLen = 0;
 
+	/* Get the length of the attribute */
 	rv = object->ops->get_attribute(session, object, &temp_attr);
-	if (rv != CKR_OK)
+	if (rv != CKR_OK || temp_attr.ulValueLen != attr->ulValueLen)
 		return 0;
+
+	if (temp_attr.ulValueLen <= sizeof(temp1))
+		temp_attr.pValue = temp1;
+	else {
+		temp2 = (u8 *) malloc(temp_attr.ulValueLen);
+		if (temp2 == NULL)
+			return 0;
+		temp_attr.pValue = temp2;
+	}
+
+	/* Get the attribute */
+	rv = object->ops->get_attribute(session, object, &temp_attr);
+	if (rv != CKR_OK) {
+		res = 0;
+		goto done;
+	}
 
 #ifdef DEBUG
 	{
@@ -1088,6 +1162,12 @@ sc_pkcs11_any_cmp_attribute(struct sc_pkcs11_session *session,
 		dump_template(foo, &temp_attr, 1);
 	}
 #endif
-	return temp_attr.ulValueLen == attr->ulValueLen
-	    && !memcmp(temp, attr->pValue, attr->ulValueLen);
+	res = temp_attr.ulValueLen == attr->ulValueLen
+	    && !memcmp(temp_attr.pValue, attr->pValue, attr->ulValueLen);
+
+done:
+	if (temp2 != NULL)
+		free(temp2);
+
+	return res;
 }
