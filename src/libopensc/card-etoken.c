@@ -32,7 +32,7 @@
 #define ETOKEN_MAX_PAYLOAD	120
 
 /* Different eToken types */
-#define ETOKEN_TYPE_PRO		1
+#define CARDOS_TYPE_ANY		1
 
 static const struct sc_card_operations *iso_ops = NULL;
 
@@ -47,10 +47,15 @@ const struct {
 	const char *	atr;
 	int		type;
 } etoken_atrs[] = {
-      {	"3b:e2:00:ff:c1:10:31:fe:55:c8:02:9c",		ETOKEN_TYPE_PRO },
-      { "3b:f2:98:00:ff:c1:10:31:fe:55:c8:03:15",	ETOKEN_TYPE_PRO },
+    { "3b:e2:00:ff:c1:10:31:fe:55:c8:02:9c",	CARDOS_TYPE_ANY }, /* 4.0 */
+    { "3b:f2:98:00:ff:c1:10:31:fe:55:c8:03:15",	CARDOS_TYPE_ANY }, /* 4.01 */
+    { "3b:f2:98:00:ff:c1:10:31:fe:55:c8:04:12",	CARDOS_TYPE_ANY }, /* 4.01a */
+    /* Italian eID card: */
+    { "3b:e9:00:ff:c1:10:31:fe:55:00:64:05:00:c8:02:31:80:00:47", CARDOS_TYPE_ANY },
+    /* Italian eID card from Infocamere */
+    { "3b:fb:98:00:ff:c1:10:31:fe:55:00:64:05:20:47:03:31:80:00:90:00:f3", CARDOS_TYPE_ANY },
 
-      { NULL }
+    { NULL }
 };
 
 int etoken_finish(struct sc_card *card)
@@ -366,7 +371,7 @@ static int acl_to_byte(const struct sc_acl_entry *e)
 
 static const int df_acl[9] = {
 	-1,			/* LCYCLE (life cycle change) */
-	-1,			/* UPDATE Objects */
+	SC_AC_OP_UPDATE,	/* UPDATE Objects */
 	-1,			/* APPEND Objects */
 
 	SC_AC_OP_INVALIDATE,	/* DF */
@@ -897,8 +902,10 @@ etoken_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data,
 	data->pin_reference |= 0x80;
 	/* FIXME: the following values depend on what pin length was
 	 * used when creating the BS objects */
-	data->pin1.max_length = 8;
-	data->pin2.max_length = 8;
+	if (data->pin1.max_length == 0)
+		data->pin1.max_length = 8;
+	if (data->pin2.max_length == 0)
+		data->pin2.max_length = 8;
 	return iso_ops->pin_cmd(card, data, tries_left);
 }
 
