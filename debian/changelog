@@ -1,3 +1,17 @@
+opensc (0.8.1-6) unstable; urgency=low
+
+  * configure.in: use _pic.a instead of -pic.a, openssl changed.
+  * configure: Rebuild.
+  * debian/control: 
+      - Build-depend on libssl-dev (>= 0.9.7d-3) for pic.a
+        renaming.
+      - Build-depend on libpcsclite-dev (>= 1.2.9-beta1) for new 
+        libpcsclite1. (Closes: #247697)
+  * src/libopensc/reader-pcsc.c: Patch for new libpcsclite1. Thanks
+    Ludovic Rousseau.
+
+ -- Eric Dorland <eric@debian.org>  Sat, 29 May 2004 21:07:28 -0400
+
 opensc (0.8.1-5) unstable; urgency=low
 
   * debian/control: 

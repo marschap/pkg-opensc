@@ -286,7 +286,7 @@ int main(void)
 
 		if test "x$SSL_MSG" = "xyes" ; then
 			# openssl with engine support?
-			LIBCRYPTOA="$ssldir/lib/libcrypto-pic.a $LIBDL"
+			LIBCRYPTOA="$ssldir/lib/libcrypto_pic.a $LIBDL"
 			LIBS="$saved_LIBS $LIBCRYPTOA"
 			AC_TRY_RUN(
 			[

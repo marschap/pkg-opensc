@@ -1,7 +1,7 @@
 Source: opensc
 Priority: extra
 Maintainer: Eric Dorland <eric@debian.org>
-Build-Depends: cdbs, debhelper (>> 4.1.0), libssl-dev (>= 0.9.7d-2), libpcsclite-dev, libpam0g-dev, libldap-dev, libsasl-dev, libassuan-dev (>= 0.6.4-2), xlibs-dev, libopenct0-dev, flex
+Build-Depends: cdbs, debhelper (>> 4.1.0), libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libpam0g-dev, libldap-dev, libsasl-dev, libassuan-dev (>= 0.6.4-2), xlibs-dev, libopenct0-dev, flex
 Standards-Version: 3.6.1
 
 Package: opensc
