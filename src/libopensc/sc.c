@@ -169,6 +169,7 @@ void sc_format_path(const char *str, struct sc_path *path)
 	if (sc_hex_to_bin(str, path->value, &path->len) >= 0) {
 		path->type = type;
 	}
+	path->count = -1;
 	return;
 }
 
@@ -191,6 +192,13 @@ int sc_append_path_id(struct sc_path *dest, const u8 *id, size_t idlen)
 	return 0;
 }
 
+int sc_append_file_id(struct sc_path *dest, unsigned int fid)
+{
+	u8 id[2] = { fid >> 8, fid & 0xff };
+
+	return sc_append_path_id(dest, id, 2);
+}
+
 const char *sc_print_path(const sc_path_t *path)
 {
 	static char	buffer[64];
@@ -203,6 +211,12 @@ const char *sc_print_path(const sc_path_t *path)
 		sprintf(buffer + 2*n, "%02x", path->value[n]);
 
 	return buffer;
+}
+
+int sc_compare_path(const sc_path_t *path1, const sc_path_t *path2)
+{
+	return path1->len == path2->len
+		&& !memcmp(path1->value, path2->value, path1->len);
 }
 
 int sc_file_add_acl_entry(struct sc_file *file, unsigned int operation,
@@ -320,7 +334,7 @@ struct sc_file * sc_file_new()
 
 void sc_file_free(struct sc_file *file)
 {
-	int i;
+	unsigned int i;
 	assert(sc_file_valid(file));
 	file->magic = 0;
 	for (i = 0; i < SC_MAX_AC_OPS; i++)
@@ -338,7 +352,7 @@ void sc_file_dup(struct sc_file **dest, const struct sc_file *src)
 {
 	struct sc_file *newf;
 	const struct sc_acl_entry *e;
-	int op;
+	unsigned int op;
 	
 	assert(sc_file_valid(src));
 	*dest = NULL;
@@ -359,6 +373,7 @@ void sc_file_dup(struct sc_file **dest, const struct sc_file *src)
 int sc_file_set_sec_attr(struct sc_file *file, const u8 *sec_attr,
 			 size_t sec_attr_len)
 {
+	u8 *tmp;
 	assert(sc_file_valid(file));
 
 	if (sec_attr == NULL) {
@@ -368,11 +383,15 @@ int sc_file_set_sec_attr(struct sc_file *file, const u8 *sec_attr,
 		file->sec_attr_len = 0;
 		return 0;
 	 }
-	file->sec_attr = (u8 *) realloc(file->sec_attr, sec_attr_len);
-	if (file->sec_attr == NULL) {
+	tmp = (u8 *) realloc(file->sec_attr, sec_attr_len);
+	if (!tmp) {
+		if (file->sec_attr)
+			free(file->sec_attr);
+		file->sec_attr     = NULL;
 		file->sec_attr_len = 0;
 		return SC_ERROR_OUT_OF_MEMORY;
 	}
+	file->sec_attr = tmp;
 	memcpy(file->sec_attr, sec_attr, sec_attr_len);
 	file->sec_attr_len = sec_attr_len;
 
@@ -382,6 +401,7 @@ int sc_file_set_sec_attr(struct sc_file *file, const u8 *sec_attr,
 int sc_file_set_prop_attr(struct sc_file *file, const u8 *prop_attr,
 			 size_t prop_attr_len)
 {
+	u8 *tmp;
 	assert(sc_file_valid(file));
 
 	if (prop_attr == NULL) {
@@ -391,11 +411,15 @@ int sc_file_set_prop_attr(struct sc_file *file, const u8 *prop_attr,
 		file->prop_attr_len = 0;
 		return 0;
 	 }
-	file->prop_attr = (u8 *) realloc(file->prop_attr, prop_attr_len);
-	if (file->prop_attr == NULL) {
+	tmp = (u8 *) realloc(file->prop_attr, prop_attr_len);
+	if (!tmp) {
+		if (file->prop_attr)
+			free(file->prop_attr);
+		file->prop_attr = NULL;
 		file->prop_attr_len = 0;
 		return SC_ERROR_OUT_OF_MEMORY;
 	}
+	file->prop_attr = tmp;
 	memcpy(file->prop_attr, prop_attr, prop_attr_len);
 	file->prop_attr_len = prop_attr_len;
 
@@ -405,6 +429,7 @@ int sc_file_set_prop_attr(struct sc_file *file, const u8 *prop_attr,
 int sc_file_set_type_attr(struct sc_file *file, const u8 *type_attr,
 			 size_t type_attr_len)
 {
+	u8 *tmp;
 	assert(sc_file_valid(file));
 
 	if (type_attr == NULL) {
@@ -414,11 +439,15 @@ int sc_file_set_type_attr(struct sc_file *file, const u8 *type_attr,
 		file->type_attr_len = 0;
 		return 0;
 	 }
-	file->type_attr = (u8 *) realloc(file->type_attr, type_attr_len);
-	if (file->type_attr == NULL) {
+	tmp = (u8 *) realloc(file->type_attr, type_attr_len);
+	if (!tmp) {
+		if (file->type_attr)
+			free(file->type_attr);
+		file->type_attr = NULL;
 		file->type_attr_len = 0;
 		return SC_ERROR_OUT_OF_MEMORY;
 	}
+	file->type_attr = tmp;
 	memcpy(file->type_attr, type_attr, type_attr_len);
 	file->type_attr_len = type_attr_len;
 
