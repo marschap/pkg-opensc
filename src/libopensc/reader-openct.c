@@ -58,7 +58,7 @@ static int		openct_error(struct sc_reader *, int);
 static struct sc_reader_operations openct_ops;
 
 static struct sc_reader_driver openct_reader_driver = {
-	"OpenCT Reader",
+	"OpenCT reader",
 	"openct",
 	&openct_ops
 };
@@ -315,7 +315,7 @@ openct_reader_perform_verify(struct sc_reader *reader,
 		return rc;
 
 	if (info->apdu == NULL) {
-		// complain
+		/* complain */
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -399,6 +399,10 @@ openct_reader_unlock(struct sc_reader *reader,
 
 	SC_FUNC_CALLED(reader->ctx, 1);
 
+	/* Not connected */
+	if (data->h == NULL)
+		return 0;
+
 	rc = ct_card_unlock(data->h, slot->id, slot_data->excl_lock);
 
 	/* We couldn't care less */
@@ -427,7 +431,7 @@ openct_error(struct sc_reader *reader, int code)
 	return SC_ERROR_READER;
 }
 
-const struct sc_reader_driver *sc_get_openct_driver(void)
+struct sc_reader_driver *sc_get_openct_driver(void)
 {
 	openct_ops.init = openct_reader_init;
 	openct_ops.finish = openct_reader_finish;
