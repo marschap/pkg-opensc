@@ -1,3 +1,15 @@
+opensc (0.9.4-8) unstable; urgency=medium
+
+  * debian/libopensc1.examples, debian/libscam1.examples: Install example
+    configuration files. (Closes: #286629)
+  * debian/rules: Have config files under /etc/opensc.
+  * debian/opensc.conf, debian/scldap.conf: Added barren config files that
+    tell you to look at the examples.
+  * debian/libopensc1.install, debian/libscam1.install: Install config
+    files.
+
+ -- Eric Dorland <eric@debian.org>  Tue, 21 Dec 2004 23:25:58 -0500
+
 opensc (0.9.4-7) unstable; urgency=high
 
   * Urgency high because the new openct is in testing and the borked s390

@@ -1,2 +1,3 @@
 debian/tmp/usr/lib/libscam.so.*
 debian/tmp/usr/lib/libscldap.so.*
+debian/scldap.conf etc/opensc
