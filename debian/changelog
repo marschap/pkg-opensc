@@ -2,8 +2,10 @@ opensc (0.9.4-9) unstable; urgency=high
 
   * debian/control: Remove extraneous build dependencies on libsasl,
     and tighten X dependency. (Closes: #304975)
+  * debian/control: Remove uneccessarily tight dependency on libscam by
+    libpam-opensc.
 
- -- Eric Dorland <eric@debian.org>  Sun, 17 Apr 2005 00:36:50 -0400
+ -- Eric Dorland <eric@debian.org>  Sun, 17 Apr 2005 00:59:57 -0400
 
 opensc (0.9.4-8) unstable; urgency=high
 

@@ -55,7 +55,7 @@ Description: SmartCard library with support for PKCS#15 compatible smart cards
 Package: libpam-opensc
 Section: admin
 Architecture: any
-Depends: ${shlibs:Depends}, libscam1 (= ${Source-Version})
+Depends: ${shlibs:Depends}
 Recommends: opensc
 Description: Pluggable Authentication Module for using PKCS#15 Smart Cards
  This package allows an administrator to configure a host to
