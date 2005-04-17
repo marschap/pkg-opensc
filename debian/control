@@ -2,7 +2,7 @@ Source: opensc
 Priority: extra
 Section: utils
 Maintainer: Eric Dorland <eric@debian.org>
-Build-Depends: cdbs, debhelper (>> 4.1.0), libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libpam0g-dev, libldap-dev, libsasl-dev, libassuan-dev (>= 0.6.4-2), xlibs-dev, libopenct0-dev, flex, pkg-config
+Build-Depends: cdbs, debhelper (>> 4.1.0), libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libpam0g-dev, libldap-dev, libassuan-dev (>= 0.6.4-2), libopenct0-dev, flex, pkg-config
 Standards-Version: 3.6.1
 
 Package: opensc
@@ -17,7 +17,7 @@ Description: SmartCard utilities with support for PKCS#15 compatible cards
  These utilities allow the user to initialize, personalize and
  otherwise manipulate PKCS#15 cards with PINs and cryptographic 
  keys. Users can sign and decrypt data with private keys 
- residing on-card.
+ residing on-card.2
  .
  Supported cards include Gemplus GPK, Schlumberger Cryptoflex,
  Finnish FINEID, Swedish eID, MioCOS and TCOS cards.

@@ -1,3 +1,10 @@
+opensc (0.9.4-9) unstable; urgency=high
+
+  * debian/control: Remove extraneous build dependencies on X and libsasl,
+    we don't actuall use them. (Closes: #304975)
+
+ -- Eric Dorland <eric@debian.org>  Sun, 17 Apr 2005 00:36:50 -0400
+
 opensc (0.9.4-8) unstable; urgency=high
 
   * Still yearning for testing.
