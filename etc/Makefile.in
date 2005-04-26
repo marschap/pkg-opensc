@@ -89,6 +89,8 @@ HAVE_PCSC_FALSE = @HAVE_PCSC_FALSE@
 HAVE_PCSC_TRUE = @HAVE_PCSC_TRUE@
 HAVE_SIA_FALSE = @HAVE_SIA_FALSE@
 HAVE_SIA_TRUE = @HAVE_SIA_TRUE@
+HAVE_SSLHACK_FALSE = @HAVE_SSLHACK_FALSE@
+HAVE_SSLHACK_TRUE = @HAVE_SSLHACK_TRUE@
 HAVE_SSL_FALSE = @HAVE_SSL_FALSE@
 HAVE_SSL_TRUE = @HAVE_SSL_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
@@ -194,16 +196,17 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 
 MAINTAINERCLEANFILES = Makefile.in
+DISTCLEANFILES = opensc.conf scldap.conf
+EXTRA_DIST = opensc.conf.in scldap.conf.in
 
-EXTRA_DIST = opensc.conf.example scldap.conf.example
-pkgdata_DATA = $(EXTRA_DIST)
+noinst_DATA = opensc.conf.in scldap.conf.in opensc.conf scldap.conf
 subdir = etc
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 DIST_SOURCES =
-DATA = $(pkgdata_DATA)
+DATA = $(noinst_DATA)
 
 DIST_COMMON = $(srcdir)/Makefile.in Makefile.am
 all: all-am
@@ -224,24 +227,6 @@ clean-libtool:
 distclean-libtool:
 	-rm -f libtool
 uninstall-info-am:
-pkgdataDATA_INSTALL = $(INSTALL_DATA)
-install-pkgdataDATA: $(pkgdata_DATA)
-	@$(NORMAL_INSTALL)
-	$(mkinstalldirs) $(DESTDIR)$(pkgdatadir)
-	@list='$(pkgdata_DATA)'; for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  f="`echo $$p | sed -e 's|^.*/||'`"; \
-	  echo " $(pkgdataDATA_INSTALL) $$d$$p $(DESTDIR)$(pkgdatadir)/$$f"; \
-	  $(pkgdataDATA_INSTALL) $$d$$p $(DESTDIR)$(pkgdatadir)/$$f; \
-	done
-
-uninstall-pkgdataDATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(pkgdata_DATA)'; for p in $$list; do \
-	  f="`echo $$p | sed -e 's|^.*/||'`"; \
-	  echo " rm -f $(DESTDIR)$(pkgdatadir)/$$f"; \
-	  rm -f $(DESTDIR)$(pkgdatadir)/$$f; \
-	done
 tags: TAGS
 TAGS:
 
@@ -285,7 +270,6 @@ check: check-am
 all-am: Makefile $(DATA)
 
 installdirs:
-	$(mkinstalldirs) $(DESTDIR)$(pkgdatadir)
 install: install-am
 install-exec: install-exec-am
 install-data: install-data-am
@@ -306,6 +290,7 @@ clean-generic:
 
 distclean-generic:
 	-rm -f $(CONFIG_CLEAN_FILES)
+	-test -z "$(DISTCLEANFILES)" || rm -f $(DISTCLEANFILES)
 
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
@@ -327,7 +312,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pkgdataDATA
+install-data-am:
 
 install-exec-am:
 
@@ -353,18 +338,21 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-info-am uninstall-pkgdataDATA
+uninstall-am: uninstall-info-am
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	distclean distclean-generic distclean-libtool distdir dvi \
 	dvi-am info info-am install install-am install-data \
 	install-data-am install-exec install-exec-am install-info \
-	install-info-am install-man install-pkgdataDATA install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
+	install-info-am install-man install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-generic \
 	mostlyclean-libtool pdf pdf-am ps ps-am uninstall uninstall-am \
-	uninstall-info-am uninstall-pkgdataDATA
+	uninstall-info-am
 
+
+%: %.in
+	sed -e "s#PKGDATADIR#$(shell eval echo $(pkgdatadir))#" < $^ > $@
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -128,6 +128,7 @@ static int	lock_card(struct pkcs15_fw_data *);
 static int	unlock_card(struct pkcs15_fw_data *);
 static void	add_pins_to_keycache(struct sc_pkcs11_card *p11card,
 				struct sc_pkcs11_slot *slot);
+static int	reselect_app_df(sc_pkcs15_card_t *p15card);
 
 /* PKCS#15 Framework */
 
@@ -153,8 +154,15 @@ static CK_RV pkcs15_unbind(struct sc_pkcs11_card *p11card)
 	unsigned int i;
 	int rc;
 
-	for (i = 0; i < fw_data->num_objects; i++) 
-		__pkcs15_release_object(fw_data->objects[i]);
+	for (i = 0; i < fw_data->num_objects; i++) {
+		struct pkcs15_any_object *obj = fw_data->objects[i];
+
+		/* use object specific release method if existing */
+		if (obj->base.ops && obj->base.ops->release)
+			obj->base.ops->release(obj);
+		else
+			__pkcs15_release_object(obj);
+	}
 
 	unlock_card(fw_data);
 
@@ -266,6 +274,15 @@ __pkcs15_create_cert_object(struct pkcs15_fw_data *fw_data,
 		return rv;
 
 	obj2->pub_data = &p15_cert->key;
+	obj2->pub_data = (sc_pkcs15_pubkey_t *)calloc(1, sizeof(sc_pkcs15_pubkey_t));
+	if (!obj2->pub_data)
+		return SC_ERROR_OUT_OF_MEMORY;
+	memcpy(obj2->pub_data, &p15_cert->key, sizeof(sc_pkcs15_pubkey_t));
+	/* invalidate public data of the cert object so that sc_pkcs15_cert_free
+	 * does not free the public key data as well (something like
+	 * sc_pkcs15_pubkey_dup would have been nice here) -- Nils 
+	 */
+	memset(&p15_cert->key, 0, sizeof(sc_pkcs15_pubkey_t));
 	obj2->pub_cert = object;
 	object->cert_pubkey = obj2;
 
@@ -1434,10 +1451,14 @@ set_attr_done:
 void pkcs15_cert_release(void *obj)
 {
 	struct pkcs15_cert_object *cert = (struct pkcs15_cert_object *) obj;
-	struct sc_pkcs15_cert *cert_data = cert->cert_data;
+	struct sc_pkcs15_cert      *cert_data = cert->cert_data;
+	struct sc_pkcs15_cert_info *cert_info = cert->cert_info;
 
-	if (__pkcs15_release_object((struct pkcs15_any_object *) obj) == 0)
+	if (__pkcs15_release_object((struct pkcs15_any_object *) obj) == 0) {
 		sc_pkcs15_free_certificate(cert_data);
+		if (cert_info && cert_info->value.value)
+			free(cert_info->value.value);
+	}
 }
 
 CK_RV pkcs15_cert_set_attribute(struct sc_pkcs11_session *session,
@@ -1592,8 +1613,8 @@ CK_RV pkcs15_prkey_get_attribute(struct sc_pkcs11_session *session,
 	unsigned int usage;
 	size_t len;
 
-	if (prkey->prv_cert && prkey->prv_cert->cert_data)
-		key = &prkey->prv_cert->cert_data->key;
+	if (prkey->prv_cert && prkey->prv_cert->cert_pubkey)
+		key = prkey->prv_cert->cert_pubkey->pub_data;
 	else if (prkey->prv_pubkey)
 		key = prkey->prv_pubkey->pub_data;
 
@@ -1734,6 +1755,18 @@ CK_RV pkcs15_prkey_sign(struct sc_pkcs11_session *ses, void *obj,
                 return CKR_MECHANISM_INVALID;
 	}
 
+	rv = sc_lock(ses->slot->card->card);
+	if (rv < 0)
+		return sc_to_cryptoki_error(rv, ses->slot->card->reader);
+
+	if (!sc_pkcs11_conf.lock_login) {
+		rv = reselect_app_df(fw_data->p15_card);
+		if (rv < 0) {
+			sc_unlock(ses->slot->card->card);
+			return sc_to_cryptoki_error(rv, ses->slot->card->reader);
+		}
+	}
+
         sc_debug(context, "Selected flags %X. Now computing signature for %d bytes. %d bytes reserved.\n", flags, ulDataLen, *pulDataLen);
 	rv = sc_pkcs15_compute_signature(fw_data->p15_card,
 					 prkey->prv_p15obj,
@@ -1745,20 +1778,14 @@ CK_RV pkcs15_prkey_sign(struct sc_pkcs11_session *ses, void *obj,
 
 	/* Do we have to try a re-login and then try to sign again? */
 	if (rv == SC_ERROR_SECURITY_STATUS_NOT_SATISFIED) {
-		/* Ensure that revalidate_pin() doesn't do a final sc_unlock()
-		   that would clear the card's current_path */
-		rv = sc_lock(ses->slot->card->card);
-		if (rv < 0)
-			return sc_to_cryptoki_error(rv, ses->slot->card->reader);
-
 		rv = revalidate_pin(data, ses);
 		if (rv == 0)
 			rv = sc_pkcs15_compute_signature(fw_data->p15_card,
 				prkey->prv_p15obj, flags, pData, ulDataLen,
 				pSignature, *pulDataLen);
-
-		sc_unlock(ses->slot->card->card);
 	}
+
+	sc_unlock(ses->slot->card->card);
 
         sc_debug(context, "Sign complete. Result %d.\n", rv);
 
@@ -1806,6 +1833,18 @@ pkcs15_prkey_decrypt(struct sc_pkcs11_session *ses, void *obj,
 		return CKR_MECHANISM_INVALID;		
 	}
 
+	rv = sc_lock(ses->slot->card->card);
+	if (rv < 0)
+		return sc_to_cryptoki_error(rv, ses->slot->card->reader);
+
+	if (!sc_pkcs11_conf.lock_login) {
+		rv = reselect_app_df(fw_data->p15_card);
+		if (rv < 0) {
+			sc_unlock(ses->slot->card->card);
+			return sc_to_cryptoki_error(rv, ses->slot->card->reader);
+		}
+	}
+
 	rv = sc_pkcs15_decipher(fw_data->p15_card, prkey->prv_p15obj,
 				 flags,
 				 pEncryptedData, ulEncryptedDataLen,
@@ -1813,21 +1852,14 @@ pkcs15_prkey_decrypt(struct sc_pkcs11_session *ses, void *obj,
 
 	/* Do we have to try a re-login and then try to decrypt again? */
 	if (rv == SC_ERROR_SECURITY_STATUS_NOT_SATISFIED) {
-		/* Ensure that revalidate_pin() doesn't do a final sc_unlock()
-		   that would clear the card's current_path */
-		rv = sc_lock(ses->slot->card->card);
-		if (rv < 0)
-			return sc_to_cryptoki_error(rv, ses->slot->card->reader);
-
 		rv = revalidate_pin(data, ses);
 		if (rv == 0)
 			rv = sc_pkcs15_decipher(fw_data->p15_card, prkey->prv_p15obj,
 						flags,
 						pEncryptedData, ulEncryptedDataLen,
 						decrypted, sizeof(decrypted));
-
-		sc_unlock(ses->slot->card->card);
 	}
+	sc_unlock(ses->slot->card->card);
 
 	sc_debug(context, "Key unwrap/decryption complete. Result %d.\n", rv);
 
@@ -2346,4 +2378,18 @@ add_pins_to_keycache(struct sc_pkcs11_card *p11card,
 		}
 	}
 #endif
+}
+
+static int reselect_app_df(sc_pkcs15_card_t *p15card)
+{
+	int r = SC_SUCCESS;
+
+	if (p15card->file_app != NULL) {
+		/* if the application df (of the pkcs15 application) is
+		 * specified select it */
+		sc_path_t *tpath = &p15card->file_app->path;
+		sc_debug(p15card->card->ctx, "reselect application df\n");
+		r = sc_select_file(p15card->card, tpath, NULL);
+	}
+	return r;
 }

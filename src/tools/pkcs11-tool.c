@@ -67,6 +67,7 @@ const struct option options[] = {
 	{ "input-file",		1, 0,		'i' },
 	{ "output-file",	1, 0,		'o' },
 	{ "module",		1, 0,		OPT_MODULE },
+
 	{ "test",		0, 0,		't' },
 	{ "moz-cert",		1, 0,		'z' },
 	{ "verbose",		0, 0,		'v' },
@@ -76,8 +77,8 @@ const struct option options[] = {
 const char *option_help[] = {
 	"Show global token information",
 	"List slots available on the token",
-	"Show slot information",
 	"List mechanisms supported by the token",
+	"Show objects on token",
 
 	"Sign some data",
 	"Hash some data",
@@ -91,9 +92,9 @@ const char *option_help[] = {
 	"Specify the type of object (e.g. cert, privkey, pubkey)",
 	"Specify the id of the object",
 	"Specify the label of the object",
-	"Set the CKA_ID of an object, <args>= the (new) CKA_ID",
 	"Specify number of the slot to use",
 	"Specify label of the slot to use",
+	"Set the CKA_ID of an object, <args>= the (new) CKA_ID",
 	"Specify the input file",
 	"Specify the output file",
 	"Specify the module to load",
@@ -173,6 +174,7 @@ static const char *	CKR2Str(CK_ULONG res);
 static int		p11_test(CK_SLOT_ID slot, CK_SESSION_HANDLE session);
 static int		hex_to_bin(const char *in, CK_BYTE *out, size_t *outlen);
 static void		test_kpgen_certwrite(CK_SLOT_ID slot, CK_SESSION_HANDLE session);
+static CK_ULONG		get_private_key_length(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE prkey);
 
 /* win32 needs this in open(2) */
 #ifndef O_BINARY
@@ -1157,7 +1159,10 @@ show_key(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj, int pub)
 	printf("%s Key Object", pub? "Public" : "Private");
 	switch (key_type) {
 	case CKK_RSA:
-		printf("; RSA %lu bits\n", getMODULUS_BITS(sess, obj));
+		if (pub)
+			printf("; RSA %lu bits\n", getMODULUS_BITS(sess, obj));
+		else
+			printf("; RSA %lu bits\n", get_private_key_length(sess, obj));
 		break;
 	default:
 		printf("; unknown key algorithm %lu\n", key_type);
@@ -1181,27 +1186,27 @@ show_key(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj, int pub)
 
 	printf("  Usage:      ");
 	sepa = "";
-	if (getENCRYPT(sess, obj)) {
+	if (pub && getENCRYPT(sess, obj)) {
 		printf("%sencrypt", sepa);
 		sepa = ", ";
 	}
-	if (getDECRYPT(sess, obj)) {
+	if (!pub && getDECRYPT(sess, obj)) {
 		printf("%sdecrypt", sepa);
 		sepa = ", ";
 	}
-	if (getSIGN(sess, obj)) {
+	if (!pub && getSIGN(sess, obj)) {
 		printf("%ssign", sepa);
 		sepa = ", ";
 	}
-	if (getVERIFY(sess, obj)) {
+	if (pub && getVERIFY(sess, obj)) {
 		printf("%sverify", sepa);
 		sepa = ", ";
 	}
-	if (getWRAP(sess, obj)) {
+	if (pub && getWRAP(sess, obj)) {
 		printf("%swrap", sepa);
 		sepa = ", ";
 	}
-	if (getUNWRAP(sess, obj)) {
+	if (!pub && getUNWRAP(sess, obj)) {
 		printf("%sunwrap", sepa);
 		sepa = ", ";
 	}
@@ -1292,6 +1297,29 @@ get_mechanisms(CK_SLOT_ID slot,
 	}
 
 	return ulCount;
+}
+
+static CK_ULONG	get_private_key_length(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE prkey)
+{
+	unsigned char  *id;
+	CK_ULONG        idLen;
+	CK_OBJECT_HANDLE pubkey;
+
+	id = NULL;
+	id = getID(sess, prkey, &idLen);
+	if (id == NULL) {
+		printf("private key has no ID, can't lookup the corresponding pubkey\n");
+		return 0;
+	}
+
+	if (!find_object(sess, CKO_PUBLIC_KEY, &pubkey, id, idLen, 0)) {
+		free(id);
+		printf("coudn't find the corresponding pubkey\n");
+		return 0;
+	}
+	free(id);
+
+	return getMODULUS_BITS(sess, pubkey); 
 }
 
 static int
@@ -1666,7 +1694,7 @@ test_signature(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 
 	data[0] = 0;
 	data[1] = 1;
-	modLenBytes = (getMODULUS_BITS(sess, privKeyObject) + 7) / 8;
+	modLenBytes = (get_private_key_length(sess, privKeyObject) + 7) / 8;
 
 	/* 1st test */
 
@@ -1796,7 +1824,7 @@ test_signature(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 		CK_ULONG	modLenBits;
 
 		label = getLABEL(sess, privKeyObject, NULL);
-		modLenBits = getMODULUS_BITS(sess, privKeyObject);
+		modLenBits = get_private_key_length(sess, privKeyObject);
 		modLenBytes = (modLenBits + 7) / 8;
 
 		printf("  testing key %d (%u bits%s%s) with 1 signature mechanism\n",
@@ -1954,7 +1982,7 @@ test_verify(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
 			continue;
 		}
 
-		key_len = (getMODULUS_BITS(sess, priv_key) + 7) / 8;
+		key_len = (get_private_key_length(sess, priv_key) + 7) / 8;
 
 		errors += sign_verify(slot, sess, priv_key, key_len, pub_key, i != 0);
 	}

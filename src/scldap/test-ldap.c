@@ -1,5 +1,5 @@
 /*
- * $Id: test-ldap.c,v 1.7 2002/10/19 14:04:50 aet Exp $
+ * $Id: test-ldap.c 696 2002-10-19 14:04:52Z aet $
  *
  * Copyright (C) 2001, 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

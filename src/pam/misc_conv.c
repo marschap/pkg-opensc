@@ -1,5 +1,5 @@
 /*
- * $Id: misc_conv.c,v 1.4 2003/08/04 15:11:27 aet Exp $
+ * $Id: misc_conv.c 1325 2003-08-04 15:11:27Z aet $
  *
  * A generic conversation function for text based applications
  *

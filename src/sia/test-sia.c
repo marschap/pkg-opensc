@@ -1,5 +1,5 @@
 /*
- * $Id: test-sia.c,v 1.1 2002/03/21 11:56:01 aet Exp $
+ * $Id: test-sia.c 361 2002-03-21 11:56:01Z aet $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

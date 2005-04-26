@@ -1,5 +1,5 @@
 /*
- * $Id: p15_ldap.c,v 1.26 2004/06/09 18:40:33 nils Exp $
+ * $Id: p15_ldap.c 1789 2004-06-09 18:40:33Z nils $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

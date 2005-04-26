@@ -173,6 +173,9 @@
    slash. */
 #undef LSTAT_FOLLOWS_SLASHED_SYMLINK
 
+/* Enable new pin pad code for ccid readers */
+#undef MP_CCID_PINPAD
+
 /* default config file for libopensc */
 #undef OPENSC_CONF_PATH
 

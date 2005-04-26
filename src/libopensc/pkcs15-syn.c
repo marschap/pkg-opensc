@@ -288,8 +288,11 @@ sc_pkcs15emu_get_df(sc_pkcs15_card_t *p15card, int type)
 		assert(created == 0);
 
 		file = sc_file_new();
+		if (!file)
+			return NULL;
 		sc_format_path("11001101", &file->path);
 		sc_pkcs15_add_df(p15card, type, &file->path, file);
+		sc_file_free(file);
 		created++;
 	}
 }
@@ -385,11 +388,8 @@ sc_pkcs15emu_add_cert(sc_pkcs15_card_t *p15card,
 	info->authority		= authority;
 	if (path)
 		info->path = *path;
-                
-	info->path = *path;
 
-	return sc_pkcs15emu_add_object(p15card, type, label, info, NULL,
-					obj_flags);
+	return sc_pkcs15emu_add_object(p15card, type, label, info, NULL, obj_flags);
 }
 
 int
@@ -416,8 +416,8 @@ sc_pkcs15emu_add_prkey(sc_pkcs15_card_t *p15card,
 	if (path)
 		info->path = *path;
 
-	return sc_pkcs15emu_add_object(p15card,
-	                               type, label, info, auth_id, obj_flags);
+	return sc_pkcs15emu_add_object(p15card, type, label,
+			info, auth_id, obj_flags);
 }
 
 int
@@ -440,6 +440,5 @@ sc_pkcs15emu_add_pubkey(sc_pkcs15_card_t *p15card,
 	if (path)
 		info->path = *path;
 
-	return sc_pkcs15emu_add_object(p15card, type, label, info, auth_id,
-					obj_flags);
+	return sc_pkcs15emu_add_object(p15card, type, label, info, auth_id, obj_flags);
 }

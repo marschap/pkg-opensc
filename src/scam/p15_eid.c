@@ -1,5 +1,5 @@
 /*
- * $Id: p15_eid.c,v 1.25.6.1 2004/07/24 21:09:14 aj Exp $
+ * $Id: p15_eid.c 1869 2004-07-24 21:09:14Z aj $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

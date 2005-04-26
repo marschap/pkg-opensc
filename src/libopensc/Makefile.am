@@ -4,10 +4,11 @@ includedir = @includedir@/opensc
 
 MAINTAINERCLEANFILES = Makefile.in
 
-EXTRA_DIST = Makefile.mak libopensc.pc.in
+EXTRA_DIST = Makefile.mak libopensc.pc.in libpkcs15init.pc.in \
+	libscam.pc.in libscconf.pc.in libscldap.pc.in
 
 INCLUDES = @CPPFLAGS@ @OPENCT_CFLAGS@ @PCSC_CFLAGS@
-LDFLAGS = @LDFLAGS@ @OPENCT_LDFLAGS@
+AM_LDFLAGS = @OPENCT_LDFLAGS@
 
 bin_SCRIPTS = opensc-config
 
@@ -23,6 +24,7 @@ libopensc_la_SOURCES = \
 	emv.c \
 	\
 	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
+	pinpad-ccid.c \
 	\
 	card-setcos.c card-miocos.c card-flex.c card-gpk.c \
 	card-etoken.c card-tcos.c card-emv.c card-default.c \
@@ -39,7 +41,8 @@ include_HEADERS = \
 	cardctl.h asn1.h log.h ui.h \
 	errors.h types.h
 
-noinst_HEADERS = ctbcs.h internal.h esteid.h
+noinst_HEADERS = ctbcs.h internal.h esteid.h card-oberthur.h pinpad-ccid.h
 
 pkgconfigdir = @libdir@/pkgconfig
-pkgconfig_DATA = libopensc.pc
+pkgconfig_DATA = libopensc.pc libpkcs15init.pc \
+	libscam.pc libscconf.pc libscldap.pc

@@ -1,5 +1,5 @@
 /*
- * $Id: write.c,v 1.5 2004/04/21 18:10:58 nils Exp $
+ * $Id: write.c 1775 2004-04-21 18:10:58Z nils $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

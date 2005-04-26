@@ -1,5 +1,5 @@
 /*
- * $Id: test-pam.c,v 1.2 2003/07/28 11:10:26 aet Exp $
+ * $Id: test-pam.c 1308 2003-07-28 11:10:26Z aet $
  *
  * Copyright (C) 2001, 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

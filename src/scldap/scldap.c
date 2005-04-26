@@ -1,5 +1,5 @@
 /*
- * $Id: scldap.c,v 1.20 2003/12/03 14:09:15 aet Exp $
+ * $Id: scldap.c 1656 2003-12-03 14:09:15Z aet $
  *
  * Copyright (C) 2001, 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

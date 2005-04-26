@@ -464,7 +464,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE am__leading_dot OPENSC_LT_CURRENT OPENSC_LT_REVISION OPENSC_LT_AGE build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT CPP LN_S LEX LEXLIB LEX_OUTPUT_ROOT TEST_MINUS_S_SH PTHREAD_CC PTHREAD_LIBS PTHREAD_CFLAGS EGREP ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL LIBOBJS LIBDL GETOPTSRC LIBREADLINE LIBFL LIBCRYPTO ENGINE_LINK HAVE_SSL_TRUE HAVE_SSL_FALSE HAVE_ENGINE_TRUE HAVE_ENGINE_FALSE OPENSSL_LDFLAGS LIBPAM HAVE_PAM_TRUE HAVE_PAM_FALSE LIBSIA HAVE_SIA_TRUE HAVE_SIA_FALSE PCSC_CFLAGS PCSC_LIBS PKG_CONFIG HAVE_PCSC_TRUE HAVE_PCSC_FALSE OPENCT_CFLAGS OPENCT_LDFLAGS OPENCT_LIBS HAVE_OPENCT_TRUE HAVE_OPENCT_FALSE RANDOM_POOL LIBLDAP HAVE_LDAP_TRUE HAVE_LDAP_FALSE CFLAGS_ASSUAN LIBASSUAN HAVE_ASSUAN_TRUE HAVE_ASSUAN_FALSE PLUGINDIR BUNDLEDIR XSLTPROC HAVE_DOCBOOK_TRUE HAVE_DOCBOOK_FALSE HAVE_BUNDLES_TRUE HAVE_BUNDLES_FALSE LIBSCCONF LIBSCLDAP LIBOPENSC OPENSC_LIBS OPENSC_CFLAGS pkgdata LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS INSTALL_PROGRAM INSTALL_SCRIPT INSTALL_DATA CYGPATH_W PACKAGE VERSION ACLOCAL AUTOCONF AUTOMAKE AUTOHEADER MAKEINFO AMTAR install_sh STRIP ac_ct_STRIP INSTALL_STRIP_PROGRAM AWK SET_MAKE am__leading_dot OPENSC_LT_CURRENT OPENSC_LT_REVISION OPENSC_LT_AGE build build_cpu build_vendor build_os host host_cpu host_vendor host_os CC CFLAGS LDFLAGS CPPFLAGS ac_ct_CC EXEEXT OBJEXT DEPDIR am__include am__quote AMDEP_TRUE AMDEP_FALSE AMDEPBACKSLASH CCDEPMODE am__fastdepCC_TRUE am__fastdepCC_FALSE MAINTAINER_MODE_TRUE MAINTAINER_MODE_FALSE MAINT CPP LN_S LEX LEXLIB LEX_OUTPUT_ROOT TEST_MINUS_S_SH PTHREAD_CC PTHREAD_LIBS PTHREAD_CFLAGS EGREP ECHO AR ac_ct_AR RANLIB ac_ct_RANLIB CXX CXXFLAGS ac_ct_CXX CXXDEPMODE am__fastdepCXX_TRUE am__fastdepCXX_FALSE CXXCPP F77 FFLAGS ac_ct_F77 LIBTOOL LIBOBJS LIBDL GETOPTSRC LIBREADLINE LIBFL LIBCRYPTO HAVE_SSL_TRUE HAVE_SSL_FALSE ENGINE_LINK HAVE_ENGINE_TRUE HAVE_ENGINE_FALSE HAVE_SSLHACK_TRUE HAVE_SSLHACK_FALSE OPENSSL_LDFLAGS LIBPAM HAVE_PAM_TRUE HAVE_PAM_FALSE LIBSIA HAVE_SIA_TRUE HAVE_SIA_FALSE PCSC_CFLAGS PCSC_LIBS PKG_CONFIG HAVE_PCSC_TRUE HAVE_PCSC_FALSE OPENCT_CFLAGS OPENCT_LDFLAGS OPENCT_LIBS HAVE_OPENCT_TRUE HAVE_OPENCT_FALSE RANDOM_POOL LIBLDAP HAVE_LDAP_TRUE HAVE_LDAP_FALSE CFLAGS_ASSUAN LIBASSUAN HAVE_ASSUAN_TRUE HAVE_ASSUAN_FALSE PLUGINDIR BUNDLEDIR XSLTPROC HAVE_DOCBOOK_TRUE HAVE_DOCBOOK_FALSE HAVE_BUNDLES_TRUE HAVE_BUNDLES_FALSE LIBSCCONF LIBSCLDAP LIBOPENSC OPENSC_LIBS OPENSC_CFLAGS pkgdata LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -1035,6 +1035,7 @@ Optional Features:
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
+  --enable-ccid-pinpad         enable new pin pad code for ccid readers default=no
   --enable-ldap           enable use of LDAP for authentication. default=yes
   --disable-ldap-ssl      disable SSL/TSL support for ldap
   --enable-debug          enable debug messages. default=no
@@ -1793,7 +1794,7 @@ fi
 
 # Define the identity of the package.
  PACKAGE=opensc
- VERSION=0.9.4
+ VERSION=0.9.6
 
 
 cat >>confdefs.h <<_ACEOF
@@ -3349,7 +3350,7 @@ _ACEOF
 	CPPFLAGS="$CPPFLAGS -D_POSIX_PII_SOCKET"
 	;;
 *-*-darwin*)
-	LIBS="$LIBS -lobjc"
+	LIBS="$LIBS -Wl,-framework,CoreFoundation"
 	if test "$GCC" = "yes"; then
 		CFLAGS="$CFLAGS -no-cpp-precomp"
 	fi
@@ -5142,7 +5143,7 @@ ia64-*-hpux*)
   ;;
 *-*-irix6*)
   # Find out which ABI we are using.
-  echo '#line 5145 "configure"' > conftest.$ac_ext
+  echo '#line 5146 "configure"' > conftest.$ac_ext
   if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -6465,7 +6466,7 @@ fi
 
 
 # Provide some information about the compiler.
-echo "$as_me:6468:" \
+echo "$as_me:6469:" \
      "checking for Fortran 77 compiler version" >&5
 ac_compiler=`set X $ac_compile; echo $2`
 { (eval echo "$as_me:$LINENO: \"$ac_compiler --version </dev/null >&5\"") >&5
@@ -7497,11 +7498,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7500: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7501: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7504: \$? = $ac_status" >&5
+   echo "$as_me:7505: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -7730,11 +7731,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7733: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7734: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:7737: \$? = $ac_status" >&5
+   echo "$as_me:7738: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -7790,11 +7791,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:7793: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:7794: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:7797: \$? = $ac_status" >&5
+   echo "$as_me:7798: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -9978,7 +9979,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 9981 "configure"
+#line 9982 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10076,7 +10077,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 10079 "configure"
+#line 10080 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12253,11 +12254,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12256: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12257: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:12260: \$? = $ac_status" >&5
+   echo "$as_me:12261: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -12313,11 +12314,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:12316: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:12317: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:12320: \$? = $ac_status" >&5
+   echo "$as_me:12321: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -13682,7 +13683,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 13685 "configure"
+#line 13686 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -13780,7 +13781,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 13783 "configure"
+#line 13784 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14607,11 +14608,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14610: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14611: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:14614: \$? = $ac_status" >&5
+   echo "$as_me:14615: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -14667,11 +14668,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:14670: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:14671: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:14674: \$? = $ac_status" >&5
+   echo "$as_me:14675: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -16712,11 +16713,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16715: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16716: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16719: \$? = $ac_status" >&5
+   echo "$as_me:16720: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -16945,11 +16946,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:16948: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:16949: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>conftest.err)
    ac_status=$?
    cat conftest.err >&5
-   echo "$as_me:16952: \$? = $ac_status" >&5
+   echo "$as_me:16953: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s "$ac_outfile"; then
      # The compiler can only warn and ignore the option if not recognized
      # So say no if there are warnings
@@ -17005,11 +17006,11 @@ else
    -e 's:.*FLAGS}? :&$lt_compiler_flag :; t' \
    -e 's: [^ ]*conftest\.: $lt_compiler_flag&:; t' \
    -e 's:$: $lt_compiler_flag:'`
-   (eval echo "\"\$as_me:17008: $lt_compile\"" >&5)
+   (eval echo "\"\$as_me:17009: $lt_compile\"" >&5)
    (eval "$lt_compile" 2>out/conftest.err)
    ac_status=$?
    cat out/conftest.err >&5
-   echo "$as_me:17012: \$? = $ac_status" >&5
+   echo "$as_me:17013: \$? = $ac_status" >&5
    if (exit $ac_status) && test -s out/conftest2.$ac_objext
    then
      # The compiler can only warn and ignore the option if not recognized
@@ -19193,7 +19194,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 19196 "configure"
+#line 19197 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -19291,7 +19292,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<EOF
-#line 19294 "configure"
+#line 19295 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -22282,55 +22283,111 @@ echo "$as_me:$LINENO: result: $ac_cv_flexdir" >&5
 echo "${ECHO_T}$ac_cv_flexdir" >&6
 
 
-# Check whether --with-openssl or --without-openssl was given.
-if test "${with_openssl+set}" = set; then
-  withval="$with_openssl"
-  tryssldir=$withval
-fi;
-
-SSL_MSG="no"
-ENGINE_MSG="no"
 saved_LIBS="$LIBS"
 saved_LDFLAGS="$LDFLAGS"
 saved_CPPFLAGS="$CPPFLAGS"
 
+SSL_MSG="no"
+ssldir=""
 
-echo "$as_me:$LINENO: checking for OpenSSL directory" >&5
-echo $ECHO_N "checking for OpenSSL directory... $ECHO_C" >&6
-if test "${ac_cv_openssldir+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
 
-	if test "x$tryssldir" = "x" ; then
-		tryssldir="$trycommandir /usr/ /usr/local/openssl /usr/lib/openssl /usr/local/ssl /usr/lib/ssl /usr/local /usr/pkg /opt /opt/openssl"
-	fi
+# Check whether --with-openssl or --without-openssl was given.
+if test "${with_openssl+set}" = set; then
+  withval="$with_openssl"
 
-	for ssldir in $tryssldir ; do
-		# Skip empty variables
-		if test -z "$ssldir"; then
-			continue;
-		fi
 		# Disable OpenSSL support
-		if test "x$ssldir" = "xno" ; then
+		if test "x$withval" = "xno" ; then
 			SSL_MSG="no (disabled)"
-			ENGINE_MSG="no (disabled)"
 			break;
 		fi
+
+		# ok we got a directory, so only check in that dir.
+		LIBCRYPTO="-lcrypto"
+		CPPFLAGS="$saved_CPPFLAGS"
+		LDFLAGS="$saved_LDFLAGS"
+		LIBS="$LIBCRYPTO $saved_LIBS"
+		LDFLAGS="-L$withval/lib $saved_LDFLAGS"
+		if test ! -z "$need_dash_r" ; then
+			LDFLAGS="-R$withval/lib $LDFLAGS"
+		fi
+		CPPFLAGS="-I$withval/include $saved_CPPFLAGS"
+
+		if test "$cross_compiling" = yes; then
+  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&5
+echo "$as_me: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <string.h>
+#include <openssl/rand.h>
+int main(void)
+{
+	char a[2048];
+	memset(a, 0, sizeof(a));
+	RAND_add(a, sizeof(a), sizeof(a));
+	return(RAND_status() <= 0);
+}
+
+_ACEOF
+rm -f conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+				SSL_MSG="yes"
+				ssldir="$withval"
+				LIBS="$saved_LIBS"
+				LDFLAGS="$saved_LDFLAGS"
+				CPPFLAGS="$saved_CPPFLAGS"
+				break
+
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+fi
+rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi
+
+else
+
+
+	# we didn't get a directory, so we start searching for openssl.
+
+	for tryssldir in /usr /usr/local/openssl /usr/lib/openssl /usr/local/ssl /usr/lib/ssl /usr/local /usr/pkg /opt /opt/openssl; do
+
 		# Skip directories if they don't exist
-		if test ! -d "$ssldir/" ; then
+		if test ! -d "$tryssldir/" ; then
 			continue;
 		fi
+
 		LIBCRYPTO="-lcrypto"
 		CPPFLAGS="$saved_CPPFLAGS"
 		LDFLAGS="$saved_LDFLAGS"
 		LIBS="$saved_LIBS $LIBCRYPTO"
 
-		if test "x$ssldir" != "x/usr"; then
-			LDFLAGS="-L$ssldir/lib $saved_LDFLAGS"
+		if test "x$tryssldir" != "x/usr"; then
+			LDFLAGS="-L$tryssldir/lib $saved_LDFLAGS"
 			if test ! -z "$need_dash_r" ; then
-				LDFLAGS="-R$ssldir/lib $LDFLAGS"
+				LDFLAGS="-R$tryssldir/lib $LDFLAGS"
 			fi
-			CPPFLAGS="-I$ssldir/include $saved_CPPFLAGS"
+			CPPFLAGS="-I$tryssldir/include $saved_CPPFLAGS"
 		fi
 
 		# Basic test to check for compatible version and correct linking
@@ -22373,6 +22430,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   (exit $ac_status); }; }; then
 
 				SSL_MSG="yes"
+				ssldir=$tryssldir
+				break;
 
 else
   echo "$as_me: program exited with status $ac_status" >&5
@@ -22381,21 +22440,137 @@ sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
 
+				SSL_MSG="no"
+				LIBS="$saved_LIBS"
+				LDFLAGS="$saved_LDFLAGS"
+				CPPFLAGS="$saved_CPPFLAGS"
+
 
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
+	done
 
-		if test "x$SSL_MSG" != "xyes"
-		then
-			continue
-		fi
+fi;
+LIBS="$saved_LIBS"
 
-		# latest openssl version with engine
-		# properly integrated?
-		echo "$as_me:$LINENO: checking for openssl version" >&5
+
+
+if test "x$SSL_MSG" = "xyes"; then
+  HAVE_SSL_TRUE=
+  HAVE_SSL_FALSE='#'
+else
+  HAVE_SSL_TRUE='#'
+  HAVE_SSL_FALSE=
+fi
+
+
+if test "x$SSL_MSG" = "xyes" ; then
+
+cat >>confdefs.h <<\_ACEOF
+#define HAVE_OPENSSL 1
+_ACEOF
+
+else
+  LIBCRYPTO=""
+fi
+
+# ok, we checked for basic ssl support.
+# if it is not available, we can skip the rest of
+# the test. also we have $ssldir set to the location
+# of the openssl libs.
+
+ENGINE_MSG="no"
+if test "x$SSL_MSG" = "xyes"
+then
+	# engine has to be there and working
+	LIBS="$saved_LIBS $LIBCRYPTO $LIBDL"
+	if test "$cross_compiling" = yes; then
+  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&5
+echo "$as_me: error: cannot run test program while cross compiling
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }
+else
+  cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+#include <string.h>
+#include <openssl/opensslv.h>
+#include <openssl/engine.h>
+#include <openssl/rand.h>
+int main(void)
+{
+	char a[2048];
+	ENGINE *e;
+
+	e = ENGINE_new();
+	ENGINE_load_dynamic();
+	if (!e) return 1;
+	memset(a, 0, sizeof(a));
+	RAND_add(a, sizeof(a), sizeof(a));
+	return(RAND_status() <= 0);
+}
+
+_ACEOF
+rm -f conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+
+		ENGINE_MSG=yes
+		ENGINE_LINK="$LIBCRYPTO"
+
+else
+  echo "$as_me: program exited with status $ac_status" >&5
+echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+( exit $ac_status )
+
+		ENGINE_MSG=no
+
+fi
+rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
+fi;
+fi
+LIBS="$saved_LIBS"
+
+
+
+if test "x$ENGINE_MSG" = "xyes"; then
+  HAVE_ENGINE_TRUE=
+  HAVE_ENGINE_FALSE='#'
+else
+  HAVE_ENGINE_TRUE='#'
+  HAVE_ENGINE_FALSE=
+fi
+
+
+# ok, now we might (or not) have ssl and an engine.
+# still room for "improvements", i.e. hacks to work
+# with old engines.
+
+SSLHACK_MSG=no
+
+if test "x$SSL_MSG" = "xyes" -a "x$ENGINE_MSG" = "xyes"
+then
+	# latest openssl version with engine
+	# properly integrated?
+	echo "$as_me:$LINENO: checking for openssl version" >&5
 echo $ECHO_N "checking for openssl version... $ECHO_C" >&6
-		if test "$cross_compiling" = yes; then
+	if test "$cross_compiling" = yes; then
   { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
 See \`config.log' for more details." >&5
 echo "$as_me: error: cannot run test program while cross compiling
@@ -22436,9 +22611,9 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
 
-			echo "$as_me:$LINENO: result: \"good" >&5
-echo "${ECHO_T}\"good" >&6
-			GOOD_OPENSSL=yes
+		echo "$as_me:$LINENO: result: good, 0.9.7d or later" >&5
+echo "${ECHO_T}good, 0.9.7d or later" >&6
+		OLD_OPENSSL=no
 
 else
   echo "$as_me: program exited with status $ac_status" >&5
@@ -22447,20 +22622,21 @@ sed 's/^/| /' conftest.$ac_ext >&5
 
 ( exit $ac_status )
 
-			echo "$as_me:$LINENO: result: \"not so good" >&5
-echo "${ECHO_T}\"not so good" >&6
-			GOOD_OPENSSL=no
-
+		echo "$as_me:$LINENO: result: not so good, 0.9.7d or later would be better" >&5
+echo "${ECHO_T}not so good, 0.9.7d or later would be better" >&6
+		OLD_OPENSSL=yes
 
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
 
-		if test "x$GOOD_OPENSSL" == "xyes"
-		then
-			# engine has to be there and working
-			LIBS="$saved_LIBS $LIBCRYPTO $LIBDL"
-			if test "$cross_compiling" = yes; then
+	if test "x$OLD_OPENSSL" = "xyes"
+	then
+		# openssl found, but version less than 0.9.7d
+		# linking libcrypto.a statically possible?
+
+		LIBS="$saved_LIBS $ssldir/lib/libcrypto.a $LIBDL"
+		if test "$cross_compiling" = yes; then
   { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
 See \`config.log' for more details." >&5
 echo "$as_me: error: cannot run test program while cross compiling
@@ -22504,80 +22680,8 @@ if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
   echo "$as_me:$LINENO: \$? = $ac_status" >&5
   (exit $ac_status); }; }; then
 
-					ENGINE_MSG=yes
-					ENGINE_LINK="$LIBCRYPTO"
-
-else
-  echo "$as_me: program exited with status $ac_status" >&5
-echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-( exit $ac_status )
-
-					# should never happen,
-					# every 0.9.7* version has engine
-					# support integrated, it can't
-					# be missing.
-  { { echo "$as_me:$LINENO: error: OpenSSL support broken: openssl >= 0.9.7d without engine detected." >&5
-echo "$as_me: error: OpenSSL support broken: openssl >= 0.9.7d without engine detected." >&2;}
-   { (exit 1); exit 1; }; }
-
-fi
-rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
-fi
-				break;
-		else
-			# openssl found, but version less than 0.9.7d
-
-			# openssl with engine support?
-			LIBCRYPTOA="$ssldir/lib/libcrypto.a $LIBDL"
-			LIBS="$saved_LIBS $LIBCRYPTOA"
-			if test "$cross_compiling" = yes; then
-  { { echo "$as_me:$LINENO: error: cannot run test program while cross compiling
-See \`config.log' for more details." >&5
-echo "$as_me: error: cannot run test program while cross compiling
-See \`config.log' for more details." >&2;}
-   { (exit 1); exit 1; }; }
-else
-  cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-#include <string.h>
-#include <openssl/opensslv.h>
-#include <openssl/engine.h>
-#include <openssl/rand.h>
-int main(void)
-{
-	char a[2048];
-	ENGINE *e;
-
-	e = ENGINE_new();
-	ENGINE_load_dynamic();
-	if (!e) return 1;
-	memset(a, 0, sizeof(a));
-	RAND_add(a, sizeof(a), sizeof(a));
-	return(RAND_status() <= 0);
-}
-
-_ACEOF
-rm -f conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } && { ac_try='./conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-
-				ENGINE_MSG=yes
-				ENGINE_LINK="$LIBCRYPTOA"
+			SSLHACK_MSG=yes
+			ENGINE_LINK="$ssldir/lib/libcrypto.a"
 
 else
   echo "$as_me: program exited with status $ac_status" >&5
@@ -22590,68 +22694,29 @@ sed 's/^/| /' conftest.$ac_ext >&5
 fi
 rm -f core *.core gmon.out bb.out conftest$ac_exeext conftest.$ac_objext conftest.$ac_ext
 fi
-		break;
-		fi
-
-	done
-
-	if test "x$SSL_MSG" = "xyes" ; then
-		ac_cv_openssldir="$ssldir"
-	else
-		ac_cv_openssldir="no"
+		LIBS="$saved_LIBS"
 	fi
-
 fi
-echo "$as_me:$LINENO: result: $ac_cv_openssldir" >&5
-echo "${ECHO_T}$ac_cv_openssldir" >&6
-CPPFLAGS="$saved_CPPFLAGS"
-LDFLAGS="$saved_LDFLAGS"
-LIBS="$saved_LIBS"
 
-if test "x$SSL_MSG" = "xyes" ; then
 
-cat >>confdefs.h <<\_ACEOF
-#define HAVE_OPENSSL 1
-_ACEOF
-
-  LDFLAGS="-L$ac_cv_openssldir/lib $LDFLAGS"
-  if test ! -z "$need_dash_r" ; then
-       LDFLAGS="-R$ac_cv_openssldir/lib $LDFLAGS"
-  fi
-  CPPFLAGS="-I$ac_cv_openssldir/include $saved_CPPFLAGS"
+if test "x$SSLHACK_MSG" = "xyes"; then
+  HAVE_SSLHACK_TRUE=
+  HAVE_SSLHACK_FALSE='#'
 else
-  LIBCRYPTO=""
-  LIBCRYPTOA=""
-  ENGINE_LINK=""
+  HAVE_SSLHACK_TRUE='#'
+  HAVE_SSLHACK_FALSE=
 fi
 
 
-if test "x$SSL_MSG" = "xyes"; then
-  HAVE_SSL_TRUE=
-  HAVE_SSL_FALSE='#'
-else
-  HAVE_SSL_TRUE='#'
-  HAVE_SSL_FALSE=
-fi
+# now - last part to do: check if we gain anything from
+# funny parameters to link openssl with.
 
-
-
-if test "x$ENGINE_MSG" = "xyes"; then
-  HAVE_ENGINE_TRUE=
-  HAVE_ENGINE_FALSE='#'
-else
-  HAVE_ENGINE_TRUE='#'
-  HAVE_ENGINE_FALSE=
-fi
-
-
-
+saved_LDFLAGS="$LDFLAGS"
 if test "x$ENGINE_MSG" = "xyes" ; then
   for openssl_ldflag in "-Wl,-Bsymbolic" "-G -Wl,-Bsymbolic" "-shared -G -Wl,-Bsymbolic" "-Wl,-all_load"; do
 	echo "$as_me:$LINENO: checking whether we can use $openssl_ldflag" >&5
 echo $ECHO_N "checking whether we can use $openssl_ldflag... $ECHO_C" >&6
-	saved_CFLAGS=$CFLAGS
-	CFLAGS="$CFLAGS $openssl_ldflag"
+	LDFLAGS="$saved_LDFLAGS $openssl_ldflag"
 	cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -22697,7 +22762,6 @@ ac_cv_use_openssl_flag="no"
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
-	CFLAGS=$saved_CFLAGS
 	echo "$as_me:$LINENO: result: $ac_cv_use_openssl_flag" >&5
 echo "${ECHO_T}$ac_cv_use_openssl_flag" >&6
 	if test "$ac_cv_use_openssl_flag" = "yes"; then
@@ -22706,6 +22770,8 @@ echo "${ECHO_T}$ac_cv_use_openssl_flag" >&6
 	fi
   done
 fi
+LDFLAGS="$saved_LDFLAGS"
+
 
 
 # Check whether --with-pam-dir or --without-pam-dir was given.
@@ -23133,6 +23199,7 @@ case "$host" in
 esac
 
 saved_LIBS="$LIBS"
+saved_CFLAGS="$CFLAGS"
 saved_LDFLAGS="$LDFLAGS"
 saved_CPPFLAGS="$CPPFLAGS"
 
@@ -23323,6 +23390,7 @@ rm -f conftest.err conftest.$ac_objext \
 		fi
 		CPPFLAGS="$saved_CPPFLAGS"
 		LDFLAGS="$saved_LDFLAGS"
+		CFLAGS="$saved_CFLAGS"
 		LIBS="$saved_LIBS"
 		PCSC_CFLAGS=""
 	done
@@ -23359,6 +23427,7 @@ else
 fi
 
 if test "x$PCSC_MSG" = "xyes"; then
+	CPPFLAGS="${PCSC_CFLAGS} $saved_CPPFLAGS"
 	CFLAGS="$PCSC_CFLAGS $saved_CFLAGS"
 	LIBS="$PCSC_LIBS $saved_LIBS"
 	cat >conftest.$ac_ext <<_ACEOF
@@ -23369,13 +23438,18 @@ cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
 
 #include <stdlib.h>
+#ifdef __APPLE__
+#include <PCSC/wintypes.h>
+#include <PCSC/winscard.h>
+#else
 #include <winscard.h>
+#endif
 
 int
 main ()
 {
 
-SCardControl(NULL, NULL, 0, NULL, 0);
+SCardControl(NULL, NULL, 0, NULL, NULL);
 
   ;
   return 0;
@@ -23416,6 +23490,7 @@ sed 's/^/| /' conftest.$ac_ext >&5
 fi
 rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
+	CPPFLAGS="$saved_CPPFLAGS"
 	CFLAGS="$saved_CFLAGS"
 	LIBS="$saved_LIBS"
 fi
@@ -23427,8 +23502,10 @@ openct_path=/usr
 
 
 saved_LIBS="$LIBS"
-saved_LDFLAGS="$LDFLAGS"
 saved_CFLAGS="$CFLAGS"
+saved_LDFLAGS="$LDFLAGS"
+saved_CPPFLAGS="$CPPFLAGS"
+
 
 # Check whether --with-openct or --without-openct was given.
 if test "${with_openct+set}" = set; then
@@ -23745,6 +23822,17 @@ echo "${ECHO_T}not found" >&6
 			fi
 		fi
 
+
+fi;
+
+
+# Check whether --enable-ccid-pinpad or --disable-ccid-pinpad was given.
+if test "${enable_ccid_pinpad+set}" = set; then
+  enableval="$enable_ccid_pinpad"
+
+cat >>confdefs.h <<\_ACEOF
+#define MP_CCID_PINPAD 1
+_ACEOF
 
 fi;
 
@@ -25093,7 +25181,7 @@ OPENSC_CFLAGS=""
 pkgdata=`eval echo ${datadir}/${PACKAGE}` ; pkgdata=`eval echo ${pkgdata}`
 
 
-                                                                                                                                                                                                                                                                                                                                          ac_config_files="$ac_config_files Makefile aclocal/Makefile docs/Makefile docs/pkcs15-profile.5 etc/Makefile macos/Makefile src/Makefile src/common/Makefile src/include/Makefile src/include/opensc/Makefile src/include/opensc/rsaref/Makefile src/libopensc/Makefile src/libopensc/opensc-config src/libopensc/libopensc.pc src/openscd/Makefile src/openssh/Makefile src/pam/Makefile src/pkcs11/Makefile src/pkcs11/rsaref/Makefile src/pkcs15init/Makefile src/scam/Makefile src/scconf/Makefile src/scdl/Makefile src/scldap/Makefile src/scrandom/Makefile src/sia/Makefile src/signer/Makefile src/signer/npinclude/Makefile src/sslengines/Makefile src/tests/Makefile src/tests/regression/Makefile src/tools/Makefile win32/Makefile"
+                                                                                                                                                                                                                                                                                                                                                                        ac_config_files="$ac_config_files Makefile aclocal/Makefile docs/Makefile docs/pkcs15-profile.5 etc/Makefile macos/Makefile src/Makefile src/common/Makefile src/include/Makefile src/include/opensc/Makefile src/include/opensc/rsaref/Makefile src/libopensc/Makefile src/libopensc/opensc-config src/libopensc/libopensc.pc src/libopensc/libpkcs15init.pc src/libopensc/libscam.pc src/libopensc/libscconf.pc src/libopensc/libscldap.pc src/openssh/Makefile src/pam/Makefile src/pkcs11/Makefile src/pkcs11/rsaref/Makefile src/pkcs15init/Makefile src/scam/Makefile src/scconf/Makefile src/scdl/Makefile src/scldap/Makefile src/scrandom/Makefile src/sia/Makefile src/signer/Makefile src/signer/npinclude/Makefile src/sslengines/Makefile src/tests/Makefile src/tests/regression/Makefile src/tools/Makefile win32/Makefile"
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
 # tests run on this system so they can be shared between configure
@@ -25224,6 +25312,13 @@ if test -z "${HAVE_ENGINE_TRUE}" && test -z "${HAVE_ENGINE_FALSE}"; then
   { { echo "$as_me:$LINENO: error: conditional \"HAVE_ENGINE\" was never defined.
 Usually this means the macro was only invoked conditionally." >&5
 echo "$as_me: error: conditional \"HAVE_ENGINE\" was never defined.
+Usually this means the macro was only invoked conditionally." >&2;}
+   { (exit 1); exit 1; }; }
+fi
+if test -z "${HAVE_SSLHACK_TRUE}" && test -z "${HAVE_SSLHACK_FALSE}"; then
+  { { echo "$as_me:$LINENO: error: conditional \"HAVE_SSLHACK\" was never defined.
+Usually this means the macro was only invoked conditionally." >&5
+echo "$as_me: error: conditional \"HAVE_SSLHACK\" was never defined.
 Usually this means the macro was only invoked conditionally." >&2;}
    { (exit 1); exit 1; }; }
 fi
@@ -25741,7 +25836,10 @@ do
   "src/libopensc/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/libopensc/Makefile" ;;
   "src/libopensc/opensc-config" ) CONFIG_FILES="$CONFIG_FILES src/libopensc/opensc-config" ;;
   "src/libopensc/libopensc.pc" ) CONFIG_FILES="$CONFIG_FILES src/libopensc/libopensc.pc" ;;
-  "src/openscd/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/openscd/Makefile" ;;
+  "src/libopensc/libpkcs15init.pc" ) CONFIG_FILES="$CONFIG_FILES src/libopensc/libpkcs15init.pc" ;;
+  "src/libopensc/libscam.pc" ) CONFIG_FILES="$CONFIG_FILES src/libopensc/libscam.pc" ;;
+  "src/libopensc/libscconf.pc" ) CONFIG_FILES="$CONFIG_FILES src/libopensc/libscconf.pc" ;;
+  "src/libopensc/libscldap.pc" ) CONFIG_FILES="$CONFIG_FILES src/libopensc/libscldap.pc" ;;
   "src/openssh/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/openssh/Makefile" ;;
   "src/pam/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/pam/Makefile" ;;
   "src/pkcs11/Makefile" ) CONFIG_FILES="$CONFIG_FILES src/pkcs11/Makefile" ;;
@@ -25928,11 +26026,13 @@ s,@GETOPTSRC@,$GETOPTSRC,;t t
 s,@LIBREADLINE@,$LIBREADLINE,;t t
 s,@LIBFL@,$LIBFL,;t t
 s,@LIBCRYPTO@,$LIBCRYPTO,;t t
-s,@ENGINE_LINK@,$ENGINE_LINK,;t t
 s,@HAVE_SSL_TRUE@,$HAVE_SSL_TRUE,;t t
 s,@HAVE_SSL_FALSE@,$HAVE_SSL_FALSE,;t t
+s,@ENGINE_LINK@,$ENGINE_LINK,;t t
 s,@HAVE_ENGINE_TRUE@,$HAVE_ENGINE_TRUE,;t t
 s,@HAVE_ENGINE_FALSE@,$HAVE_ENGINE_FALSE,;t t
+s,@HAVE_SSLHACK_TRUE@,$HAVE_SSLHACK_TRUE,;t t
+s,@HAVE_SSLHACK_FALSE@,$HAVE_SSLHACK_FALSE,;t t
 s,@OPENSSL_LDFLAGS@,$OPENSSL_LDFLAGS,;t t
 s,@LIBPAM@,$LIBPAM,;t t
 s,@HAVE_PAM_TRUE@,$HAVE_PAM_TRUE,;t t
@@ -26716,6 +26816,7 @@ echo ""
 echo "OpenSC has been configured with the following options"
 
 echo ""
+echo "Version:             ${PACKAGE_VERSION}"
 echo "User binaries:       ${B}"
 echo "Configuration files: ${C}"
 
@@ -26731,6 +26832,7 @@ echo ""
 echo "Random number collection: ${RAND_MSG}"
 echo "OpenSSL support:          ${SSL_MSG}"
 echo "        with engine:      ${ENGINE_MSG}"
+echo "        with sslhack:     ${SSLHACK_MSG}"
 echo "PC/SC support:            ${PCSC_MSG}"
 echo "OpenCT support:           ${OPENCT_MSG}"
 echo "Assuan support:           ${ASSUAN_MSG}"

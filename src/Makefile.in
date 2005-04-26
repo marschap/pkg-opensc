@@ -89,6 +89,8 @@ HAVE_PCSC_FALSE = @HAVE_PCSC_FALSE@
 HAVE_PCSC_TRUE = @HAVE_PCSC_TRUE@
 HAVE_SIA_FALSE = @HAVE_SIA_FALSE@
 HAVE_SIA_TRUE = @HAVE_SIA_TRUE@
+HAVE_SSLHACK_FALSE = @HAVE_SSLHACK_FALSE@
+HAVE_SSLHACK_TRUE = @HAVE_SSLHACK_TRUE@
 HAVE_SSL_FALSE = @HAVE_SSL_FALSE@
 HAVE_SSL_TRUE = @HAVE_SSL_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
@@ -199,7 +201,7 @@ EXTRA_DIST = Makefile.mak
 
 # Order IS important
 SUBDIRS = common include scconf scdl scldap scrandom libopensc pkcs15init pkcs11 \
-	tests tools openscd openssh scam pam sia signer sslengines
+	tests tools openssh scam pam sia signer sslengines
 
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4

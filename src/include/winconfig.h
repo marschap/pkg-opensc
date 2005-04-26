@@ -45,19 +45,12 @@
 #define HAVE_GETPASS
 #define HAVE_PCSC
 
-/* %windir% is replaced by the path of the Windows directory,
- * this is C:\WINNT or C:\WINDOWS on most systems.
- */
-#define OPENSC_CONF_PATH "%windir%\\opensc.conf"
-
-#define SC_PKCS15_PROFILE_DIRECTORY "%windir%"
-
 #define PATH_MAX _MAX_PATH
 
 #define sleep(t) Sleep((t) * 1000)
 
 #ifndef VERSION
-#define VERSION "0.8.1"
+#define VERSION "0.9.6"
 #endif
 
 /* src/common/getpass.c */

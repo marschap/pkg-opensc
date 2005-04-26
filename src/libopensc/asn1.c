@@ -32,9 +32,9 @@ static int asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
 static int asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
 		       u8 **ptr, size_t *size, int depth);
 
-const char *tag2str(int tag)
+static const char *tag2str(unsigned int tag)
 {
-	const static char *tags[] = {
+	static const char *tags[] = {
 		"EOC", "BOOLEAN", "INTEGER", "BIT STRING", "OCTET STRING",	/* 0-4 */
 		"NULL", "OBJECT", "OBJECT DESCRIPTOR", "EXTERNAL", "REAL",	/* 5-9 */
 		"ENUMERATED", "<ASN1 11>", "UTF8STRING", "<ASN1 13>",	/* 10-13 */
@@ -45,7 +45,7 @@ const char *tag2str(int tag)
 		"UNIVERSALSTRING", "<ASN1 29>", "BMPSTRING"	/* 28-30 */
 	};
 
-	if (tag < 0 || tag > 30)
+	if (tag > 30)
 		return "(unknown)";
 	return tags[tag];
 }
@@ -771,7 +771,7 @@ static int asn1_encode_path(struct sc_context *ctx, const struct sc_path *path,
 
 static const struct sc_asn1_entry c_asn1_com_obj_attr[6] = {
 	{ "label", SC_ASN1_UTF8STRING, ASN1_UTF8STRING, SC_ASN1_OPTIONAL, NULL },
-	{ "flags", SC_ASN1_BIT_STRING, ASN1_BIT_STRING, SC_ASN1_OPTIONAL, NULL },
+	{ "flags", SC_ASN1_BIT_FIELD, ASN1_BIT_STRING, SC_ASN1_OPTIONAL, NULL },
 	{ "authId", SC_ASN1_PKCS15_ID, ASN1_OCTET_STRING, SC_ASN1_OPTIONAL, NULL },
 	{ "userConsent", SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL },
 	{ "accessControlRules", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
@@ -872,7 +872,7 @@ static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry
 				sc_error(ctx, "invalid ASN.1 object length: %d\n", objlen);
 				r = SC_ERROR_INVALID_ASN1_OBJECT;
 			} else
-				*((u8 *) parm) = obj[0] ? 1 : 0;
+				*((int *) parm) = obj[0] ? 1 : 0;
 		}
 		break;
 	case SC_ASN1_INTEGER:
@@ -1188,7 +1188,7 @@ static int asn1_encode_entry(struct sc_context *ctx, const struct sc_asn1_entry 
 			r = SC_ERROR_OUT_OF_MEMORY;
 			break;
 		}
-		buf[0] = *((u8 *) parm) ? 0xFF : 0;
+		buf[0] = *((int *) parm) ? 0xFF : 0;
 		buflen = 1;
 		break;
 	case SC_ASN1_INTEGER:
@@ -1368,8 +1368,10 @@ sc_der_copy(sc_pkcs15_der_t *dst, const sc_pkcs15_der_t *src)
 {
 	memset(dst, 0, sizeof(*dst));
 	if (src->len) {
-		dst->len = src->len;
 		dst->value = (u8 *) malloc(src->len);
+		if (!dst->value)
+			return;
+		dst->len = src->len;
 		memcpy(dst->value, src->value, src->len);
 	}
 }

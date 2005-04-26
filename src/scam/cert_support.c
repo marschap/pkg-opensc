@@ -1,5 +1,5 @@
 /*
- * $Id: cert_support.c,v 1.4 2004/06/09 18:40:33 nils Exp $
+ * $Id: cert_support.c 1789 2004-06-09 18:40:33Z nils $
  *
  * Copyright (C) 2001, 2002
  *  Anna Erika Suortti <asuortti@cc.hut.fi>

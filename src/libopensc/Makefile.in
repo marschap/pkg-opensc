@@ -89,13 +89,15 @@ HAVE_PCSC_FALSE = @HAVE_PCSC_FALSE@
 HAVE_PCSC_TRUE = @HAVE_PCSC_TRUE@
 HAVE_SIA_FALSE = @HAVE_SIA_FALSE@
 HAVE_SIA_TRUE = @HAVE_SIA_TRUE@
+HAVE_SSLHACK_FALSE = @HAVE_SSLHACK_FALSE@
+HAVE_SSLHACK_TRUE = @HAVE_SSLHACK_TRUE@
 HAVE_SSL_FALSE = @HAVE_SSL_FALSE@
 HAVE_SSL_TRUE = @HAVE_SSL_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
-LDFLAGS = @LDFLAGS@ @OPENCT_LDFLAGS@
+LDFLAGS = @LDFLAGS@
 LEX = @LEX@
 LEXLIB = @LEXLIB@
 LEX_OUTPUT_ROOT = @LEX_OUTPUT_ROOT@
@@ -196,9 +198,12 @@ target_alias = @target_alias@
 
 MAINTAINERCLEANFILES = Makefile.in
 
-EXTRA_DIST = Makefile.mak libopensc.pc.in
+EXTRA_DIST = Makefile.mak libopensc.pc.in libpkcs15init.pc.in \
+	libscam.pc.in libscconf.pc.in libscldap.pc.in
+
 
 INCLUDES = @CPPFLAGS@ @OPENCT_CFLAGS@ @PCSC_CFLAGS@
+AM_LDFLAGS = @OPENCT_LDFLAGS@
 
 bin_SCRIPTS = opensc-config
 
@@ -214,6 +219,7 @@ libopensc_la_SOURCES = \
 	emv.c \
 	\
 	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
+	pinpad-ccid.c \
 	\
 	card-setcos.c card-miocos.c card-flex.c card-gpk.c \
 	card-etoken.c card-tcos.c card-emv.c card-default.c \
@@ -232,15 +238,18 @@ include_HEADERS = \
 	errors.h types.h
 
 
-noinst_HEADERS = ctbcs.h internal.h esteid.h
+noinst_HEADERS = ctbcs.h internal.h esteid.h card-oberthur.h pinpad-ccid.h
 
 pkgconfigdir = @libdir@/pkgconfig
-pkgconfig_DATA = libopensc.pc
+pkgconfig_DATA = libopensc.pc libpkcs15init.pc \
+	libscam.pc libscconf.pc libscldap.pc
+
 subdir = src/libopensc
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = opensc-config libopensc.pc
+CONFIG_CLEAN_FILES = opensc-config libopensc.pc libpkcs15init.pc \
+	libscam.pc libscconf.pc libscldap.pc
 LTLIBRARIES = $(lib_LTLIBRARIES)
 
 libopensc_la_DEPENDENCIES = ../scdl/libscdl.la
@@ -250,10 +259,10 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo \
 	pkcs15-data.lo pkcs15-pin.lo pkcs15-prkey.lo pkcs15-pubkey.lo \
 	pkcs15-sec.lo pkcs15-wrap.lo pkcs15-algo.lo pkcs15-cache.lo \
 	pkcs15-syn.lo emv.lo ctbcs.lo reader-ctapi.lo reader-pcsc.lo \
-	reader-openct.lo card-setcos.lo card-miocos.lo card-flex.lo \
-	card-gpk.lo card-etoken.lo card-tcos.lo card-emv.lo \
-	card-default.lo card-mcrd.lo card-starcos.lo card-openpgp.lo \
-	card-jcop.lo card-oberthur.lo pkcs15-openpgp.lo \
+	reader-openct.lo pinpad-ccid.lo card-setcos.lo card-miocos.lo \
+	card-flex.lo card-gpk.lo card-etoken.lo card-tcos.lo \
+	card-emv.lo card-default.lo card-mcrd.lo card-starcos.lo \
+	card-openpgp.lo card-jcop.lo card-oberthur.lo pkcs15-openpgp.lo \
 	pkcs15-infocamere.lo pkcs15-starcert.lo pkcs15-netkey.lo \
 	pkcs15-esteid.lo
 libopensc_la_OBJECTS = $(am_libopensc_la_OBJECTS)
@@ -279,7 +288,8 @@ am__depfiles_maybe = depfiles
 @AMDEP_TRUE@	./$(DEPDIR)/dir.Plo ./$(DEPDIR)/emv.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/errors.Plo ./$(DEPDIR)/iso7816.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/log.Plo ./$(DEPDIR)/module.Plo \
-@AMDEP_TRUE@	./$(DEPDIR)/padding.Plo ./$(DEPDIR)/pkcs15-algo.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/padding.Plo ./$(DEPDIR)/pinpad-ccid.Plo \
+@AMDEP_TRUE@	./$(DEPDIR)/pkcs15-algo.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/pkcs15-cache.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/pkcs15-cert.Plo \
 @AMDEP_TRUE@	./$(DEPDIR)/pkcs15-data.Plo \
@@ -313,7 +323,8 @@ HEADERS = $(include_HEADERS) $(noinst_HEADERS)
 
 DIST_COMMON = $(include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.in Makefile.am libopensc.pc.in \
-	opensc-config.in
+	libpkcs15init.pc.in libscam.pc.in libscconf.pc.in \
+	libscldap.pc.in opensc-config.in
 SOURCES = $(libopensc_la_SOURCES)
 
 all: all-am
@@ -328,6 +339,14 @@ Makefile: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.in  $(top_builddir)/config.s
 opensc-config: $(top_builddir)/config.status opensc-config.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 libopensc.pc: $(top_builddir)/config.status libopensc.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+libpkcs15init.pc: $(top_builddir)/config.status libpkcs15init.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+libscam.pc: $(top_builddir)/config.status libscam.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+libscconf.pc: $(top_builddir)/config.status libscconf.pc.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+libscldap.pc: $(top_builddir)/config.status libscldap.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 libLTLIBRARIES_INSTALL = $(INSTALL)
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
@@ -411,6 +430,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/module.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/padding.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pinpad-ccid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-algo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-cache.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-cert.Plo@am__quote@

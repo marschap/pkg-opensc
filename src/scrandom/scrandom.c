@@ -1,5 +1,5 @@
 /*
- * $Id: scrandom.c,v 1.10 2003/09/03 18:18:57 aet Exp $
+ * $Id: scrandom.c 1411 2003-09-03 18:18:57Z aet $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
