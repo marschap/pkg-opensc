@@ -26,6 +26,9 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <limits.h>
+#ifdef _WIN32
+#include <winreg.h>
+#endif
 
 #include <opensc/scdl.h>
 
@@ -260,25 +263,7 @@ static void load_reader_driver_options(sc_context_t *ctx,
 	driver->max_recv_size = SC_APDU_CHOP_SIZE;
 	if (conf_block != NULL) {
 		const scconf_list *list;
-		const char *forcestr;
 		
-		if (scconf_get_bool(conf_block, "apdu_fix", 0))
-			driver->apdu_masquerade |= SC_APDU_MASQUERADE_4AS3;
-		/* protocol force in action, addon by -mp */
-		forcestr=scconf_get_str(conf_block, "force_protocol",NULL);
-		if (forcestr){
-			sc_debug(ctx,"Protocol force in action : %s",forcestr);
-			if (!strcmp(forcestr,"t0"))
-				driver->forced_protocol = SC_PROTO_T0;
-			else if (!strcmp(forcestr,"t1"))
-				driver->forced_protocol = SC_PROTO_T1;
-			else if (!strcmp(forcestr,"raw"))
-				driver->forced_protocol = SC_PROTO_RAW;
-			else
-				sc_error(ctx,"Unknown protocol: %s in force_protocol; ignored.",forcestr);
-		} else 
-			driver->forced_protocol = 0;
-		                                                                                                                              
 		list = scconf_find_list(conf_block, "apdu_masquerade");
 		if (list)
 			driver->apdu_masquerade = 0;
@@ -511,18 +496,49 @@ void process_config_file(struct sc_context *ctx, struct _sc_ctx_options *opts)
 {
 	int i, r, count = 0;
 	scconf_block **blocks;
-	char *conf_path = OPENSC_CONF_PATH;
+	char *conf_path;
 #ifdef _WIN32
 	char temp_path[PATH_MAX];
+	int temp_len;
+	long rc;
+	HKEY hKey;
 #endif
 
+	conf_path = 0;
 	memset(ctx->conf_blocks, 0, sizeof(ctx->conf_blocks));
+
 #ifdef _WIN32
-	if (!strncmp(conf_path, "%windir%", 8)) {
-		GetWindowsDirectory(temp_path, sizeof(temp_path));
-		strncat(temp_path, conf_path + 8, sizeof(temp_path) - strlen(temp_path));
-		conf_path = temp_path;
+	rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\OpenSC",
+		0, KEY_QUERY_VALUE, &hKey );
+	if( rc == ERROR_SUCCESS ) {
+		temp_len = PATH_MAX;
+		rc = RegQueryValueEx( hKey, "ConfigFile", NULL, NULL,
+			(LPBYTE) temp_path, &temp_len);
+		if( (rc == ERROR_SUCCESS) && (temp_len < PATH_MAX) )
+			conf_path = temp_path;
+		RegCloseKey( hKey );
 	}
+
+	if (! conf_path) {
+		rc = RegOpenKeyEx( HKEY_LOCAL_MACHINE, "Software\\OpenSC",
+			0, KEY_QUERY_VALUE, &hKey );
+		if( rc == ERROR_SUCCESS ) {
+			temp_len = PATH_MAX;
+			rc = RegQueryValueEx( hKey, "ConfigFile", NULL, NULL,
+				(LPBYTE) temp_path, &temp_len);
+			if( (rc == ERROR_SUCCESS) && (temp_len < PATH_MAX) )
+				conf_path = temp_path;
+			RegCloseKey( hKey );
+		}
+	}
+
+	if (! conf_path)
+		sc_error(ctx, "process_config_file doesn't find opensc config file. Please set the registry key.");
+
+#else
+	conf_path = getenv("OPENSC_CONF");
+	if (!conf_path)
+		conf_path = OPENSC_CONF_PATH;
 #endif
 	ctx->conf = scconf_new(conf_path);
 	if (ctx->conf == NULL)
@@ -621,7 +637,10 @@ int sc_release_context(struct sc_context *ctx)
 		if (drv->dll)
 			scdl_close(drv->dll);
 	}
-	ctx->debug_file = ctx->error_file = NULL;
+	if (ctx->debug_file && ctx->debug_file != stdout)
+		fclose(ctx->debug_file);
+	if (ctx->error_file && ctx->error_file != stderr)
+		fclose(ctx->error_file);
 	if (ctx->preferred_language)
 		free(ctx->preferred_language);
 	if (ctx->conf)

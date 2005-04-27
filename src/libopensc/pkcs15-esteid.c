@@ -35,7 +35,7 @@ static void
 set_string (char **strp, const char *value)
 {
   if (*strp)
-    free (strp);
+    free (*strp);
   *strp = value ? strdup (value) : NULL;
 }
 
@@ -91,8 +91,8 @@ sc_pkcs15emu_esteid_init (sc_pkcs15_card_t * p15card)
   for (i = 0; i < 2; i++)
     {
       static char *esteid_cert_names[2] = {
-	"Autentimissertifikaat",
-	"Allkirjasertifikaat"
+	"Isikutuvastus",
+	"Allkirjastamine"
       };
       static char *esteid_cert_paths[2] = {
 	"3f00eeeeaace",
@@ -124,7 +124,7 @@ sc_pkcs15emu_esteid_init (sc_pkcs15_card_t * p15card)
     {
       char tries_left;
       static char *esteid_pin_names[3] = {
-	"PIN1 - Autentiseerimine",
+	"PIN1 - Isikutuvastus",
 	"PIN2 - Allkirjastamine",
 	"PUK"
       };
@@ -178,8 +178,8 @@ sc_pkcs15emu_esteid_init (sc_pkcs15_card_t * p15card)
 	SC_PKCS15_PRKEY_USAGE_NONREPUDIATION
       };
       static char *prkey_name[2] = {
-	"Autentiseerimise v\365ti",
-	"Allkirjastamise v\365ti"
+	"Isikutuvastus",
+	"Allkirjastamine"
       };
       sc_pkcs15_id_t id, auth_id;
 

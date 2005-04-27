@@ -1,66 +1,44 @@
-OpenSC Release 0.9.4
+OpenSC Release 0.9.6
 ====================
 
-We are pleased to announce the availability of OpenSC 0.9.4.
+We are pleased to announce the availability of OpenSC 0.9.6.
 
-OpenSC provides a set of libraries and utilities to access smart
-cards. Its main focus is on cards that support cryptographic operations,
-and facilitate their use in security applications such as mail encryption,
-authentication, and digital signature.
+This new releases fixes many small issues found in the last six months.
+The bigger changes are:
+ - you need to have an opensc.conf config file. On Unix this is 
+   $(sysconfdir)/opensc.conf depending on your --configure option.
+   Users can have their own config file by setting the OPENSC_CONF
+   evironment variable. On windows either the registry key
+   HKLM\Software\OpenSC\ConfigFile or HKLU\Software\OpenSC\ConfigFile
+   needs to be set and point to your config file.
+ - your config file needs to have a "profile_dir" setting pointing
+   to the installation directory with the "*.profile" files.
+   Under Unix/Linux the configure script will create an etc/opensc.conf
+   file for your with the right directory in it, simply copy it to
+   your $(sysconfdir).
+ - There is a new project "smart card bundle" to create a simple windows
+   installer package containing OpenSSL, OpenSC and Putty with smart card
+   patches, so you can simply download, install, and start using smart cards.
+   For more information, visit our new webpage for this project
+   	http://www.opensc.org/scb/
 
-OpenSC can be used with the following applications and libraries:
+Also in the last few months opensc.org moved to subversion.
+Our repository is available at
+	http://www.opensc.org/svn/opensc/releases/opensc-0.9.6
+	http://www.opensc.org/svn/opensc/trunk
 
- -	Netscape Communicator and Mozilla (through its PKCS#11 module),
- 	for secure email (S/MIME) and SSL authentication
- -	OpenSSH, for user authentication
- -	FreeSWAN, StrongSWAN and OpenSWAN,
-        for authentication and key management
- -	OpenSSL, for key and certificate storage, key generation and
- 	signing of certificate requests
- -	GNUpg 1.9 (experimental), for key storage
- -	Smart card login, through a PAM module
- -	Using the included utilities, to perform RSA decryption and
- 	digital signing
+In addition you can browse the repository, edit our wiki and report bugs at
+	http://www.opensc.org/opensc/
 
-OpenSC is capable of personalizing various types of smart cards, but
-also works with personalized cards such as the Finnish FINEID.
+OpenSC has now these mailing lists:
+	opensc-announce	
+	opensc-user		
+	opensc-devel
+	opensc-commits
 
-OpenSC can currently be used on Linux, Windows and MacOS X. It supports
-PC/SC, CT-API and OpenCT to talk to card terminals.
+We consider OpenSC 0.9.6 to be the best version of OpenSC available and
+recommend to update to this version.  OpenSC 0.9.6 is available at
+	http://www.opensc.org/files/opensc-0.9.6.tar.gz
 
-
-
-Supported Hardware
-==================
-
-The following card operating systems are supported at the moment (where
-read-only means that personalized cards can be used, but OpenSC does not
-provide personalization support for these).
-
- -	CardOS/M4 (Aladdin eToken PRO, etc)
- -	Schlumberger/Axalto Cryptoflex and Cyberflex
- -	IBM JCOP
- -	Starcos SPK
- -	Oberthur AuthentIC v5
- -	Estonian ID card (read-only)
- -	MioCOS (read-only)
- -	Setcos (read-only)
- -	TCOS (read-only)
-
-
-
-
-Download
-========
-Source code is available from http://www.opensc.org/
-
-A binary package for Windows is available as well.
-
-
-
-Mailing List
-============
-
-There is a mailing list (opensc-devel) for users and developers of
-OpenSC. For subscription instructions, please visit http://www.opensc.org.
-
+Yours,
+The OpenSC Project Team...

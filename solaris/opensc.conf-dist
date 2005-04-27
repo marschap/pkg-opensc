@@ -28,6 +28,10 @@ app default {
 	#
 	# error_file = /tmp/opensc-errors.log;
 
+	# Where to find the *.profile files for pkcs15init;
+
+	profile_dir = /usr/share/opensc;
+
 	# What reader drivers to load at start-up
 	#
 	# A special value of 'internal' will load all
@@ -38,7 +42,7 @@ app default {
 	# NOTE: if "internal" keyword is used, must be the 
 	# last entry in reader_drivers list
 	#
-	# reader_drivers = openct, pcsc, ctapi;
+	reader_drivers = openct, pcsc, ctapi;
 
 	reader_driver ctapi {
 		# module /usr/local/towitoko/lib/libtowitoko.so {
@@ -83,6 +87,10 @@ app default {
 		#
 		max_send_size = 252;
 		max_recv_size = 252;
+		#
+		# EXPERIMENTAL: Enable CCID pinpad support
+		# implemented (at least) in the libccid driver.
+		#use_ccid_pin_cmd = true;
 	}
 
 	# What card drivers to load at start-up
@@ -107,7 +115,7 @@ app default {
 	#  setcos	Setec
 	#  etoken	Aladdin eToken and other CardOS based cards
 	#  gpk		GPK 4K/8K/16K
-	#  mcrd		MICARDO 2
+	#  mcrd		MICARDO 2.1
 	#  miocos	MioCOS 1.1
 	#  openpgp	OpenPGP card
 	#  tcos		TCOS 2.0
@@ -164,8 +172,9 @@ app default {
 		# Default: yes
 		enable_builtin_emulation = yes;
 		# list of the builtin pkcs15 emulators to test
-		# possible values: esteid, openpgp, netkey, netkey, starcert, infocamere
-		builtin_emulators = esteid, openpgp, netkey, netkey, starcert, infocamere;
+		# possible values: esteid, openpgp, netkey, netkey,
+		# starcert, infocamere, postecert
+		builtin_emulators = esteid, openpgp, netkey, netkey, starcert, infocamere, postecert;
 
 		# additional pkcs15 emulators (dynamic or builtin with
 		# a different atr etc.) 
@@ -173,6 +182,19 @@ app default {
 			# module = builtin;
 			# atr = 11:22:33:44;
 		#}
+	}
+	
+	# Estonian ID card and Micardo driver currently play together with T=0 only.
+	# In theory only the 'cold' ATR should be specified, as T=0 will be the preferred
+	# protocol once you boot it up with T=0, but be paranoid.
+	
+	# Generic format: card_atr <hex encoded ATR (case-sensitive!)>
+	# Only parameter currently understood is force_protocol
+	card_atr 3b:6e:00:ff:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
+		force_protocol = t0;
+	}
+	card_atr 3b:fe:94:00:ff:80:b1:fa:45:1f:03:45:73:74:45:49:44:20:76:65:72:20:31:2e:30:43 {
+		force_protocol = t0;
 	}
 }
 
@@ -204,7 +226,7 @@ app opensc-pkcs11 {
 		#
 		# Set this option to true to hide these empty
 		# slots.
-		hide_empty_tokens = false;
+		hide_empty_tokens = true;
 
 		# By default, the OpenSC PKCS#11 module will
 		# try to lock this card once you have authenticated

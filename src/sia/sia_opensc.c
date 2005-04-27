@@ -1,5 +1,5 @@
 /*
- * $Id: sia_opensc.c,v 1.5 2002/04/08 08:27:34 aet Exp $
+ * $Id: sia_opensc.c 487 2002-04-08 08:27:34Z aet $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

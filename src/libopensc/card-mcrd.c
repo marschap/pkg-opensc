@@ -291,7 +291,7 @@ static int mcrd_init(struct sc_card *card)
 	priv = (struct mcrd_priv_data *) calloc (1, sizeof *priv);
 	if (!priv)
 		return SC_ERROR_OUT_OF_MEMORY;
-	card->name = "MICARDO";
+	card->name = "MICARDO 2.1";
 	card->drv_data = priv;
 	card->cla = 0x00;
 
@@ -742,7 +742,7 @@ do_select(struct sc_card *card, u8 kind,
 	apdu.datalen = buflen;
 	apdu.lc = apdu.datalen;
 	apdu.resp = resbuf;
-	apdu.resplen = *file ? sizeof(resbuf) : 0;
+	apdu.resplen = file ? sizeof(resbuf) : 0;
 
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");

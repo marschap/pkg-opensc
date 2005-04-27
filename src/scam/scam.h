@@ -1,5 +1,5 @@
 /*
- * $Id: scam.h,v 1.7 2003/07/23 15:07:41 aet Exp $
+ * $Id: scam.h 1292 2003-07-23 15:07:41Z aet $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

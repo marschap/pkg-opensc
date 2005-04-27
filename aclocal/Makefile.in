@@ -89,6 +89,8 @@ HAVE_PCSC_FALSE = @HAVE_PCSC_FALSE@
 HAVE_PCSC_TRUE = @HAVE_PCSC_TRUE@
 HAVE_SIA_FALSE = @HAVE_SIA_FALSE@
 HAVE_SIA_TRUE = @HAVE_SIA_TRUE@
+HAVE_SSLHACK_FALSE = @HAVE_SSLHACK_FALSE@
+HAVE_SSLHACK_TRUE = @HAVE_SSLHACK_TRUE@
 HAVE_SSL_FALSE = @HAVE_SSL_FALSE@
 HAVE_SSL_TRUE = @HAVE_SSL_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
@@ -195,7 +197,7 @@ target_alias = @target_alias@
 
 MAINTAINERCLEANFILES = Makefile.in
 
-EXTRA_DIST = acx_pthread.m4
+EXTRA_DIST = acx_pthread.m4 pkg.m4
 subdir = aclocal
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs

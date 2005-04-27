@@ -1,5 +1,5 @@
 /*
- * $Id: pam_opensc.c,v 1.12 2004/01/05 18:44:49 aet Exp $
+ * $Id: pam_opensc.c 1707 2004-01-05 18:44:49Z aet $
  *
  * Copyright (C) 2001, 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

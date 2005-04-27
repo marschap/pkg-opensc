@@ -1,3 +1,17 @@
+opensc (0.9.6-1) unstable; urgency=medium
+
+  * New upstream release, needs to go in with new openct.
+  * debian/control: Build-Depend on new libopenct1.
+  * debian/libopensc1.install: Install etc/opensc.conf instead of our old
+    empty version, because profile_dir must be set now.
+  * debian/opensc.conf: Delete, we don't need it anymore.
+  * debian/libopensc1.examples: Install a copy of the config file (without
+    the example suffix) as an example.
+  * debian/libopensc1.shlibs, debian/libscam1.shlibs: Update versions.
+  * debian/libscam1.examples: Remove .example suffix.
+
+ -- Eric Dorland <eric@debian.org>  Tue, 26 Apr 2005 01:16:16 -0400
+
 opensc (0.9.4-9) unstable; urgency=high
 
   * debian/control: Remove extraneous build dependencies on libsasl,

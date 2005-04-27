@@ -30,7 +30,7 @@ static void
 set_string(char **strp, const char *value)
 {
 	if (*strp)
-		free(strp);
+		free(*strp);
 	*strp = value? strdup(value) : NULL;
 }
 
@@ -149,8 +149,7 @@ sc_pkcs15emu_netkey_init(sc_pkcs15_card_t *p15card) {
                 sc_pkcs15emu_add_prkey(
 			p15card, &id, keylist[i].label, SC_PKCS15_TYPE_PRKEY_RSA, 
 			1024, keylist[i].usage, &path, keylist[i].keyref,
-			&auth_id, SC_PKCS15_CO_FLAG_PRIVATE
-		);
+			&auth_id, SC_PKCS15_CO_FLAG_PRIVATE);
 	}
 
 	for(i=0; certlist[i].id; ++i){

@@ -1,5 +1,5 @@
 /*
- * $Id: test-conf.c,v 1.13 2003/12/03 14:09:15 aet Exp $
+ * $Id: test-conf.c 1656 2003-12-03 14:09:15Z aet $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

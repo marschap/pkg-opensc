@@ -5,7 +5,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.52)
 
 AC_INIT(COPYING)
-AM_INIT_AUTOMAKE(opensc, 0.9.4)
+AM_INIT_AUTOMAKE(opensc, 0.9.6)
 AM_CONFIG_HEADER(config.h)
 
 AC_CONFIG_SRCDIR(src/libopensc/sc.c)
@@ -54,7 +54,7 @@ case "$host" in
 	CPPFLAGS="$CPPFLAGS -D_POSIX_PII_SOCKET"
 	;;
 *-*-darwin*)
-	LIBS="$LIBS -lobjc"
+	LIBS="$LIBS -Wl,-framework,CoreFoundation"
 	if test "$GCC" = "yes"; then
 		CFLAGS="$CFLAGS -no-cpp-precomp"
 	fi
@@ -227,49 +227,77 @@ AC_CACHE_CHECK([for flex directory], ac_cv_flexdir, [
 	ac_cv_flexdir=$flexdir
 ])
 
-dnl The big mess with OpenSSL
-AC_ARG_WITH(openssl,
-	[  --with-openssl=PATH     use OpenSSL in PATH],
-	[tryssldir=$withval])
 
-SSL_MSG="no"
-ENGINE_MSG="no"
+dnl The big mess with OpenSSL
 saved_LIBS="$LIBS"
 saved_LDFLAGS="$LDFLAGS"
 saved_CPPFLAGS="$CPPFLAGS"
-AC_SUBST(LIBCRYPTO)
-AC_SUBST(ENGINE_LINK)
-AC_CACHE_CHECK([for OpenSSL directory], ac_cv_openssldir, [
-	if test "x$tryssldir" = "x" ; then
-		tryssldir="$trycommandir /usr/ /usr/local/openssl /usr/lib/openssl /usr/local/ssl /usr/lib/ssl /usr/local /usr/pkg /opt /opt/openssl"
-	fi
 
-	for ssldir in $tryssldir ; do
-		# Skip empty variables
-		if test -z "$ssldir"; then
-			continue;
-		fi
+SSL_MSG="no"
+ssldir=""
+
+AC_ARG_WITH(openssl,
+	[  --with-openssl=PATH     use OpenSSL in PATH],
+	[
 		# Disable OpenSSL support
-		if test "x$ssldir" = "xno" ; then
+		if test "x$withval" = "xno" ; then
 			SSL_MSG="no (disabled)"
-			ENGINE_MSG="no (disabled)"
 			break;
 		fi
+
+		# ok we got a directory, so only check in that dir.
+		LIBCRYPTO="-lcrypto"
+		CPPFLAGS="$saved_CPPFLAGS"
+		LDFLAGS="$saved_LDFLAGS"
+		LIBS="$LIBCRYPTO $saved_LIBS"
+		LDFLAGS="-L$withval/lib $saved_LDFLAGS"
+		if test ! -z "$need_dash_r" ; then
+			LDFLAGS="-R$withval/lib $LDFLAGS"
+		fi
+		CPPFLAGS="-I$withval/include $saved_CPPFLAGS"
+
+		AC_TRY_RUN(
+			[
+#include <string.h>
+#include <openssl/rand.h>
+int main(void)
+{
+	char a[2048];
+	memset(a, 0, sizeof(a));
+	RAND_add(a, sizeof(a), sizeof(a));
+	return(RAND_status() <= 0);
+}
+			],
+			[
+				SSL_MSG="yes"
+				ssldir="$withval"
+				LIBS="$saved_LIBS"
+				LDFLAGS="$saved_LDFLAGS"
+				CPPFLAGS="$saved_CPPFLAGS"
+				break
+			])
+	] , [
+
+	# we didn't get a directory, so we start searching for openssl.
+
+	for tryssldir in /usr /usr/local/openssl /usr/lib/openssl /usr/local/ssl /usr/lib/ssl /usr/local /usr/pkg /opt /opt/openssl; do
+
 		# Skip directories if they don't exist
-		if test ! -d "$ssldir/" ; then
+		if test ! -d "$tryssldir/" ; then
 			continue;
 		fi
+
 		LIBCRYPTO="-lcrypto"
 		CPPFLAGS="$saved_CPPFLAGS"
 		LDFLAGS="$saved_LDFLAGS"
 		LIBS="$saved_LIBS $LIBCRYPTO"
 
-		if test "x$ssldir" != "x/usr"; then
-			LDFLAGS="-L$ssldir/lib $saved_LDFLAGS"
+		if test "x$tryssldir" != "x/usr"; then
+			LDFLAGS="-L$tryssldir/lib $saved_LDFLAGS"
 			if test ! -z "$need_dash_r" ; then
-				LDFLAGS="-R$ssldir/lib $LDFLAGS"
+				LDFLAGS="-R$tryssldir/lib $LDFLAGS"
 			fi
-			CPPFLAGS="-I$ssldir/include $saved_CPPFLAGS"
+			CPPFLAGS="-I$tryssldir/include $saved_CPPFLAGS"
 		fi
 
 		# Basic test to check for compatible version and correct linking
@@ -288,18 +316,80 @@ int main(void)
 			],
 			[
 				SSL_MSG="yes"
-			], []
+				ssldir=$tryssldir
+				break;
+			],
+			[
+				SSL_MSG="no"
+				LIBS="$saved_LIBS"
+				LDFLAGS="$saved_LDFLAGS"
+				CPPFLAGS="$saved_CPPFLAGS"
+			]
 		)
+	done
+	])
+LIBS="$saved_LIBS"
+AC_SUBST(LIBCRYPTO)
+AM_CONDITIONAL(HAVE_SSL, test "x$SSL_MSG" = "xyes")
 
-		if test "x$SSL_MSG" != "xyes" 
-		then
-			continue
-		fi
+if test "x$SSL_MSG" = "xyes" ; then
+  AC_DEFINE(HAVE_OPENSSL, 1, [Have OpenSSL libraries])
+else
+  LIBCRYPTO=""
+fi
 
-		# latest openssl version with engine
-		# properly integrated?
-		AC_MSG_CHECKING([for openssl version])
-		AC_TRY_RUN(
+# ok, we checked for basic ssl support.
+# if it is not available, we can skip the rest of
+# the test. also we have $ssldir set to the location
+# of the openssl libs.
+
+ENGINE_MSG="no"
+if test "x$SSL_MSG" = "xyes" 
+then
+	# engine has to be there and working
+	LIBS="$saved_LIBS $LIBCRYPTO $LIBDL"
+	AC_TRY_RUN(
+			[
+#include <string.h>
+#include <openssl/opensslv.h>
+#include <openssl/engine.h>
+#include <openssl/rand.h>
+int main(void)
+{
+	char a[2048];
+	ENGINE *e;
+
+	e = ENGINE_new();
+	ENGINE_load_dynamic();
+	if (!e) return 1;
+	memset(a, 0, sizeof(a));
+	RAND_add(a, sizeof(a), sizeof(a));
+	return(RAND_status() <= 0);
+}
+	],
+	[
+		ENGINE_MSG=yes
+		ENGINE_LINK="$LIBCRYPTO"
+	], [
+		ENGINE_MSG=no
+	]);
+fi
+LIBS="$saved_LIBS"
+AC_SUBST(ENGINE_LINK)
+AM_CONDITIONAL(HAVE_ENGINE, test "x$ENGINE_MSG" = "xyes")
+
+# ok, now we might (or not) have ssl and an engine.
+# still room for "improvements", i.e. hacks to work
+# with old engines.
+
+SSLHACK_MSG=no
+
+if test "x$SSL_MSG" = "xyes" -a "x$ENGINE_MSG" = "xyes"
+then
+	# latest openssl version with engine
+	# properly integrated?
+	AC_MSG_CHECKING([for openssl version])
+	AC_TRY_RUN(
 		[
 #include <stdlib.h>
 #include <string.h>
@@ -314,58 +404,23 @@ int main(void)
 		exit(1);
 	}
 }
-		],
-		[
-			AC_MSG_RESULT("good, 0.9.7d or later")
-			GOOD_OPENSSL=yes
-		],
-		[
-			AC_MSG_RESULT("not so good, 0.9.7d or later woudl be better")
-			GOOD_OPENSSL=no
-		]
-		)
+	],
+	[
+		AC_MSG_RESULT([good, 0.9.7d or later])
+		OLD_OPENSSL=no
+	],
+	[
+		AC_MSG_RESULT([not so good, 0.9.7d or later would be better])
+		OLD_OPENSSL=yes
+	])
 
-		if test "x$GOOD_OPENSSL" == "xyes" 
-		then
-			# engine has to be there and working
-			LIBS="$saved_LIBS $LIBCRYPTO $LIBDL"
-			AC_TRY_RUN(
-			[
-#include <string.h>
-#include <openssl/opensslv.h>
-#include <openssl/engine.h>
-#include <openssl/rand.h>
-int main(void)
-{
-	char a[2048];
-	ENGINE *e;
-
-	e = ENGINE_new();
-	ENGINE_load_dynamic();
-	if (!e) return 1;
-	memset(a, 0, sizeof(a));
-	RAND_add(a, sizeof(a), sizeof(a));
-	return(RAND_status() <= 0);
-}
-				],
-				[
-					ENGINE_MSG=yes
-					ENGINE_LINK="$LIBCRYPTO"
-				], [
-					# should never happen,
-					# every 0.9.7* version has engine
-					# support integrated, it can't
-					# be missing.
-  AC_MSG_ERROR([OpenSSL support broken: openssl >= 0.9.7d without engine detected.])
-				])
-				break;
-		else
-			# openssl found, but version less than 0.9.7d
+	if test "x$OLD_OPENSSL" = "xyes" 
+	then
+		# openssl found, but version less than 0.9.7d
+		# linking libcrypto.a statically possible?
 			
-			# openssl with engine support?
-			LIBCRYPTOA="$ssldir/lib/libcrypto.a $LIBDL"
-			LIBS="$saved_LIBS $LIBCRYPTOA"
-			AC_TRY_RUN(
+		LIBS="$saved_LIBS $ssldir/lib/libcrypto.a $LIBDL"
+		AC_TRY_RUN(
 			[
 #include <string.h>
 #include <openssl/opensslv.h>
@@ -383,50 +438,26 @@ int main(void)
 	RAND_add(a, sizeof(a), sizeof(a));
 	return(RAND_status() <= 0);
 }
-			],
-			[
-				ENGINE_MSG=yes
-				ENGINE_LINK="$LIBCRYPTOA"
-			], []
-		)
-		break;
-		fi
-
-	done
-
-	if test "x$SSL_MSG" = "xyes" ; then
-		ac_cv_openssldir="$ssldir"
-	else
-		ac_cv_openssldir="no"
+		],
+		[
+			SSLHACK_MSG=yes
+			ENGINE_LINK="$ssldir/lib/libcrypto.a"
+		], []
+	)
+		LIBS="$saved_LIBS"
 	fi
-], [SSL_MSG=yes])
-CPPFLAGS="$saved_CPPFLAGS"
-LDFLAGS="$saved_LDFLAGS"
-LIBS="$saved_LIBS"
-
-if test "x$SSL_MSG" = "xyes" ; then
-  AC_DEFINE(HAVE_OPENSSL, 1, [Have OpenSSL libraries])
-  LDFLAGS="-L$ac_cv_openssldir/lib $LDFLAGS"
-  if test ! -z "$need_dash_r" ; then
-       LDFLAGS="-R$ac_cv_openssldir/lib $LDFLAGS"
-  fi
-  CPPFLAGS="-I$ac_cv_openssldir/include $saved_CPPFLAGS"
-else
-  LIBCRYPTO=""
-  LIBCRYPTOA=""
-  ENGINE_LINK=""
 fi
-AM_CONDITIONAL(HAVE_SSL, test "x$SSL_MSG" = "xyes")
-AM_CONDITIONAL(HAVE_ENGINE, test "x$ENGINE_MSG" = "xyes")
+AM_CONDITIONAL(HAVE_SSLHACK, test "x$SSLHACK_MSG" = "xyes")
 
-AC_SUBST(OPENSSL_LDFLAGS)
+# now - last part to do: check if we gain anything from 
+# funny parameters to link openssl with.
+
+saved_LDFLAGS="$LDFLAGS"
 if test "x$ENGINE_MSG" = "xyes" ; then
   for openssl_ldflag in "-Wl,-Bsymbolic" "-G -Wl,-Bsymbolic" "-shared -G -Wl,-Bsymbolic" "-Wl,-all_load"; do
 	AC_MSG_CHECKING([whether we can use $openssl_ldflag])
-	saved_CFLAGS=$CFLAGS
-	CFLAGS="$CFLAGS $openssl_ldflag"
+	LDFLAGS="$saved_LDFLAGS $openssl_ldflag"
 	AC_TRY_LINK(,[return 1],ac_cv_use_openssl_flag="yes",ac_cv_use_openssl_flag="no")
-	CFLAGS=$saved_CFLAGS
 	AC_MSG_RESULT($ac_cv_use_openssl_flag)
 	if test "$ac_cv_use_openssl_flag" = "yes"; then
 		OPENSSL_LDFLAGS="$openssl_ldflag"
@@ -434,6 +465,8 @@ if test "x$ENGINE_MSG" = "xyes" ; then
 	fi
   done
 fi
+LDFLAGS="$saved_LDFLAGS"
+AC_SUBST(OPENSSL_LDFLAGS)
 
 AC_ARG_WITH(pam-dir,
 	[  --with-pam-dir=PATH     Specify path for PAM installation libraries],
@@ -544,6 +577,7 @@ case "$host" in
 esac
 
 saved_LIBS="$LIBS"
+saved_CFLAGS="$CFLAGS"
 saved_LDFLAGS="$LDFLAGS"
 saved_CPPFLAGS="$CPPFLAGS"
 AC_ARG_WITH(pcsclite,
@@ -593,6 +627,7 @@ if test "x$pcsc_path" != "xno" -a "x$PCSC_MSG" != "xyes"; then
 		fi
 		CPPFLAGS="$saved_CPPFLAGS"
 		LDFLAGS="$saved_LDFLAGS"
+		CFLAGS="$saved_CFLAGS"
 		LIBS="$saved_LIBS"
 		PCSC_CFLAGS=""
 	done
@@ -613,16 +648,23 @@ else
 fi
 
 if test "x$PCSC_MSG" = "xyes"; then
+	CPPFLAGS="${PCSC_CFLAGS} $saved_CPPFLAGS"
 	CFLAGS="$PCSC_CFLAGS $saved_CFLAGS"
 	LIBS="$PCSC_LIBS $saved_LIBS"
 	AC_TRY_LINK([
 #include <stdlib.h>
+#ifdef __APPLE__
+#include <PCSC/wintypes.h>
+#include <PCSC/winscard.h>
+#else
 #include <winscard.h>
+#endif
 	], [
-SCardControl(NULL, NULL, 0, NULL, 0);
+SCardControl(NULL, NULL, 0, NULL, NULL);
 	], [
 		AC_DEFINE(HAVE_PCSC_OLD, 1, [old version of pc/sc-lite])
 	])	
+	CPPFLAGS="$saved_CPPFLAGS"
 	CFLAGS="$saved_CFLAGS"
 	LIBS="$saved_LIBS"
 fi
@@ -634,8 +676,10 @@ AC_SUBST(OPENCT_LDFLAGS)
 AC_SUBST(OPENCT_LIBS)
 
 saved_LIBS="$LIBS"
-saved_LDFLAGS="$LDFLAGS"
 saved_CFLAGS="$CFLAGS"
+saved_LDFLAGS="$LDFLAGS"
+saved_CPPFLAGS="$CPPFLAGS"
+
 AC_ARG_WITH(openct,
 	[  --with-openct=PATH      use OpenCT in PATH],
 	[openct_path=$withval])
@@ -743,6 +787,13 @@ AC_ARG_WITH(prngd-socket,
 		fi
 	]
 )
+
+dnl pin-pad code for ccid by Martin Paljak <martin@paljak.pri.ee>
+
+dnl --enable-ccid-pinpad option.
+AC_ARG_ENABLE(ccid-pinpad,
+[  --enable-ccid-pinpad         enable new pin pad code for ccid readers [default=no]],
+	AC_DEFINE(MP_CCID_PINPAD,1,[Enable new pin pad code for ccid readers]))
 
 ### BEGIN LDAP SPECIFIC OPTIONS
 dnl ldap autoconf magic partly taken from pam_ldap
@@ -944,7 +995,10 @@ src/include/opensc/rsaref/Makefile
 src/libopensc/Makefile
 src/libopensc/opensc-config
 src/libopensc/libopensc.pc
-src/openscd/Makefile
+src/libopensc/libpkcs15init.pc
+src/libopensc/libscam.pc
+src/libopensc/libscconf.pc
+src/libopensc/libscldap.pc
 src/openssh/Makefile
 src/pam/Makefile
 src/pkcs11/Makefile
@@ -978,7 +1032,6 @@ else
 	fi
 fi
 
-dnl Someone please show me a better way :)
 A=`eval echo ${prefix}` ; A=`eval echo ${A}`
 B=`eval echo ${bindir}` ; B=`eval echo ${B}`
 C=`eval echo ${sysconfdir}` ; C=`eval echo ${C}`
@@ -987,6 +1040,7 @@ echo ""
 echo "OpenSC has been configured with the following options"
 
 echo ""
+echo "Version:             ${PACKAGE_VERSION}"
 echo "User binaries:       ${B}"
 echo "Configuration files: ${C}"
 
@@ -1002,6 +1056,7 @@ echo ""
 echo "Random number collection: ${RAND_MSG}"
 echo "OpenSSL support:          ${SSL_MSG}"
 echo "        with engine:      ${ENGINE_MSG}"
+echo "        with sslhack:     ${SSLHACK_MSG}"
 echo "PC/SC support:            ${PCSC_MSG}"
 echo "OpenCT support:           ${OPENCT_MSG}"
 echo "Assuan support:           ${ASSUAN_MSG}"

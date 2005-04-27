@@ -179,8 +179,11 @@ extern "C" {
 /* A 64-bit uint, used in sc_current_time() */
 #ifndef _WIN32
 typedef unsigned long long sc_timestamp_t;
+#define msleep(t)      usleep((t) * 1000)
 #else
 typedef unsigned __int64 sc_timestamp_t;
+#define msleep(t)      Sleep(t)
+#define sleep(t)       Sleep((t) * 1000)
 #endif
 
 /* Event masks for sc_wait_for_event() */
@@ -260,7 +263,6 @@ struct sc_reader_driver {
 
 	size_t max_send_size, max_recv_size;
 	int apdu_masquerade;
-	unsigned int forced_protocol;
 	void *dll;
 };
 #define SC_APDU_MASQUERADE_NONE		0x00
@@ -377,7 +379,7 @@ struct sc_reader_operations {
 	int (*transmit)(struct sc_reader *reader, struct sc_slot_info *slot,
 			const u8 *sendbuf, size_t sendsize,
 			u8 *recvbuf, size_t *recvsize,
-			int control);
+			unsigned long control);
 	int (*lock)(struct sc_reader *reader, struct sc_slot_info *slot);
 	int (*unlock)(struct sc_reader *reader, struct sc_slot_info *slot);
 	int (*set_protocol)(struct sc_reader *reader, struct sc_slot_info *slot,

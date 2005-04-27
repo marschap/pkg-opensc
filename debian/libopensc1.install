@@ -8,4 +8,4 @@ debian/tmp/usr/lib/pkcs11/opensc-pkcs11.la
 debian/tmp/usr/lib/pkcs11/pkcs11-spy.so
 debian/tmp/usr/lib/pkcs11/pkcs11-spy.la
 debian/tmp/usr/lib/pkcs11/libpkcs11.so.*
-debian/opensc.conf etc/opensc
+etc/opensc.conf etc/opensc

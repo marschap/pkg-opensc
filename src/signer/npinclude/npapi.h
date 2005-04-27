@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 4; -*- */
 /*
- *  npapi.h $Revision: 1.2 $
+ *  npapi.h $Revision: 606 $
  *  Netscape client plug-in API spec
  */
 

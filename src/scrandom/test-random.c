@@ -1,5 +1,5 @@
 /*
- * $Id: test-random.c,v 1.3 2002/04/19 14:23:28 aet Exp $
+ * $Id: test-random.c 574 2002-04-19 14:23:31Z aet $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

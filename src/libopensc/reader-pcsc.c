@@ -21,6 +21,9 @@
 #include "internal.h"
 #ifdef HAVE_PCSC
 #include "ctbcs.h"
+#ifdef MP_CCID_PINPAD
+#include "pinpad-ccid.h"
+#endif
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -125,7 +128,7 @@ static DWORD opensc_proto_to_pcsc(unsigned int proto)
 static int pcsc_transmit(struct sc_reader *reader, struct sc_slot_info *slot,
 			 const u8 *sendbuf, size_t sendsize,
 			 u8 *recvbuf, size_t *recvsize,
-			 int control)
+			 unsigned long control)
 {
 	SCARD_IO_REQUEST sSendPci, sRecvPci;
 	DWORD dwSendLength, dwRecvLength;
@@ -155,7 +158,7 @@ static int pcsc_transmit(struct sc_reader *reader, struct sc_slot_info *slot,
 		rv = SCardControl(card, sendbuf, dwSendLength,
 				  recvbuf, &dwRecvLength);
 #else
-		rv = SCardControl(card, 0, sendbuf, dwSendLength,
+		rv = SCardControl(card, (DWORD) control, sendbuf, dwSendLength,
 				  recvbuf, dwRecvLength, &dwRecvLength);
 #endif
 	}
@@ -379,12 +382,13 @@ static int pcsc_wait_for_event(struct sc_reader **readers,
 
 static int pcsc_connect(struct sc_reader *reader, struct sc_slot_info *slot)
 {
-	DWORD active_proto, protocol;
+	DWORD active_proto, protocol = SCARD_PROTOCOL_ANY;
 	SCARDHANDLE card_handle;
 	LONG rv;
 	struct pcsc_private_data *priv = GET_PRIV_DATA(reader);
 	struct pcsc_slot_data *pslot = GET_SLOT_DATA(slot);
-	int r;
+	scconf_block *conf_block = NULL;
+	int r, i;
 
 	r = refresh_slot_attributes(reader, slot);
 	if (r)
@@ -393,11 +397,39 @@ static int pcsc_connect(struct sc_reader *reader, struct sc_slot_info *slot)
 		return SC_ERROR_CARD_NOT_PRESENT;
 
 	/* force a protocol, addon by -mp */	
-	if (reader->driver->forced_protocol) {
-		protocol = opensc_proto_to_pcsc(reader->driver->forced_protocol);
-	} else
-		protocol = SCARD_PROTOCOL_ANY;
+	for (i = 0; reader->ctx->conf_blocks[i] != NULL; i++) {
+		scconf_block **blocks;
+		char name[3 * SC_MAX_ATR_SIZE];
 		
+		r = sc_bin_to_hex(slot->atr, slot->atr_len, name, sizeof(name), ':');
+		assert(r == 0);
+		sc_debug(reader->ctx, "Looking for a card_atr %s", name);
+		blocks = scconf_find_blocks(reader->ctx->conf, reader->ctx->conf_blocks[i],
+		                            "card_atr", name);
+		conf_block = blocks[0];
+		free(blocks);
+		if (conf_block != NULL)
+			break;
+	}
+
+	if (conf_block != NULL) {
+		const char *forcestr;
+		
+		sc_debug(reader->ctx, "Found card_atr with current atr");
+		forcestr = scconf_get_str(conf_block, "force_protocol", NULL);
+			if (forcestr) {
+			sc_debug(reader->ctx,"Protocol force in action: %s", forcestr);
+			if (!strcmp(forcestr,"t0"))
+				protocol = SCARD_PROTOCOL_T0;
+			else if (!strcmp(forcestr,"t1"))
+				protocol = SCARD_PROTOCOL_T1;
+			else if (!strcmp(forcestr,"raw"))
+				protocol = SCARD_PROTOCOL_RAW;
+			else
+				sc_error(reader->ctx,"Unknown force_protocol: %s (Ignored)", forcestr);
+		}
+	}
+
 	rv = SCardConnect(priv->pcsc_ctx, priv->reader_name,
 		SCARD_SHARE_SHARED, protocol, &card_handle, &active_proto);
 	if (rv != 0) {
@@ -407,6 +439,25 @@ static int pcsc_connect(struct sc_reader *reader, struct sc_slot_info *slot)
 	slot->active_protocol = pcsc_proto_to_opensc(active_proto);
 	pslot->pcsc_card = card_handle;
 
+#ifdef MP_CCID_PINPAD
+	/* check for PINPAD support, addon by -mp */
+	{
+		unsigned char attribute[1];
+		DWORD attribute_length;  
+		sc_debug(reader->ctx, "Testing for CCID pinpad support ... ");
+		/* See if this reader supports pinpad... */
+		attribute_length = 1;
+		rv = SCardGetAttrib(pslot->pcsc_card, IOCTL_SMARTCARD_VENDOR_VERIFY_PIN, attribute, &attribute_length);
+		if (rv == SCARD_S_SUCCESS) {
+			if (attribute[0] != 0) {
+				sc_debug(reader->ctx, "Reader supports CCID pinpad");
+				slot->capabilities |= SC_SLOT_CAP_PIN_PAD;
+			}
+		} else {
+			PCSC_ERROR(reader->ctx, "SCardGetAttrib failed", rv)
+		}
+	}
+#endif
 	return 0;
 }
 
@@ -481,18 +532,15 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 	char *reader_buf, *p;
 	const char *mszGroups = NULL;
 	SCARDCONTEXT pcsc_ctx;
-	int r, i;
+	int r;
 	struct pcsc_global_private_data *gpriv;
-	scconf_block **blocks = NULL, *conf_block = NULL;
 
-        rv = SCardEstablishContext(SCARD_SCOPE_GLOBAL,
-                                   NULL,
-                                   NULL,
-				   &pcsc_ctx);
+	rv = SCardEstablishContext(SCARD_SCOPE_GLOBAL,
+	                           NULL,NULL,&pcsc_ctx);
 	if (rv != SCARD_S_SUCCESS)
 		return pcsc_ret_to_error(rv);
 	rv = SCardListReaders(pcsc_ctx, NULL, NULL,
-			 (LPDWORD) &reader_buf_size);
+	                      (LPDWORD) &reader_buf_size);
 	if (rv != SCARD_S_SUCCESS || reader_buf_size < 2) {
 		SCardReleaseContext(pcsc_ctx);
 		return pcsc_ret_to_error(rv);	/* No readers configured */
@@ -513,7 +561,7 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 		return SC_ERROR_OUT_OF_MEMORY;
 	}
 	rv = SCardListReaders(pcsc_ctx, mszGroups, reader_buf,
-				(LPDWORD) &reader_buf_size);
+	                      (LPDWORD) &reader_buf_size);
 	if (rv != SCARD_S_SUCCESS) {
 		free(reader_buf);
 		free(gpriv);
@@ -565,15 +613,6 @@ static int pcsc_init(struct sc_context *ctx, void **reader_data)
 		while (*p++ != 0);
 	} while (p < (reader_buf + reader_buf_size - 1));
 	free(reader_buf);
-	
-	for (i = 0; ctx->conf_blocks[i] != NULL; i++) {
-		blocks = scconf_find_blocks(ctx->conf, ctx->conf_blocks[i],
-					    "reader_driver", "pcsc");
-		conf_block = blocks[0];
-		free(blocks);
-		if (conf_block != NULL)
-			break;
-	}
 
 	return 0;
 }
@@ -601,10 +640,13 @@ struct sc_reader_driver * sc_get_pcsc_driver(void)
 	pcsc_ops.release = pcsc_release;
 	pcsc_ops.connect = pcsc_connect;
 	pcsc_ops.disconnect = pcsc_disconnect;
+#ifdef MP_CCID_PINPAD
+	pcsc_ops.perform_verify = ccid_pin_cmd;
+#else
 	pcsc_ops.perform_verify = ctbcs_pin_cmd;
+#endif
 	pcsc_ops.wait_for_event = pcsc_wait_for_event;
 	
 	return &pcsc_drv;
 }
-
 #endif	/* HAVE_PCSC */

@@ -1,5 +1,5 @@
 /*
- * $Id: sia_support.c,v 1.2 2002/03/21 17:41:32 aet Exp $
+ * $Id: sia_support.c 364 2002-03-21 17:41:32Z aet $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
