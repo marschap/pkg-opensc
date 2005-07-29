@@ -1,3 +1,14 @@
+opensc (0.9.6-2) unstable; urgency=low
+
+  * The "RTFM" release.
+  * debian/opensc.install: Add manpages for pkcs11-tool and
+    cardos-info. (Closes: #289751)
+  * docs/pkcs15-init.1: Add documentation for -T switch. (Closes: #317414)
+  * debian/opensc.docs: Install HTML and XML documentation. (Closes:
+    #318312)
+
+ -- Eric Dorland <eric@debian.org>  Fri, 29 Jul 2005 17:39:31 -0400
+
 opensc (0.9.6-1) unstable; urgency=medium
 
   * New upstream release, needs to go in with new openct.
