@@ -1,3 +1,10 @@
+opensc (0.9.6-3) unstable; urgency=medium
+
+  * debian/control, debian/rules: Use gcc-3.3 instead of default gcc-4.0
+    until #322145 can be figured out. 
+
+ -- Eric Dorland <eric@debian.org>  Wed, 31 Aug 2005 01:23:34 -0400
+
 opensc (0.9.6-2) unstable; urgency=low
 
   * The "RTFM" release.
