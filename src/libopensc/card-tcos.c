@@ -27,61 +27,54 @@
 #include <time.h>
 #include <stdlib.h>
 
-static const char *tcos_atrs[] = {
-	"3B:BA:13:00:81:31:86:5D:00:64:05:0A:02:01:31:80:90:00:8B", /* SLE44 */
-	"3B:BA:14:00:81:31:86:5D:00:64:05:14:02:02:31:80:90:00:91", /* SLE66S */
-	"3B:BA:96:00:81:31:86:5D:00:64:05:60:02:03:31:80:90:00:66", /* SLE66P */
-	NULL
+static struct sc_atr_table tcos_atrs[] = {
+	/* SLE44 */
+	{ "3B:BA:13:00:81:31:86:5D:00:64:05:0A:02:01:31:80:90:00:8B", NULL, NULL, SC_CARD_TYPE_TCOS_GENERIC, 0, NULL },
+	/* SLE66S */
+	{ "3B:BA:14:00:81:31:86:5D:00:64:05:14:02:02:31:80:90:00:91", NULL, NULL, SC_CARD_TYPE_TCOS_GENERIC, 0, NULL },
+	/* SLE66CX320P */
+	{ "3B:BA:96:00:81:31:86:5D:00:64:05:60:02:03:31:80:90:00:66", NULL, NULL, SC_CARD_TYPE_TCOS_GENERIC, 0, NULL },
+	/* SLE66CX322P */
+        { "3B:BA:96:00:81:31:86:5D:00:64:05:7B:02:03:31:80:90:00:7D", NULL, NULL, SC_CARD_TYPE_TCOS_GENERIC, 0, NULL },
+	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
 static struct sc_card_operations tcos_ops;
 static struct sc_card_driver tcos_drv = {
-	"TCOS 2.0 cards",
+	"TCOS 2.0",
 	"tcos",
-	&tcos_ops
+	&tcos_ops,
+	NULL, 0, NULL
 };
 
 static const struct sc_card_operations *iso_ops = NULL;
 
 typedef struct tcos_data_st {
 	unsigned int pad_flags;
+	unsigned int sign_with_def_env;
 } tcos_data;
 
-static int tcos_finish(struct sc_card *card)
+static int tcos_finish(sc_card_t *card)
 {
 	free(card->drv_data);
 	return 0;
 }
 
-static int tcos_match_card(struct sc_card *card)
+static int tcos_match_card(sc_card_t *card)
 {
-	int i, match = -1;
+	int i;
 
-	for (i = 0; tcos_atrs[i] != NULL; i++) {
-		u8 defatr[SC_MAX_ATR_SIZE];
-		size_t len = sizeof(defatr);
-		const char *atrp = tcos_atrs[i];
-
-		if (sc_hex_to_bin(atrp, defatr, &len))
-			continue;
-		if (len != card->atr_len)
-			continue;
-		if (memcmp(card->atr, defatr, len) != 0)
-			continue;
-		match = i;
-		break;
-	}
-	if (match == -1)
+	i = _sc_match_atr(card, tcos_atrs, &card->type);
+	if (i < 0)
 		return 0;
-
 	return 1;
 }
 
-static int tcos_init(struct sc_card *card)
+static int tcos_init(sc_card_t *card)
 {
         unsigned long flags;
 
-	tcos_data *data = malloc(sizeof(tcos_data));
+	tcos_data *data = (tcos_data *) malloc(sizeof(tcos_data));
 	if (!data)
 		return SC_ERROR_OUT_OF_MEMORY;
 
@@ -105,12 +98,12 @@ static int tcos_init(struct sc_card *card)
    OpenSC should be enhanced to allow for the command based security
    attributes of TCOS.  FIXME: This just allows to create a very basic
    file. */
-static int tcos_construct_fci(const struct sc_file *file,
+static int tcos_construct_fci(const sc_file_t *file,
                               u8 *out, size_t *outlen)
 {
 	u8 *p = out;
 	u8 buf[64];
-        int n;
+        size_t n;
 
         /* FIXME: possible buffer overflow */
 
@@ -200,12 +193,12 @@ static int tcos_construct_fci(const struct sc_file *file,
 }
 
 
-static int tcos_create_file(struct sc_card *card, struct sc_file *file)
+static int tcos_create_file(sc_card_t *card, sc_file_t *file)
 {
 	int r;
 	size_t len;
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 
 	len = SC_MAX_APDU_BUFFER_SIZE;
 	r = tcos_construct_fci(file, sbuf, &len);
@@ -224,9 +217,9 @@ static int tcos_create_file(struct sc_card *card, struct sc_file *file)
 
 
 
-static int map_operations (int commandbyte )
+static unsigned int map_operations (int commandbyte )
 {
-  int op = -1;
+  unsigned int op = (unsigned int)-1;
 
   switch ( (commandbyte & 0xfe) )
     {
@@ -261,10 +254,10 @@ static int map_operations (int commandbyte )
    OpenSC should be enhanced to allow for the command based security
    attributes of TCOS.  FIXME: This just allows to create a very basic
    file. */
-static void parse_sec_attr(struct sc_card *card,
-                           struct sc_file *file, const u8 *buf, size_t len)
+static void parse_sec_attr(sc_card_t *card,
+                           sc_file_t *file, const u8 *buf, size_t len)
 {
-        int op;
+        unsigned int op;
         
         /* list directory is not covered by ACLs - so always add an entry */
         sc_file_add_acl_entry (file, SC_AC_OP_LIST_FILES,
@@ -299,7 +292,7 @@ static void parse_sec_attr(struct sc_card *card,
                            because this one distinguish between AND/OR
                            combination of PINs*/
                         op = map_operations (buf[0]);
-                        if (op == -1)
+                        if (op == (unsigned int)-1)
                         {
                                 sc_debug (card->ctx,
                                        "Unknown security command byte %02x\n",
@@ -327,7 +320,7 @@ static void parse_sec_attr(struct sc_card *card,
 }
 
 /* Arghh. duplicated from iso7816.c */
-static void tcos_process_fci(struct sc_context *ctx, struct sc_file *file,
+static void tcos_process_fci(sc_context_t *ctx, sc_file_t *file,
                              const u8 *buf, size_t buflen)
 {
 	size_t taglen, len = buflen;
@@ -433,16 +426,16 @@ static void tcos_process_fci(struct sc_context *ctx, struct sc_file *file,
    needed to cope with some starngeness in APDU construction.  It is
    probably better to have this specfic for TCOS, so that support for
    other cards does not break. */
-static int hacked_iso7816_select_file(struct sc_card *card,
-                                      const struct sc_path *in_path,
-                                      struct sc_file **file_out)
+static int hacked_iso7816_select_file(sc_card_t *card,
+                                      const sc_path_t *in_path,
+                                      sc_file_t **file_out)
 {
-	struct sc_context *ctx;
-	struct sc_apdu apdu;
+	sc_context_t *ctx;
+	sc_apdu_t apdu;
 	u8 buf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 pathbuf[SC_MAX_PATH_SIZE], *path = pathbuf;
 	int r, pathlen;
-	struct sc_file *file = NULL;
+	sc_file_t *file = NULL;
 
 	assert(card != NULL && in_path != NULL);
 	ctx = card->ctx;
@@ -526,9 +519,9 @@ static int hacked_iso7816_select_file(struct sc_card *card,
 
 
 
-static int tcos_select_file(struct sc_card *card,
-			    const struct sc_path *in_path,
-			    struct sc_file **file)
+static int tcos_select_file(sc_card_t *card,
+			    const sc_path_t *in_path,
+			    sc_file_t **file)
 {
 	int r;
 	
@@ -545,9 +538,9 @@ static int tcos_select_file(struct sc_card *card,
 	return 0;
 }
 
-static int tcos_list_files(struct sc_card *card, u8 *buf, size_t buflen)
+static int tcos_list_files(sc_card_t *card, u8 *buf, size_t buflen)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 p1s[2] = { 0x01, 0x02 };
 	int r, i, count = 0;
@@ -576,11 +569,11 @@ static int tcos_list_files(struct sc_card *card, u8 *buf, size_t buflen)
 
 
 
-static int tcos_delete_file(struct sc_card *card, const struct sc_path *path)
+static int tcos_delete_file(sc_card_t *card, const sc_path_t *path)
 {
 	int r;
 	u8 sbuf[2];
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 
 	SC_FUNC_CALLED(card->ctx, 1);
 	if (path->type != SC_PATH_TYPE_FILE_ID && path->len != 2) {
@@ -603,41 +596,59 @@ static int tcos_delete_file(struct sc_card *card, const struct sc_path *path)
 /* Crypto operations */
 
 
-/* Although the TCOS manual says that the manage security environment
-   is compatible with 7816-8.2 we use our own implementation here.
-   The problem is that I don't have the ISO specs and Juha's 7816 code
-   uses parameters which are not described in the TCOS specs.  [wk] 
+/* TCOS has two kind of RSA-keys: signature-keys and encryption-keys
+   signature-keys: can be used for sign-operations only and can be used
+     only within the default security environment. hence must be
+     stored as local key 0, a SetSecEnv-cmd must not be used (if you
+     do - even with default parameters - it will fail with 6A88)
+   encryption-keys: can be used for both sign- and decipher-operations,
+     can be used within any security environment, a SetSecEnv-cmd
+     must be used (even if you want to use the default security environment
+     you must a SetSecEnv-cmd with default parameters)
+   Unfortunately we cannot find out wether the referenced key is a
+   signature-key or encryption-key when this routine is called. Therefore
+   we have a problem if the key-reference is 0x80. If the referenced key
+   was a signature-key a SetSecEnv must not be used, if the key was an
+   encryption-key it must be used.
+   Therefore we suppress error-messages in this case, try a SetSecEnv-cmd
+   with default parameters and watch out for 6A88-responses [pk_opensc@web.de]
 */
-static int tcos_set_security_env(struct sc_card *card,
-                                 const struct sc_security_env *env,
+static int tcos_set_security_env(sc_card_t *card,
+                                 const sc_security_env_t *env,
                                  int se_num)
 {
-	struct sc_apdu apdu;
-	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
-	u8 *p;
-	int r, locked = 0;
+	sc_context_t *ctx;
+	sc_apdu_t apdu;
+	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE], *p;
+	int r, sign_with_def_env=0;
 
 	assert(card != NULL && env != NULL);
-        if (se_num) 
-		SC_FUNC_RETURN(card->ctx, 1, SC_ERROR_INVALID_ARGUMENTS);
+	ctx = card->ctx;
 
-        if (env->operation == SC_SEC_OPERATION_SIGN) {
-                /* There is only a default security environment for
-                   signature creation. */
-		return 0;
-        }
+        if (se_num) SC_FUNC_RETURN(ctx, 1, SC_ERROR_INVALID_ARGUMENTS);
+
+	if(ctx->debug >= 3) sc_debug(ctx, "Security Environment %d:%02X\n", env->key_ref_len, *env->key_ref);
+	if(env->operation == SC_SEC_OPERATION_SIGN &&
+	   (!(env->flags & SC_SEC_ENV_KEY_REF_PRESENT) || (env->key_ref_len==1 && *env->key_ref==0x80))
+	){
+		if (ctx->debug >= 3) sc_debug(ctx, "Sign-Operation with Default Security Environment\n");
+		sign_with_def_env=1;
+	}
 
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0, 0);
 	switch (env->operation) {
 	case SC_SEC_OPERATION_DECIPHER:
+	case SC_SEC_OPERATION_SIGN:
 		apdu.p1 = 0xC1;
 		apdu.p2 = 0xB8;
-		/* save padding flags */
+		/* save padding flags and default secEnv indictor */
 		((tcos_data *)card->drv_data)->pad_flags = env->algorithm_flags;
+		((tcos_data *)card->drv_data)->sign_with_def_env = sign_with_def_env;
 		break;
 	default:
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
+
 	apdu.le = 0;
 	p = sbuf;
 	if (env->flags & SC_SEC_ENV_ALG_REF_PRESENT) {
@@ -646,10 +657,7 @@ static int tcos_set_security_env(struct sc_card *card,
 		*p++ = env->algorithm_ref & 0xFF;
 	}
 	if (env->flags & SC_SEC_ENV_KEY_REF_PRESENT) {
-		if (env->flags & SC_SEC_ENV_KEY_REF_ASYMMETRIC)
-			*p++ = 0x83;
-		else
-			*p++ = 0x84;
+		*p++ = (env->flags & SC_SEC_ENV_KEY_REF_ASYMMETRIC) ? 0x83 : 0x84;
 		*p++ = env->key_ref_len;
 		memcpy(p, env->key_ref, env->key_ref_len);
 		p += env->key_ref_len;
@@ -659,51 +667,91 @@ static int tcos_set_security_env(struct sc_card *card,
 	apdu.datalen = r;
 	apdu.data = sbuf;
 	apdu.resplen = 0;
-	if (se_num > 0) {
-		r = sc_lock(card);
-		SC_TEST_RET(card->ctx, r, "sc_lock() failed");
-		locked = 1;
-	}
+
 	if (apdu.datalen != 0) {
 		r = sc_transmit_apdu(card, &apdu);
 		if (r) {
-			sc_perror(card->ctx, r, "APDU transmit failed");
-			goto err;
+			sc_perror(ctx, r, "APDU transmit failed");
+			return r;
 		}
+		if (sign_with_def_env && apdu.sw1==0x6A && apdu.sw2==0x88) return 0;
+		((tcos_data *)card->drv_data)->sign_with_def_env = sign_with_def_env = 0;
+
 		r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 		if (r) {
-			sc_perror(card->ctx, r, "Card returned error");
-			goto err;
+			sc_perror(ctx, r, "Card returned error");
+			return r;
 		}
 	}
-	if (se_num <= 0)
-		return 0;
-	sc_unlock(card);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
-	return sc_check_sw(card, apdu.sw1, apdu.sw2);
-err:
-	if (locked)
-		sc_unlock(card);
-	return r;
+	return 0;
 }
+
 
 /* See tcos_set_security_env() for comments.  So we always return
    success */
-static int tcos_restore_security_env(struct sc_card *card, int se_num)
+static int tcos_restore_security_env(sc_card_t *card, int se_num)
 {
 	return 0;
+}
+
+/**
+ * TCOS compute_signature command. As TCOS can compute signatures
+ * with the default security environment only, signatures with other
+ * security environments are computed by encrypting the pkcs1-padded data
+ */
+static int tcos_compute_signature(sc_card_t *card, const u8 * data, size_t datalen, u8 * out, size_t outlen)
+{
+	int r;
+	size_t i;
+	sc_apdu_t apdu;
+	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
+
+	assert(card != NULL && data != NULL && out != NULL);
+
+	if (datalen > 255) SC_FUNC_RETURN(card->ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
+
+	if(((tcos_data *)card->drv_data)->sign_with_def_env){
+		sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT, 0x2A, 0x9E, 0x9A);
+		memcpy(sbuf, data, datalen);
+	} else {
+		unsigned int keylen=128; /* FIXME: use correct key-size */
+		sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT, 0x2A, 0x80, 0x84);
+		for(i = 0; i < sizeof(sbuf); ++i)
+			sbuf[i]=0xff;
+		sbuf[0]=0x00; sbuf[1]=0x01; sbuf[keylen-datalen-1]=0x00;
+		memcpy(sbuf+keylen-datalen, data, datalen);
+		datalen=keylen;
+	}
+	apdu.resp = rbuf;
+	apdu.resplen = sizeof(rbuf);
+	apdu.le = 256;
+
+	apdu.data = sbuf;
+	apdu.lc = datalen;
+	apdu.datalen = datalen;
+	apdu.sensitive = 1;
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
+		size_t len = apdu.resplen > outlen ? outlen : apdu.resplen;
+
+		memcpy(out, apdu.resp, len);
+		SC_FUNC_RETURN(card->ctx, 4, len);
+	}
+	SC_FUNC_RETURN(card->ctx, 4, sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
 
 /**
  * TCOS decipher command (same as iso7816_decipher besides setting
  * the padding byte).
  */
-static int tcos_decipher(struct sc_card *card,
+static int tcos_decipher(sc_card_t *card,
 			    const u8 * crgram, size_t crgram_len,
 			    u8 * out, size_t outlen)
 {
 	int r;
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	tcos_data *xdata;
 	u8 pad_byte;
 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
@@ -741,7 +789,7 @@ static int tcos_decipher(struct sc_card *card,
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
 	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
-		int len = apdu.resplen > outlen ? outlen : apdu.resplen;
+		size_t len = apdu.resplen > outlen ? outlen : apdu.resplen;
 
 		memcpy(out, apdu.resp, len);
 		SC_FUNC_RETURN(card->ctx, 2, len);
@@ -753,10 +801,10 @@ static int tcos_decipher(struct sc_card *card,
 /* Issue the SET PERMANENT command.  With ENABLE_NULLPIN set the
    NullPIN method will be activated, otherwise the permanent operation
    will be done on the active file. */
-static int tcos_setperm(struct sc_card *card, int enable_nullpin)
+static int tcos_setperm(sc_card_t *card, int enable_nullpin)
 {
 	int r;
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 
 	SC_FUNC_CALLED(card->ctx, 1);
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_1, 0xEE, 0x00, 0x00);
@@ -770,11 +818,51 @@ static int tcos_setperm(struct sc_card *card, int enable_nullpin)
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 }
 
-static int tcos_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
+/* read the card serial number from the EF_gdo system file */
+static int tcos_get_serialnr(sc_card_t *card, sc_serial_number_t *serial)
+{
+	int       r;
+	u8        buf[64];
+	size_t    len;
+	sc_path_t tpath;
+	sc_file_t *tfile = NULL;
+
+	if (!serial)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	/* see if we have cached serial number */
+	if (card->serialnr.len) {
+		memcpy(serial, &card->serialnr, sizeof(*serial));
+		return SC_SUCCESS;
+	}
+	/* read EF_gdo */
+	sc_format_path("3F002F02", &tpath);
+	r = sc_select_file(card, &tpath, &tfile);
+	if (r < 0)
+		return r;
+	len = tfile->size;
+	sc_file_free(tfile);
+	if (len > sizeof(buf) || len < 12)
+		return SC_ERROR_INTERNAL;
+	r = sc_read_binary(card, 0, buf, len, 0);
+	if (r < 0)
+		return r;
+	if (buf[0] != 0x5a || buf[1] > len - 2)
+		return SC_ERROR_INTERNAL;
+	card->serialnr.len = buf[1];	
+	memcpy(card->serialnr.value, buf+2, buf[1]);
+
+	memcpy(serial, &card->serialnr, sizeof(*serial));
+
+	return SC_SUCCESS;
+}
+
+static int tcos_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
 {
 	switch (cmd) {
 	case SC_CARDCTL_TCOS_SETPERM:
 		return tcos_setperm(card, !!ptr);
+	case SC_CARDCTL_GET_SERIALNR:
+		return tcos_get_serialnr(card, (sc_serial_number_t *)ptr);
 	}
 	return SC_ERROR_NOT_SUPPORTED;
 }
@@ -788,20 +876,21 @@ static struct sc_card_driver * sc_get_driver(void)
 	tcos_ops = *iso_drv->ops;
 	tcos_ops.match_card = tcos_match_card;
 	tcos_ops.init = tcos_init;
-        tcos_ops.finish = tcos_finish;
+	tcos_ops.finish = tcos_finish;
 	if (iso_ops == NULL)
-                iso_ops = iso_drv->ops;
+		iso_ops = iso_drv->ops;
 	tcos_ops.create_file = tcos_create_file;
 	tcos_ops.set_security_env = tcos_set_security_env;
 	tcos_ops.select_file = tcos_select_file;
 	tcos_ops.list_files  = tcos_list_files;
-        tcos_ops.delete_file = tcos_delete_file;
-        tcos_ops.set_security_env	= tcos_set_security_env;
+	tcos_ops.delete_file = tcos_delete_file;
+	tcos_ops.set_security_env	= tcos_set_security_env;
+	tcos_ops.compute_signature	= tcos_compute_signature;
 	tcos_ops.decipher    = tcos_decipher;
-        tcos_ops.restore_security_env	= tcos_restore_security_env;
-        tcos_ops.card_ctl    = tcos_card_ctl;
+	tcos_ops.restore_security_env	= tcos_restore_security_env;
+	tcos_ops.card_ctl    = tcos_card_ctl;
 	
-        return &tcos_drv;
+	return &tcos_drv;
 }
 
 struct sc_card_driver * sc_get_tcos_driver(void)

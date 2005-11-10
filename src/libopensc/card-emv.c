@@ -25,10 +25,11 @@ static struct sc_card_operations emv_ops;
 static struct sc_card_driver emv_drv = {
 	"EMV compatible cards",
 	"emv",
-	&emv_ops
+	&emv_ops,
+	NULL, 0, NULL
 };
 
-static int emv_finish(struct sc_card *card)
+static int emv_finish(sc_card_t *card)
 {
 	return 0;
 }
@@ -78,7 +79,7 @@ static int parse_atr(const u8 *atr, size_t atr_len, int *t0_out, int *tx1, int *
 	return 0;
 }
 
-static int emv_match_card(struct sc_card *card)
+static int emv_match_card(sc_card_t *card)
 {
 	int i, r, hbcount = 0, match = 1;
 	int tx1[4], tx2[4], t0;
@@ -114,7 +115,7 @@ static int emv_match_card(struct sc_card *card)
 	return match;
 }
 
-static int emv_init(struct sc_card *card)
+static int emv_init(sc_card_t *card)
 {
 	card->drv_data = NULL;
 	card->cla = 0x00;
@@ -122,8 +123,8 @@ static int emv_init(struct sc_card *card)
 	return 0;
 }
 
-static int emv_select_file(struct sc_card *card, const struct sc_path *path,
-			   struct sc_file **file)
+static int emv_select_file(sc_card_t *card, const sc_path_t *path,
+			   sc_file_t **file)
 {
 	int r;
 	struct sc_card_driver *iso_drv = sc_get_iso7816_driver();

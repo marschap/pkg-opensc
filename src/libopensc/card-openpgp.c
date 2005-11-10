@@ -1,5 +1,5 @@
 /*
- * card-pgp.c: Support for OpenPGP card
+ * card-openpgp.c: Support for OpenPGP card
  *
  * Copyright (C) 2003  Olaf Kirch <okir@suse.de>
  *
@@ -25,17 +25,18 @@
 #include <string.h>
 #include <ctype.h>
 
-static const char *pgp_atrs[] = {
-	"3b:fa:13:00:ff:81:31:80:45:00:31:c1:73:c0:01:00:00:90:00:b1",
-	NULL
+static struct sc_atr_table pgp_atrs[] = {
+	{ "3b:fa:13:00:ff:81:31:80:45:00:31:c1:73:c0:01:00:00:90:00:b1", NULL, NULL, SC_CARD_TYPE_OPENPGP_GENERIC, 0, NULL },
+	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
 static struct sc_card_operations *iso_ops;
 static struct sc_card_operations pgp_ops;
 static struct sc_card_driver pgp_drv = {
-	"OpenPGP Card",
+	"OpenPGP card",
 	"openpgp",
-	&pgp_ops
+	&pgp_ops,
+	NULL, 0, NULL
 };
 
 /*
@@ -78,7 +79,7 @@ static int		pgp_get_pubkey(sc_card_t *, unsigned int,
 static int		pgp_get_pubkey_pem(sc_card_t *, unsigned int,
 				u8 *, size_t);
 
-struct do_info		pgp_objects[] = {
+static struct do_info		pgp_objects[] = {
       {	0x004f,		0, 0,	sc_get_data,	sc_put_data	},
       {	0x005e,		1, 0,	sc_get_data,	sc_put_data	},
       {	0x0065,		1, 0,	sc_get_data,	sc_put_data	},
@@ -93,7 +94,7 @@ struct do_info		pgp_objects[] = {
       { 0xb801,		0, 0,	pgp_get_pubkey_pem,NULL		},
       { 0xa401,		0, 0,	pgp_get_pubkey_pem,NULL		},
 
-      { 0 },
+      { 0, 0, 0, NULL, NULL },
 };
 
 #define DRVDATA(card)        ((struct pgp_priv_data *) ((card)->drv_data))
@@ -108,25 +109,11 @@ struct pgp_priv_data {
 static int
 pgp_match_card(sc_card_t *card)
 {
-	int i, match = -1;
+	int i;
 
-	for (i = 0; pgp_atrs[i] != NULL; i++) {
-		u8 defatr[SC_MAX_ATR_SIZE];
-		size_t len = sizeof(defatr);
-		const char *atrp = pgp_atrs[i];
-
-		if (sc_hex_to_bin(atrp, defatr, &len))
-			continue;
-		if (len != card->atr_len)
-			continue;
-		if (memcmp(card->atr, defatr, len) != 0)
-			continue;
-		match = i;
-		break;
-	}
-	if (match == -1)
+	i = _sc_match_atr(card, pgp_atrs, &card->type);
+	if (i < 0)
 		return 0;
-
 	return 1;
 }
 

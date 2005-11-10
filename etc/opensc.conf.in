@@ -28,8 +28,9 @@ app default {
 	#
 	# error_file = /tmp/opensc-errors.log;
 
-	# Where to find the *.profile files for pkcs15init;
-
+	# PKCS#15 initialization / personalization
+	# profiles directory for pkcs15-init.
+	
 	profile_dir = PKGDATADIR;
 
 	# What reader drivers to load at start-up
@@ -39,7 +40,7 @@ app default {
 	# internal) driver is supplied, a separate configuration
 	# configuration block has to be written for the driver.
 	# Default: internal
-	# NOTE: if "internal" keyword is used, must be the 
+	# NOTE: if "internal" keyword is used, must be the
 	# last entry in reader_drivers list
 	#
 	# reader_drivers = openct, pcsc, ctapi;
@@ -79,7 +80,7 @@ app default {
 		#                    The Sun SCF reader may require this
 		# Default: none
 		#
-		apdu_masquerade = none;
+		# apdu_masquerade = none;
 		#
 		# This sets the maximum send and receive sizes.
 		# Some IFD handlers do not properly handle APDUs with
@@ -87,7 +88,29 @@ app default {
 		#
 		max_send_size = 252;
 		max_recv_size = 252;
+		#
+		# Connect to reader in exclusive mode.
+		# Default: false
+		# connect_exclusive = false;
+		#
+		# Reset the card after disconnect.
+		# Default: true
+		# connect_reset = true;
+		#
+		# Reset the card after each transaction.
+		# Default: false
+		# transcaction_reset = false;
+		#
+		# Enable pinpad if detected (PC/SC v2.0.2 Part 10)
+		# Default: false
+		# enable_pinpad = false;
 	}
+
+	# options for openct support
+	reader_driver openct {
+		# virtual readers to allocate. default:5
+		readers = 5;
+	};
 
 	# What card drivers to load at start-up
 	#
@@ -96,40 +119,18 @@ app default {
 	# internal) driver is supplied, a separate configuration
 	# configuration block has to be written for the driver.
 	# Default: internal
-	# NOTE: When "internal" keyword is used, must be last entry 
+	# NOTE: When "internal" keyword is used, must be last entry
 	#
 	# card_drivers = customcos, internal;
 
-	# Card driver configuration blocks. 
+	# Card driver configuration blocks.
 
-	# For all drivers, you can specify ATRs of cards that
-	# should be handled by this driver (in addition to the
-	# list of compiled-in ATRs). 
-	#
-	# The supported internal card driver names are
-	#  flex		Cryptoflex/Multiflex
-	#  setcos	Setec
-	#  etoken	Aladdin eToken and other CardOS based cards
-	#  gpk		GPK 4K/8K/16K
-	#  mcrd		MICARDO 2.1
-	#  miocos	MioCOS 1.1
-	#  openpgp	OpenPGP card
-	#  tcos		TCOS 2.0
-	#  emv		EMV compatible cards
-
-	# GPK card driver additional ATR entry:
-	card_driver gpk {
-		# atr = 00:11:22;
-	}
-
-	# For card drivers loaded from an external shared library/DLL, 
+	# For card drivers loaded from an external shared library/DLL,
 	# you need to specify the path name of the module
 	#
 	# card_driver customcos {
 		# The location of the driver library
 		# module = /usr/lib/opensc/drivers/card_customcos.so;
-		# atr = 00:11:22:33:44;
-		# atr = 55:66:77:88:99:aa:bb;
 	# }
 
 	# Force using specific card driver
@@ -139,7 +140,109 @@ app default {
 	#
 	# Default: autodetect
 	#
-	# force_card_driver = miocos;
+	# force_card_driver = customcos;
+
+	# In addition to the built-in list of known cards in the
+	# card driver, you can configure a new card for the driver
+	# using the card_atr block. The goal is to centralize
+	# everything related to a certain card to card_atr.
+	#
+	# The supported internal card driver names are
+	#  etoken           Aladdin eToken and other Siemens CardOS cards
+	#  flex             Schlumberger Multiflex/Cryptoflex
+	#  cyberflex        Schlumberger Cyberflex
+	#  gpk              Gemplus GPK
+	#  miocos           MioCOS 1.1
+	#  mcrd             MICARDO 2.1
+	#  setcos           Setec cards
+	#  starcos          STARCOS SPK 2.3
+	#  tcos             TCOS 2.0
+	#  openpgp          OpenPGP card
+	#  jcop             JCOP cards with BlueZ PKCS#15 applet
+	#  oberthur         Oberthur AuthentIC.v2/CosmopolIC.v4
+	#  belpic           Belpic cards
+	#  emv              EMV compatible cards
+
+	# Generic format: card_atr <hex encoded ATR (case-sensitive!)>
+
+	# New card entry for the flex card driver
+	# card_atr 3b:f0:0d:ca:fe {
+		# All parameters for the context are
+		# optional unless specified otherwise.
+
+		# Context: global, card driver
+		#
+		# ATR mask value
+		#
+		# The mask is logically AND'd with an
+		# card ATR prior to comparison with the
+		# ATR reference value above. Using mask
+		# allows identifying and configuring
+		# multiple ATRs as the same card model.
+		# atrmask = "ff:ff:ff:ff:ff";
+
+		# Context: card driver
+		#
+		# Specify used card driver (REQUIRED).
+		#
+		# When enabled, overrides all possible
+		# settings from the card drivers built-in
+		# card configuration list.
+		# driver = "flex";
+
+		# Set card name for card drivers that allows it.
+		# name = "My CryptoFlex card";
+
+		# Card type as an integer value.
+		#
+		# Depending on card driver, this allows
+		# tuning the behaviour of the card driver
+		# for your card.
+		# type = "2002";
+
+		# Card flags as an hex value.
+		# Multiple values are OR'd together.
+		#
+		# Depending on card driver, this allows
+		# fine-tuning the capabilities in
+		# the card driver for your card.
+		#
+		# Optionally, some known parameters
+		# can be specified as strings:
+		#
+		# keygen - On-board key generation capability
+		# rng - On-board random number source
+		#
+		# flags = "keygen", "rng", "0x80000000";
+
+		#
+		# Context: PKCS#15 emulation layer
+		#
+		# When using PKCS#15 emulation, force
+		# the emulation driver for specific cards.
+		#
+		# Required for external drivers, but can
+		# be used with built-in drivers, too.
+		# pkcs15emu = "custom";
+
+		#
+		# Context: reader driver
+		#
+		# Force protocol selection for specific cards.
+		# Known parameters: t0, t1, raw
+		# force_protocol = "t0";
+	# }
+
+	# Estonian ID card and Micardo driver currently play together with T=0 only.
+	# In theory only the 'cold' ATR should be specified, as T=0 will be the preferred
+	# protocol once you boot it up with T=0, but be paranoid.
+	card_atr 3b:6e:00:ff:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
+		force_protocol = t0;
+	}
+	card_atr 3b:fe:94:00:ff:80:b1:fa:45:1f:03:45:73:74:45:49:44:20:76:65:72:20:31:2e:30:43 {
+		force_protocol = t0;
+	}
+
 
 	# Below are the framework specific configuration blocks.
 
@@ -148,55 +251,37 @@ app default {
 		# Whether to use the cache files in the user's
 		# home directory.
 		#
-		# At the moment you have to 'teach' the card to the
-		# system by:
-		# pkcs15-tool -L
+		# At the moment you have to 'teach' the card
+		# to the system by running command: pkcs15-tool -L
 		#
 		# WARNING: Caching shouldn't be used in setuid root
 		# applications.
 		# Default: false
 		#
 		use_caching = true;
-		# Enable pkcs15 emulation
+		# Enable pkcs15 emulation.
 		# Default: yes
 		enable_pkcs15_emulation = yes;
-		# Try pkcs15 emulation code first (before the normal
-		# pkcs15 processing).
+		# Prefer pkcs15 emulation code before
+		# the normal pkcs15 processing.
 		# Default: no
 		try_emulation_first = no;
-		# Enable builtin emulators
+		# Enable builtin emulators.
 		# Default: yes
 		enable_builtin_emulation = yes;
 		# list of the builtin pkcs15 emulators to test
-		# possible values: esteid, openpgp, netkey, netkey, starcert, infocamere
-		builtin_emulators = esteid, openpgp, netkey, netkey, starcert, infocamere;
+		builtin_emulators = esteid, openpgp, tcos, starcert, infocamere, postecert, actalis, atrust-acosi, gemsafe, tccardos;
 
-		# additional pkcs15 emulators (dynamic or builtin with
-		# a different atr etc.) 
-		# emulate foo {
-			# module = builtin;
-			# atr = 11:22:33:44;
-		#}
-	}
-	
-	# Estonian ID card and Micardo driver currently play together with T=0 only.
-	# In theory only the 'cold' ATR should be specified, as T=0 will be the preferred
-	# protocol once you boot it up with T=0, but be paranoid.
-	
-	# Generic format: card_atr <hex encoded ATR (case-sensitive!)>
-	# Only parameter currently understood is force_protocol
-	card_atr 3b:6e:00:ff:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
-		force_protocol = t0;
-	}
-	card_atr 3b:fe:94:00:ff:80:b1:fa:45:1f:03:45:73:74:45:49:44:20:76:65:72:20:31:2e:30:43 {
-		force_protocol = t0;
-	}
-}
-
-# For applications that use SCAM (pam_opensc, sia_opensc)
-app scam {
-	framework pkcs15 {
-		use_caching = false;
+		# additional settings per driver
+		#
+		# For pkcs15 emulators loaded from an external shared library/DLL,
+		# you need to specify the path name of the module and customize
+		# the card_atr example above correctly.
+		#
+		# emulate custom {
+			# The location of the driver library
+			# module = /usr/lib/opensc/drivers/p15emu_custom.so;
+		# }
 	}
 }
 
@@ -221,7 +306,7 @@ app opensc-pkcs11 {
 		#
 		# Set this option to true to hide these empty
 		# slots.
-		hide_empty_tokens = false;
+		hide_empty_tokens = yes;
 
 		# By default, the OpenSC PKCS#11 module will
 		# try to lock this card once you have authenticated
@@ -247,35 +332,12 @@ app opensc-pkcs11 {
 		# cache_pins = true
 		#
 		# Default: false
-		cache_pins = false;
+		# cache_pins = false;
 
 		# Set this value to false if you want to enfore on-card
 		# keypair generation
 		#
 		# Default: true
-		soft_keygen_allowed = true;
-	}
-}
-
-# Parameters for the OpenSC PKCS11-Spy module, that logs all the
-# communication between a pkcs11 module and it's calling application:
-#    app <--> pkcs11-spy <--> pkcs11 module
-app pkcs11-spy {
-	spy {
-		# Where to log to.
-		#
-		# By default, the value of the PKCS11SPY_OUTPUT environment
-		# variable is used. And if that one isn't defined: stderr
-		# is used.
-		#
-		#output = /tmp/pkcs11-spy.log;
-
-		# Which PKCS11 module to load.
-		#
-		# By default, the value of the PKCS11SPY environment
-		# variable is used. And if that one isn't defined,
-		# opensc-pkcs11.so is used.
-		#
-		#module = opensc-pkcs11.so;
+		# soft_keygen_allowed = true;
 	}
 }

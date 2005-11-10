@@ -20,6 +20,8 @@ pkcs15 {
     direct-certificates	= no;
     # Put the DF length into the ODF file?
     encode-df-length	= no;
+    # Have a lastUpdate field in the EF(TokenInfo)?
+    do-last-update		= yes;
 }
 
 # Default settings.
@@ -138,12 +140,6 @@ filesystem {
 	    aid		= A0:00:00:00:63:50:4B:43:53:2D:31:35;
 	    acl		= *=NONE;
 	    size	= 5000;
-
-	    EF OPENSC-Info {
-		file-id		= 01FF;
-		size		= 0;
-		ACL		= $unprotected;
-	    }
 
 	    EF PKCS15-ODF {
 	        file-id		= 5031;

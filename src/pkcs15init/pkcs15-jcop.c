@@ -40,7 +40,7 @@
  * Erase the card
  */
 static int
-jcop_erase_card(struct sc_profile *pro, struct sc_card *card) {
+jcop_erase_card(struct sc_profile *pro, sc_card_t *card) {
      /* later */
      return SC_ERROR_NOT_SUPPORTED;
 }
@@ -143,7 +143,7 @@ jcop_create_key(sc_profile_t *profile, sc_card_t *card, sc_pkcs15_object_t *obj
 )
 {
         sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
-        struct sc_file  *keyfile = NULL;
+        sc_file_t  *keyfile = NULL;
         size_t          bytes, mod_len, exp_len, prv_len, pub_len;
         int             r;
 
@@ -343,18 +343,26 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
 
 
 
-static struct sc_pkcs15init_operations sc_pkcs15init_jcop_operations;
+static struct sc_pkcs15init_operations sc_pkcs15init_jcop_operations = {
+	jcop_erase_card,
+	NULL,				/* init_card     */
+	NULL,				/* create_dir    */
+	NULL,				/* create_domain */
+	jcop_select_pin_reference,
+	jcop_create_pin,
+	NULL,				/* select_key_reference */
+	jcop_create_key,
+	jcop_store_key,
+	jcop_generate_key,
+	NULL, NULL,			/* encode private/public key */
+	NULL,				/* finalize_card */
+	jcop_init_app,			/* old */
+	NULL, NULL, NULL, NULL,		/* rest of old style api */
+	NULL 				/* delete_object */
+};
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_jcop_ops(void)
 {
-     sc_pkcs15init_jcop_operations.erase_card = jcop_erase_card;
-     sc_pkcs15init_jcop_operations.init_app = jcop_init_app;
-     sc_pkcs15init_jcop_operations.select_pin_reference = jcop_select_pin_reference;
-     sc_pkcs15init_jcop_operations.create_pin = jcop_create_pin;
-     sc_pkcs15init_jcop_operations.create_key = jcop_create_key;
-     sc_pkcs15init_jcop_operations.store_key = jcop_store_key;
-     sc_pkcs15init_jcop_operations.generate_key = jcop_generate_key;
-     
      return &sc_pkcs15init_jcop_operations;
 }
 

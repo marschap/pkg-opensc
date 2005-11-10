@@ -32,7 +32,7 @@
 #include <assert.h>
 
 static int generate_cache_filename(struct sc_pkcs15_card *p15card,
-				   const struct sc_path *path,
+				   const sc_path_t *path,
 				   char *buf, size_t bufsize)
 {
 	char dir[PATH_MAX];
@@ -54,20 +54,27 @@ static int generate_cache_filename(struct sc_pkcs15_card *p15card,
 		pathlen -= 2;
 	}
 	for (i = 0; i < pathlen; i++)
-                sprintf(pathname + 2*i, "%02X", pathptr[i]);
-	r = snprintf(buf, bufsize, "%s/%s_%s_%s_%s", dir,
-		     p15card->manufacturer_id, p15card->label,
-		     p15card->serial_number, pathname);
-	if (r < 0)
-		return SC_ERROR_BUFFER_TOO_SMALL;
-        return 0;
+		sprintf(pathname + 2*i, "%02X", pathptr[i]);
+	if (p15card->serial_number != NULL) {
+		if (p15card->last_update != NULL)
+			r = snprintf(buf, bufsize, "%s/%s_%s_%s", dir,
+			     p15card->serial_number, p15card->last_update,
+			     pathname);
+		else
+			r = snprintf(buf, bufsize, "%s/%s_DATE_%s", dir,
+			     p15card->serial_number, pathname);
+		if (r < 0)
+			return SC_ERROR_BUFFER_TOO_SMALL;
+	} else
+		return SC_ERROR_INVALID_ARGUMENTS;
+        return SC_SUCCESS;
 }
 
 int sc_pkcs15_read_cached_file(struct sc_pkcs15_card *p15card,
-			       const struct sc_path *path,
+			       const sc_path_t *path,
 			       u8 **buf, size_t *bufsize)
 {
-	char fname[160];
+	char fname[PATH_MAX];
 	int r;
 	FILE *f;
 	size_t count, offset, got;
@@ -86,8 +93,7 @@ int sc_pkcs15_read_cached_file(struct sc_pkcs15_card *p15card,
 	} else {
 		count = path->count;
 		offset = path->index;
-		if (offset >= (size_t)stbuf.st_size
-		 || offset + count >= (size_t)stbuf.st_size)
+		if (offset + count > (size_t)stbuf.st_size)
 			return SC_ERROR_FILE_NOT_FOUND; /* cache file bad? */
 	}
 	if (*buf == NULL) {
@@ -121,7 +127,7 @@ int sc_pkcs15_read_cached_file(struct sc_pkcs15_card *p15card,
 }
 
 int sc_pkcs15_cache_file(struct sc_pkcs15_card *p15card,
-			 const struct sc_path *path,
+			 const sc_path_t *path,
 			 const u8 *buf, size_t bufsize)
 {
 	char fname[PATH_MAX];

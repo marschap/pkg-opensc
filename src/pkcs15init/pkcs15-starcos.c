@@ -29,7 +29,6 @@
 #include <opensc/log.h>
 #include <opensc/opensc.h>
 #include <opensc/cardctl.h>
-#include <opensc/scrandom.h>
 #include "pkcs15-init.h"
 #include "profile.h"
 
@@ -44,13 +43,14 @@
 
 static int starcos_finalize_card(sc_card_t *card);
 
-static int starcos_erase_card(struct sc_profile *pro, struct sc_card *card)
+static int starcos_erase_card(struct sc_profile *pro, sc_card_t *card)
 {
 	return sc_card_ctl(card, SC_CARDCTL_ERASE_CARD, NULL);
 }
 
 static u8 get_so_ac(const sc_file_t *file, unsigned int op,
-	const sc_pkcs15_pin_info_t *pin, u8 def, u8 need_global)
+	const sc_pkcs15_pin_info_t *pin, unsigned int def,
+	unsigned int need_global)
 {
 	int is_global = 1;
 	const sc_acl_entry_t *acl;
@@ -58,7 +58,7 @@ static u8 get_so_ac(const sc_file_t *file, unsigned int op,
 	if (pin->flags & SC_PKCS15_PIN_FLAG_LOCAL)
 		is_global = 0;
 	if (!is_global && need_global)
-		return def;
+		return def & 0xff;
 	acl = sc_file_get_acl_entry(file, op);
 	if (acl->method == SC_AC_NONE)
 		return STARCOS_AC_ALWAYS;
@@ -76,7 +76,7 @@ static u8 get_so_ac(const sc_file_t *file, unsigned int op,
 
 static int starcos_init_card(sc_profile_t *profile, sc_card_t *card)
 {
-	const static u8 key[]  = {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
+	static const u8 key[]  = {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
 	int		ret;
 	sc_starcos_create_data  mf_data, ipf_data;
 	sc_file_t	*mf_file, *isf_file, *ipf_file;
@@ -583,10 +583,11 @@ static size_t starcos_ipf_get_lastpos(u8 *ipf, size_t ipf_len)
 	if (!num_keys)
 		return 1;
 	while (num_keys--) {
+		size_t offset = p - ipf;	/* note: p > ipf */
 		/* get offset to the next key header */
 		tmp = 12 + (p[1] << 8) + p[2];
-		if (p + tmp - ipf > ipf_len)
-			return SC_ERROR_INTERNAL;
+		if (tmp + offset > ipf_len)
+			return 0;
 		p += tmp;
 	}
 
@@ -662,12 +663,12 @@ static int starcos_write_pukey(sc_profile_t *profile, sc_card_t *card,
 		return r;
 	len = tfile->size;
 	sc_file_free(tfile);
-	buf = malloc(len);
+	buf = (u8 *) malloc(len);
 	if (!buf)
 		return SC_ERROR_OUT_OF_MEMORY;
 	/* read the complete IPF */
 	r = sc_read_binary(card, 0, buf, len, 0);
-	if (r < 0 || r != len)
+	if (r < 0 || r != (int)len)
 		return r;
 	/* get/fix number of keys */
 	num_keys = buf[0];
@@ -726,6 +727,9 @@ static int starcos_create_key(sc_profile_t *profile, sc_card_t *card,
 	acl_entry = sc_file_get_acl_entry(tfile, SC_AC_OP_WRITE);
 	if (acl_entry->method  != SC_AC_NONE) {
 		r = sc_pkcs15init_authenticate(profile, card, tfile, SC_AC_OP_WRITE);
+	}
+	else   {
+		r = sc_select_file(card, &tfile->path, NULL);
 	}
 	sc_file_free(tfile);
 	if (r < 0)
@@ -863,7 +867,7 @@ static int starcos_generate_key(sc_profile_t *profile, sc_card_t *card,
 		rsa->modulus.data = gendat.modulus;
 		rsa->modulus.len  = kinfo->modulus_length >> 3;
 		/* set the exponent (always 0x10001) */
-		buf = malloc(3);
+		buf = (u8 *) malloc(3);
 		if (!buf)
 			return SC_ERROR_OUT_OF_MEMORY;
 		buf[0] = 0x01;
@@ -912,20 +916,24 @@ static int starcos_finalize_card(sc_card_t *card)
 	return r;
 }
 
-static struct sc_pkcs15init_operations sc_pkcs15init_starcos_operations;
+static struct sc_pkcs15init_operations sc_pkcs15init_starcos_operations = {
+	starcos_erase_card,
+	starcos_init_card,
+	starcos_create_dir,
+	NULL,				/* create_domain */
+	starcos_pin_reference,
+	starcos_create_pin,
+	starcos_key_reference,
+	starcos_create_key,
+	starcos_store_key,
+	starcos_generate_key,
+	NULL, NULL,			/* encode private/public key */
+	starcos_finalize_card,
+	NULL, NULL, NULL, NULL, NULL,	/* old style api */
+	NULL 				/* delete_object */
+};
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_starcos_ops(void)
 {
-	sc_pkcs15init_starcos_operations.erase_card = starcos_erase_card;
-	sc_pkcs15init_starcos_operations.init_card  = starcos_init_card;
-	sc_pkcs15init_starcos_operations.create_dir = starcos_create_dir;
-	sc_pkcs15init_starcos_operations.select_pin_reference = starcos_pin_reference;
-	sc_pkcs15init_starcos_operations.create_pin = starcos_create_pin;
-	sc_pkcs15init_starcos_operations.select_key_reference = starcos_key_reference;
-	sc_pkcs15init_starcos_operations.create_key = starcos_create_key;
-	sc_pkcs15init_starcos_operations.store_key  = starcos_store_key;
-	sc_pkcs15init_starcos_operations.generate_key = starcos_generate_key;
-	sc_pkcs15init_starcos_operations.finalize_card = starcos_finalize_card;
-
 	return &sc_pkcs15init_starcos_operations;
 }

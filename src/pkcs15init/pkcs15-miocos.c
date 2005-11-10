@@ -32,7 +32,7 @@
 /*
  * Initialize the Application DF
  */
-static int miocos_init_app(struct sc_profile *profile, struct sc_card *card,
+static int miocos_init_app(struct sc_profile *profile, sc_card_t *card,
 		struct sc_pkcs15_pin_info *pin_info,
 		const u8 *pin, size_t pin_len, const u8 *puk, size_t puk_len)
 {
@@ -47,8 +47,8 @@ static int miocos_init_app(struct sc_profile *profile, struct sc_card *card,
  * Store a PIN
  */
 static int
-miocos_new_pin(struct sc_profile *profile, struct sc_card *card,
-		struct sc_pkcs15_pin_info *info, unsigned int index,
+miocos_new_pin(struct sc_profile *profile, sc_card_t *card,
+		struct sc_pkcs15_pin_info *info, unsigned int idx,
 		const u8 *pin, size_t pin_len,
 		const u8 *puk, size_t puk_len)
 {
@@ -61,8 +61,8 @@ miocos_new_pin(struct sc_profile *profile, struct sc_card *card,
 	if (r)
 		return r;
 	memset(&ac_info, 0, sizeof(ac_info));
-	info->reference = index + 1;
-	ac_info.ref = index + 1;
+	info->reference = idx + 1;
+	ac_info.ref = idx + 1;
 	sc_profile_get_pin_info(profile, SC_PKCS15INIT_USER_PIN, &tmpinfo);
 	ac_info.max_tries = tmpinfo.tries_left;
 	sc_profile_get_pin_info(profile, SC_PKCS15INIT_USER_PUK, &tmpinfo);
@@ -83,15 +83,15 @@ miocos_new_pin(struct sc_profile *profile, struct sc_card *card,
  * Allocate a file
  */
 static int
-miocos_new_file(struct sc_profile *profile, struct sc_card *card,
+miocos_new_file(struct sc_profile *profile, sc_card_t *card,
 		unsigned int type, unsigned int num,
-		struct sc_file **out)
+		sc_file_t **out)
 {
 	struct sc_file	*file;
 	struct sc_path	*p;
-	char		name[64], *tag, *desc;
+	char		name[64];
+	const char      *tag = NULL, *desc = NULL;
 
-	desc = tag = NULL;
 	while (1) {
 		switch (type) {
 		case SC_PKCS15_TYPE_PRKEY_RSA:
@@ -149,7 +149,7 @@ miocos_new_file(struct sc_profile *profile, struct sc_card *card,
 }
 
 static int
-miocos_update_private_key(struct sc_profile *profile, struct sc_card *card,
+miocos_update_private_key(struct sc_profile *profile, sc_card_t *card,
 		struct sc_pkcs15_prkey_rsa *rsa)
 {
 	int r;
@@ -168,8 +168,8 @@ miocos_update_private_key(struct sc_profile *profile, struct sc_card *card,
  * Store a private key
  */
 static int
-miocos_new_key(struct sc_profile *profile, struct sc_card *card,
-		struct sc_pkcs15_prkey *key, unsigned int index,
+miocos_new_key(struct sc_profile *profile, sc_card_t *card,
+		struct sc_pkcs15_prkey *key, unsigned int idx,
 		struct sc_pkcs15_prkey_info *info)
 {
 	sc_file_t *keyfile;
@@ -185,7 +185,7 @@ miocos_new_key(struct sc_profile *profile, struct sc_card *card,
 		sc_error(card->ctx, "MioCOS supports only 1024-bit RSA keys.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
-	r = miocos_new_file(profile, card, SC_PKCS15_TYPE_PRKEY_RSA, index,
+	r = miocos_new_file(profile, card, SC_PKCS15_TYPE_PRKEY_RSA, idx,
 			    &keyfile);
 	if (r < 0)
 		return r;
@@ -201,14 +201,28 @@ miocos_new_key(struct sc_profile *profile, struct sc_card *card,
 	return r;
 }
 
-static struct sc_pkcs15init_operations sc_pkcs15init_miocos_operations;
+static struct sc_pkcs15init_operations sc_pkcs15init_miocos_operations = {
+	NULL,				/* erase_card */
+	NULL,				/* init_card  */
+	NULL,				/* create_dir */
+	NULL,				/* create_domain */
+	NULL,				/* select_pin_reference */
+	NULL,				/* create_pin */
+	NULL,				/* select_key_reference */
+	NULL,				/* create_key */
+	NULL,				/* store_key */
+	NULL,				/* generate_key */
+	NULL, NULL,			/* encode private/public key */
+	NULL,				/* finalize_card */
+	miocos_init_app,		/* old */
+	miocos_new_pin,
+	miocos_new_key,
+	miocos_new_file,
+	NULL,				/* old_generate_key */
+	NULL 				/* delete_object */
+};
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_miocos_ops(void)
 {
-	sc_pkcs15init_miocos_operations.init_app = miocos_init_app;
-	sc_pkcs15init_miocos_operations.new_pin = miocos_new_pin;
-	sc_pkcs15init_miocos_operations.new_key = miocos_new_key;
-	sc_pkcs15init_miocos_operations.new_file = miocos_new_file;
-
 	return &sc_pkcs15init_miocos_operations;
 }

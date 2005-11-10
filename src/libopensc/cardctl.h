@@ -1,15 +1,21 @@
 /*
- * card_ctl command numbers
+ * cardctl.h: card_ctl command numbers
  *
- * There is a range of generic card_ctls, and card-specific
- * ranges. I've used a 3-letter abbreviation of the card in
- * the prefix, but that's just a fad :)
+ * Copyright (C) 2003  Olaf Kirch <okir@lse.de>
  *
- * For now, I've reserved these:
- * 	0x0000xxxx	generic
- * 	0x4C4658xx	Cryptoflex
- * 	0x47504Bxx	GPK
- *      0x544353xx      TCOS
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
 #ifndef _OPENSC_CARDCTL_H
@@ -17,7 +23,7 @@
 
 #include <opensc/types.h>
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -32,6 +38,7 @@ enum {
 	SC_CARDCTL_GET_DEFAULT_KEY,
 	SC_CARDCTL_LIFECYCLE_GET,
 	SC_CARDCTL_LIFECYCLE_SET,
+	SC_CARDCTL_GET_SERIALNR,
 
 	/*
 	 * GPK specific calls
@@ -56,11 +63,11 @@ enum {
 	SC_CARDCTL_MIOCOS_BASE = _CTL_PREFIX('M', 'I', 'O'),
 	SC_CARDCTL_MIOCOS_CREATE_AC,
 
-        /*
-         * TCOS specific calls
-         */
-        SC_CARDCTL_TCOS_BASE = _CTL_PREFIX('T','C','S'),
-        SC_CARDCTL_TCOS_SETPERM,
+	/*
+	 * TCOS specific calls
+	 */
+	SC_CARDCTL_TCOS_BASE = _CTL_PREFIX('T','C','S'),
+	SC_CARDCTL_TCOS_SETPERM,
 
 	/*
 	 * eToken specific calls
@@ -72,15 +79,17 @@ enum {
 	SC_CARDCTL_ETOKEN_GENERATE_KEY,
 
 	/*
-	 * Starcos specific calls
+	 * Starcos SPK 2.3 specific calls
 	 */
 	SC_CARDCTL_STARCOS_BASE = _CTL_PREFIX('S', 'T', 'A'),
-	/* some Starcos SPK 2.3 specific commands */
 	SC_CARDCTL_STARCOS_CREATE_FILE,
 	SC_CARDCTL_STARCOS_CREATE_END,
 	SC_CARDCTL_STARCOS_WRITE_KEY,
 	SC_CARDCTL_STARCOS_GENERATE_KEY,
 
+	/*
+	 * JCOP specific calls
+	 */
 	SC_CARDCTL_JCOP_BASE = _CTL_PREFIX('J', 'C', 'P'),
 	SC_CARDCTL_JCOP_LOCK,
 	SC_CARDCTL_JCOP_GENERATE_KEY,
@@ -92,12 +101,21 @@ enum {
 	SC_CARDCTL_OBERTHUR_UPDATE_KEY,
 	SC_CARDCTL_OBERTHUR_GENERATE_KEY,
 	SC_CARDCTL_OBERTHUR_CREATE_PIN,
+
+	/*
+	 * Setcos specific calls
+	 */
+	SC_CARDCTL_SETCOS_BASE = _CTL_PREFIX('S', 'E', 'T'),
+	SC_CARDCTL_SETCOS_PUTDATA,
+	SC_CARDCTL_SETCOS_GETDATA,
+	SC_CARDCTL_SETCOS_GENERATE_STORE_KEY,
+	SC_CARDCTL_SETCOS_ACTIVATE_FILE
 };
 
 enum {
 	SC_CARDCTRL_LIFECYCLE_ADMIN,
 	SC_CARDCTRL_LIFECYCLE_USER,
-	SC_CARDCTRL_LIFECYCLE_OTHER,
+	SC_CARDCTRL_LIFECYCLE_OTHER
 };
 
 /*
@@ -151,7 +169,7 @@ enum {
 	SC_CARDCTL_MIOCOS_AC_PIN,
 	SC_CARDCTL_MIOCOS_AC_CHAL,
 	SC_CARDCTL_MIOCOS_AC_LOGICAL,
-	SC_CARDCTL_MIOCOS_AC_SMARTPIN,
+	SC_CARDCTL_MIOCOS_AC_SMARTPIN
 };
 
 /*
@@ -176,8 +194,6 @@ struct sc_cardctl_etoken_obj_info {
 };
 
 struct sc_cardctl_etoken_genkey_info {
-	u8 *		random_data;
-	size_t		random_len;
 	unsigned int	key_id;
 	unsigned int	key_bits;
 	unsigned short	fid;
@@ -230,8 +246,6 @@ typedef struct sc_starcos_gen_key_data_st {
 	size_t	key_length;
 	u8	*modulus;
 } sc_starcos_gen_key_data;
-	
-
 
 struct sc_cardctl_jcop_genkey  {
      unsigned long exponent;
@@ -240,18 +254,18 @@ struct sc_cardctl_jcop_genkey  {
      unsigned char *	pubkey;
      unsigned int	pubkey_len;
 };
-     
+
 /*
  * Oberthur ex_data stuff
  */
 enum SC_CARDCTL_OBERTHUR_KEY_TYPE {
 	SC_CARDCTL_OBERTHUR_KEY_DES = 0x80,
-	
+
 	SC_CARDCTL_OBERTHUR_KEY_RSA_PUBLIC = 0xA1,
 	SC_CARDCTL_OBERTHUR_KEY_RSA_SFM,
 	SC_CARDCTL_OBERTHUR_KEY_RSA_CRT,
 	SC_CARDCTL_OBERTHUR_KEY_DSA_PUBLIC,
-	SC_CARDCTL_OBERTHUR_KEY_DSA_PRIVATE,
+	SC_CARDCTL_OBERTHUR_KEY_DSA_PRIVATE
 };
 
 struct sc_cardctl_oberthur_genkey_info {
@@ -261,28 +275,52 @@ struct sc_cardctl_oberthur_genkey_info {
 	unsigned char * pubkey;
 	unsigned int    pubkey_len;
 };
-	  
+
 struct sc_cardctl_oberthur_updatekey_info {
 	enum SC_CARDCTL_OBERTHUR_KEY_TYPE  type;
 	unsigned int    component;
-	unsigned char 	*data;
+	const unsigned char *data;
 	unsigned int    len;
 };
 
 struct sc_cardctl_oberthur_createpin_info {
 	unsigned int type;
 	unsigned int ref;
-	unsigned char *pin;
+	const unsigned char *pin;
 	unsigned int pin_len;
 	unsigned int pin_tries;
-	unsigned char *puk;
+	const unsigned char *puk;
 	unsigned int puk_len;
 	unsigned int puk_tries;
 };
-	  
-#ifdef  __cplusplus
+
+/*
+ * Setcos stuff
+ */
+struct sc_cardctl_setcos_data_obj {
+	int     P1;
+	int     P2;
+	u8 *    Data;
+	size_t  DataLen;
+	int     LengthMax;
+};
+
+#define OP_TYPE_GENERATE	0
+#define OP_TYPE_STORE		1
+
+struct sc_cardctl_setcos_gen_store_key_info {
+	int             op_type;
+	unsigned int    mod_len;     /* in bits */
+	unsigned int    pubexp_len;  /* in bits */
+	unsigned char  *pubexp;
+	unsigned int    primep_len;  /* in bits */
+	unsigned char  *primep;
+	unsigned int    primeq_len;  /* in bits */
+	unsigned char  *primeq;
+};
+
+#ifdef __cplusplus
 }
 #endif
 
 #endif /* _OPENSC_CARDCTL_H */
-

@@ -1,0 +1,31 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Tools - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>OpenSC Tools</h1>
+<p>
+OpenSC includes a number of command line tools for exploring smart cards,
+testing, automatisation and debugging. The tools are (with links to the online
+man pages):
+</p>
+<h2>low level tools</h2>
+<ul><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#opensc-tool" href="http://www.opensc.org/doc/opensc/html/tools.html#opensc-tool" shape="rect">opensc-tool</a> is the basic test tool. with "-l" you can see the readers, with
+"-n" you can see if opensc identifies the card correctly. both is necessary for any other card tool to work.
+</li><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#opensc-explorer" href="http://www.opensc.org/doc/opensc/html/tools.html#opensc-explorer" shape="rect">opensc-explorer</a> is a small tool so you can browse your smart card
+with commands like ls, get information about files, read and write files and so on. only works on some cards, as not all cards have
+the required functionality (for example no "ls"/"dir" command).
+</li></ul><h2>high level tools</h2>
+<ul><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#pkcs15-init" href="http://www.opensc.org/doc/opensc/html/tools.html#pkcs15-init" shape="rect">pkcs15-init</a> can erase your smart card, initialize it, create pins and generate keys
+and store certificates and keys or complete p12 bundle files.
+</li><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#pkcs15-tool" href="http://www.opensc.org/doc/opensc/html/tools.html#pkcs15-tool" shape="rect">pkcs15-tool</a> will show you what is on your card, lets you browse pins, certificates and keys, and lets you unblock and change pins.
+</li><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#pkcs15-crypt" href="http://www.opensc.org/doc/opensc/html/tools.html#pkcs15-crypt" shape="rect">pkcs15-crypt</a> offers access to the crypto functionality, such as signing data or decrypting data.
+</li><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#pkcs11-tool" href="http://www.opensc.org/doc/opensc/html/tools.html#pkcs11-tool" shape="rect">pkcs11-tool</a> does all these things too, but uses the opensc PKCS#11 module. as such it works like mozilla and thus is nice for testing. it also has a test mode to check all most operations. pkcs11-tool uses opensc PKCS#11 module by default, but will work well with any other PKCS#11 implementation specified with "--module", too. 
+</li></ul><h2>card specific tools</h2>
+<ul><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#cardos-info" href="http://www.opensc.org/doc/opensc/html/tools.html#cardos-info" shape="rect">cardos-info</a> prints some information for Siemens CardOS/M4 cards. will not work at all with other cards.
+</li><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#cryptoflex-tool" href="http://www.opensc.org/doc/opensc/html/tools.html#cryptoflex-tool" shape="rect">cryptoflex-tool</a> can help you with cryptoflex cards, will not work with any other card.
+</li><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#eidenv" href="http://www.opensc.org/doc/opensc/html/tools.html#eidenv" shape="rect">eidenv</a> lets you access the extra data on belgian eid cards, like card holder, photo, etc.
+</li><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#netkey-tool" href="http://www.opensc.org/doc/opensc/html/tools.html#netkey-tool" shape="rect">netkey-tool</a> can help you with tcos cards in netkey format. will not work with any other card.
+</li></ul><h2>development tools</h2>
+<ul><li><a class="ext-link" title="http://www.opensc.org/doc/opensc/html/tools.html#opensc-config" href="http://www.opensc.org/doc/opensc/html/tools.html#opensc-config" shape="rect">opensc-config</a> was meant to ease developing with opensc, but now we recommend to use pkg-config instead. only provided for backwards compatibility.
+</li></ul></div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

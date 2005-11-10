@@ -25,24 +25,28 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include <opensc/scdl.h>
+#include <ltdl.h>
 
 
 static const struct sc_asn1_entry c_asn1_toki[] = {
-	{ "version",        SC_ASN1_INTEGER,      ASN1_INTEGER, 0, NULL },
-	{ "serialNumber",   SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL },
-	{ "manufacturerID", SC_ASN1_UTF8STRING,   ASN1_UTF8STRING, SC_ASN1_OPTIONAL, NULL },
-	{ "label",	    SC_ASN1_UTF8STRING,   SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL },
-	{ "tokenflags",	    SC_ASN1_BIT_FIELD,   ASN1_BIT_STRING, 0, NULL },
-	{ "seInfo",	    SC_ASN1_SEQUENCE,	  SC_ASN1_CONS | ASN1_SEQUENCE, SC_ASN1_OPTIONAL, NULL },
-	{ "recordInfo",	    SC_ASN1_STRUCT,       SC_ASN1_CONS | SC_ASN1_CTX | 1, SC_ASN1_OPTIONAL, NULL },
-	{ "supportedAlgorithms", SC_ASN1_STRUCT,  SC_ASN1_CONS | SC_ASN1_CTX | 2, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "version",        SC_ASN1_INTEGER,      ASN1_INTEGER, 0, NULL, NULL },
+	{ "serialNumber",   SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ "manufacturerID", SC_ASN1_UTF8STRING,   ASN1_UTF8STRING, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "label",	    SC_ASN1_UTF8STRING,   SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "tokenflags",	    SC_ASN1_BIT_FIELD,   ASN1_BIT_STRING, 0, NULL, NULL },
+	{ "seInfo",	    SC_ASN1_SEQUENCE,	  SC_ASN1_CONS | ASN1_SEQUENCE, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "recordInfo",	    SC_ASN1_STRUCT,       SC_ASN1_CONS | SC_ASN1_CTX | 1, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "supportedAlgorithms", SC_ASN1_STRUCT,  SC_ASN1_CONS | SC_ASN1_CTX | 2, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "issuerId",       SC_ASN1_UTF8STRING,   SC_ASN1_CTX | 3, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "holderId",       SC_ASN1_UTF8STRING,   SC_ASN1_CTX | 4, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "lastUpdate",     SC_ASN1_GENERALIZEDTIME, SC_ASN1_CTX | 5, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "preferredLanguage", SC_ASN1_PRINTABLESTRING, ASN1_PRINTABLESTRING, SC_ASN1_OPTIONAL, NULL, NULL }, 
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_tokeninfo[] = {
-	{ "TokenInfo", SC_ASN1_STRUCT, SC_ASN1_CONS | ASN1_SEQUENCE, 0, NULL },
-	{ NULL }
+	{ "TokenInfo", SC_ASN1_STRUCT, SC_ASN1_CONS | ASN1_SEQUENCE, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static void parse_tokeninfo(struct sc_pkcs15_card *card, const u8 * buf, size_t buflen)
@@ -55,9 +59,14 @@ static void parse_tokeninfo(struct sc_pkcs15_card *card, const u8 * buf, size_t 
 	size_t mnfid_len = sizeof(mnfid);
 	u8 label[SC_PKCS15_MAX_LABEL_SIZE];
 	size_t label_len = sizeof(label);
+	u8 last_update[32];
+	size_t lupdate_len = sizeof(last_update) - 1;
 	size_t flags_len = sizeof(card->flags);
-	struct sc_asn1_entry asn1_toki[9], asn1_tokeninfo[3];
+	struct sc_asn1_entry asn1_toki[13], asn1_tokeninfo[3];
+	u8 preferred_language[3];
+	size_t lang_length = sizeof(preferred_language);
 
+	memset(last_update, 0, sizeof(last_update));
 	sc_copy_asn1_entry(c_asn1_toki, asn1_toki);
 	sc_copy_asn1_entry(c_asn1_tokeninfo, asn1_tokeninfo);
 	sc_format_asn1_entry(asn1_toki + 0, &card->version, NULL, 0);
@@ -65,6 +74,13 @@ static void parse_tokeninfo(struct sc_pkcs15_card *card, const u8 * buf, size_t 
 	sc_format_asn1_entry(asn1_toki + 2, mnfid, &mnfid_len, 0);
 	sc_format_asn1_entry(asn1_toki + 3, label, &label_len, 0);
 	sc_format_asn1_entry(asn1_toki + 4, &card->flags, &flags_len, 0);
+	sc_format_asn1_entry(asn1_toki + 5, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 6, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 7, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 8, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 9, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 10, last_update, &lupdate_len, 0);
+	sc_format_asn1_entry(asn1_toki + 11, preferred_language, &lang_length, 0);
 	sc_format_asn1_entry(asn1_tokeninfo, asn1_toki, NULL, 0);
 	
 	r = sc_asn1_decode(card->card->ctx, asn1_tokeninfo, buf, buflen, NULL, NULL);
@@ -76,6 +92,10 @@ static void parse_tokeninfo(struct sc_pkcs15_card *card, const u8 * buf, size_t 
 	}
 	card->version += 1;
 	card->serial_number = (char *) malloc(serial_len * 2 + 1);
+	if (!card->serial_number) {
+		sc_error(card->card->ctx, "Memory allocation failed\n");
+		goto err;
+	}
 	card->serial_number[0] = 0;
 	for (i = 0; i < serial_len; i++) {
 		char byte[3];
@@ -95,6 +115,12 @@ static void parse_tokeninfo(struct sc_pkcs15_card *card, const u8 * buf, size_t 
 		else
 			card->label = strdup("(unknown)");
 	}
+	if (asn1_toki[10].flags & SC_ASN1_PRESENT)
+		card->last_update = strdup((char *)last_update);
+	if (asn1_toki[11].flags & SC_ASN1_PRESENT) {
+		preferred_language[2] = 0;
+		card->preferred_language = strdup((char *)preferred_language);
+	}
 	return;
 err:
 	if (card->serial_number == NULL)
@@ -104,44 +130,57 @@ err:
 	return;
 }
 
-int sc_pkcs15_encode_tokeninfo(struct sc_context *ctx,
+int sc_pkcs15_encode_tokeninfo(sc_context_t *ctx,
 			       struct sc_pkcs15_card *card,
 			       u8 **buf, size_t *buflen)
 {
 	int r;
-	u8 serial[128];
-	size_t serial_len = 0;
-	size_t mnfid_len;
-	size_t label_len;
-	size_t flags_len;
 	int version = card->version;
+	size_t serial_len, mnfid_len, label_len, flags_len, last_upd_len;
 	
-	struct sc_asn1_entry asn1_toki[9], asn1_tokeninfo[2];
+	struct sc_asn1_entry asn1_toki[13], asn1_tokeninfo[2];
 
 	sc_copy_asn1_entry(c_asn1_toki, asn1_toki);
 	sc_copy_asn1_entry(c_asn1_tokeninfo, asn1_tokeninfo);
 	version--;
 	sc_format_asn1_entry(asn1_toki + 0, &version, NULL, 1);
 	if (card->serial_number != NULL) {
+		u8 serial[128];
+		serial_len = 0;
 		if (strlen(card->serial_number)/2 > sizeof(serial))
 			return SC_ERROR_BUFFER_TOO_SMALL;
 		serial_len = sizeof(serial);
 		if (sc_hex_to_bin(card->serial_number, serial, &serial_len) < 0)
 			return SC_ERROR_INVALID_ARGUMENTS;
 		sc_format_asn1_entry(asn1_toki + 1, serial, &serial_len, 1);
-	}
+	} else
+		sc_format_asn1_entry(asn1_toki + 1, NULL, NULL, 0);
 	if (card->manufacturer_id != NULL) {
 		mnfid_len = strlen(card->manufacturer_id);
 		sc_format_asn1_entry(asn1_toki + 2, card->manufacturer_id, &mnfid_len, 1);
-	}
+	} else
+		sc_format_asn1_entry(asn1_toki + 2, NULL, NULL, 0);
 	if (card->label != NULL) {
 		label_len = strlen(card->label);
 		sc_format_asn1_entry(asn1_toki + 3, card->label, &label_len, 1);
-	}
+	} else
+		sc_format_asn1_entry(asn1_toki + 3, NULL, NULL, 0);
 	if (card->flags) {
 		flags_len = sizeof(card->flags);
 		sc_format_asn1_entry(asn1_toki + 4, &card->flags, &flags_len, 1);
-	}
+	} else
+		sc_format_asn1_entry(asn1_toki + 4, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 5, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 6, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 7, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 8, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 9, NULL, NULL, 0);
+	if (card->last_update != NULL) {
+		last_upd_len = strlen(card->last_update);
+		sc_format_asn1_entry(asn1_toki + 10, card->last_update, &last_upd_len, 1);
+	} else
+		sc_format_asn1_entry(asn1_toki + 10, NULL, NULL, 0);
+	sc_format_asn1_entry(asn1_toki + 11, NULL, NULL, 0);
 	sc_format_asn1_entry(asn1_tokeninfo, asn1_toki, NULL, 1);
 
 	r = sc_asn1_encode(ctx, asn1_tokeninfo, buf, buflen);
@@ -153,17 +192,17 @@ int sc_pkcs15_encode_tokeninfo(struct sc_context *ctx,
 }
 
 static const struct sc_asn1_entry c_asn1_ddo[] = {
-	{ "oid",	   SC_ASN1_OBJECT, ASN1_OBJECT, 0, NULL },
-	{ "odfPath",	   SC_ASN1_PATH, SC_ASN1_CONS | ASN1_SEQUENCE, SC_ASN1_OPTIONAL, NULL },
-	{ "tokenInfoPath", SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL },
-	{ "unusedPath",    SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_CTX | 1, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "oid",	   SC_ASN1_OBJECT, ASN1_OBJECT, 0, NULL, NULL },
+	{ "odfPath",	   SC_ASN1_PATH, SC_ASN1_CONS | ASN1_SEQUENCE, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "tokenInfoPath", SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "unusedPath",    SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_CTX | 1, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static int parse_ddo(struct sc_pkcs15_card *p15card, const u8 * buf, size_t buflen)
 {
 	struct sc_asn1_entry asn1_ddo[5];
-	struct sc_path odf_path, ti_path;
+	sc_path_t odf_path, ti_path;
 	int r;
 
 	sc_copy_asn1_entry(c_asn1_ddo, asn1_ddo);
@@ -223,67 +262,19 @@ static int encode_ddo(struct sc_pkcs15_card *p15card, u8 **buf, size_t *buflen)
 }
 #endif
 
-#if 0
-int sc_pkcs15_create_dir(struct sc_pkcs15_card *p15card, struct sc_card *card)
-{
-	struct sc_path path;
-	struct sc_file file;
-	u8 *buf;
-	size_t bufsize;
-	int r, i;
-
-	SC_FUNC_CALLED(card->ctx, 1);
-	sc_format_path("3F00", &path);
-	r = sc_select_file(card, &path, NULL);
-	SC_TEST_RET(card->ctx, r, "sc_select_file(MF) failed");
-	r = encode_dir(card->ctx, p15card, &buf, &bufsize);
-	SC_TEST_RET(card->ctx, r, "EF(DIR) encoding failed");
-	memset(&file, 0, sizeof(file));
-	for (i = 0; i < SC_MAX_AC_OPS; i++)
-		file.acl[i] = p15card->file_dir.acl[i];
-	file.size = bufsize;
-	file.type = SC_FILE_TYPE_WORKING_EF;
-	file.ef_structure = SC_FILE_EF_TRANSPARENT;
-	file.id = 0x2F00;
-	file.status = SC_FILE_STATUS_ACTIVATED;
-	sc_format_path("3F002F00", &path);
-	card->ctx->suppress_errors++;
-	r = sc_select_file(card, &path, NULL);
-	card->ctx->suppress_errors--;
-	if (r != 0) {
-		r = sc_create_file(card, &file);
-		if (r) {
-			sc_perror(card->ctx, r, "Error creating EF(DIR)");
-			free(buf);
-			return r;
-		}
-		r = sc_select_file(card, &path, NULL);
-		if (r) {
-			sc_perror(card->ctx, r, "Error selecting EF(DIR)");
-			free(buf);
-			return r;
-		}
-	}
-	r = sc_update_binary(card, 0, buf, bufsize, 0);
-	free(buf);
-	SC_TEST_RET(card->ctx, r, "Error updating EF(DIR)");
-	return 0;
-}
-#endif
-
 static const struct sc_asn1_entry c_asn1_odf[] = {
-	{ "privateKeys",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 0 | SC_ASN1_CONS, 0, NULL },
-	{ "publicKeys",		 SC_ASN1_STRUCT, SC_ASN1_CTX | 1 | SC_ASN1_CONS, 0, NULL },
-	{ "trustedPublicKeys",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 2 | SC_ASN1_CONS, 0, NULL },
-	{ "certificates",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 4 | SC_ASN1_CONS, 0, NULL },
-	{ "trustedCertificates", SC_ASN1_STRUCT, SC_ASN1_CTX | 5 | SC_ASN1_CONS, 0, NULL },
-	{ "usefulCertificates",  SC_ASN1_STRUCT, SC_ASN1_CTX | 6 | SC_ASN1_CONS, 0, NULL },
-	{ "dataObjects",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 7 | SC_ASN1_CONS, 0, NULL },
-	{ "authObjects",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 8 | SC_ASN1_CONS, 0, NULL },
-	{ NULL }
+	{ "privateKeys",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 0 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "publicKeys",		 SC_ASN1_STRUCT, SC_ASN1_CTX | 1 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "trustedPublicKeys",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 2 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "certificates",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 4 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "trustedCertificates", SC_ASN1_STRUCT, SC_ASN1_CTX | 5 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "usefulCertificates",  SC_ASN1_STRUCT, SC_ASN1_CTX | 6 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "dataObjects",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 7 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "authObjects",	 SC_ASN1_STRUCT, SC_ASN1_CTX | 8 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
-static const int odf_indexes[] = {
+static const unsigned int odf_indexes[] = {
 	SC_PKCS15_PRKDF,
 	SC_PKCS15_PUKDF,
 	SC_PKCS15_PUKDF_TRUSTED,
@@ -299,10 +290,10 @@ static int parse_odf(const u8 * buf, size_t buflen, struct sc_pkcs15_card *card)
 	const u8 *p = buf;
 	size_t left = buflen;
 	int r, i;
-	struct sc_path path;
+	sc_path_t path;
 	struct sc_asn1_entry asn1_obj_or_path[] = {
-		{ "path", SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_SEQUENCE, 0, &path },
-		{ NULL }
+		{ "path", SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_SEQUENCE, 0, &path, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	struct sc_asn1_entry asn1_odf[9];
 	
@@ -322,14 +313,14 @@ static int parse_odf(const u8 * buf, size_t buflen, struct sc_pkcs15_card *card)
 	return 0;
 }
 
-int sc_pkcs15_encode_odf(struct sc_context *ctx,
+int sc_pkcs15_encode_odf(sc_context_t *ctx,
 			 struct sc_pkcs15_card *p15card,
 			 u8 **buf, size_t *buflen)
 {
-	struct sc_path path;
+	sc_path_t path;
 	struct sc_asn1_entry asn1_obj_or_path[] = {
-		{ "path", SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_SEQUENCE, 0, &path },
-		{ NULL }
+		{ "path", SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_SEQUENCE, 0, &path, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	struct sc_asn1_entry *asn1_paths = NULL;
 	struct sc_asn1_entry *asn1_odf = NULL;
@@ -388,17 +379,18 @@ struct sc_pkcs15_card * sc_pkcs15_card_new()
 {
 	struct sc_pkcs15_card *p15card;
 	
-	p15card = (struct sc_pkcs15_card *) malloc(sizeof(struct sc_pkcs15_card));
+	p15card = (struct sc_pkcs15_card *) calloc(1, sizeof(struct sc_pkcs15_card));
 	if (p15card == NULL)
 		return NULL;
-	memset(p15card, 0, sizeof(struct sc_pkcs15_card));
 	p15card->magic = SC_PKCS15_CARD_MAGIC;
 	return p15card;
 }
 
 void sc_pkcs15_card_free(struct sc_pkcs15_card *p15card)
 {
-	assert(p15card != NULL && p15card->magic == SC_PKCS15_CARD_MAGIC);
+	if (p15card == NULL)
+		return;
+	assert(p15card->magic == SC_PKCS15_CARD_MAGIC);
 	while (p15card->obj_list)
 		sc_pkcs15_remove_object(p15card, p15card->obj_list);
 	while (p15card->df_list)
@@ -410,52 +402,60 @@ void sc_pkcs15_card_free(struct sc_pkcs15_card *p15card)
 	if (p15card->file_odf != NULL)
 		sc_file_free(p15card->file_odf);
 	p15card->magic = 0;
-	if (p15card->label)
+	if (p15card->label != NULL)
 		free(p15card->label);
-	if (p15card->serial_number)
+	if (p15card->serial_number != NULL)
 		free(p15card->serial_number);
-	if (p15card->manufacturer_id)
+	if (p15card->manufacturer_id != NULL)
 		free(p15card->manufacturer_id);
-	if (p15card->preferred_language)
+	if (p15card->last_update != NULL)
+		free(p15card->last_update);
+	if (p15card->preferred_language != NULL)
 		free(p15card->preferred_language);
 	free(p15card);
 }
 
 void sc_pkcs15_card_clear(sc_pkcs15_card_t *p15card)
 {
+	if (p15card == NULL)
+		return;
 	p15card->version = 0;
 	p15card->flags   = 0;
-	while (p15card->obj_list)
+	while (p15card->obj_list != NULL)
 		sc_pkcs15_remove_object(p15card, p15card->obj_list);
 	p15card->obj_list = NULL;
-	while (p15card->df_list)
+	while (p15card->df_list != NULL)
 		sc_pkcs15_remove_df(p15card, p15card->df_list);
 	p15card->df_list = NULL;
-	if (p15card->file_app) {
+	if (p15card->file_app != NULL) {
 		sc_file_free(p15card->file_app);
 		p15card->file_app = NULL;
 	}
-	if (p15card->file_tokeninfo) {
+	if (p15card->file_tokeninfo != NULL) {
 		sc_file_free(p15card->file_tokeninfo);
 		p15card->file_tokeninfo = NULL;
 	}
-	if (p15card->file_odf) {
+	if (p15card->file_odf != NULL) {
 		sc_file_free(p15card->file_odf);
 		p15card->file_odf = NULL;
 	}
-	if (p15card->label) {
+	if (p15card->label != NULL) {
 		free(p15card->label);
 		p15card->label = NULL;
 	}
-	if (p15card->serial_number) {
+	if (p15card->serial_number != NULL) {
 		free(p15card->serial_number);
 		p15card->serial_number = NULL;
 	}
-	if (p15card->manufacturer_id) {
+	if (p15card->manufacturer_id != NULL) {
 		free(p15card->manufacturer_id);
 		p15card->manufacturer_id = NULL;
 	}
-	if (p15card->preferred_language) {
+	if (p15card->last_update != NULL) {
+		free(p15card->last_update);
+		p15card->last_update = NULL;
+	}
+	if (p15card->preferred_language != NULL) {
 		free(p15card->preferred_language);
 		p15card->preferred_language = NULL;
 	}
@@ -466,9 +466,9 @@ static int sc_pkcs15_bind_internal(sc_pkcs15_card_t *p15card)
 	unsigned char buf[SC_MAX_APDU_BUFFER_SIZE];
 	int    err, ok = 0;
 	size_t len;
-	struct sc_path tmppath;
-	struct sc_card    *card = p15card->card;
-	struct sc_context *ctx  = card->ctx;
+	sc_path_t tmppath;
+	sc_card_t    *card = p15card->card;
+	sc_context_t *ctx  = card->ctx;
 
 	if (ctx->debug > 4)
 		sc_debug(ctx, "trying normal pkcs15 processing\n");
@@ -488,7 +488,7 @@ static int sc_pkcs15_bind_internal(sc_pkcs15_card_t *p15card)
 	}
 	sc_format_path("3F005015", &p15card->file_app->path);
 	if (card->app_count > 0) {
-		const struct sc_app_info *info;
+		const sc_app_info_t *info;
 		
 		info = sc_find_pkcs15_app(card);
 		if (info != NULL) {
@@ -502,21 +502,39 @@ static int sc_pkcs15_bind_internal(sc_pkcs15_card_t *p15card)
 	/* Check if pkcs15 directory exists */
 	card->ctx->suppress_errors++;
 	err = sc_select_file(card, &p15card->file_app->path, NULL);
+#if 1
+	/* If the above test failed on cards without EF(DIR),
+	 * try to continue read ODF from 3F005031. -aet
+	 */
+	if ((err == SC_ERROR_FILE_NOT_FOUND) &&
+	    (card->app_count < 1)) {
+		sc_format_path("3F00", &p15card->file_app->path);
+		err = SC_NO_ERROR;
+	}
+#endif
 	card->ctx->suppress_errors--;
 	if (err < 0)
 		goto end;
 
 	if (p15card->file_odf == NULL) {
+		/* check if an ODF is present; suppress errors as we
+		 * don't know yet whether we have a pkcs15 card */
 		tmppath = p15card->file_app->path;
 		sc_append_path_id(&tmppath, (const u8 *) "\x50\x31", 2);
+		card->ctx->suppress_errors++;
+		err = sc_select_file(card, &tmppath, &p15card->file_odf);
+		card->ctx->suppress_errors--;
+		
 	} else {
 		tmppath = p15card->file_odf->path;
 		sc_file_free(p15card->file_odf);
 		p15card->file_odf = NULL;
+		err = sc_select_file(card, &tmppath, &p15card->file_odf);
 	}
-	err = sc_select_file(card, &tmppath, &p15card->file_odf);
-	if (err) /* FIXME: finish writing error reporting stuff */
+	if (err != SC_SUCCESS) {
+		sc_debug(ctx, "EF(ODF) not found in '%s'\n", sc_print_path(&tmppath));
 		goto end;
+	}
 
 	/* XXX: fix buffer overflow. Silently truncate ODF if it
 	 * is too large.  --okir */
@@ -581,11 +599,11 @@ end:
 	return SC_SUCCESS;
 }
 
-int sc_pkcs15_bind(struct sc_card *card,
+int sc_pkcs15_bind(sc_card_t *card,
 		   struct sc_pkcs15_card **p15card_out)
 {
 	struct sc_pkcs15_card *p15card = NULL;
-	struct sc_context *ctx;
+	sc_context_t *ctx;
 	scconf_block *conf_block = NULL, **blocks;
 	int    i, r, emu_first, enable_emu;
 
@@ -604,8 +622,10 @@ int sc_pkcs15_bind(struct sc_card *card,
 			conf_block = blocks[0];
 		free(blocks);
 	}
-	if (conf_block)
+
+	if (conf_block) {
 		p15card->opts.use_cache = scconf_get_bool(conf_block, "use_caching", 0);
+	}
 
 	r = sc_lock(card);
 	if (r) {
@@ -648,10 +668,10 @@ error:
 }
 
 #if 0
-int sc_pkcs15_detect(struct sc_card *card)
+int sc_pkcs15_detect(sc_card_t *card)
 {
 	int r;
-	struct sc_path path;
+	sc_path_t path;
 
 	sc_format_path("NA0000063504B43532D3135", &path);
 	r = sc_select_file(card, &path, NULL);
@@ -666,14 +686,14 @@ int sc_pkcs15_unbind(struct sc_pkcs15_card *p15card)
 	assert(p15card != NULL && p15card->magic == SC_PKCS15_CARD_MAGIC);
 	SC_FUNC_CALLED(p15card->card->ctx, 1);
 	if (p15card->dll_handle)
-		scdl_close(p15card->dll_handle);
+		lt_dlclose(p15card->dll_handle);
 	sc_pkcs15_card_free(p15card);
 	return 0;
 }
 
 static int
 __sc_pkcs15_search_objects(sc_pkcs15_card_t *p15card,
-			unsigned int class_mask, int type,
+			unsigned int class_mask, unsigned int type,
 			int (*func)(sc_pkcs15_object_t *, void *),
                         void *func_arg,
 			sc_pkcs15_object_t **ret, size_t ret_size)
@@ -749,10 +769,10 @@ __sc_pkcs15_search_objects(sc_pkcs15_card_t *p15card,
 	return match_count;
 }
 
-int sc_pkcs15_get_objects(struct sc_pkcs15_card *p15card, int type,
-			  struct sc_pkcs15_object **ret, int ret_size)
+int sc_pkcs15_get_objects(struct sc_pkcs15_card *p15card, unsigned int type,
+			  struct sc_pkcs15_object **ret, size_t ret_size)
 {
-        return sc_pkcs15_get_objects_cond(p15card, type, NULL, NULL, ret, ret_size);
+	return sc_pkcs15_get_objects_cond(p15card, type, NULL, NULL, ret, ret_size);
 }
 
 static int compare_obj_id(struct sc_pkcs15_object *obj, const sc_pkcs15_id_t *id)
@@ -773,6 +793,13 @@ static int compare_obj_id(struct sc_pkcs15_object *obj, const sc_pkcs15_id_t *id
 	case SC_PKCS15_TYPE_DATA_OBJECT:
 		return sc_pkcs15_compare_id(&((struct sc_pkcs15_data_info *) data)->id, id);
 	}
+	return 0;
+}
+
+static int sc_obj_app_oid(struct sc_pkcs15_object *obj, const struct sc_object_id *app_oid)
+{
+	if (obj->type & SC_PKCS15_TYPE_DATA_OBJECT)
+		return sc_compare_oid(&((struct sc_pkcs15_data_info *) obj->data)->app_oid, app_oid);
 	return 0;
 }
 
@@ -837,21 +864,16 @@ static int compare_obj_path(sc_pkcs15_object_t *obj, const sc_path_t *path)
 	switch (obj->type) {
 	case SC_PKCS15_TYPE_CERT_X509:
 		return sc_compare_path(&((struct sc_pkcs15_cert_info *) data)->path, path);
-		break;
 	case SC_PKCS15_TYPE_PRKEY_RSA:
 	case SC_PKCS15_TYPE_PRKEY_DSA:
 		return sc_compare_path(&((struct sc_pkcs15_prkey_info *) data)->path, path);
-		break;
 	case SC_PKCS15_TYPE_PUBKEY_RSA:
 	case SC_PKCS15_TYPE_PUBKEY_DSA:
 		return sc_compare_path(&((struct sc_pkcs15_pubkey_info *) data)->path, path);
-		break;
 	case SC_PKCS15_TYPE_AUTH_PIN:
 		return sc_compare_path(&((struct sc_pkcs15_pin_info *) data)->path, path);
-		break;
 	case SC_PKCS15_TYPE_DATA_OBJECT:
 		return sc_compare_path(&((struct sc_pkcs15_data_info *) data)->path, path);
-		break;
 	}
 	return 0;
 }
@@ -861,6 +883,8 @@ static int compare_obj_key(struct sc_pkcs15_object *obj, void *arg)
 	struct sc_pkcs15_search_key *sk = (struct sc_pkcs15_search_key *) arg;
 
 	if (sk->id && !compare_obj_id(obj, sk->id))
+		return 0;
+	if (sk->app_oid && !sc_obj_app_oid(obj, sk->app_oid))
 		return 0;
 	if (sk->usage_mask && !compare_obj_usage(obj, sk->usage_mask, sk->usage_value))
 		return 0;
@@ -874,7 +898,7 @@ static int compare_obj_key(struct sc_pkcs15_object *obj, void *arg)
 }
 
 static int find_by_key(struct sc_pkcs15_card *p15card,
-		       int type, struct sc_pkcs15_search_key *sk,
+		       unsigned int type, struct sc_pkcs15_search_key *sk,
 		       struct sc_pkcs15_object **out)
 {
 	int r;
@@ -897,17 +921,17 @@ sc_pkcs15_search_objects(sc_pkcs15_card_t *p15card, sc_pkcs15_search_key_t *sk,
 			ret, ret_size);
 }
 
-int sc_pkcs15_get_objects_cond(struct sc_pkcs15_card *p15card, int type,
+int sc_pkcs15_get_objects_cond(struct sc_pkcs15_card *p15card, unsigned int type,
 			       int (* func)(struct sc_pkcs15_object *, void *),
                                void *func_arg,
-			       struct sc_pkcs15_object **ret, int ret_size)
+			       struct sc_pkcs15_object **ret, size_t ret_size)
 {
 	return __sc_pkcs15_search_objects(p15card, 0, type,
 			func, func_arg, ret, ret_size);
 }
 
 int sc_pkcs15_find_object_by_id(sc_pkcs15_card_t *p15card,
-				int type, const sc_pkcs15_id_t *id,
+				unsigned int type, const sc_pkcs15_id_t *id,
 				sc_pkcs15_object_t **out)
 {
 	sc_pkcs15_search_key_t sk;
@@ -973,6 +997,26 @@ int sc_pkcs15_find_data_object_by_id(struct sc_pkcs15_card *p15card,
 				struct sc_pkcs15_object **out)
 {
 	return sc_pkcs15_find_object_by_id(p15card, SC_PKCS15_TYPE_DATA_OBJECT, id, out);
+}
+
+int sc_pkcs15_find_data_object_by_app_oid(struct sc_pkcs15_card *p15card,
+				const struct sc_object_id *app_oid,
+				struct sc_pkcs15_object **out)
+{
+	sc_pkcs15_search_key_t sk;
+	int	r;
+
+	memset(&sk, 0, sizeof(sk));
+	sk.app_oid = app_oid;
+
+	r = __sc_pkcs15_search_objects(p15card, 0, SC_PKCS15_TYPE_DATA_OBJECT,
+				compare_obj_key, &sk,
+				out, 1);
+	if (r < 0)
+		return r;
+	if (r == 0)
+		return SC_ERROR_OBJECT_NOT_FOUND;
+	return 0;
 }
 
 int sc_pkcs15_find_prkey_by_id_usage(struct sc_pkcs15_card *p15card,
@@ -1042,27 +1086,55 @@ void sc_pkcs15_remove_object(struct sc_pkcs15_card *p15card,
 		obj->prev->next = obj->next;
 	if (obj->next != NULL)
 		obj->next->prev = obj->prev;
-	if (obj->data)
+	sc_pkcs15_free_object(obj);
+}
+
+void sc_pkcs15_free_object(struct sc_pkcs15_object *obj)
+{
+	switch (obj->type & SC_PKCS15_TYPE_CLASS_MASK) {
+	case SC_PKCS15_TYPE_PRKEY:
+		sc_pkcs15_free_prkey_info((sc_pkcs15_prkey_info_t *)obj->data);
+		break;
+	case SC_PKCS15_TYPE_PUBKEY:
+		sc_pkcs15_free_pubkey_info((sc_pkcs15_pubkey_info_t *)obj->data);
+		break;
+	case SC_PKCS15_TYPE_CERT:
+		sc_pkcs15_free_cert_info((sc_pkcs15_cert_info_t *)obj->data);
+		break;
+	case SC_PKCS15_TYPE_DATA_OBJECT:
+		sc_pkcs15_free_data_info((sc_pkcs15_data_info_t *)obj->data);
+		break;
+	case SC_PKCS15_TYPE_AUTH:
+		sc_pkcs15_free_pin_info((sc_pkcs15_pin_info_t *)obj->data);
+		break;
+	default:
 		free(obj->data);
+	}
+
 	if (obj->der.value)
 		free(obj->der.value);
 	free(obj);
 }
 
 int sc_pkcs15_add_df(struct sc_pkcs15_card *p15card,
-		     int type, const sc_path_t *path,
+		     unsigned int type, const sc_path_t *path,
 		     const sc_file_t *file)
 {
 	struct sc_pkcs15_df *p = p15card->df_list, *newdf;
 
-	newdf = (struct sc_pkcs15_df *) malloc(sizeof(struct sc_pkcs15_df));
+	newdf = (struct sc_pkcs15_df *) calloc(1, sizeof(struct sc_pkcs15_df));
 	if (newdf == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
-	memset(newdf, 0, sizeof(struct sc_pkcs15_df));
 	newdf->path = *path;
 	newdf->type = type;
-	if (file != NULL)
+	if (file != NULL) {
 		sc_file_dup(&newdf->file, file);
+		if (newdf->file == NULL) {
+			free(newdf);
+			return SC_ERROR_OUT_OF_MEMORY;
+		}
+			
+	}
 	if (p15card->df_list == NULL) {
 		p15card->df_list = newdf;
 		return 0;
@@ -1089,7 +1161,7 @@ void sc_pkcs15_remove_df(struct sc_pkcs15_card *p15card,
 	free(obj);
 }
 
-int sc_pkcs15_encode_df(struct sc_context *ctx,
+int sc_pkcs15_encode_df(sc_context_t *ctx,
 			struct sc_pkcs15_card *p15card,
 			struct sc_pkcs15_df *df,
 			u8 **buf_out, size_t *bufsize_out)
@@ -1097,7 +1169,7 @@ int sc_pkcs15_encode_df(struct sc_context *ctx,
 	u8 *buf = NULL, *tmp = NULL;
 	size_t bufsize = 0, tmpsize;
 	const struct sc_pkcs15_object *obj;
-	int (* func)(struct sc_context *, const struct sc_pkcs15_object *nobj,
+	int (* func)(sc_context_t *, const struct sc_pkcs15_object *nobj,
 		     u8 **nbuf, size_t *nbufsize) = NULL;
 	int r;
 
@@ -1151,9 +1223,9 @@ int sc_pkcs15_encode_df(struct sc_context *ctx,
 int sc_pkcs15_parse_df(struct sc_pkcs15_card *p15card,
 		       struct sc_pkcs15_df *df)
 {
-	struct sc_context *ctx = p15card->card->ctx;
+	sc_context_t *ctx = p15card->card->ctx;
 	u8 *buf;
-        const u8 *p;
+	const u8 *p;
 	size_t bufsize;
 	int r;
 	struct sc_pkcs15_object *obj = NULL;
@@ -1197,12 +1269,11 @@ int sc_pkcs15_parse_df(struct sc_pkcs15_card *p15card,
 		const u8 *oldp;
 		size_t obj_len;
 		
-		obj = (struct sc_pkcs15_object *) malloc(sizeof(struct sc_pkcs15_object));
+		obj = (struct sc_pkcs15_object *) calloc(1, sizeof(struct sc_pkcs15_object));
 		if (obj == NULL) {
 			r = SC_ERROR_OUT_OF_MEMORY;
 			goto ret;
 		}
-		memset(obj, 0, sizeof(struct sc_pkcs15_object));
 		oldp = p;
 		r = func(p15card, obj, &p, &bufsize);
 		if (r) {
@@ -1240,12 +1311,12 @@ ret:
 }
 
 int sc_pkcs15_read_file(struct sc_pkcs15_card *p15card,
-			const struct sc_path *in_path,
+			const sc_path_t *in_path,
 			u8 **buf, size_t *buflen,
-			struct sc_file **file_out)
+			sc_file_t **file_out)
 {
-	struct sc_file *file = NULL;
-	struct sc_path tmp_path, *path = &tmp_path;
+	sc_file_t *file = NULL;
+	sc_path_t tmp_path, *path = &tmp_path;
 	u8	*data = NULL;
 	size_t	len = 0, offset = 0;
 	int	r = -1;
@@ -1256,12 +1327,12 @@ int sc_pkcs15_read_file(struct sc_pkcs15_card *p15card,
 
 	if (in_path->type == SC_PATH_TYPE_FILE_ID) {
 		/* in case of a FID prepend the application DF */
-		memcpy(path, &p15card->file_app->path, sizeof(struct sc_path));
+		memcpy(path, &p15card->file_app->path, sizeof(sc_path_t));
 		sc_append_path(path, in_path);
 		path->index = in_path->index;
 		path->count = in_path->count;
 	} else {
-		memcpy(path, in_path, sizeof(struct sc_path));
+		memcpy(path, in_path, sizeof(sc_path_t));
 	}
 	
 	if (p15card->opts.use_cache) {

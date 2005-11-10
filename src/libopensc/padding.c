@@ -50,12 +50,12 @@ static const struct digest_info_prefix {
 	size_t		hdr_len;
 	size_t		hash_len;
 } digest_info_prefix[DIGEST_INFO_COUNT] = {
-      { SC_ALGORITHM_RSA_HASH_NONE,     NULL,           0,                      -1      },
+      { SC_ALGORITHM_RSA_HASH_NONE,     NULL,           0,                      0      },
       {	SC_ALGORITHM_RSA_HASH_MD5,	hdr_md5,	sizeof(hdr_md5),	16	},
       { SC_ALGORITHM_RSA_HASH_SHA1,	hdr_sha1,	sizeof(hdr_sha1),	20	},
       { SC_ALGORITHM_RSA_HASH_RIPEMD160,hdr_ripemd160,	sizeof(hdr_ripemd160),	20	},
       { SC_ALGORITHM_RSA_HASH_MD5_SHA1,	NULL,		0,			36	},
-      {	0,				NULL,		0,			-1	}
+      {	0,				NULL,		0,			0	}
 };
 
 /* add/remove pkcs1 BT01 padding */
@@ -71,8 +71,7 @@ int sc_pkcs1_add_01_padding(const u8 *in, size_t in_len, u8 *out,
 		return SC_ERROR_INVALID_ARGUMENTS;
 	i = mod_length - in_len;
 	memmove(out + i, in, in_len);
-	*out++ = 0x00; /* XXX the leading zero octet does not really
-			* belong to the pkcs1 BT01 padding -- Nils */
+	*out++ = 0x00;
 	*out++ = 0x01;
 	
 	memset(out, 0xFF, i - 3);
@@ -199,7 +198,7 @@ int sc_pkcs1_strip_digest_info_prefix(unsigned int *algorithm,
 }
 
 /* general PKCS#1 encoding function */
-int sc_pkcs1_encode(struct sc_context *ctx, unsigned long flags,
+int sc_pkcs1_encode(sc_context_t *ctx, unsigned long flags,
 	const u8 *in, size_t in_len, u8 *out, size_t *out_len, size_t mod_len)
 {
 	int    i;

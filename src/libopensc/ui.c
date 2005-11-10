@@ -20,6 +20,7 @@
 #ifdef HAVE_LOCALE_H
 #include <locale.h>
 #endif
+#include <ltdl.h>
 
 /*
  * We keep a global shared library handle here.
@@ -65,7 +66,7 @@ sc_ui_set_language(sc_context_t *ctx, const char *lang)
 int
 sc_ui_get_pin(sc_ui_hints_t *hints, char **out)
 {
-	static sc_ui_get_pin_fn_t *get_pin_fn;
+	static sc_ui_get_pin_fn_t *get_pin_fn, **t_fn = &get_pin_fn;
 	int		r;
 
 	if (!get_pin_fn) {
@@ -76,7 +77,7 @@ sc_ui_get_pin(sc_ui_hints_t *hints, char **out)
 				&addr);
 		if (r < 0)
 			return r;
-		get_pin_fn = (sc_ui_get_pin_fn_t *) addr;
+		*(void **)(t_fn) = addr;
 		if (get_pin_fn == NULL)
 			get_pin_fn = sc_ui_get_pin_default;
 	}
@@ -87,7 +88,7 @@ sc_ui_get_pin(sc_ui_hints_t *hints, char **out)
 int
 sc_ui_get_pin_pair(sc_ui_hints_t *hints, char **old_out, char **new_out)
 {
-	static sc_ui_get_pin_pair_fn_t *get_pin_pair_fn;
+	static sc_ui_get_pin_pair_fn_t *get_pin_pair_fn, **t_fn = &get_pin_pair_fn;
 	int		r;
 
 	if (!get_pin_pair_fn) {
@@ -98,7 +99,7 @@ sc_ui_get_pin_pair(sc_ui_hints_t *hints, char **old_out, char **new_out)
 				&addr);
 		if (r < 0)
 			return r;
-		get_pin_pair_fn = (sc_ui_get_pin_pair_fn_t *) addr;
+		*(void **)(t_fn) = addr;
 		if (get_pin_pair_fn == NULL)
 			get_pin_pair_fn = sc_ui_get_pin_pair_default;
 	}
@@ -109,7 +110,7 @@ sc_ui_get_pin_pair(sc_ui_hints_t *hints, char **old_out, char **new_out)
 int
 sc_ui_display_error(sc_context_t *ctx, const char *msg)
 {
-	static sc_ui_display_fn_t *display_fn;
+	static sc_ui_display_fn_t *display_fn, **t_fn = &display_fn;
 	int		r;
 
 	if (!display_fn) {
@@ -120,7 +121,7 @@ sc_ui_display_error(sc_context_t *ctx, const char *msg)
 				&addr);
 		if (r < 0)
 			return r;
-		display_fn = (sc_ui_display_fn_t *) addr;
+		*(void **)(t_fn) = addr;
 		if (display_fn == NULL)
 			display_fn = sc_ui_display_error_default;
 	}
@@ -131,7 +132,7 @@ sc_ui_display_error(sc_context_t *ctx, const char *msg)
 int
 sc_ui_display_debug(sc_context_t *ctx, const char *msg)
 {
-	static sc_ui_display_fn_t *display_fn;
+	static sc_ui_display_fn_t *display_fn, **t_fn = &display_fn;
 	int		r;
 
 	if (!display_fn) {
@@ -142,7 +143,7 @@ sc_ui_display_debug(sc_context_t *ctx, const char *msg)
 				&addr);
 		if (r < 0)
 			return r;
-		display_fn = (sc_ui_display_fn_t *) addr;
+		*(void **)t_fn = addr;
 		if (display_fn == NULL)
 			display_fn = sc_ui_display_debug_default;
 	}
@@ -159,8 +160,6 @@ sc_ui_display_debug(sc_context_t *ctx, const char *msg)
 int
 sc_ui_get_func(sc_context_t *ctx, const char *name, void **ret)
 {
-	int	r;
-
 	*ret = NULL;
 	if (!sc_ui_lib_handle && !sc_ui_lib_loaded) {
 		const char	*lib_name = NULL;
@@ -181,19 +180,21 @@ sc_ui_get_func(sc_context_t *ctx, const char *name, void **ret)
 		if (!lib_name)
 			return 0;
 
-		r = sc_module_open(ctx, &sc_ui_lib_handle, lib_name);
-		if (r < 0) {
+		sc_ui_lib_handle = lt_dlopen(lib_name);
+		if (!sc_ui_lib_handle) {
 			sc_error(ctx,
-				"Unable to open user interface library %s\n",
-				lib_name);
-			return r;
+				"Unable to open user interface library '%s': %s\n",
+				lib_name, lt_dlerror());
+			return SC_ERROR_INTERNAL;
 		}
 	}
 
 	if (sc_ui_lib_handle == NULL)
 		return 0;
 
-	return sc_module_get_address(ctx, sc_ui_lib_handle, ret, name);
+	*ret = lt_dlsym(sc_ui_lib_handle, name);
+
+	return *ret ? SC_SUCCESS : SC_ERROR_UNKNOWN;
 }
 
 /*
@@ -322,14 +323,14 @@ __sc_ui_read_pin(sc_context_t *ctx, const char *prompt,
 		}
 
 		*out = strdup(pin);
-		memset(pin, 0, len);
+		sc_mem_clear(pin, len);
 
 		if (!(flags & SC_UI_PIN_RETYPE))
 			break;
 
 		pin = getpass("Please type again to verify: ");
 		if (!strcmp(*out, pin)) {
-			memset(pin, 0, len);
+			sc_mem_clear(pin, len);
 			break;
 		}
 
@@ -344,7 +345,7 @@ __sc_ui_read_pin(sc_context_t *ctx, const char *prompt,
 		fprintf(stderr,
 			"Sorry, the two pins did not match. "
 			"Please try again.\n");
-		memset(pin, 0, strlen(pin));
+		sc_mem_clear(pin, strlen(pin));
 
 		/* Currently, there's no way out of this dialog.
 		 * We should allow the user to bail out after n
@@ -360,7 +361,7 @@ __sc_ui_read_pin(sc_context_t *ctx, const char *prompt,
 static int
 use_color(sc_context_t *ctx, FILE * outf)
 {
-	static const char *terms[] = { "linux", "xterm", "Eterm" };
+	static const char *terms[] = { "linux", "xterm", "Eterm", "rxvt", "rxvt-unicode" };
 	static char	*term = NULL;
 	int		term_count = sizeof(terms) / sizeof(terms[0]);
 	int		do_color, i;

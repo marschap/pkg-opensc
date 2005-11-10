@@ -30,48 +30,48 @@
 #endif
 #include <assert.h>
 
-static int parse_x509_cert(struct sc_context *ctx, const u8 *buf, size_t buflen, struct sc_pkcs15_cert *cert)
+static int parse_x509_cert(sc_context_t *ctx, const u8 *buf, size_t buflen, struct sc_pkcs15_cert *cert)
 {
 	int r;
 	struct sc_algorithm_id pk_alg, sig_alg;
 	sc_pkcs15_der_t pk = { NULL, 0 };
 	struct sc_asn1_entry asn1_version[] = {
-		{ "version",		SC_ASN1_INTEGER,   ASN1_INTEGER, 0, &cert->version },
-		{ NULL }
+		{ "version", SC_ASN1_INTEGER, ASN1_INTEGER, 0, &cert->version, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	struct sc_asn1_entry asn1_pkinfo[] = {
-		{ "algorithm",		SC_ASN1_ALGORITHM_ID,  ASN1_SEQUENCE | SC_ASN1_CONS, 0, &pk_alg },
+		{ "algorithm",		SC_ASN1_ALGORITHM_ID,  ASN1_SEQUENCE | SC_ASN1_CONS, 0, &pk_alg, NULL },
 		{ "subjectPublicKey",	SC_ASN1_BIT_STRING_NI, ASN1_BIT_STRING, SC_ASN1_ALLOC, &pk.value, &pk.len },
-		{ NULL }
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	struct sc_asn1_entry asn1_x509v3[] = {
-		{ "certificatePolicies",	SC_ASN1_OCTET_STRING, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-		{ "subjectKeyIdentifier",	SC_ASN1_OCTET_STRING, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
+		{ "certificatePolicies",	SC_ASN1_OCTET_STRING, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+		{ "subjectKeyIdentifier",	SC_ASN1_OCTET_STRING, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
 		{ "crlDistributionPoints",	SC_ASN1_OCTET_STRING, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL | SC_ASN1_ALLOC, &cert->crl, &cert->crl_len },
-		{ "authorityKeyIdentifier",	SC_ASN1_OCTET_STRING, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-		{ "keyUsage",			SC_ASN1_BOOLEAN, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-		{ NULL }
+		{ "authorityKeyIdentifier",	SC_ASN1_OCTET_STRING, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+		{ "keyUsage",			SC_ASN1_BOOLEAN, SC_ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	struct sc_asn1_entry asn1_extensions[] = {
-		{ "x509v3",		SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, asn1_x509v3 },
-		{ NULL }
+		{ "x509v3",		SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, asn1_x509v3, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	struct sc_asn1_entry asn1_tbscert[] = {
-		{ "version",		SC_ASN1_STRUCT,    SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, asn1_version },
+		{ "version",		SC_ASN1_STRUCT,    SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, asn1_version, NULL },
 		{ "serialNumber",	SC_ASN1_OCTET_STRING, ASN1_INTEGER, SC_ASN1_ALLOC, &cert->serial, &cert->serial_len },
-		{ "signature",		SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
+		{ "signature",		SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
 		{ "issuer",		SC_ASN1_OCTET_STRING, ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_ALLOC, &cert->issuer, &cert->issuer_len },
-		{ "validity",		SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
+		{ "validity",		SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
 		{ "subject",		SC_ASN1_OCTET_STRING, ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_ALLOC, &cert->subject, &cert->subject_len },
-		{ "subjectPublicKeyInfo",SC_ASN1_STRUCT,   ASN1_SEQUENCE | SC_ASN1_CONS, 0, asn1_pkinfo },
-		{ "extensions",		SC_ASN1_STRUCT,    SC_ASN1_CTX | 3 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, asn1_extensions },
-		{ NULL }
+		{ "subjectPublicKeyInfo",SC_ASN1_STRUCT,   ASN1_SEQUENCE | SC_ASN1_CONS, 0, asn1_pkinfo, NULL },
+		{ "extensions",		SC_ASN1_STRUCT,    SC_ASN1_CTX | 3 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, asn1_extensions, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	struct sc_asn1_entry asn1_cert[] = {
-		{ "tbsCertificate",	SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, 0, asn1_tbscert },
-		{ "signatureAlgorithm",	SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE | SC_ASN1_CONS, 0, &sig_alg },
-		{ "signatureValue",	SC_ASN1_BIT_STRING,ASN1_BIT_STRING, 0, NULL, 0 },
-		{ NULL }
+		{ "tbsCertificate",	SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, 0, asn1_tbscert, NULL },
+		{ "signatureAlgorithm",	SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE | SC_ASN1_CONS, 0, &sig_alg, NULL },
+		{ "signatureValue",	SC_ASN1_BIT_STRING, ASN1_BIT_STRING, 0, NULL, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
 	};
 	const u8 *obj;
 	size_t objlen;
@@ -143,40 +143,40 @@ int sc_pkcs15_read_certificate(struct sc_pkcs15_card *p15card,
 }
 
 static const struct sc_asn1_entry c_asn1_cred_ident[] = {
-	{ "idType",	SC_ASN1_INTEGER,      ASN1_INTEGER, 0, NULL },
-	{ "idValue",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL },
-	{ NULL }
+	{ "idType",	SC_ASN1_INTEGER,      ASN1_INTEGER, 0, NULL, NULL },
+	{ "idValue",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 static const struct sc_asn1_entry c_asn1_com_cert_attr[] = {
-	{ "iD",         SC_ASN1_PKCS15_ID, ASN1_OCTET_STRING, 0, NULL },
-	{ "authority",  SC_ASN1_BOOLEAN,   ASN1_BOOLEAN, SC_ASN1_OPTIONAL, NULL },
-	{ "identifier", SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
+	{ "iD",         SC_ASN1_PKCS15_ID, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ "authority",  SC_ASN1_BOOLEAN,   ASN1_BOOLEAN, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "identifier", SC_ASN1_STRUCT,    ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
 	/* FIXME: Add rest of the optional fields */
-	{ NULL }
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 static const struct sc_asn1_entry c_asn1_x509_cert_value_choice[] = {
-	{ "path",	SC_ASN1_PATH,	   ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-	{ "direct",	SC_ASN1_OCTET_STRING, SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL | SC_ASN1_ALLOC, NULL },
-	{ NULL }
+	{ "path",	SC_ASN1_PATH,	   ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "direct",	SC_ASN1_OCTET_STRING, SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL | SC_ASN1_ALLOC, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 static const struct sc_asn1_entry c_asn1_x509_cert_attr[] = {
-	{ "value",	SC_ASN1_CHOICE, 0, 0, NULL },
-	{ NULL }
+	{ "value",	SC_ASN1_CHOICE, 0, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 static const struct sc_asn1_entry c_asn1_type_cert_attr[] = {
-	{ "x509CertificateAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ NULL }
+	{ "x509CertificateAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 static const struct sc_asn1_entry c_asn1_cert[] = {
-	{ "x509Certificate", SC_ASN1_PKCS15_OBJECT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ NULL }
+	{ "x509Certificate", SC_ASN1_PKCS15_OBJECT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 int sc_pkcs15_decode_cdf_entry(struct sc_pkcs15_card *p15card,
 			       struct sc_pkcs15_object *obj,
 			       const u8 ** buf, size_t *buflen)
 {
-        struct sc_context *ctx = p15card->card->ctx;
+        sc_context_t *ctx = p15card->card->ctx;
 	struct sc_pkcs15_cert_info info;
 	struct sc_asn1_entry	asn1_cred_ident[3], asn1_com_cert_attr[4],
 				asn1_x509_cert_attr[2], asn1_type_cert_attr[2],
@@ -227,7 +227,7 @@ int sc_pkcs15_decode_cdf_entry(struct sc_pkcs15_card *p15card,
 	return 0;
 }
 
-int sc_pkcs15_encode_cdf_entry(struct sc_context *ctx,
+int sc_pkcs15_encode_cdf_entry(sc_context_t *ctx,
 			       const struct sc_pkcs15_object *obj,
 			       u8 **buf, size_t *bufsize)
 {
@@ -274,5 +274,14 @@ void sc_pkcs15_free_certificate(struct sc_pkcs15_cert *cert)
 	free(cert->serial);
 	free(cert->data);
 	free(cert->crl);
+	free(cert);
+}
+
+void sc_pkcs15_free_cert_info(sc_pkcs15_cert_info_t *cert)
+{
+	if (!cert)
+		return;
+	if (cert->value.value)
+		free(cert->value.value);
 	free(cert);
 }

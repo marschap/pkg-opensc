@@ -23,12 +23,23 @@
 #include <string.h>
 #include <stdlib.h>
 
+static struct sc_atr_table jcop_atrs[] = {
+	{ "3B:E6:00:FF:81:31:FE:45:4A:43:4F:50:33:31:06", NULL, NULL, SC_CARD_TYPE_JCOP_GENERIC, 0, NULL },
+#if 0
+	/* Requires secure messaging */
+	{ "3B:E6:00:FF:81:31:FE:45:4A:43:4F:50:32:31:06", NULL, NULL, SC_CARD_TYPE_JCOP_GENERIC, 0, NULL },
+#endif
+	{ NULL, NULL, NULL, 0, 0, NULL }
+};
+
 static struct sc_card_operations jcop_ops;
 static struct sc_card_driver jcop_drv = {
-     "JCOP cards with BlueZ PKCS#15 applet",
-     "jcop",
-     &jcop_ops
+	"JCOP cards with BlueZ PKCS#15 applet",
+	"jcop",
+	&jcop_ops,
+	NULL, 0, NULL
 };
+
 #define SELECT_MF 0
 #define SELECT_EFDIR 1
 #define SELECT_APPDF 2
@@ -40,9 +51,9 @@ static struct sc_card_driver jcop_drv = {
 
 struct jcop_private_data 
 {
-     struct sc_file *virtmf;
-     struct sc_file *virtdir;
-     struct sc_path aid;
+     sc_file_t *virtmf;
+     sc_file_t *virtdir;
+     sc_path_t aid;
      int selected;
      int invalid_senv;
      int nfiles;
@@ -50,7 +61,7 @@ struct jcop_private_data
 };
 #define DRVDATA(card)   ((struct jcop_private_data *) ((card)->drv_data))
 
-static int jcop_finish(struct sc_card *card)
+static int jcop_finish(sc_card_t *card)
 {
      struct jcop_private_data *drvdata=DRVDATA(card);
      if (drvdata) {
@@ -62,35 +73,15 @@ static int jcop_finish(struct sc_card *card)
      
      return 0;
 }
-static const char *jcop_atrs[] = {
-     "3B:E6:00:FF:81:31:FE:45:4A:43:4F:50:33:31:06",
-     /* Requires secure messaging */
-     /*"3B:E6:00:FF:81:31:FE:45:4A:43:4F:50:32:31:06",*/ 
-     NULL
-};
 
-static int jcop_match_card(struct sc_card *card)
+static int jcop_match_card(sc_card_t *card)
 {
-     int i, match = -1;
+	int i;
 
-     for (i = 0; jcop_atrs[i] != NULL; i++) {
-	  u8 defatr[SC_MAX_ATR_SIZE];
-	  size_t len = sizeof(defatr);
-	  const char *atrp = jcop_atrs[i];
-
-	  if (sc_hex_to_bin(atrp, defatr, &len))
-	       continue;
-	  if (len != card->atr_len)
-	       continue;
-	  if (memcmp(card->atr, defatr, len) != 0)
-	       continue;
-	  match = i;
-	  break;
-     }
-     if (match == -1)
-	  return 0;
-
-     return 1;
+	i = _sc_match_atr(card, jcop_atrs, &card->type);
+	if (i < 0)
+		return 0;
+	return 1;
 }
 
 static unsigned char ef_dir_contents[128] = {
@@ -101,10 +92,10 @@ static unsigned char ef_dir_contents[128] = {
 };
 
 
-static int jcop_init(struct sc_card *card)
+static int jcop_init(sc_card_t *card)
 {
      struct jcop_private_data *drvdata;
-     struct sc_file *f;
+     sc_file_t *f;
      int flags;
      
      drvdata=(struct jcop_private_data *) malloc(sizeof(struct jcop_private_data));
@@ -183,7 +174,7 @@ static int jcop_init(struct sc_card *card)
      return 0;
 }
 
-static int jcop_get_default_key(struct sc_card *card,
+static int jcop_get_default_key(sc_card_t *card,
                                 struct sc_cardctl_default_key *data)
 {
 	const char *key;
@@ -201,15 +192,15 @@ static int jcop_get_default_key(struct sc_card *card,
    that, I fake an MF containing the AppDF and a fixed DIR pointing at
    the fake AppDF. This has the added advantage of allowing
    opensc-explorer to be used with this driver */
-static int jcop_select_file(struct sc_card *card, const struct sc_path *path,
-			    struct sc_file **file)
+static int jcop_select_file(sc_card_t *card, const sc_path_t *path,
+			    sc_file_t **file)
 {
      struct jcop_private_data *drvdata=DRVDATA(card);
      int r,selecting;
      struct sc_card_driver *iso_drv = sc_get_iso7816_driver();
      const struct sc_card_operations *iso_ops = iso_drv->ops;
      sc_path_t       shortpath;
-     struct sc_file  *tmpfile, **fileptr;
+     sc_file_t  *tfile, **fileptr;
      
      if (!drvdata)
 	  return SC_ERROR_FILE_NOT_FOUND;
@@ -220,14 +211,16 @@ static int jcop_select_file(struct sc_card *card, const struct sc_path *path,
      if (file) {
 	  fileptr=file;
      } else {
-	  fileptr=&tmpfile;
+	  fileptr=&tfile;
      }
 
      /* Selecting the MF. return a copy of the constructed MF */
      if (path->len == 2 && memcmp(path->value, "\x3F\x00", 2) == 0) {
 	  drvdata->selected=SELECT_MF;
 	  if (file) {
-	       sc_file_dup(file, drvdata->virtmf);
+		sc_file_dup(file, drvdata->virtmf);
+		if (*file == NULL)
+			return SC_ERROR_OUT_OF_MEMORY;
 	  }
 	  return 0;
      }
@@ -238,7 +231,9 @@ static int jcop_select_file(struct sc_card *card, const struct sc_path *path,
 	  memcmp(path->value, "\x2F\x00", 2) == 0)) {
 	  drvdata->selected=SELECT_EFDIR;
 	  if (file) {
-	       sc_file_dup(file, drvdata->virtdir);
+		sc_file_dup(file, drvdata->virtdir);
+		if (*file == NULL)
+			return SC_ERROR_OUT_OF_MEMORY;
 	  }
 	  return 0;
      }	  
@@ -315,12 +310,12 @@ static int jcop_select_file(struct sc_card *card, const struct sc_path *path,
      return 0;
 }
 
-static int jcop_read_binary(struct sc_card *card, unsigned int idx,
+static int jcop_read_binary(sc_card_t *card, unsigned int idx,
 			    u8 * buf, size_t count, unsigned long flags) {
      struct jcop_private_data *drvdata=DRVDATA(card);
      struct sc_card_driver *iso_drv = sc_get_iso7816_driver();
      const struct sc_card_operations *iso_ops = iso_drv->ops;
-     struct sc_file  *tmpfile;
+     sc_file_t  *tfile;
      int r;
      
      if (drvdata->selected == SELECT_MF) {
@@ -334,12 +329,12 @@ static int jcop_read_binary(struct sc_card *card, unsigned int idx,
 	       count=128-idx;
 	  }
 	  card->ctx->suppress_errors++;
-	  r = iso_ops->select_file(card, &drvdata->aid, &tmpfile);
+	  r = iso_ops->select_file(card, &drvdata->aid, &tfile);
 	  card->ctx->suppress_errors--;
 	  if (r < 0) { /* no pkcs15 app, so return empty DIR. */
 	       memset(buf, 0, count);
 	  } else {
-	       sc_file_free(tmpfile);
+	       sc_file_free(tfile);
 	       memcpy(buf, (u8 *)(ef_dir_contents + idx), count);
 	  }
 	  return count;
@@ -347,11 +342,11 @@ static int jcop_read_binary(struct sc_card *card, unsigned int idx,
      return iso_ops->read_binary(card, idx, buf, count, flags);
 }
 
-static int jcop_list_files(struct sc_card *card, u8 *buf, size_t buflen) {
+static int jcop_list_files(sc_card_t *card, u8 *buf, size_t buflen) {
      struct jcop_private_data *drvdata=DRVDATA(card);
      struct sc_card_driver *iso_drv = sc_get_iso7816_driver();
      const struct sc_card_operations *iso_ops = iso_drv->ops;
-     struct sc_file  *tmpfile;
+     sc_file_t  *tfile;
      int r;
 
      if (drvdata->selected == SELECT_MF) {
@@ -362,12 +357,12 @@ static int jcop_list_files(struct sc_card *card, u8 *buf, size_t buflen) {
 	       return 2;
 	  /* AppDF only exists if applet is selectable */
 	  card->ctx->suppress_errors++;
-	  r = iso_ops->select_file(card, &drvdata->aid, &tmpfile);
+	  r = iso_ops->select_file(card, &drvdata->aid, &tfile);
 	  card->ctx->suppress_errors--;
 	  if (r < 0) { 
 	       return 2;
 	  } else {
-	       sc_file_free(tmpfile);
+	       sc_file_free(tfile);
 	       memcpy(buf+2, "\x50\x15", 2);
 	       return 4;
 	  }
@@ -377,13 +372,13 @@ static int jcop_list_files(struct sc_card *card, u8 *buf, size_t buflen) {
 	  return SC_ERROR_NOT_ALLOWED;
      if (drvdata->nfiles == 0)
 	  return 0;
-     if (buflen > 2 * drvdata->nfiles)
+     if (buflen > 2 * (size_t)drvdata->nfiles)
 	  buflen=2*drvdata->nfiles;
      memcpy(buf, drvdata->filelist, buflen);
      return buflen;
 }
 
-static int sa_to_acl(struct sc_file *file, unsigned int operation, 
+static int sa_to_acl(sc_file_t *file, unsigned int operation, 
 		     int nibble) {
      switch (nibble & 0x7) {
      case 0:
@@ -414,7 +409,7 @@ static int sa_to_acl(struct sc_file *file, unsigned int operation,
 }
 
 
-static int jcop_process_fci(struct sc_card *card, struct sc_file *file,
+static int jcop_process_fci(sc_card_t *card, sc_file_t *file,
 			    const u8 *buf, size_t buflen) {
      struct jcop_private_data *drvdata=DRVDATA(card);
      struct sc_card_driver *iso_drv = sc_get_iso7816_driver();
@@ -490,7 +485,7 @@ static int jcop_process_fci(struct sc_card *card, struct sc_file *file,
      
      return r;
 }
-static int acl_to_ac_nibble(const struct sc_acl_entry *e)
+static int acl_to_ac_nibble(const sc_acl_entry_t *e)
 {
         if (e == NULL)
                 return -1;
@@ -520,7 +515,7 @@ static int acl_to_ac_nibble(const struct sc_acl_entry *e)
 }
 
 
-static int jcop_create_file(struct sc_card *card, struct sc_file *file) {
+static int jcop_create_file(sc_card_t *card, sc_file_t *file) {
      struct jcop_private_data *drvdata=DRVDATA(card);
      unsigned char sec_attr_data[3];
      int ops[6];
@@ -543,7 +538,7 @@ static int jcop_create_file(struct sc_card *card, struct sc_file *file) {
      ops[5] = SC_AC_OP_ERASE;     /* delete */
      memset(sec_attr_data, 0, 3);
      for (i = 0; i < 6; i++) {
-	  const struct sc_acl_entry *entry;
+	  const sc_acl_entry_t *entry;
 	  if (ops[i] == -1) {
 	       sec_attr_data[i/2] |= 1 << ((i % 2) ? 0 : 4);
 	       continue;
@@ -563,19 +558,19 @@ static int jcop_create_file(struct sc_card *card, struct sc_file *file) {
 }
 
 /* no record oriented file services */
-static int jcop_read_record_unsupp(struct sc_card *card,
+static int jcop_read_record_unsupp(sc_card_t *card,
                                unsigned int rec_nr, u8 *buf, 
 			      size_t count, unsigned long flags) {
      return SC_ERROR_NOT_SUPPORTED;
 }
 
-static int jcop_wrupd_record_unsupp(struct sc_card *card,
+static int jcop_wrupd_record_unsupp(sc_card_t *card,
                                unsigned int rec_nr, const u8 *buf, 
 			      size_t count, unsigned long flags) {
      return SC_ERROR_NOT_SUPPORTED;
 }
 
-static int jcop_append_record_unsupp(struct sc_card *card,
+static int jcop_append_record_unsupp(sc_card_t *card,
                                  const u8 *buf, size_t count,
                                  unsigned long flags) {
      return SC_ERROR_NOT_SUPPORTED;
@@ -584,7 +579,7 @@ static int jcop_append_record_unsupp(struct sc_card *card,
 
 /* We need to trap these functions so that proper errors can be returned
    when one of the virtual files is selected */
-static int jcop_write_binary(struct sc_card *card,
+static int jcop_write_binary(sc_card_t *card,
 			unsigned int idx, const u8 *buf,
 			size_t count, unsigned long flags) {
      struct jcop_private_data *drvdata=DRVDATA(card);
@@ -600,7 +595,7 @@ static int jcop_write_binary(struct sc_card *card,
 }
 
 
-static int jcop_update_binary(struct sc_card *card,
+static int jcop_update_binary(sc_card_t *card,
 			 unsigned int idx, const u8 *buf,
 			 size_t count, unsigned long flags) {
      
@@ -615,7 +610,7 @@ static int jcop_update_binary(struct sc_card *card,
      return iso_ops->update_binary(card, idx, buf, count, flags);
 }
 
-static int jcop_delete_file(struct sc_card *card, const struct sc_path *path) {
+static int jcop_delete_file(sc_card_t *card, const sc_path_t *path) {
      struct jcop_private_data *drvdata=DRVDATA(card);
      struct sc_card_driver *iso_drv = sc_get_iso7816_driver();
      const struct sc_card_operations *iso_ops = iso_drv->ops;
@@ -629,11 +624,11 @@ static int jcop_delete_file(struct sc_card *card, const struct sc_path *path) {
 
 /* BlueZ doesn't support stored security environments. you have
    to construct one with SET every time */
-static int jcop_set_security_env(struct sc_card *card,
-                                    const struct sc_security_env *env,
+static int jcop_set_security_env(sc_card_t *card,
+                                    const sc_security_env_t *env,
                                     int se_num)
 {
-        struct sc_apdu apdu;
+        sc_apdu_t apdu;
         u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
         u8 *p;
         int r;
@@ -649,7 +644,7 @@ static int jcop_set_security_env(struct sc_card *card,
 	}
 	
         if (env->flags & SC_SEC_ENV_ALG_PRESENT) {
-                struct sc_security_env tmp;
+                sc_security_env_t tmp;
 
                 tmp = *env;
                 tmp.flags &= ~SC_SEC_ENV_ALG_PRESENT;
@@ -722,13 +717,13 @@ static int jcop_set_security_env(struct sc_card *card,
 	drvdata->invalid_senv=0;
 	return 0;
 }
-static int jcop_compute_signature(struct sc_card *card,
+static int jcop_compute_signature(sc_card_t *card,
 				  const u8 * data, size_t datalen,
 				  u8 * out, size_t outlen) {
 
 
        int r;
-        struct sc_apdu apdu;
+        sc_apdu_t apdu;
         u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
         u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	struct jcop_private_data *drvdata=DRVDATA(card);
@@ -774,12 +769,12 @@ static int jcop_compute_signature(struct sc_card *card,
  
 
 
-static int jcop_decipher(struct sc_card *card,
+static int jcop_decipher(sc_card_t *card,
 			 const u8 * crgram, size_t crgram_len,
 			 u8 * out, size_t outlen) {
 
         int r;
-        struct sc_apdu apdu;
+        sc_apdu_t apdu;
         u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
         u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	struct jcop_private_data *drvdata=DRVDATA(card);
@@ -824,10 +819,10 @@ static int jcop_decipher(struct sc_card *card,
         SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
  
-static int jcop_generate_key(struct sc_card *card, struct sc_cardctl_jcop_genkey *a) {
+static int jcop_generate_key(sc_card_t *card, struct sc_cardctl_jcop_genkey *a) {
      int modlen;
      int r;
-     struct sc_apdu apdu;
+     sc_apdu_t apdu;
      u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
      u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
      u8 *p;
@@ -909,7 +904,7 @@ static int jcop_generate_key(struct sc_card *card, struct sc_cardctl_jcop_genkey
      return 0;
 }
 
-static int jcop_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
+static int jcop_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
 {
         switch (cmd) {
         case SC_CARDCTL_GET_DEFAULT_KEY:
@@ -932,7 +927,7 @@ static int jcop_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
  *  you need to reset the card." - javacard@zurich.ibm.com, when asked about 
  *  how to invalidate logged in pins.
 */
-static int jcop_logout(struct sc_card *card)
+static int jcop_logout(sc_card_t *card)
 {
      return 0; /* Can't */
 }

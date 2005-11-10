@@ -1,0 +1,50 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>UsingOpensc - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>Using OpenSC</h1>
+<p>
+opensc-pkcs11.so and many tools need the opensc config file to work properly.
+On Linux and Mac OS X the location of the config file is set when calling
+configure and then compiled in. However you can use the OPENSC_CONFIG environment
+variable to specify a different config file.
+</p>
+<p>
+On windows the opensc config file is found using the registry key
+HKML\Software\OpenSC\<a class="missing" href="/opensc/wiki/ConfigFile" shape="rect">ConfigFile?</a>. If you compile and install OpenSC from
+source you need to set this registry key to point to the install file.
+Users can set HKMU\Software\OpenSC\<a class="missing" href="/opensc/wiki/ConfigFile" shape="rect">ConfigFile?</a> to override the system
+wide settings. Also users can use the OPENSC_CONFIG environment variable
+to override both registry settings.
+</p>
+<h2>PKCS #11 Spy</h2>
+<p>
+PKCS#11 Spy is a special PKCS#11 Module that sits between your application
+and your real PKCS#11 Module, and creates a log file with all functions calls
+by the application and return values by the real PKCS#11 Module. It does not
+change the communication in any way. Be aware such log files are security
+sensitive, as all information is logged, including PIN, PUK, signatures
+and so on. So you should only use it for debugging, and preferable only with
+test keys.
+</p>
+<p>
+On Linux and Mac OS X you can use PKCS#11 Spy with environment variables:
+by default stderr will be used for logging, but you can set PKCS11SPY_OUTPUT
+to a filename, and that file will be appended. You need to set PKCS11SPY
+to your readl PKCS#11 Module such as opensc-pkcs11.so (but use an absolute
+path) to use PKCS#11 Module.
+</p>
+<p>
+On windows the read PKCS#11 Module is found using HKLM\Software\PKCS11-Spy\Module
+and the output is written to the file specified in HKLM\Software\PKCS11-Spy\Output.
+Again users can override these system wide settings using HKLU, and again user
+can use environment variables to override the registry settings.
+</p>
+<p>
+Note that PKCS#11 Spy no longer reads the OpenSC config file and the settings
+in that config file (up to OpenSC version 0.9.*) are no longer valid. Now it
+is absolutely necessary to set at least the module via environment variables
+(or registry on windows).
+</p>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

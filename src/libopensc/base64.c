@@ -47,10 +47,9 @@ static const u8 bin_table[128] = {
         0x31,0x32,0x33,0xFF,0xFF,0xFF,0xFF,0xFF,
 };
 
-static void to_base64(unsigned int i, u8 *out, int fillers)
+static void to_base64(unsigned int i, u8 *out, unsigned int fillers)
 {
-	unsigned int s = 18;
-	int c;
+	unsigned int s = 18, c;
 	
 	for (c = 0; c < 4; c++) {
 		if (fillers >= 4 - c)
@@ -100,8 +99,6 @@ int sc_base64_encode(const u8 *in, size_t len, u8 *out, size_t outlen, size_t li
 	size_t i, c;
 
 	linelength -= linelength & 0x03;
-	if (linelength < 0)
-		return SC_ERROR_INVALID_ARGUMENTS;
 	while (len >= 3) {
 		i = in[2] + (in[1] << 8) + (in[0] << 16);
 		in += 3;

@@ -1,8 +1,9 @@
 # Process this file with automake to create Makefile.in
 
-SUBDIRS = . aclocal docs etc macos src win32
+SUBDIRS = . aclocal etc man src win32
+DIST_SUBDIRS = . aclocal doc etc man src win32
 
-EXTRA_DIST = ANNOUNCE CodingStyle PAM_README QUICKSTART README \
+EXTRA_DIST = README \
 	bootstrap Makefile.mak depcomp \
 	solaris/Makefile solaris/README solaris/checkinstall.in \
 	solaris/opensc.conf-dist solaris/pkginfo.in solaris/proto
@@ -16,3 +17,4 @@ MAINTAINERCLEANFILES = \
 DEPCLEANFILES = config.log configure
 
 AUTOMAKE_OPTIONS = foreign 1.5
+ACLOCAL_AMFLAGS = -I aclocal

@@ -1,0 +1,20 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>PamModules - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>Pam Modules</h1>
+<p>
+OpenSC up to 0.9.6 included its own pam module pam_opensc.
+This module was removed in OpenSC 0.10.0.
+</p>
+<p>
+Instead you can use either of these pam modules:
+</p>
+<ul><li><a class="ext-link" title="http://www.opensc.org/pam_p11/" href="http://www.opensc.org/pam_p11/" shape="rect">Pam_p11</a> is a very simple pam module, perfect for small and simple setups (no ca, no crl, no signature checks,
+simply authenticating with the keys you added to a file). Pam_p11 contains two modules: pam_p11_opensc and pam_p11_openssh.
+<ul><li>pam_p11_opensc is the successor of the old pam_opensc module (eid mode). simply add certificates in pem format to the .eid/authorized_certificates file and any smart card with a matching certificate and key can login.
+</li><li>pam_p11_openssh looks at .ssh/authorized_keys format (the well known openssh file), and lets a user login, if he has a smart card with a matching key.
+</li></ul></li></ul><ul><li><a class="ext-link" title="http://www.opensc.org/pam_pkcs11/" href="http://www.opensc.org/pam_pkcs11/" shape="rect">Pam_PKCS11</a> is fully featured, it does all those ca checks, can work with ldap, kerberos and other
+mechanisms and has many different so called mappers for a very flexible mapping of smart cards to users.
+</li></ul></div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

@@ -21,8 +21,11 @@
 #endif
 #include <stdlib.h>
 #include <stdio.h>
-#include <opensc/opensc.h>
 #include "pkcs11-display.h"
+
+#ifdef _WIN32
+#include <winreg.h>
+#endif
 
 #define __PASTE(x,y)      x##y
 
@@ -47,13 +50,46 @@ FILE *spy_output = NULL;
 #define CK_PKCS11_FUNCTION_INFO(name) \
     pkcs11_spy->name = name;
 
-/* Inits the spy. If successfull, po != NULL */
-CK_RV init_spy(void)
+#ifdef _WIN32
+const char *get_reg_config(const char *spath)
 {
-  const char *mspec = NULL, *file = NULL, *env = NULL;
-  scconf_block *conf_block = NULL, **blocks;
-  struct sc_context *ctx = NULL;
-  int rv = CKR_OK, r, i;
+  static char path[PATH_MAX];
+  char  *ptr  = NULL;
+  int    plen = sizeof(path);
+  long   rc;
+  HKEY   hkey;
+
+  rc = RegOpenKeyEx(HKEY_CURRENT_USER, spath, 0, KEY_QUERY_VALUE, &hkey);
+  if (rc == ERROR_SUCCESS) {
+    rc = RegQueryValueEx(hkey, "ConfigFile", NULL, NULL, (LPBYTE)path, &plen);
+    if ((rc == ERROR_SUCCESS) && (plen < PATH_MAX))
+      ptr = path;
+    RegCloseKey(hkey);
+  }
+  if (ptr == NULL) {
+    rc = RegOpenKeyEx(HKEY_LOCAL_MACHINE, spath, 0, KEY_QUERY_VALUE, &hkey);
+    if (rc == ERROR_SUCCESS) {
+      rc = RegQueryValueEx(hkey, "ConfigFile", NULL, NULL, (LPBYTE)path, &plen);
+      if ((rc == ERROR_SUCCESS) && (plen < PATH_MAX))
+        ptr = path;
+      RegCloseKey(hkey);
+    }
+  }
+  return ptr;
+}
+#endif
+
+/* Inits the spy. If successfull, po != NULL */
+static CK_RV init_spy(void)
+{
+  const char *output, *module;
+  int rv = CKR_OK;
+#ifdef _WIN32
+        char temp_path[PATH_MAX];
+        int temp_len;
+        long rc;
+        HKEY hKey;
+#endif
 
   /* Allocates and initializes the pkcs11_spy structure */
   pkcs11_spy =
@@ -64,112 +100,126 @@ CK_RV init_spy(void)
     return CKR_HOST_MEMORY;
   }
 
-  r = sc_establish_context(&ctx, "pkcs11-spy");
-  if (r != 0) {
-    free(pkcs11_spy);
-    return CKR_HOST_MEMORY;
-  }
-
-  for (i = 0; ctx->conf_blocks[i] != NULL; i++) {
-    blocks = scconf_find_blocks(ctx->conf, ctx->conf_blocks[i],
-      "spy", NULL);
-    conf_block = blocks[0];
-    free(blocks);
-    if (conf_block != NULL)
-      break;
-  }
-
-  /* If conf_block is NULL, just return the default value
-   *
+  /* 
    * Don't use getenv() as the last parameter for scconf_get_str(),
    * as we want to be able to override configuration file via
    * environment variables
    */
-  env = getenv("PKCS11SPY_OUTPUT");
-  file = env ? env : scconf_get_str(conf_block, "output", NULL);
-  if (file) {
-    spy_output = fopen(file, "a");
+  output = getenv("PKCS11SPY_OUTPUT");
+  if (output) {
+    spy_output = fopen(output, "a");
   }
+#ifdef _WIN32
+  if (!spy_output) {
+        rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\PKCS11-Spy",
+                0, KEY_QUERY_VALUE, &hKey );
+        if( rc == ERROR_SUCCESS ) {
+                temp_len = PATH_MAX;
+                rc = RegQueryValueEx( hKey, "Output", NULL, NULL,
+                        (LPBYTE) temp_path, &temp_len);
+                if( (rc == ERROR_SUCCESS) && (temp_len < PATH_MAX) )
+                        output = temp_path;
+                RegCloseKey( hKey );
+        }
+    spy_output = fopen(output, "a");
+  }
+#endif
   if (!spy_output) {
     spy_output = stderr;
   }
   fprintf(spy_output, "\n\n*************** OpenSC PKCS#11 spy *****************\n");
 
-  env = getenv("PKCS11SPY");
-  mspec = env ? env : scconf_get_str(conf_block, "module", NULL);
-  modhandle = C_LoadModule(mspec, &po);
+  module = getenv("PKCS11SPY");
+#ifdef _WIN32
+  if (!module) {
+        rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\PKCS11-Spy",
+                0, KEY_QUERY_VALUE, &hKey );
+        if( rc == ERROR_SUCCESS ) {
+                temp_len = PATH_MAX;
+                rc = RegQueryValueEx( hKey, "Module", NULL, NULL,
+                        (LPBYTE) temp_path, &temp_len);
+                if( (rc == ERROR_SUCCESS) && (temp_len < PATH_MAX) )
+                        module = temp_path;
+                RegCloseKey( hKey );
+        }
+  }
+#endif
+  if (module == NULL) {
+    fprintf(spy_output, "Error: no module specified. Please set PKCS11SPY environment.\n");
+    free(pkcs11_spy);
+    return CKR_DEVICE_ERROR;
+  }
+  modhandle = C_LoadModule(module, &po);
   if (modhandle && po) {
-    fprintf(spy_output, "Loaded: \"%s\"\n", mspec == NULL ? "default module" : mspec);
+    fprintf(spy_output, "Loaded: \"%s\"\n", module);
   } else {
   	po = NULL;
   	free(pkcs11_spy);
   	rv = CKR_GENERAL_ERROR;
   }
-  sc_release_context(ctx);
   return rv;
 }
 
-void enter(char *function)
+static void enter(const char *function)
 {
   static int count = 0;
   fprintf(spy_output, "\n\n%d: %s\n", count++, function);
 }
 
-CK_RV retne(CK_RV rv)
+static CK_RV retne(CK_RV rv)
 {
-  fprintf(spy_output, "Returned:  %ld %s\n", rv,
-	  lookup_enum ( RV_T, rv ));
-  fflush(spy_output);
-  return rv;
+	fprintf(spy_output, "Returned:  %ld %s\n", rv, lookup_enum ( RV_T, rv ));
+	fflush(spy_output);
+	return rv;
 }
 
-void spy_dump_string_in(char *name, CK_VOID_PTR data, CK_ULONG size)
+static void spy_dump_string_in(const char *name, CK_VOID_PTR data, CK_ULONG size)
 {
   fprintf(spy_output, "[in] %s ", name);
   print_generic(spy_output, 0, data, size, NULL);
 }
 
-void spy_dump_string_out(char *name, CK_VOID_PTR data, CK_ULONG size)
+static void spy_dump_string_out(const char *name, CK_VOID_PTR data, CK_ULONG size)
 {
   fprintf(spy_output, "[out] %s ", name);
   print_generic(spy_output, 0, data, size, NULL);
 }
 
-void spy_dump_ulong_in(char *name, CK_ULONG value)
+static void spy_dump_ulong_in(const char *name, CK_ULONG value)
 {
   fprintf(spy_output, "[in] %s = 0x%lx\n", name, value);
 }
 
-void spy_dump_ulong_out(char *name, CK_ULONG value)
+static void spy_dump_ulong_out(const char *name, CK_ULONG value)
 {
   fprintf(spy_output, "[out] %s = 0x%lx\n", name, value);
 }
 
-void spy_dump_desc_out(char *name)
+static void spy_dump_desc_out(const char *name)
 {
   fprintf(spy_output, "[out] %s: \n", name);
 }
 
-void spy_dump_array_out(char *name, CK_ULONG size)
+static void spy_dump_array_out(const char *name, CK_ULONG size)
 {
   fprintf(spy_output, "[out] %s[%ld]: \n", name, size);
 }
 
-void spy_attribute_req_in(char *name, CK_ATTRIBUTE_PTR pTemplate,
+static void spy_attribute_req_in(const char *name, CK_ATTRIBUTE_PTR pTemplate,
 			  CK_ULONG  ulCount)
 {
   fprintf(spy_output, "[in] %s[%ld]: \n", name, ulCount);
   print_attribute_list_req(spy_output, pTemplate, ulCount);
 }
 
-void spy_attribute_list_in(char *name, CK_ATTRIBUTE_PTR pTemplate,
+static void spy_attribute_list_in(const char *name, CK_ATTRIBUTE_PTR pTemplate,
 			  CK_ULONG  ulCount)
 {
   fprintf(spy_output, "[in] %s[%ld]: \n", name, ulCount);
   print_attribute_list(spy_output, pTemplate, ulCount);
 }
 
-void spy_attribute_list_out(char *name, CK_ATTRIBUTE_PTR pTemplate,
+static void spy_attribute_list_out(const char *name, CK_ATTRIBUTE_PTR pTemplate,
 			  CK_ULONG  ulCount)
 {
   fprintf(spy_output, "[out] %s[%ld]: \n", name, ulCount);
@@ -538,8 +588,15 @@ CK_RV C_GetAttributeValue(CK_SESSION_HANDLE hSession,
   spy_dump_ulong_in("hSession", hSession);
   spy_dump_ulong_in("hObject", hObject);
   spy_attribute_req_in("pTemplate", pTemplate, ulCount);
+  /* PKCS#11 says:
+   * ``Note that the error codes CKR_ATTRIBUTE_SENSITIVE,
+   *   CKR_ATTRIBUTE_TYPE_INVALID, and CKR_BUFFER_TOO_SMALL do not denote
+   *   true errors for C_GetAttributeValue.''
+   * That's why we ignore these error codes, because we want to display
+   * all other attributes anyway (they may have been returned correctly) */
   rv = po->C_GetAttributeValue(hSession, hObject, pTemplate, ulCount);
-  if (rv == CKR_OK) {
+  if (rv == CKR_OK || rv == CKR_ATTRIBUTE_SENSITIVE ||
+	  rv == CKR_ATTRIBUTE_TYPE_INVALID || rv == CKR_BUFFER_TOO_SMALL) {
     spy_attribute_list_out("pTemplate", pTemplate, ulCount);
   }
   return retne(rv);

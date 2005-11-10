@@ -1,0 +1,32 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>GermanEid - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>German ID Cards</h1>
+<p>
+Germany has several laws for smart cards, and most ID cards conforming to those laws are using the TCOS 2.0X card operating
+system. 
+</p>
+<p>
+A SignTrust card was successfully tested with OpenSC 0.10.0-beta.
+Pkcs11-tool will fail on the signature only key, because it tries to
+do raw rsa for signing and the key does not support that. Applications
+should be fine, unless they try raw rsa padding.
+</p>
+<p>
+You can find more information about how do this <a href="TCOS.html" shape="rect">here</a>.
+</p>
+<h1>German eHBA, eGK</h1>
+<p>
+In 2006 all german physicians and apothecaries will be equipped with a smartcard, the so called eHBA (elektronischer Heilberufeausweis). After that all german citizens that are a member of a public health insurance company (gesetzliche Krankenkasse) will get a similar card, the so called eGK (elektronische Gesundheitskarte). This means that virtually every german citizen will have a smartcard soon.
+</p>
+<p>
+I don't have enough informations about these cards to make OpenSC support them. If you do have any such information, please let us know or add a link to the list below:
+</p>
+<p>
+Information about the future german eHBA / eGK:
+</p>
+<ul><li><a class="ext-link" title="http://www.gesundheitskarte-sh.de" href="http://www.gesundheitskarte-sh.de" shape="rect">Informations about the "elektronische Gesundheitskarte Schleswig-Holstein"</a>
+</li><li><a class="ext-link" title="http://www.heilberufeausweis.de" href="http://www.heilberufeausweis.de" shape="rect">Informations about the "Heilberufeausweis"</a>
+</li></ul></div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

@@ -23,10 +23,27 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ltdl.h>
 
 #define GET_SLOT_PTR(s, i) (&(s)->slot[(i)])
 #define GET_PRIV_DATA(r) ((struct ctapi_private_data *) (r)->drv_data)
 #define GET_SLOT_DATA(r) ((struct ctapi_slot_data *) (r)->drv_data)
+
+#ifdef _WIN32
+typedef char pascal CT_INIT_TYPE(unsigned short ctn, unsigned short Pn);
+typedef char pascal CT_CLOSE_TYPE(unsigned short ctn);
+typedef char pascal CT_DATA_TYPE(unsigned short ctn, unsigned char *dad, \
+			 unsigned char *sad, unsigned short lc, \
+			 unsigned char *cmd, unsigned short *lr, \
+			 unsigned char *rsp);
+#else
+typedef char CT_INIT_TYPE(unsigned short ctn, unsigned short Pn);
+typedef char CT_CLOSE_TYPE(unsigned short ctn);
+typedef char CT_DATA_TYPE(unsigned short ctn, unsigned char *dad, \
+			 unsigned char *sad, unsigned short lc, \
+			 unsigned char *cmd, unsigned short *lr, \
+			 unsigned char *rsp);
+#endif
 
 struct ctapi_module {
 	char *name;
@@ -40,26 +57,188 @@ struct ctapi_global_private_data {
 };
 
 struct ctapi_functions {
-	char (* CT_init)(unsigned short ctn, unsigned short Pn);
-	char (* CT_close)(unsigned short ctn);
-	char (* CT_data)(unsigned short ctn, unsigned char *dad,
-			 unsigned char *sad, unsigned short lc,
-			 unsigned char *cmd, unsigned short *lr,
-			 unsigned char *rsp);
+	CT_INIT_TYPE *CT_init;
+	CT_CLOSE_TYPE *CT_close;
+	CT_DATA_TYPE *CT_data;
 };
 
 /* Reader specific private data */
+#define CTAPI_FU_KEYBOARD	0x1
+#define CTAPI_FU_DISPLAY	0x2
+#define CTAPI_FU_BIOMETRIC	0x4
+#define CTAPI_FU_PRINTER	0x8
+
 struct ctapi_private_data {
 	struct ctapi_functions funcs;
 	unsigned short ctn;
+	int ctapi_functional_units;
 };
 
 struct ctapi_slot_data {
 	void *filler;
 };
 
-static int refresh_slot_attributes(struct sc_reader *reader,
-				   struct sc_slot_info *slot)
+/* Reset slot or reader */
+static int ctapi_reset(sc_reader_t *reader, sc_slot_info_t *slot)
+{
+	struct ctapi_private_data *priv = GET_PRIV_DATA(reader);
+	char rv;
+	u8 cmd[5], rbuf[256], sad, dad;
+	unsigned short lr;
+
+	cmd[0] = CTBCS_CLA;
+	cmd[1] = CTBCS_INS_RESET;
+	cmd[2] = slot ? CTBCS_P1_INTERFACE1 + slot->id : CTBCS_P1_CT_KERNEL;
+	cmd[3] = 0x00; /* No response. We might also use 0x01 (return ATR) or 0x02 (return historical bytes) here */
+	cmd[4] = 0x00;
+	dad = 1;
+	sad = 2;
+	lr = 256;
+
+	rv = priv->funcs.CT_data(priv->ctn, &dad, &sad, 5, cmd, &lr, rbuf);
+	if (rv || (lr < 2)) {
+		sc_error(reader->ctx, "Error getting status of terminal: %d, using defaults\n", rv);
+		return SC_ERROR_TRANSMIT_FAILED;
+	}
+	if (rbuf[lr-2] != 0x90) {
+		sc_error(reader->ctx, "SW1/SW2: 0x%x/0x%x\n", rbuf[lr-2], rbuf[lr-1]);
+		return SC_ERROR_TRANSMIT_FAILED;
+	}
+	return 0;
+}
+
+static void set_default_fu(sc_reader_t *reader)
+{
+	if (!reader) return;
+
+	reader->slot_count = 1;
+	reader->slot[0].id = 0;
+	reader->slot[0].capabilities = 0;
+	reader->slot[0].atr_len = 0;
+	reader->slot[0].drv_data = NULL;
+}
+
+/* Detect functional units of the reader according to CT-BCS spec version 1.0
+   (14.04.2004, http://www.teletrust.de/down/mct1-0_t4.zip) */
+static void detect_functional_units(sc_reader_t *reader)
+{
+	struct ctapi_private_data *priv = GET_PRIV_DATA(reader);
+	char rv;
+	u8 cmd[5], rbuf[256], sad, dad;
+	unsigned short lr;
+	int NumUnits;
+	int i;
+
+	priv->ctapi_functional_units = 0;
+
+	cmd[0] = CTBCS_CLA;
+	cmd[1] = CTBCS_INS_STATUS;
+	cmd[2] = CTBCS_P1_CT_KERNEL;
+	cmd[3] = CTBCS_P2_STATUS_TFU;
+	cmd[4] = 0x00;
+	dad = 1;
+	sad = 2;
+	lr = 256;
+
+	rv = priv->funcs.CT_data(priv->ctn, &dad, &sad, 5, cmd, &lr, rbuf);
+	if (rv || (lr < 4) || (rbuf[lr-2] != 0x90)) {
+		sc_error(reader->ctx, "Error getting status of terminal: %d, using defaults\n", rv);
+		set_default_fu(reader);
+		return;
+	}
+	if (rbuf[0] != CTBCS_P2_STATUS_TFU) {
+		/* Number of slots might also detected by using CTBCS_P2_STATUS_ICC.
+		   If you think that's important please do it... ;) */
+		set_default_fu(reader);
+		sc_error(reader->ctx, "Invalid data object returnd on CTBCS_P2_STATUS_TFU: 0x%x\n", rbuf[0]);
+		return;
+	}
+	NumUnits = rbuf[1];
+	if (NumUnits + 4 > lr) {
+		set_default_fu(reader);
+		sc_error(reader->ctx, "Invalid data returnd: %d functional units, size %d\n", NumUnits, rv);
+		set_default_fu(reader);
+		return;
+	}
+	reader->slot_count = 0;
+	for(i = 0; i < NumUnits; i++) {
+		switch(rbuf[i+2])
+		{
+			case CTBCS_P1_INTERFACE1:
+			case CTBCS_P1_INTERFACE2:
+			case CTBCS_P1_INTERFACE3:
+			case CTBCS_P1_INTERFACE4:
+			case CTBCS_P1_INTERFACE5:
+			case CTBCS_P1_INTERFACE6:
+			case CTBCS_P1_INTERFACE7:
+			case CTBCS_P1_INTERFACE8:
+			case CTBCS_P1_INTERFACE9:
+			case CTBCS_P1_INTERFACE10:
+			case CTBCS_P1_INTERFACE11:
+			case CTBCS_P1_INTERFACE12:
+			case CTBCS_P1_INTERFACE13:
+			case CTBCS_P1_INTERFACE14:
+			/* Maybe a weak point here if multiple interfaces are present and not returned
+			   in the "canonical" order. This is not forbidden by the specs, but why should
+			   anyone want to do that? */
+				if (reader->slot_count >= SC_MAX_SLOTS) {
+					sc_debug(reader->ctx, "Ignoring slot id 0x%x, can only handle %d slots\n", rbuf[i+2], SC_MAX_SLOTS);
+				} else {
+					reader->slot[reader->slot_count].id = reader->slot_count;
+					reader->slot[reader->slot_count].capabilities = 0; /* Just to start with */
+					reader->slot[reader->slot_count].atr_len = 0;
+					reader->slot[reader->slot_count].drv_data = NULL;
+					reader->slot_count++;
+				}
+				break;
+
+			case CTBCS_P1_DISPLAY:
+				priv->ctapi_functional_units |= CTAPI_FU_DISPLAY;
+				sc_debug(reader->ctx, "Display detected\n");
+				break;
+
+			case CTBCS_P1_KEYPAD:
+				priv->ctapi_functional_units |= CTAPI_FU_KEYBOARD;
+				sc_debug(reader->ctx, "Keypad detected\n");
+				break;
+
+			case CTBCS_P1_PRINTER:
+				priv->ctapi_functional_units |= CTAPI_FU_PRINTER;
+				sc_debug(reader->ctx, "Printer detected\n");
+				break;
+
+			case CTBCS_P1_FINGERPRINT:
+			case CTBCS_P1_VOICEPRINT:
+			case CTBCS_P1_DSV:
+			case CTBCS_P1_FACE_RECOGNITION:
+			case CTBCS_P1_IRISSCAN:
+				priv->ctapi_functional_units |= CTAPI_FU_BIOMETRIC;
+				sc_debug(reader->ctx, "Biometric sensor detected\n");
+				break;
+
+			default:
+				sc_debug(reader->ctx, "Unknown functional unit 0x%x\n", rbuf[i+2]);
+		}
+
+	}
+	if (reader->slot_count == 0) {
+		sc_debug(reader->ctx, "No slots returned, assuning one default slot\n");
+		set_default_fu(reader);
+	}
+	/* CT-BCS does not define Keyboard/Display for each slot, so I assume
+	   those additional units can be used for each slot */
+	if (priv->ctapi_functional_units) {
+		for(i = 0; i < reader->slot_count; i++)	{
+			if (priv->ctapi_functional_units & CTAPI_FU_KEYBOARD)
+			reader->slot[i].capabilities |= SC_SLOT_CAP_PIN_PAD;
+			if (priv->ctapi_functional_units & CTAPI_FU_DISPLAY)
+			reader->slot[i].capabilities |= SC_SLOT_CAP_DISPLAY;
+		}
+	}
+}
+
+static int refresh_slot_attributes(sc_reader_t *reader,
+				   sc_slot_info_t *slot)
 {
 	struct ctapi_private_data *priv = GET_PRIV_DATA(reader);
 	char rv;
@@ -78,17 +257,36 @@ static int refresh_slot_attributes(struct sc_reader *reader,
 	slot->flags = 0;
 
 	rv = priv->funcs.CT_data(priv->ctn, &dad, &sad, 5, cmd, &lr, rbuf);
-	if (rv || rbuf[lr-2] != 0x90) {
-		sc_error(reader->ctx, "Error getting status of terminal: %d\n", rv);
+	if (rv || (lr < 3) || (rbuf[lr-2] != 0x90)) {
+		sc_error(reader->ctx, "Error getting status of terminal: %d/%d/0x%x\n", rv, lr, rbuf[lr-2]);
 		return SC_ERROR_TRANSMIT_FAILED;
 	}
-	if (rbuf[0] == CTBCS_DATA_STATUS_CARD_CONNECT)
+	if (lr < 4) {
+		/* Looks like older readers do not return data tag and length field, so assume one slot only */
+		if (slot->id > 0) {
+			sc_error(reader->ctx, "Status for slot id %d not returned, have only 1\n", slot->id);
+			return SC_ERROR_SLOT_NOT_FOUND;
+		}
+		if (rbuf[0] & CTBCS_DATA_STATUS_CARD)
+			slot->flags = SC_SLOT_CARD_PRESENT;
+	} else {
+		if (rbuf[0] != CTBCS_P2_STATUS_ICC) {
+			/* Should we be more tolerant here? I do not think so... */
+			sc_error(reader->ctx, "Invalid data object returnd on CTBCS_P2_STATUS_ICC: 0x%x\n", rbuf[0]);
+		return SC_ERROR_TRANSMIT_FAILED;
+	}
+		if (rbuf[1] <= slot->id) {
+			sc_error(reader->ctx, "Status for slot id %d not returned, only %d\n", slot->id, rbuf[1]);
+			return SC_ERROR_SLOT_NOT_FOUND;
+		}
+		if (rbuf[2+slot->id] & CTBCS_DATA_STATUS_CARD)
 		slot->flags = SC_SLOT_CARD_PRESENT;
+	}
 
 	return 0;
 }
 
-static int ctapi_transmit(struct sc_reader *reader, struct sc_slot_info *slot,
+static int ctapi_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
 			 const u8 *sendbuf, size_t sendsize,
 			 u8 *recvbuf, size_t *recvsize,
 			 unsigned long control)
@@ -98,11 +296,16 @@ static int ctapi_transmit(struct sc_reader *reader, struct sc_slot_info *slot,
 	unsigned short lr;
 	char rv;
 	
-	dad = control? 1 : 0;
+	if (control)
+		dad = 1;
+	else if (!slot || slot->id == 0)
+		dad = 0;
+	else
+		dad = slot->id + 1; /* Adressing of multiple slots, according to CT API 1.0 */
 	sad = 2;
 	lr = *recvsize;
 	
-	rv = priv->funcs.CT_data(priv->ctn, &dad, &sad, sendsize, (u8 *) sendbuf, &lr, recvbuf);
+	rv = priv->funcs.CT_data(priv->ctn, &dad, &sad, (unsigned short)sendsize, (u8 *) sendbuf, &lr, recvbuf);
 	if (rv != 0) {
 		sc_error(reader->ctx, "Error transmitting APDU: %d\n", rv);
 		return SC_ERROR_TRANSMIT_FAILED;
@@ -112,7 +315,7 @@ static int ctapi_transmit(struct sc_reader *reader, struct sc_slot_info *slot,
 	return 0;
 }
 
-static int ctapi_detect_card_presence(struct sc_reader *reader, struct sc_slot_info *slot)
+static int ctapi_detect_card_presence(sc_reader_t *reader, sc_slot_info_t *slot)
 {
 	int r;
 	
@@ -122,7 +325,7 @@ static int ctapi_detect_card_presence(struct sc_reader *reader, struct sc_slot_i
 	return slot->flags;
 }
 
-static int ctapi_connect(struct sc_reader *reader, struct sc_slot_info *slot)
+static int ctapi_connect(sc_reader_t *reader, sc_slot_info_t *slot)
 {
 	struct ctapi_private_data *priv = GET_PRIV_DATA(reader);
 	char rv;
@@ -132,7 +335,7 @@ static int ctapi_connect(struct sc_reader *reader, struct sc_slot_info *slot)
 
 	cmd[0] = CTBCS_CLA;
 	cmd[1] = CTBCS_INS_REQUEST;
-	cmd[2] = CTBCS_P1_INTERFACE1;
+	cmd[2] = CTBCS_P1_INTERFACE1+slot->id;
 	cmd[3] = CTBCS_P2_REQUEST_GET_ATR;
 	cmd[4] = 0x00;
 	dad = 1;
@@ -176,23 +379,23 @@ static int ctapi_connect(struct sc_reader *reader, struct sc_slot_info *slot)
 	return 0;
 }
 
-static int ctapi_disconnect(struct sc_reader *reader, struct sc_slot_info *slot,
+static int ctapi_disconnect(sc_reader_t *reader, sc_slot_info_t *slot,
 			   int action)
 {
 	return 0;
 }
-                                          
-static int ctapi_lock(struct sc_reader *reader, struct sc_slot_info *slot)
+
+static int ctapi_lock(sc_reader_t *reader, sc_slot_info_t *slot)
 {
 	return 0;
 }
 
-static int ctapi_unlock(struct sc_reader *reader, struct sc_slot_info *slot)
+static int ctapi_unlock(sc_reader_t *reader, sc_slot_info_t *slot)
 {
 	return 0;
 }
 
-static int ctapi_release(struct sc_reader *reader)
+static int ctapi_release(sc_reader_t *reader)
 {
 	struct ctapi_private_data *priv = GET_PRIV_DATA(reader);
 
@@ -207,7 +410,8 @@ static struct sc_reader_operations ctapi_ops;
 static struct sc_reader_driver ctapi_drv = {
 	"CT-API module",
 	"ctapi",
-	&ctapi_ops
+	&ctapi_ops,
+	0, 0, 0, NULL
 };
 
 static struct ctapi_module * add_module(struct ctapi_global_private_data *gpriv,
@@ -225,7 +429,7 @@ static struct ctapi_module * add_module(struct ctapi_global_private_data *gpriv,
 	return &gpriv->modules[i];
 }
 
-static int ctapi_load_module(struct sc_context *ctx,
+static int ctapi_load_module(sc_context_t *ctx,
 			     struct ctapi_global_private_data *gpriv,
 			     scconf_block *conf)
 {
@@ -234,7 +438,7 @@ static int ctapi_load_module(struct sc_context *ctx,
 	struct ctapi_module *mod;
 	const scconf_list *list;
 	void *dlh;
-	int r;
+	int r, i;
 	
 	list = scconf_find_list(conf, "ports");
 	if (list == NULL) {
@@ -243,84 +447,82 @@ static int ctapi_load_module(struct sc_context *ctx,
 	}
 
 	val = conf->name->data;
-	r = sc_module_open(ctx, &dlh, val);
-	if (r != SC_SUCCESS) {
-		sc_error(ctx, "Unable to open shared library '%s'\n", val);
+	dlh = lt_dlopen(val);
+	if (!dlh) {
+		sc_error(ctx, "Unable to open shared library '%s': %s\n", val, lt_dlerror());
 		return -1;
 	}
-	r = sc_module_get_address(ctx, dlh, (void **) &funcs.CT_init, "CT_init");
-	if (r != SC_SUCCESS)
+
+	funcs.CT_init = (CT_INIT_TYPE *) lt_dlsym(dlh, "CT_init");
+	if (!funcs.CT_init)
 		goto symerr;
-	r = sc_module_get_address(ctx, dlh, (void **) &funcs.CT_close, "CT_close");
-	if (r != SC_SUCCESS)
+	funcs.CT_close = (CT_CLOSE_TYPE *) lt_dlsym(dlh, "CT_close");
+	if (!funcs.CT_close)
 		goto symerr;
-	r = sc_module_get_address(ctx, dlh, (void **) &funcs.CT_data, "CT_data");
-	if (r != SC_SUCCESS)
+	funcs.CT_data = (CT_DATA_TYPE *) lt_dlsym(dlh, "CT_data");
+	if (!funcs.CT_data)
 		goto symerr;
+
 	mod = add_module(gpriv, val, dlh);
 	for (; list != NULL; list = list->next) {
 		int port;
 		char namebuf[128];
 		char rv;
-		struct sc_reader *reader;
+		sc_reader_t *reader;
 		struct ctapi_private_data *priv;
-		struct sc_slot_info *slot;
 		
 		if (sscanf(list->data, "%d", &port) != 1) {
 			sc_error(ctx, "Port '%s' is not a number.\n", list->data);
 			continue;
 		}
-		rv = funcs.CT_init(mod->ctn_count, port);
+		rv = funcs.CT_init((unsigned short)mod->ctn_count, (unsigned short)port);
 		if (rv) {
 			sc_error(ctx, "CT_init() failed with %d\n", rv);
 			continue;
 		}
-		reader = (struct sc_reader *) malloc(sizeof(struct sc_reader));
+		reader = (sc_reader_t *) calloc(1, sizeof(sc_reader_t));
 		priv = (struct ctapi_private_data *) malloc(sizeof(struct ctapi_private_data));
-		memset(reader, 0, sizeof(*reader));
 		reader->drv_data = priv;
 		reader->ops = &ctapi_ops;
 		reader->driver = &ctapi_drv;
-		reader->slot_count = 1;
 		snprintf(namebuf, sizeof(namebuf), "CT-API %s, port %d", mod->name, port);
 		reader->name = strdup(namebuf);
 		priv->funcs = funcs;
 		priv->ctn = mod->ctn_count;
 		r = _sc_add_reader(ctx, reader);
 		if (r) {
-			funcs.CT_close(mod->ctn_count);
+			funcs.CT_close((unsigned short)mod->ctn_count);
 			free(priv);
 			free(reader->name);
 			free(reader);
 			break;
 		}
-		slot = &reader->slot[0];
-		slot->id = 0;
-		slot->capabilities = 0;
-		slot->atr_len = 0;
-		slot->drv_data = NULL;
+		/* slot count and properties are set in detect_functional_units */
+		detect_functional_units(reader);
 		
-		refresh_slot_attributes(reader, slot);
+		ctapi_reset(reader, NULL);
+		for(i = 0; i < reader->slot_count; i++) {
+			refresh_slot_attributes(reader, &(reader->slot[i]));
+		}
 		
 		mod->ctn_count++;
 	}
 	return 0;
 symerr:
 	sc_error(ctx, "Unable to resolve CT-API symbols.\n");
-	sc_module_close(ctx, dlh);
+	lt_dlclose(dlh);
 	return -1;
 }
 
-static int ctapi_init(struct sc_context *ctx, void **reader_data)
+static int ctapi_init(sc_context_t *ctx, void **reader_data)
 {
 	int i;
 	struct ctapi_global_private_data *gpriv;
 	scconf_block **blocks = NULL, *conf_block = NULL;
 
-	gpriv = (struct ctapi_global_private_data *) malloc(sizeof(struct ctapi_global_private_data));
+	gpriv = (struct ctapi_global_private_data *) calloc(1, sizeof(struct ctapi_global_private_data));
 	if (gpriv == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
-	memset(gpriv, 0, sizeof(*gpriv));
 	*reader_data = gpriv;
 	
 	for (i = 0; ctx->conf_blocks[i] != NULL; i++) {
@@ -341,7 +543,7 @@ static int ctapi_init(struct sc_context *ctx, void **reader_data)
 	return 0;
 }
 
-static int ctapi_finish(struct sc_context *ctx, void *prv_data)
+static int ctapi_finish(sc_context_t *ctx, void *prv_data)
 {
 	struct ctapi_global_private_data *priv = (struct ctapi_global_private_data *) prv_data;
 
@@ -352,7 +554,7 @@ static int ctapi_finish(struct sc_context *ctx, void *prv_data)
 			struct ctapi_module *mod = &priv->modules[i];
 			
 			free(mod->name);
-			sc_module_close(ctx, mod->dlhandle);
+			lt_dlclose(mod->dlhandle);
 		}
 		if (priv->module_count)
 			free(priv->modules);

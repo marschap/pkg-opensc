@@ -31,6 +31,7 @@
 #endif
 #include <opensc/opensc.h>
 #include <opensc/cardctl.h>
+#include <opensc/cards.h>
 #include <opensc/log.h>
 #include "pkcs15-init.h"
 #include "profile.h"
@@ -74,8 +75,8 @@ static int	gpk_encode_rsa_key(sc_profile_t *, sc_card_t *,
 static int	gpk_encode_dsa_key(sc_profile_t *, sc_card_t *,
 			struct sc_pkcs15_prkey_dsa *, struct pkdata *,
 			struct sc_pkcs15_prkey_info *);
-static int	gpk_store_pk(struct sc_profile *, struct sc_card *,
-			struct sc_file *, struct pkdata *);
+static int	gpk_store_pk(struct sc_profile *, sc_card_t *,
+			sc_file_t *, struct pkdata *);
 static int	gpk_init_pinfile(sc_profile_t *, sc_card_t *, sc_file_t *);
 static int	gpk_pkfile_init_public(sc_profile_t *, sc_card_t *,
 			sc_file_t *, unsigned int, unsigned int, unsigned int);
@@ -87,7 +88,7 @@ static int	gpk_read_rsa_key(sc_card_t *, struct sc_pkcs15_pubkey_rsa *);
  * Erase the card
  */
 static int
-gpk_erase_card(struct sc_profile *pro, struct sc_card *card)
+gpk_erase_card(struct sc_profile *pro, sc_card_t *card)
 {
 	int	locked;
 
@@ -252,7 +253,7 @@ gpk_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
  * Lock a file operation
  */
 static int
-gpk_lock(struct sc_card *card, struct sc_file *file, unsigned int op)
+gpk_lock(sc_card_t *card, sc_file_t *file, unsigned int op)
 {
 	struct sc_cardctl_gpk_lock	args;
 
@@ -265,8 +266,8 @@ gpk_lock(struct sc_card *card, struct sc_file *file, unsigned int op)
  * Lock the pin file
  */
 static int
-gpk_lock_pinfile(struct sc_profile *profile, struct sc_card *card,
-		struct sc_file *pinfile)
+gpk_lock_pinfile(struct sc_profile *profile, sc_card_t *card,
+		sc_file_t *pinfile)
 {
 	struct sc_path	path;
 	struct sc_file	*parent = NULL;
@@ -294,10 +295,10 @@ gpk_lock_pinfile(struct sc_profile *profile, struct sc_card *card,
  * Initialize pin file
  */
 static int
-gpk_init_pinfile(struct sc_profile *profile, struct sc_card *card,
-		struct sc_file *file)
+gpk_init_pinfile(struct sc_profile *profile, sc_card_t *card,
+		sc_file_t *file)
 {
-	const struct sc_acl_entry *acl;
+	const sc_acl_entry_t *acl;
 	unsigned char	buffer[GPK_MAX_PINS * 8], *blk;
 	struct sc_file	*pinfile;
 	unsigned int	so_attempts[2], user_attempts[2];
@@ -311,6 +312,8 @@ gpk_init_pinfile(struct sc_profile *profile, struct sc_card *card,
 	user_attempts[1] = sc_profile_get_pin_retries(profile, SC_PKCS15INIT_USER_PUK);
 
 	sc_file_dup(&pinfile, file);
+	if (pinfile == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
 
 	/* Create the PIN file. */
 	acl = sc_file_get_acl_entry(pinfile, SC_AC_OP_WRITE);
@@ -513,12 +516,17 @@ gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
 #ifndef PK_INIT_IMMEDIATELY
 	r = gpk_pkfile_init_public(profile, card, keyfile, SC_ALGORITHM_RSA,
 			keybits, key_info->usage);
-	if (r < 0)
+	if (r < 0) {
+		sc_file_free(keyfile);
 		return r;
+	}
 
-	if ((r = gpk_pkfile_init_private(card, keyfile, 5 * ((3 + keybits / 16 + 7) & ~7UL))) < 0)
+	if ((r = gpk_pkfile_init_private(card, keyfile, 5 * ((3 + keybits / 16 + 7) & ~7UL))) < 0) {
+		sc_file_free(keyfile);
 		return r;
+	}
 #endif
+	sc_file_free(keyfile);
 
 	memset(&args, 0, sizeof(args));
 	/*args.exponent = 0x10001;*/
@@ -602,14 +610,14 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 		unsigned int algo, unsigned int bits,
 		unsigned int usage)
 {
-	const struct sc_acl_entry *acl;
+	const sc_acl_entry_t *acl;
 	sc_file_t	*tmp = NULL;
 	u8		sysrec[7], buffer[256];
 	unsigned int	n, npins;
-	int		r, gpkclass;
+	int		r, card_type;
 
 	/* Find out what sort of GPK we're using */
-	if ((r = sc_card_ctl(card, SC_CARDCTL_GPK_VARIANT, &gpkclass)) < 0)
+	if ((r = sc_card_ctl(card, SC_CARDCTL_GPK_VARIANT, &card_type)) < 0)
 		return r;
 
 	/* Set up the system record */
@@ -675,7 +683,7 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 
 	/* compute checksum - yet another slightly different
 	 * checksum algorithm courtesy of Gemplus */
-	if (gpkclass >= 8000) {
+	if (card_type >= SC_CARD_TYPE_GPK_GPK8000) {
 		/* This is according to the gpk reference manual */
 		sysrec[6] = 0xA5;
 	} else {
@@ -709,7 +717,7 @@ out:	if (tmp)
 
 static int
 gpk_pkfile_update_public(struct sc_profile *profile,
-		struct sc_card *card, struct pkpart *part)
+		sc_card_t *card, struct pkpart *part)
 {
 	struct pkcomp	*pe;
 	unsigned char	buffer[256];
@@ -770,8 +778,8 @@ gpk_pkfile_update_public(struct sc_profile *profile,
 }
 
 static int
-gpk_pkfile_init_private(struct sc_card *card,
-		struct sc_file *file, unsigned int privlen)
+gpk_pkfile_init_private(sc_card_t *card,
+		sc_file_t *file, unsigned int privlen)
 {
 	struct sc_cardctl_gpk_pkinit args;
 
@@ -781,7 +789,7 @@ gpk_pkfile_init_private(struct sc_card *card,
 }
 
 static int
-gpk_pkfile_load_private(struct sc_card *card, struct sc_file *file,
+gpk_pkfile_load_private(sc_card_t *card, sc_file_t *file,
 			u8 *data, unsigned int len, unsigned int datalen)
 {
 	struct sc_cardctl_gpk_pkload args;
@@ -795,7 +803,7 @@ gpk_pkfile_load_private(struct sc_card *card, struct sc_file *file,
 
 static int
 gpk_pkfile_update_private(struct sc_profile *profile,
-			struct sc_card *card, struct sc_file *file,
+			sc_card_t *card, sc_file_t *file,
 			struct pkpart *part)
 {
 	unsigned int	m, size, nb, cks;
@@ -1032,8 +1040,8 @@ gpk_encode_dsa_key(sc_profile_t *profile, sc_card_t *card,
 }
 
 static int
-gpk_store_pk(struct sc_profile *profile, struct sc_card *card,
-		struct sc_file *file, struct pkdata *p)
+gpk_store_pk(struct sc_profile *profile, sc_card_t *card,
+		sc_file_t *file, struct pkdata *p)
 {
 	size_t	fsize;
 	int	r;
@@ -1110,17 +1118,24 @@ gpk_read_rsa_key(sc_card_t *card, struct sc_pkcs15_pubkey_rsa *rsa)
 	return 0;
 }
 
-static struct sc_pkcs15init_operations sc_pkcs15init_gpk_operations;
+static struct sc_pkcs15init_operations sc_pkcs15init_gpk_operations = {
+	gpk_erase_card,
+	NULL,				/* init_card     */
+	gpk_create_dir,
+	NULL,				/* create_domain */
+	gpk_select_pin_reference,
+	gpk_create_pin,
+	NULL,				/* select_key_reference */
+	gpk_create_key,
+	gpk_store_key,
+	gpk_generate_key,
+	NULL, NULL,			/* encode private/public key */
+	NULL,				/* finalize_card */
+	NULL, NULL, NULL, NULL, NULL,	/* old style api */
+	NULL 				/* delete_object */
+};
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_gpk_ops(void)
 {
-	sc_pkcs15init_gpk_operations.erase_card = gpk_erase_card;
-	sc_pkcs15init_gpk_operations.create_dir = gpk_create_dir;
-	sc_pkcs15init_gpk_operations.select_pin_reference = gpk_select_pin_reference;
-	sc_pkcs15init_gpk_operations.create_pin = gpk_create_pin;
-	sc_pkcs15init_gpk_operations.create_key = gpk_create_key;
-	sc_pkcs15init_gpk_operations.generate_key = gpk_generate_key;
-	sc_pkcs15init_gpk_operations.store_key = gpk_store_key;
-
 	return &sc_pkcs15init_gpk_operations;
 }

@@ -50,8 +50,8 @@ static int	cflex_get_keyfiles(sc_profile_t *, sc_card_t *,
 static int
 cflex_delete_file(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
 {
-        struct sc_path  path;
-        struct sc_file  *parent;
+        sc_path_t  path;
+        sc_file_t  *parent;
         int             r = 0;
         /* Select the parent DF */
         path = df->path;
@@ -81,9 +81,9 @@ cflex_delete_file(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
 /*
  * Erase the card via rm
  */
-static int cflex_erase_card(struct sc_profile *profile, struct sc_card *card)
+static int cflex_erase_card(struct sc_profile *profile, sc_card_t *card)
 {
-	struct sc_file  *df = profile->df_info->file, *dir, *userpinfile;
+	sc_file_t  *df = profile->df_info->file, *dir, *userpinfile;
 	int             r;
 
 	/* Delete EF(DIR). This may not be very nice
@@ -142,6 +142,7 @@ cryptoflex_init_card(sc_profile_t *profile, sc_card_t *card)
 
 	if ((len = file->size) > sizeof(buf))
 		len = sizeof(buf);
+	sc_file_free(file);
 	if ((r = sc_read_binary(card, 0, buf, len, 0)) < 0)
 		return r;
 	len = r;
@@ -854,46 +855,50 @@ cyberflex_encode_public_key(sc_profile_t *profile, sc_card_t *card,
         return 0;
 }
 
-static struct sc_pkcs15init_operations sc_pkcs15init_cryptoflex_operations;
-static struct sc_pkcs15init_operations sc_pkcs15init_cyberflex_operations;
+static struct sc_pkcs15init_operations sc_pkcs15init_cryptoflex_operations = {
+	cflex_erase_card,
+	cryptoflex_init_card,
+	cflex_create_dir,
+	cflex_create_domain,
+	cflex_select_pin_reference,
+	cflex_create_pin,
+	NULL,					/* select_key_reference */
+	cflex_create_key,
+	cflex_store_key,
+	cflex_generate_key,
+	cryptoflex_encode_private_key,
+	cryptoflex_encode_public_key,
+	NULL,					/* finalize_card */
+	NULL, NULL, NULL, NULL, NULL,		/* old style api */
+	NULL 					/* delete_object */
+};
+
+static struct sc_pkcs15init_operations sc_pkcs15init_cyberflex_operations = {
+	cflex_erase_card,
+	NULL,					/* init_card */
+	cflex_create_dir,
+	cflex_create_domain,
+	cflex_select_pin_reference,
+	cflex_create_pin,
+	NULL,					/* select_key_reference */
+	cflex_create_key,
+	cflex_store_key,
+	cflex_generate_key,
+	cyberflex_encode_private_key,
+	cyberflex_encode_public_key,
+	NULL,					/* finalize_card */
+	NULL, NULL, NULL, NULL, NULL,		/* old style api */
+	NULL 					/* delete_object */
+};
 
 struct sc_pkcs15init_operations *
 sc_pkcs15init_get_cryptoflex_ops(void)
 {
-	struct sc_pkcs15init_operations *ops;
-	
-	ops = &sc_pkcs15init_cryptoflex_operations;
-	ops->erase_card = cflex_erase_card;
-	ops->init_card = cryptoflex_init_card;
-	ops->create_dir = cflex_create_dir;
-	ops->create_domain = cflex_create_domain;
-	ops->select_pin_reference = cflex_select_pin_reference;
-	ops->create_pin = cflex_create_pin;
-	ops->create_key = cflex_create_key;
-	ops->generate_key = cflex_generate_key;
-	ops->store_key = cflex_store_key;
-	ops->encode_private_key = cryptoflex_encode_private_key;
-	ops->encode_public_key = cryptoflex_encode_public_key;
-
-	return ops;
+	return &sc_pkcs15init_cryptoflex_operations;
 }
 
 struct sc_pkcs15init_operations *
 sc_pkcs15init_get_cyberflex_ops(void)
 {
-	struct sc_pkcs15init_operations *ops;
-	
-	ops = &sc_pkcs15init_cyberflex_operations;
-	ops->erase_card = cflex_erase_card;
-	ops->create_dir = cflex_create_dir;
-	ops->create_domain = cflex_create_domain;
-	ops->select_pin_reference = cflex_select_pin_reference;
-	ops->create_pin = cflex_create_pin;
-	ops->create_key = cflex_create_key;
-	ops->generate_key = cflex_generate_key;
-	ops->store_key = cflex_store_key;
-	ops->encode_private_key = cyberflex_encode_private_key;
-	ops->encode_public_key = cyberflex_encode_public_key;
-
-	return ops;
+	return &sc_pkcs15init_cyberflex_operations;
 }

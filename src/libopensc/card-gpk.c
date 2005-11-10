@@ -35,18 +35,6 @@
 #define DES_ecb3_encrypt(a,b,c,d,e,f) des_ecb3_encrypt(a,b,*c,*d,*e,f)
 #endif
 
-/* Gemplus card variants */
-enum {
-	GPK4000_su256 = 4000,
-	GPK4000_s,
-	GPK4000_sp,
-	GPK4000_sdo,
-	GPK8000 = 8000,
-	GPK8000_8K,
-	GPK8000_16K,
-	GPK16000 = 16000
-};
-
 #define GPK_SEL_MF		0x00
 #define GPK_SEL_DF		0x01
 #define GPK_SEL_EF		0x02
@@ -72,8 +60,6 @@ enum {
  * GPK4000 private data
  */
 struct gpk_private_data {
-	int		variant;
-
 	/* The GPK usually do file offsets in multiples of
 	 * 4 bytes. This can be customized however. We
 	 * should really query for this during gpk_init */
@@ -98,26 +84,21 @@ struct gpk_private_data {
 };
 #define DRVDATA(card)	((struct gpk_private_data *) ((card)->drv_data))
 
-static int	gpk_get_info(struct sc_card *, u8, u8, u8 *, size_t);
+static int	gpk_get_info(sc_card_t *, int, int, u8 *, size_t);
 
 /*
  * ATRs of GPK4000 cards courtesy of libscez
  */
-static struct atrinfo {
-	unsigned char	atr[SC_MAX_ATR_SIZE];
-	unsigned int	atr_len;
-	int		variant;
-	const char *	name;
-} atrlist[] = {
-  { "\x3B\x27\x00\x80\x65\xA2\x04\x01\x01\x37", 10, GPK4000_s, "GPK 4K" },
-  { "\x3B\x27\x00\x80\x65\xA2\x05\x01\x01\x37", 10, GPK4000_sp, "GPK 4K" },
-  { "\x3B\x27\x00\x80\x65\xA2\x0C\x01\x01\x37", 10, GPK4000_su256, "GPK 4K" },
-  { "\x3B\xA7\x00\x40\x14\x80\x65\xA2\x14\x01\x01\x37", 12, GPK4000_sdo, "GPK 4K" },
-  { "\x3B\xA7\x00\x40\x18\x80\x65\xA2\x08\x01\x01\x52", 12, GPK8000_8K, "GPK 8K" },
-  { "\x3B\xA7\x00\x40\x18\x80\x65\xA2\x09\x01\x01\x52", 12, GPK8000_16K, "GPK 8K" },
-  { "\x3B\xA7\x00\x40\x18\x80\x65\xA2\x09\x01\x02\x52", 12, GPK16000, "GPK 16K" },
-
-  { "", 0, -1 }
+static struct sc_atr_table gpk_atrs[] = {
+	{ "3B:27:00:80:65:A2:04:01:01:37", NULL, "GPK 4K", SC_CARD_TYPE_GPK_GPK4000_s, 0, NULL },
+	{ "3B:27:00:80:65:A2:05:01:01:37", NULL, "GPK 4K", SC_CARD_TYPE_GPK_GPK4000_sp, 0, NULL },
+	{ "3B:27:00:80:65:A2:0C:01:01:37", NULL, "GPK 4K", SC_CARD_TYPE_GPK_GPK4000_su256, 0, NULL },
+	{ "3B:A7:00:40:14:80:65:A2:14:01:01:37", NULL, "GPK 4K", SC_CARD_TYPE_GPK_GPK4000_sdo, 0, NULL },
+	{ "3B:A7:00:40:18:80:65:A2:08:01:01:52", NULL, "GPK 8K", SC_CARD_TYPE_GPK_GPK8000_8K, 0, NULL },
+	{ "3B:A7:00:40:18:80:65:A2:09:01:01:52", NULL, "GPK 8K", SC_CARD_TYPE_GPK_GPK8000_16K, 0, NULL },
+	{ "3B:A7:00:40:18:80:65:A2:09:01:02:52", NULL, "GPK 16K", SC_CARD_TYPE_GPK_GPK16000, 0, NULL },
+	{ "3B:A7:00:40:18:80:65:A2:09:01:03:52", NULL, "GPK 16K", SC_CARD_TYPE_GPK_GPK16000, 0, NULL },
+	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
 /*
@@ -125,76 +106,62 @@ static struct atrinfo {
  */
 static struct sc_card_operations	gpk_ops, *iso_ops;
 static struct sc_card_driver gpk_drv = {
-	"Gemplus GPK driver",
+	"Gemplus GPK",
 	"gpk",
-	&gpk_ops
+	&gpk_ops,
+	NULL, 0, NULL
 };
 
-
 /*
- * Identify the card variant based on the ATR
- *   returns the variant number or 0 on error
+ * return 1 if this driver can handle the card
  */
 static int
-gpk_identify(struct sc_card *card)
+gpk_match_card(sc_card_t *card)
 {
-	struct atrinfo	*ai;
+	int i;
 
-	/* Gemplus GPK docs say we can use just the 
-	 * FMN and PRN fields of the historical bytes
-	 * to recognize a GPK card
-	 *  See Table 43, pp. 188
-	 * We'll use the first 2 bytes as well
-	 */
-	if ( (card->slot->atr_info.hist_bytes_len >= 7)
-		&& (card->slot->atr_info.hist_bytes[0] == 0x80)
-		&& (card->slot->atr_info.hist_bytes[1] == 0x65)
-		&& (card->slot->atr_info.hist_bytes[2] == 0xa2)) /* FMN */
-	{
-		if (card->slot->atr_info.hist_bytes[3] == 0x08){ /* PRN? */
-			return GPK8000;
+	i = _sc_match_atr(card, gpk_atrs, &card->type);
+	if (i < 0) {
+		const u8 *hist_bytes = card->slot->atr_info.hist_bytes;
+
+		/* Gemplus GPK docs say we can use just the 
+		 * FMN and PRN fields of the historical bytes
+		 * to recognize a GPK card
+		 *  See Table 43, pp. 188
+		 * We'll use the first 2 bytes as well
+		 */
+
+		if ((card->slot->atr_info.hist_bytes_len >= 7)
+			&& (hist_bytes[0] == 0x80)
+			&& (hist_bytes[1] == 0x65)
+			&& (hist_bytes[2] == 0xa2)) {	/* FMN */
+			if (hist_bytes[3] == 0x08) {	/* PRN? */
+				card->type = SC_CARD_TYPE_GPK_GPK8000;
+				return 1;
+			}
+			if (hist_bytes[3] == 0x09) {	/* PRN? */
+				card->type = SC_CARD_TYPE_GPK_GPK16000;
+				return 1;
+			}
 		}
-		if (card->slot->atr_info.hist_bytes[3] == 0x09){ /* PRN? */
-			return GPK16000;
-		}
+		return 0;
 	}
-
-	/* if the above ATR-analysis fails, check the known ATR list */
-	for (ai = atrlist; ai->atr_len; ai++) {
-		if (card->atr_len >= ai->atr_len
-		 && !memcmp(card->atr, ai->atr, ai->atr_len))
-			return ai->variant;
-	}
-	return 0;
-}
-
-/*
- * return 1 iff this driver can handle the card
- */
-static int
-gpk_match(struct sc_card *card)
-{
-	return gpk_identify(card)? 1 : 0;
+	return 1;
 }
 
 /*
  * Initialize the card struct
  */
 static int
-gpk_init(struct sc_card *card)
+gpk_init(sc_card_t *card)
 {
 	struct gpk_private_data *priv;
 	unsigned long	exponent, flags, kg;
 	unsigned char info[13];
-	int variant;
 
-	if (!(variant = gpk_identify(card)))
-		return SC_ERROR_INVALID_CARD;
-	card->drv_data = priv = (struct gpk_private_data *) malloc(sizeof(*priv));
+	card->drv_data = priv = (struct gpk_private_data *) calloc(1, sizeof(*priv));
 	if (card->drv_data == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
-	memset(priv, 0, sizeof(*priv));
-	priv->variant = variant;
 
 	/* read/write/update binary expect offset to be the
 	 * number of 32 bit words.
@@ -202,7 +169,7 @@ gpk_init(struct sc_card *card)
 	 * offset_mask is the corresponding mask. */
 	priv->offset_shift = 2;
 	priv->offset_mask = 3;
-	card->cla = 0;
+	card->cla = 0x00;
 
 	/* Set up algorithm info. GPK 16000 will do any RSA
 	 * exponent, earlier ones are restricted to 0x10001 */
@@ -210,8 +177,8 @@ gpk_init(struct sc_card *card)
 		| SC_ALGORITHM_RSA_HASH_MD5_SHA1;
 	flags |= SC_ALGORITHM_RSA_PAD_PKCS1 | SC_ALGORITHM_RSA_PAD_ANSI
 		| SC_ALGORITHM_RSA_PAD_ISO9796;
-	exponent = (variant < 16000)? 0x10001 : 0;
-	kg = (variant >= 8000)? SC_ALGORITHM_ONBOARD_KEY_GEN : 0;
+	exponent = (card->type < SC_CARD_TYPE_GPK_GPK16000) ? 0x10001 : 0;
+	kg = (card->type >= SC_CARD_TYPE_GPK_GPK8000) ? SC_ALGORITHM_ONBOARD_KEY_GEN : 0;
 	_sc_card_add_rsa_alg(card,  512, flags|kg, exponent);
 	_sc_card_add_rsa_alg(card,  768, flags, exponent);
 	_sc_card_add_rsa_alg(card, 1024, flags|kg, exponent);
@@ -250,7 +217,7 @@ gpk_init(struct sc_card *card)
  * Card is being closed; discard any private data etc
  */
 static int
-gpk_finish(struct sc_card *card)
+gpk_finish(sc_card_t *card)
 {
 	if (card->drv_data)
 		free(card->drv_data);
@@ -265,7 +232,7 @@ gpk_finish(struct sc_card *card)
  */
 #if 0
 static int
-gpk_check_sw(struct sc_card *card, u8 sw1, u8 sw2)
+gpk_check_sw(sc_card_t *card, u8 sw1, u8 sw2)
 {
 	unsigned short int	sw = (sw1 << 8) | sw2;
 
@@ -303,7 +270,7 @@ gpk_check_sw(struct sc_card *card, u8 sw1, u8 sw2)
  * Select a DF/EF
  */
 static int
-match_path(struct sc_card *card, unsigned short int **pathptr, size_t *pathlen,
+match_path(sc_card_t *card, unsigned short int **pathptr, size_t *pathlen,
 		int need_info)
 {
 	unsigned short int	*curptr, *ptr;
@@ -360,7 +327,7 @@ okay:
 }
 
 static void
-ac_to_acl(unsigned short int ac, struct sc_file *file, unsigned int op)
+ac_to_acl(unsigned int ac, sc_file_t *file, unsigned int op)
 {
 	unsigned int	npins, pin;
 
@@ -389,9 +356,9 @@ ac_to_acl(unsigned short int ac, struct sc_file *file, unsigned int op)
  * some fuzz involved.
  */
 static void
-acl_to_ac(struct sc_file *file, unsigned int op, u8 *ac)
+acl_to_ac(sc_file_t *file, unsigned int op, u8 *ac)
 {
-	const struct sc_acl_entry *acl;
+	const sc_acl_entry_t *acl;
 	unsigned int	npins = 0;
 
 	ac[0] = ac[1] = 0;
@@ -425,9 +392,9 @@ acl_to_ac(struct sc_file *file, unsigned int op, u8 *ac)
 }
 
 static int
-gpk_parse_fci(struct sc_card *card,
+gpk_parse_fci(sc_card_t *card,
 		const u8 *buf, size_t buflen,
-		struct sc_file *file)
+		sc_file_t *file)
 {
 	const u8	*end, *next;
 	unsigned int	tag, len;
@@ -461,9 +428,9 @@ gpk_parse_fci(struct sc_card *card,
 }
 
 static int
-gpk_parse_fileinfo(struct sc_card *card,
+gpk_parse_fileinfo(sc_card_t *card,
 		const u8 *buf, size_t buflen,
-		struct sc_file *file)
+		sc_file_t *file)
 {
 	const u8	*sp, *end, *next;
 	int		i, rc;
@@ -545,12 +512,12 @@ gpk_parse_fileinfo(struct sc_card *card,
 }
 
 static int
-gpk_select(struct sc_card *card, u8 kind,
+gpk_select(sc_card_t *card, int kind,
 		const u8 *buf, size_t buflen,
-		struct sc_file **file)
+		sc_file_t **file)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8		resbuf[256];
 	int		r;
 
@@ -602,10 +569,10 @@ gpk_select(struct sc_card *card, u8 kind,
 }
 
 static int
-gpk_select_id(struct sc_card *card, u8 kind, unsigned short int fid,
-		struct sc_file **file)
+gpk_select_id(sc_card_t *card, int kind, unsigned int fid,
+		sc_file_t **file)
 {
-	struct sc_path	*cp = &card->cache.current_path;
+	sc_path_t	*cp = &card->cache.current_path;
 	u8		fbuf[2];
 	int		r;
 
@@ -640,8 +607,8 @@ gpk_select_id(struct sc_card *card, u8 kind, unsigned short int fid,
 }
 
 static int
-gpk_select_file(struct sc_card *card, const struct sc_path *path,
-		struct sc_file **file)
+gpk_select_file(sc_card_t *card, const sc_path_t *path,
+		sc_file_t **file)
 {
 	unsigned short int	pathtmp[SC_MAX_PATH_SIZE/2];
 	unsigned short int	*pathptr;
@@ -756,7 +723,7 @@ done:
  * Required because by default the GPKs do word offsets
  */
 static int
-gpk_read_binary(struct sc_card *card, unsigned int offset,
+gpk_read_binary(sc_card_t *card, unsigned int offset,
 		u8 *buf, size_t count, unsigned long flags)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
@@ -771,7 +738,7 @@ gpk_read_binary(struct sc_card *card, unsigned int offset,
 }
 
 static int
-gpk_write_binary(struct sc_card *card, unsigned int offset,
+gpk_write_binary(sc_card_t *card, unsigned int offset,
 		const u8 *buf, size_t count, unsigned long flags)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
@@ -786,7 +753,7 @@ gpk_write_binary(struct sc_card *card, unsigned int offset,
 }
 
 static int
-gpk_update_binary(struct sc_card *card, unsigned int offset,
+gpk_update_binary(sc_card_t *card, unsigned int offset,
 		const u8 *buf, size_t count, unsigned long flags)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
@@ -804,7 +771,7 @@ gpk_update_binary(struct sc_card *card, unsigned int offset,
  * Secure messaging
  */
 static int
-gpk_compute_crycks(struct sc_card *card, struct sc_apdu *apdu,
+gpk_compute_crycks(sc_card_t *card, sc_apdu_t *apdu,
 			u8 *crycks1)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
@@ -848,9 +815,9 @@ gpk_compute_crycks(struct sc_card *card, struct sc_apdu *apdu,
 		memcpy(crycks1, out, 3);
 	des_cleanse(k1);
 	des_cleanse(k2);
-	memset(in, 0, sizeof(in));
-	memset(out, 0, sizeof(out));
-	memset(block, 0, sizeof(block));
+	sc_mem_clear(in, sizeof(in));
+	sc_mem_clear(out, sizeof(out));
+	sc_mem_clear(block, sizeof(block));
 	return 0;
 }
 
@@ -858,7 +825,7 @@ gpk_compute_crycks(struct sc_card *card, struct sc_apdu *apdu,
  * Verify secure messaging response
  */
 static int
-gpk_verify_crycks(struct sc_card *card, struct sc_apdu *apdu, u8 *crycks)
+gpk_verify_crycks(sc_card_t *card, sc_apdu_t *apdu, u8 *crycks)
 {
 	if (apdu->resplen < 3
 	 || memcmp(apdu->resp + apdu->resplen - 3, crycks, 3)) {
@@ -877,10 +844,10 @@ gpk_verify_crycks(struct sc_card *card, struct sc_apdu *apdu, u8 *crycks)
  * (the GPK4000 has lots of bizarre file types).
  */
 static int
-gpk_create_file(struct sc_card *card, struct sc_file *file)
+gpk_create_file(sc_card_t *card, sc_file_t *file)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8		data[28+3], crycks[3], resp[3];
 	size_t		datalen, namelen;
 	int		r;
@@ -991,7 +958,7 @@ gpk_set_filekey(const u8 *key, const u8 *challenge,
 
 	des_cleanse(k1);
 	des_cleanse(k2);
-	memset(out, 0, sizeof(out));
+	sc_mem_clear(out, sizeof(out));
 	return r;
 }
 
@@ -999,11 +966,11 @@ gpk_set_filekey(const u8 *key, const u8 *challenge,
  * Verify a key presented by the user for secure messaging
  */
 static int
-gpk_select_key(struct sc_card *card, int key_sfi, const u8 *buf, size_t buflen)
+gpk_select_key(sc_card_t *card, int key_sfi, const u8 *buf, size_t buflen)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_apdu	apdu;
-	u8		random[8], resp[258];
+	sc_apdu_t	apdu;
+	u8		rnd[8], resp[258];
 	int		r;
 
 	SC_FUNC_CALLED(card->ctx, 1);
@@ -1012,15 +979,15 @@ gpk_select_key(struct sc_card *card, int key_sfi, const u8 *buf, size_t buflen)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
 	/* now do the SelFk */
-	RAND_pseudo_bytes(random, sizeof(random));
+	RAND_pseudo_bytes(rnd, sizeof(rnd));
 	memset(&apdu, 0, sizeof(apdu));
 	apdu.cla = 0x80;
 	apdu.cse = SC_APDU_CASE_4_SHORT;
 	apdu.ins = 0x28;
 	apdu.p1  = 0;
 	apdu.p2  = key_sfi;
-	apdu.data = random;
-	apdu.datalen = sizeof(random);
+	apdu.data = rnd;
+	apdu.datalen = sizeof(rnd);
 	apdu.lc = apdu.datalen;
 	apdu.resp = resp;
 	apdu.resplen = sizeof(resp);
@@ -1035,12 +1002,12 @@ gpk_select_key(struct sc_card *card, int key_sfi, const u8 *buf, size_t buflen)
 	if (apdu.resplen != 12) {
 		r = SC_ERROR_UNKNOWN_DATA_RECEIVED;
 	} else
-	if ((r = gpk_set_filekey(buf, random, resp, priv->key)) == 0) {
+	if ((r = gpk_set_filekey(buf, rnd, resp, priv->key)) == 0) {
 		priv->key_set = 1;
 		priv->key_reference = key_sfi;
 	}
 
-	memset(resp, 0, sizeof(resp));
+	sc_mem_clear(resp, sizeof(resp));
 	return r;
 }
 
@@ -1057,12 +1024,12 @@ gpk_select_key(struct sc_card *card, int key_sfi, const u8 *buf, size_t buflen)
  * and other flags?
  */
 static int
-gpk_set_security_env(struct sc_card *card,
-		const struct sc_security_env *env,
+gpk_set_security_env(sc_card_t *card,
+		const sc_security_env_t *env,
 		int se_num)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	unsigned int	context, algorithm;
 	unsigned int	file_id;
 	u8		sysrec[7];
@@ -1191,7 +1158,7 @@ gpk_set_security_env(struct sc_card *card,
  * Not sure what this is supposed to do.
  */
 static int
-gpk_restore_security_env(struct sc_card *card, int se_num)
+gpk_restore_security_env(sc_card_t *card, int se_num)
 {
 	return 0;
 }
@@ -1216,9 +1183,9 @@ reverse(u8 *out, size_t outlen, const u8 *in, size_t inlen)
  */
 #ifdef dontuse
 static int
-gpk_hash(struct sc_card *card, const u8 *data, size_t datalen)
+gpk_hash(sc_card_t *card, const u8 *data, size_t datalen)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	unsigned int	count, chain, len;
 	int		r;
 
@@ -1259,9 +1226,9 @@ gpk_hash(struct sc_card *card, const u8 *data, size_t datalen)
  * Send the hashed data to the card.
  */
 static int
-gpk_init_hashed(struct sc_card *card, const u8 *digest, unsigned int len)
+gpk_init_hashed(sc_card_t *card, const u8 *digest, unsigned int len)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8		tsegid[64];
 	int		r;
 
@@ -1289,11 +1256,11 @@ gpk_init_hashed(struct sc_card *card, const u8 *digest, unsigned int len)
  * Note we hash everything manually and send it to the card.
  */
 static int
-gpk_compute_signature(struct sc_card *card, const u8 *data,
+gpk_compute_signature(sc_card_t *card, const u8 *data,
 		size_t data_len, u8 * out, size_t outlen)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8		cardsig[1024/8];
 	int		r;
 
@@ -1350,11 +1317,11 @@ gpk_compute_signature(struct sc_card *card, const u8 *data,
  * SSL session key you will be able to decrypt using this card.
  */
 static int
-gpk_decipher(struct sc_card *card, const u8 *in, size_t inlen,
+gpk_decipher(sc_card_t *card, const u8 *in, size_t inlen,
 		u8 *out, size_t outlen)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8		buffer[256];
 	int		r;
 
@@ -1398,28 +1365,28 @@ gpk_decipher(struct sc_card *card, const u8 *in, size_t inlen,
  * Erase card
  */
 static int
-gpk_erase_card(struct sc_card *card)
+gpk_erase_card(sc_card_t *card)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8		offset;
 	int		r;
 
 	SC_FUNC_CALLED(card->ctx, 1);
-	switch (priv->variant) {
-	case GPK4000_su256:
-	case GPK4000_sdo:
+	switch (card->type) {
+	case SC_CARD_TYPE_GPK_GPK4000_su256:
+	case SC_CARD_TYPE_GPK_GPK4000_sdo:
 		offset = 0x6B;  /* courtesy gemplus hotline */
 		break;
 
-	case GPK4000_s:
+	case SC_CARD_TYPE_GPK_GPK4000_s:
 		offset = 7;
 		break;
 
-	case GPK8000:
-	case GPK8000_8K:
-	case GPK8000_16K:
-	case GPK16000:
+	case SC_CARD_TYPE_GPK_GPK8000:
+	case SC_CARD_TYPE_GPK_GPK8000_8K:
+	case SC_CARD_TYPE_GPK_GPK8000_16K:
+	case SC_CARD_TYPE_GPK_GPK16000:
 		offset = 0;
 		break;
 
@@ -1451,11 +1418,11 @@ gpk_erase_card(struct sc_card *card)
  * AC2 for normal files).
  */
 static int
-gpk_lock(struct sc_card *card, struct sc_cardctl_gpk_lock *args)
+gpk_lock(sc_card_t *card, struct sc_cardctl_gpk_lock *args)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_file	*file = args->file;
-	struct sc_apdu	apdu;
+	sc_file_t	*file = args->file;
+	sc_apdu_t	apdu;
 	u8		data[8], crycks[3], resp[3];
 	int		r;
 
@@ -1512,9 +1479,9 @@ gpk_lock(struct sc_card *card, struct sc_cardctl_gpk_lock *args)
  * Initialize the private portion of a public key file
  */
 static int
-gpk_pkfile_init(struct sc_card *card, struct sc_cardctl_gpk_pkinit *args)
+gpk_pkfile_init(sc_card_t *card, struct sc_cardctl_gpk_pkinit *args)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	int		r;
 
 	if (card->ctx->debug)
@@ -1539,9 +1506,9 @@ gpk_pkfile_init(struct sc_card *card, struct sc_cardctl_gpk_pkinit *args)
  * Initialize the private portion of a public key file
  */
 static int
-gpk_generate_key(struct sc_card *card, struct sc_cardctl_gpk_genkey *args)
+gpk_generate_key(sc_card_t *card, struct sc_cardctl_gpk_genkey *args)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	int		r;
 	u8		buffer[256];
 
@@ -1585,11 +1552,11 @@ gpk_generate_key(struct sc_card *card, struct sc_cardctl_gpk_genkey *args)
  * Store a privat key component
  */
 static int
-gpk_pkfile_load(struct sc_card *card, struct sc_cardctl_gpk_pkload *args)
+gpk_pkfile_load(sc_card_t *card, struct sc_cardctl_gpk_pkload *args)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
 	des_key_schedule k1, k2;
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	unsigned int	n;
 	u8		temp[256];
 	int		r;
@@ -1648,7 +1615,7 @@ gpk_pkfile_load(struct sc_card *card, struct sc_cardctl_gpk_pkload *args)
  * This function lets pkcs15init query for the transport key
  */
 static int
-gpk_get_default_key(struct sc_card *card, struct sc_cardctl_default_key *data)
+gpk_get_default_key(sc_card_t *card, struct sc_cardctl_default_key *data)
 {
 	if (data->method == SC_AC_PRO && data->key_ref == 1) {
 		if (data->len < 16)
@@ -1666,10 +1633,10 @@ gpk_get_default_key(struct sc_card *card, struct sc_cardctl_default_key *data)
  */
 #if 0
 static int
-gpk_max_session_key(struct sc_card *card)
+gpk_max_session_key(sc_card_t *card)
 {
 	struct gpk_private_data *priv = DRVDATA(card);
-	struct sc_path	path;
+	sc_path_t	path;
 	u8		value;
 	int		r;
 
@@ -1691,9 +1658,9 @@ gpk_max_session_key(struct sc_card *card)
  * GetInfo call
  */
 int
-gpk_get_info(struct sc_card *card, u8 p1, u8 p2, u8 *buf, size_t buflen)
+gpk_get_info(sc_card_t *card, int p1, int p2, u8 *buf, size_t buflen)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	int	r, retry = 0;
 
 	/* We may have to retry the get info command. It
@@ -1734,11 +1701,47 @@ gpk_get_info(struct sc_card *card, u8 p1, u8 p2, u8 *buf, size_t buflen)
 	return r;
 }
 
+static int gpk_get_serialnr(sc_card_t *card, sc_serial_number_t *serial)
+{
+	int r;
+	u8  rbuf[10];
+	sc_apdu_t apdu;
+
+	if (card->type != SC_CARD_TYPE_GPK_GPK16000)
+		return SC_ERROR_NOT_SUPPORTED;
+
+	if (!serial)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	/* see if we have cached serial number */
+	if (card->serialnr.len) {
+		memcpy(serial, &card->serialnr, sizeof(*serial));
+		return SC_SUCCESS;
+	}
+	/* get serial number via Get CSN */
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xb8, 0x00, 0x00);
+	apdu.cla |= 0x80;
+	apdu.resp = rbuf;
+	apdu.resplen = sizeof(rbuf);
+	apdu.le   = 8;
+	apdu.lc   = 0;
+	apdu.datalen = 0;
+        r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
+		return SC_ERROR_INTERNAL;
+	/* cache serial number */
+	memcpy(card->serialnr.value, apdu.resp, apdu.resplen);
+	card->serialnr.len = apdu.resplen;
+	/* copy and return serial number */
+	memcpy(serial, &card->serialnr, sizeof(*serial));
+	return SC_SUCCESS;
+}
+
 /*
  * Dispatch card_ctl calls
  */
 static int
-gpk_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
+gpk_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
 {
 	switch (cmd) {
 	case SC_CARDCTL_ERASE_CARD:
@@ -1747,7 +1750,7 @@ gpk_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
 		return gpk_get_default_key(card,
 				(struct sc_cardctl_default_key *) ptr);
 	case SC_CARDCTL_GPK_VARIANT:
-		*(int *) ptr = DRVDATA(card)->variant;
+		*(int *) ptr = card->type;
 		return 0;
 	case SC_CARDCTL_GPK_LOCK:
 		return gpk_lock(card, (struct sc_cardctl_gpk_lock *) ptr);
@@ -1763,6 +1766,8 @@ gpk_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
 	case SC_CARDCTL_GPK_GENERATE_KEY:
 		return gpk_generate_key(card,
 				(struct sc_cardctl_gpk_genkey *) ptr);
+	case SC_CARDCTL_GET_SERIALNR:
+		return gpk_get_serialnr(card, (sc_serial_number_t *) ptr);
 	}
 
 
@@ -1834,7 +1839,7 @@ gpk_build_pin_apdu(sc_card_t *card, sc_apdu_t *apdu, struct sc_pin_cmd_data *dat
 static int
 gpk_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data, int *tries_left)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	int r;
 
 	/* Special case - External Authenticate */
@@ -1860,29 +1865,28 @@ gpk_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data, int *tries_left)
 static struct sc_card_driver *
 sc_get_driver()
 {
-	if (gpk_ops.match_card == NULL) {
-		struct sc_card_driver *iso_drv;
+	struct sc_card_driver *iso_drv;
 
-		iso_drv = sc_get_iso7816_driver();
-		iso_ops = iso_drv->ops;
-		gpk_ops = *iso_ops;
+	iso_drv = sc_get_iso7816_driver();
+	iso_ops = iso_drv->ops;
+	gpk_ops = *iso_ops;
 
-		gpk_ops.match_card	= gpk_match;
-		gpk_ops.init		= gpk_init;
-		gpk_ops.finish		= gpk_finish;
-		gpk_ops.select_file	= gpk_select_file;
-		gpk_ops.read_binary	= gpk_read_binary;
-		gpk_ops.write_binary	= gpk_write_binary;
-		gpk_ops.update_binary	= gpk_update_binary;
-		gpk_ops.create_file	= gpk_create_file;
-		/* gpk_ops.check_sw	= gpk_check_sw; */
-		gpk_ops.card_ctl	= gpk_card_ctl;
-		gpk_ops.set_security_env= gpk_set_security_env;
-		gpk_ops.restore_security_env= gpk_restore_security_env;
-		gpk_ops.compute_signature= gpk_compute_signature;
-		gpk_ops.decipher	= gpk_decipher;
-		gpk_ops.pin_cmd		= gpk_pin_cmd;
-	}
+	gpk_ops.match_card	= gpk_match_card;
+	gpk_ops.init		= gpk_init;
+	gpk_ops.finish		= gpk_finish;
+	gpk_ops.select_file	= gpk_select_file;
+	gpk_ops.read_binary	= gpk_read_binary;
+	gpk_ops.write_binary	= gpk_write_binary;
+	gpk_ops.update_binary	= gpk_update_binary;
+	gpk_ops.create_file	= gpk_create_file;
+	/* gpk_ops.check_sw	= gpk_check_sw; */
+	gpk_ops.card_ctl	= gpk_card_ctl;
+	gpk_ops.set_security_env= gpk_set_security_env;
+	gpk_ops.restore_security_env= gpk_restore_security_env;
+	gpk_ops.compute_signature= gpk_compute_signature;
+	gpk_ops.decipher	= gpk_decipher;
+	gpk_ops.pin_cmd		= gpk_pin_cmd;
+
 	return &gpk_drv;
 }
 

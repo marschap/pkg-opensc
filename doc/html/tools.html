@@ -1,0 +1,595 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>OpenSC tools</title><meta name="generator" content="DocBook XSL Stylesheets V1.68.1"><style type="text/css"><!--
+body {
+  font-family: Verdana, Arial;
+  font-size: 0.9em;
+}
+
+.title {
+  font-size: 1.5em; 
+  text-align: center;
+}
+
+.toc b {
+  font-size: 1.2em;
+  border-bottom: dashed 1px black;
+}
+
+a {
+  color: blue;
+  text-decoration: none;
+}
+
+a:visited {
+  color: blue;
+  text-decoration: none;
+}
+
+pre.programlisting {
+  font-size: 1.1em;
+  background-color: #EEEEEE ;
+  border: 1px solid #006600 ;
+  padding: 1em;
+}
+
+span.symbol {
+  font-weight: bold;
+}
+
+span.errorname {
+  font-weight: bold;
+}
+
+span.errortext {
+  font-style: italic;
+}
+
+--></style></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="book" lang="en"><div class="titlepage"><div><div><h1 class="title"><a name="id2449723"></a>OpenSC tools</h1></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="reference"><a href="#id2449664">I. OpenSC</a></span></dt></dl></div><div class="reference" lang="en"><a name="id2449664"></a><div class="titlepage"><div><div><h1 class="title"><a name="id2449664"></a>OpenSC</h1></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#opensc-config">opensc-config</a></span><span class="refpurpose"> - a tool to get information about the installed version of OpenSC</span></dt><dt><span class="refentrytitle"><a href="#opensc-tool">opensc-tool</a></span><span class="refpurpose"> - generic smart card utility</span></dt><dt><span class="refentrytitle"><a href="#opensc-explorer">opensc-explorer</a></span><span class="refpurpose"> - 
+			generic interactive utility for accessing smart card
+			and similar security token functions
+		</span></dt><dt><span class="refentrytitle"><a href="#pkcs11-tool">pkcs11-tool</a></span><span class="refpurpose"> - utility for managing and using PKCS #11 security tokens</span></dt><dt><span class="refentrytitle"><a href="#pkcs15-crypt">pkcs15-crypt</a></span><span class="refpurpose"> - perform crypto operations using pkcs15 smart card</span></dt><dt><span class="refentrytitle"><a href="#pkcs15-tool">pkcs15-tool</a></span><span class="refpurpose"> - utility for manipulating PKCS #15 data structures
+		on smart cards and similar security tokens</span></dt><dt><span class="refentrytitle"><a href="#">pkcs15-init</a></span><span class="refpurpose"> - smart card personalization utility</span></dt><dt><span class="refentrytitle"><a href="#">pkcs15-profile</a></span><span class="refpurpose"> - format of profile for pkcs15-init</span></dt><dt><span class="refentrytitle"><a href="#cardos-info">cardos-info</a></span><span class="refpurpose"> - displays information about Card OS-based security tokens
+		</span></dt><dt><span class="refentrytitle"><a href="#cryptoflex-tool">cryptoflex-tool</a></span><span class="refpurpose"> - utility for manipulating Schlumberger Cryptoflex data structures</span></dt><dt><span class="refentrytitle"><a href="#netkey-tool">netkey-tool</a></span><span class="refpurpose"> - administrative utility for Netkey E4 cards</span></dt></dl></div><div class="refentry" lang="en"><a name="opensc-config"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>opensc-config &#8212; a tool to get information about the installed version of OpenSC</p></div><div class="refsect1" lang="en"><a name="id2473832"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">opensc-config</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2473847"></a><h2>Description</h2><p>
+			<span><strong class="command">opensc-config</strong></span> is a tool that is used to get various information
+			about the installed version of OpenSC.  It is particularly useful in determining
+			compiler and linker flags necessary to build programs with the OpenSC libraries.
+		</p></div><div class="refsect1" lang="en"><a name="id2473866"></a><h2>Options</h2><p>
+			<span><strong class="command">opensc-config</strong></span> accepts the following options:
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--version</code></span></dt><dd><p>Print the installed version of OpenSC to standard output.</p></dd><dt><span class="term"><code class="option">--libs</code></span></dt><dd><p>Print the linker flags that are needed to compile a program
+					to use the OpenSC libraries.</p></dd><dt><span class="term"><code class="option">--cflags</code></span></dt><dd><p>Print the compiler flags that are needed to compile a program
+					to use the OpenSC libraries.</p></dd><dt><span class="term"><code class="option">--prefix=PREFIX</code></span></dt><dd><p>If specified, use PREFIX instead of the installation
+					prefix that OpenSC was built with when computing the output for the
+					--cflags and --libs options. This option is also used for the exec
+					prefix if --exec-prefix was not specified. This option must be specified
+					before any --libs or --cflags options.</p></dd><dt><span class="term"><code class="option">--exec-prefix=PREFIX</code></span></dt><dd><p>If specified, use PREFIX instead of the installation
+					exec prefix that OpenSC was built with when computing the output for
+					the --cflags and --libs options. This option must be specified before any
+					--libs or --cflags options.</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2449023"></a><h2>See also</h2><p>opensc(7)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="opensc-tool"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>opensc-tool &#8212; generic smart card utility</p></div><div class="refsect1" lang="en"><a name="id2450508"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">opensc-tool</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2450522"></a><h2>Description</h2><p>
+			The <span><strong class="command">opensc-tool</strong></span> utility can be used from the command line to perform 
+			miscellaneous smart card operations such as getting the card ATR or 
+			sending arbitrary APDU commands to a card.
+		</p></div><div class="refsect1" lang="en"><a name="id2450540"></a><h2>Options</h2><p>
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--atr, -a</code></span></dt><dd><p>Print the Answer To Reset (ATR) of the card,
+					output is in hex byte format</p></dd><dt><span class="term"><code class="option">--serial</code></span></dt><dd><p>Print the card serial number (normally the ICCSN), output is in hex byte
+format</p></dd><dt><span class="term"><code class="option">--send-apdu</code> apdu, <code class="option">-s</code> apdu</span></dt><dd><p>Sends an arbitrary APDU to the card in the format AA:BB:CC:DD:EE:FF...</p></dd><dt><span class="term"><code class="option">--list-files, -f</code></span></dt><dd><p>Recursively lists all files stored on card</p></dd><dt><span class="term"><code class="option">--list-readers, -l</code></span></dt><dd><p>Lists all configured readers</p></dd><dt><span class="term"><code class="option">--list-drivers, -D</code></span></dt><dd><p>Lists all installed card drivers</p></dd><dt><span class="term"><code class="option">--list-rdrivers, -R</code></span></dt><dd><p>Lists all installed reader drivers</p></dd><dt><span class="term"><code class="option">--reader</code> num, <code class="option">-r</code> num</span></dt><dd><p>Use the given reader number.  The default is 0, the first reader
+in the system.</p></dd><dt><span class="term"><code class="option">--card-driver</code> driver, <code class="option">-c</code> driver</span></dt><dd><p>Use the given card driver.  The default is auto-detected.</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>Causes <span><strong class="command">opensc-tool</strong></span> to be more verbose. Specify this flag several times
+to enable debug output in the opensc library.</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2450420"></a><h2>See also</h2><p>opensc(7), opensc-explorer(1)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="opensc-explorer"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>opensc-explorer &#8212; 
+			generic interactive utility for accessing smart card
+			and similar security token functions
+		</p></div><div class="refsect1" lang="en"><a name="id2449495"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">opensc-explorer</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2449078"></a><h2>Description</h2><p>
+			The <span><strong class="command">opensc-explorer</strong></span> utility can be
+			used interactively to perform miscellaneous operations
+			such as exploring the contents of or sending arbitrary
+			APDU commands to a smart card or similar security token.
+		</p></div><div class="refsect1" lang="en"><a name="id2449096"></a><h2>Options</h2><p>
+			The following are the command-line options for
+			<span><strong class="command">opensc-explorer</strong></span>.  There are additional
+			interactive commands available once it is running.
+			</p><div class="variablelist"><dl><dt><span class="term">
+						<code class="option">--reader</code> num,
+						<code class="option">-r</code> num
+					</span></dt><dd><p>
+					Use the given reader number. The default
+					is 0, the first reader in the system.
+					</p></dd><dt><span class="term">
+						<code class="option">--card-driver</code> driver,
+						<code class="option">-c</code> driver
+					</span></dt><dd><p>
+						Use the given card driver.  The default is
+						auto-detected.
+					</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>
+						Causes <span><strong class="command">opensc-explorer</strong></span> to be more
+						verbose. Specify this flag several times to enable
+						debug output in the opensc library.
+					</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2449179"></a><h2>Commands</h2><p>
+		The following commands are supported at the <span><strong class="command">opensc-explorer</strong></span>
+		interactive prompt.
+		</p><div class="variablelist"><dl><dt><span class="term"><code class="option">ls</code></span></dt><dd><p>list all files in the current DF</p></dd><dt><span class="term"><code class="option">cd</code> <code class="varname">file-id</code></span></dt><dd><p>change to another DF specified by <code class="varname">file-id</code></p></dd><dt><span class="term"><code class="option">cat</code></span></dt><dd><p>print the contents of the currently selected EF</p></dd><dt><span class="term"><code class="option">info</code> [<code class="varname">file-id</code>]</span></dt><dd><p>display attributes of a file specified by <code class="varname">file-id</code>.
+				If <code class="varname">file-id</code> is not supplied,
+				the attributes of the current file are printed.</p></dd><dt><span class="term"><code class="option">create</code> <code class="varname">file-id</code> <code class="varname">size</code></span></dt><dd><p>create a new EF.  <code class="varname">file-id</code> specifies the
+				id number and <code class="varname">size</code> is the size of the new file.
+				</p></dd><dt><span class="term"><code class="option">delete</code> <code class="varname">file-id</code></span></dt><dd><p>remove the EF or DF specified by <code class="varname">file-id</code></p></dd><dt><span class="term"><code class="option">verify</code> <code class="varname">key-type</code><code class="varname">key-id</code>
+				[<code class="varname">key</code>]</span></dt><dd><p>present a PIN or key to the card. Where <code class="varname">key-type</code>
+				can be one of CHV, KEY or PRO. <code class="varname">key-id</code> is a number representing the
+				key or PIN number. <code class="varname">key</code> is the key or PIN to be verified in hex.
+				</p><p>
+					Example: verify CHV0 31:32:33:34:00:00:00:00
+				</p></dd><dt><span class="term"><code class="option">change CHV</code><code class="varname">id [old-pin] new-pin</code></span></dt><dd><p>change a PIN</p><p>
+					Example: change CHV0 31:32:33:34:00:00:00:00 'secret'
+				</p></dd><dt><span class="term"><code class="option">put</code> <code class="varname">file-id</code> [<code class="varname">input</code>]</span></dt><dd><p>copy a local file to the card. The local file is specified
+				by <code class="varname">input</code> while the card file is specified by <code class="varname">file-id</code>
+				</p></dd><dt><span class="term"><code class="option">get</code> <code class="varname">file-id</code> [<code class="varname">output</code>]</span></dt><dd><p>copy an EF to a local file. The local file is specified
+				by <code class="varname">output</code> while the card file is specified by <code class="varname">file-id</code>.
+				</p></dd><dt><span class="term"><code class="option">mkdir</code> <code class="varname">file-id</code> <code class="varname">size</code></span></dt><dd><p>create a DF.  <code class="varname">file-id</code> specifies the id number
+				and <code class="varname">size</code> is the size of the new file.</p></dd><dt><span class="term"><code class="option">pksign</code></span></dt><dd><p>create a public key signature.  NOTE: This command is currently not implemented.
+				</p></dd><dt><span class="term"><code class="option">pkdecrypt</code></span></dt><dd><p>perform a public key decryption.  NOTE: This command is currently not implemented.
+				</p></dd><dt><span class="term"><code class="option">erase</code></span></dt><dd><p>erase the card, if the card supports it.</p></dd><dt><span class="term"><code class="option">debug</code> [<code class="varname">level</code>]</span></dt><dd><p>get or set the debug level</p></dd><dt><span class="term"><code class="option">quit</code></span></dt><dd><p>exit the program</p></dd></dl></div><p>
+	</p></div><div class="refsect1" lang="en"><a name="id2449972"></a><h2>See also</h2><p>opensc(7), opensc-tool(1)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="pkcs11-tool"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>pkcs11-tool &#8212; utility for managing and using PKCS #11 security tokens</p></div><div class="refsect1" lang="en"><a name="id2497877"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">pkcs11-tool</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2497892"></a><h2>Description</h2><p>
+			The <span><strong class="command">pkcs11-tool</strong></span> utility is used to manage the
+			data objects on smart cards and similar PKCS #11 security tokens.
+			Users can list and read PINs, keys and certificates stored on the
+			token. User PIN authentication is performed for those operations
+			that require it.
+		</p></div><div class="refsect1" lang="en"><a name="id2497911"></a><h2>Options</h2><p>
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--login, -l</code></span></dt><dd><p>Authenticate to the token before performing
+					other operations. This option is not needed if a PIN is
+					provided on the command line.</p></dd><dt><span class="term"><code class="option">--pin</code> <code class="varname">pin</code>,
+					<code class="option">-p</code> <code class="varname">pin</code></span></dt><dd><p>Use the given <code class="varname">pin</code> for
+					token operations. WARNING: Be careful using this option
+					as other users may be able to read the command line from
+					the system or if it is embedded in a script.</p></dd><dt><span class="term"><code class="option">--so-pin</code> <code class="varname">pin</code></span></dt><dd><p>Use the given <code class="varname">pin</code> as the
+					Security Officer PIN for some token operations (token
+					initialization, user PIN initialization, etc). The same
+					warning as --pin also applies here.</p></dd><dt><span class="term"><code class="option">--init-token</code></span></dt><dd><p>Initializes a token: set the token label as
+					well as a Security Officer PIN (the label must be specified
+					using --label).</p></dd><dt><span class="term"><code class="option">--init-pin</code></span></dt><dd><p>Initializes the user PIN. This option
+					differs from --change-pin in that it sets the user PIN
+					for the first time. Once set, the user PIN can be changed
+					using --change-pin.</p></dd><dt><span class="term"><code class="option">--change-pin, -c</code></span></dt><dd><p>Change the user PIN on the token</p></dd><dt><span class="term"><code class="option">--test, -t</code></span></dt><dd><p>Performs some tests on the token. This
+					option is most useful when used with either --login or
+					--pin.</p></dd><dt><span class="term"><code class="option">--show-info, -I</code></span></dt><dd><p>Displays general token information.</p></dd><dt><span class="term"><code class="option">--list-slots, -L</code></span></dt><dd><p>Displays a list of available slots on the token.</p></dd><dt><span class="term"><code class="option">--list-mechanisms, -M</code></span></dt><dd><p>Displays a list of mechanisms supported by the token.</p></dd><dt><span class="term"><code class="option">--list-objects, -O</code></span></dt><dd><p>Displays a list of objects.</p></dd><dt><span class="term"><code class="option">--sign, s</code></span></dt><dd><p>Sign some data.</p></dd><dt><span class="term"><code class="option">--hash, -h</code></span></dt><dd><p>Hash some data.</p></dd><dt><span class="term"><code class="option">--mechanism</code> <code class="varname">mechanism</code>,
+					<code class="option">-m</code> <code class="varname">mechanism</code></span></dt><dd><p>Use the specified <code class="varname">mechanism</code>
+					for token operations. See -M for a list of mechanisms supported
+					by your token.</p></dd><dt><span class="term"><code class="option">--keypairgen, -k</code></span></dt><dd><p>Generate a new key pair (public and private pair.)</p></dd><dt><span class="term"><code class="option">--write-object</code> <code class="varname">id</code>,
+					<code class="option">-w</code> <code class="varname">id</code></span></dt><dd><p>Write a key or certificate object to the token.</p></dd><dt><span class="term"><code class="option">--type</code> <code class="varname">type</code>,
+					<code class="option">-y</code> <code class="varname">type</code></span></dt><dd><p>Specify the type of object to operate on.
+					Examples are <span class="emphasis"><em>cert</em></span>, <span class="emphasis"><em>privkey</em></span>
+					and <span class="emphasis"><em>pubkey</em></span>.</p></dd><dt><span class="term"><code class="option">--id</code> <code class="varname">id</code>,
+					<code class="option">-d</code> <code class="varname">id</code></span></dt><dd><p>Specify the id of the object to operate on.</p></dd><dt><span class="term"><code class="option">--label</code> <code class="varname">name</code>,
+					<code class="option">-a</code> <code class="varname">name</code></span></dt><dd><p>Specify the name of the object to operate on
+					(or the token label when --init-token is used).</p></dd><dt><span class="term"><code class="option">--slot</code> <code class="varname">id</code></span></dt><dd><p>Specify the id of the slot to use.</p></dd><dt><span class="term"><code class="option">--slot-id</code> <code class="varname">name</code></span></dt><dd><p>Specify the name of the slot to use.</p></dd><dt><span class="term"><code class="option">--set-id</code> <code class="varname">id</code>,
+					<code class="option">-e</code> <code class="varname">id</code></span></dt><dd><p>Set the CKA_ID of the object.</p></dd><dt><span class="term"><code class="option">--attr-from</code> <code class="varname">path</code></span></dt><dd><p>Extract information from <code class="varname">path</code>
+					(DER-encoded certificate file) and create the corresponding
+					attributes when writing an object to the token. Example: the
+					certificate subject name is used to create the CKA_SUBJECT
+					attribute.</p></dd><dt><span class="term"><code class="option">--input-file</code> <code class="varname">path</code>,
+					<code class="option">-i</code> <code class="varname">path</code></span></dt><dd><p>Specify the path to a file for input.</p></dd><dt><span class="term"><code class="option">--output-file</code> <code class="varname">path</code>,
+					<code class="option">-o</code> <code class="varname">path</code></span></dt><dd><p>Specify the path to a file for output.</p></dd><dt><span class="term"><code class="option">--module</code> <code class="varname">mod</code></span></dt><dd><p>Specify a module to load.</p></dd><dt><span class="term"><code class="option">--moz-cert</code> <code class="varname">path</code>,
+					<code class="option">-z</code> <code class="varname">path</code></span></dt><dd><p>Tests a Mozilla-like keypair generation
+					and certificate request. Specify the <code class="varname">path</code>
+					to the certificate file.</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>Causes <span><strong class="command">pkcs11-tool</strong></span> to be
+					more verbose. Specify this flag several times to enable debug
+					output in the OpenSC library.</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2498090"></a><h2>See also</h2><p>opensc(7)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="pkcs15-crypt"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>pkcs15-crypt &#8212; perform crypto operations using pkcs15 smart card</p></div><div class="refsect1" lang="en"><a name="id2449455"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">pkcs15-crypt</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2449993"></a><h2>Description</h2><p>
+			The <span><strong class="command">pkcs15-crypt</strong></span> utility can be used from the
+			command line to perform cryptographic operations such as computing
+			digital signatures or decrypting data, using keys stored on a PKCS
+			#15 compliant smart card.
+		</p></div><div class="refsect1" lang="en"><a name="id2450011"></a><h2>Options</h2><p>
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--sign, -s</code></span></dt><dd><p>Perform digital signature operation on
+					the data read from a file specified using the <code class="option">input</code>
+					option. By default, the contents of the file are assumed to
+					be the result of an MD5 hash operation. Note that <span><strong class="command">pkcs15-crypt</strong></span>
+					expects the data in binary representation, not ASCII.</p><p>The digital signature is stored, in binary representation,
+					in the file specified by the <code class="option">output</code> option. If
+					this option is not given, the signature is printed on standard
+					output, displaying non-printable characters using their hex notation
+					xNN (see also <code class="option">--raw</code>).</p></dd><dt><span class="term"><code class="option">--pkcs1</code></span></dt><dd><p>By default, <span><strong class="command">pkcs15-crypt</strong></span>
+					assumes that input data has been padded to the correct length
+					(i.e. when computing an RSA signature using a 1024 bit key,
+					the input must be padded to 128 bytes to match the modulus
+					length). When giving the <code class="option">--pkcs1</code> option,
+					however, <span><strong class="command">pkcs15-crypt</strong></span> will perform the
+					required padding using the algorithm outlined in the
+					PKCS #1 standard version 1.5.</p></dd><dt><span class="term"><code class="option">--sha-1</code></span></dt><dd><p>This option tells <span><strong class="command">pkcs15-crypt</strong></span>
+					that the input file is the result of an SHA1 hash operation,
+					rather than an MD5 hash. Again, the data must be in binary
+					representation.</p></dd><dt><span class="term"><code class="option">--decipher, -c</code></span></dt><dd><p>Decrypt the contents of the file specified by
+					the <code class="option">--input</code> option. The result of the
+					decryption operation is written to the file specified by the
+					<code class="option">--output</code> option. If this option is not given,
+					the decrypted data is printed to standard output, displaying
+					non-printable characters using their hex notation xNN (see also
+					<code class="option">--raw</code>).</p></dd><dt><span class="term"><code class="option">--key</code> <code class="varname">id</code>,
+					<code class="option">-k</code> <code class="varname">id</code></span></dt><dd><p>Selects the ID of the key to use.</p></dd><dt><span class="term"><code class="option">--reader</code> <code class="varname">N</code>,
+					<code class="option">-r</code> <code class="varname">N</code></span></dt><dd><p>Selects the <code class="varname">N</code>-th smart
+					card reader configured by the system. If unspecified,
+					<span><strong class="command">pkcs15-crypt</strong></span> will use the first reader
+					found.</p></dd><dt><span class="term"><code class="option">--input</code> <code class="varname">file</code>,
+					<code class="option">-i</code> <code class="varname">file</code></span></dt><dd><p>Specifies the input file to use.</p></dd><dt><span class="term"><code class="option">--output</code> <code class="varname">file</code>,
+					<code class="option">-o</code> <code class="varname">file</code></span></dt><dd><p>Any output will be sent to the specified file.</p></dd><dt><span class="term"><code class="option">--raw, -R</code></span></dt><dd><p>Outputs raw 8 bit data.</p></dd><dt><span class="term"><code class="option">--pin</code> <code class="varname">pin</code>,
+					<code class="option">-p</code> <code class="varname">pin</code></span></dt><dd><p>When the cryptographic operation requires a
+					PIN to access the key, <span><strong class="command">pkcs15-crypt</strong></span> will
+					prompt the user for the PIN on the terminal. Using this option
+					allows you to specify the PIN on the command line.</p><p>Note that on most operating systems, the command line of
+					a process can be displayed by any user using the ps(1)
+					command. It is therefore a security risk to specify
+					secret information such as PINs on the command line.</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>Causes <span><strong class="command">pkcs15-crypt</strong></span> to be more
+					verbose. Specify this flag several times to enable debug output
+					in the OpenSC library.</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2498222"></a><h2>See also</h2><p>pkcs15-init(1), pkcs15-tool(1)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="pkcs15-tool"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>pkcs15-tool &#8212; utility for manipulating PKCS #15 data structures
+		on smart cards and similar security tokens</p></div><div class="refsect1" lang="en"><a name="id2450489"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">pkcs15-tool</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2498238"></a><h2>Description</h2><p>
+			The <span><strong class="command">pkcs15-tool</strong></span> utility is used to manipulate
+			the PKCS #15 data structures on smart cards and similar security
+			tokens. Users can list and read PINs, keys and certificates stored
+			on the token. User PIN authentication is performed for those
+			operations that require it.
+		</p></div><div class="refsect1" lang="en"><a name="id2498256"></a><h2>Options</h2><p>
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--learn-card, -L</code></span></dt><dd><p>Cache PKCS #15 token data to the local filesystem.
+					Subsequent operations are performed on the cached data where possible.
+					If the cache becomes out-of-sync with the token state (eg. new key is
+					generated and stored on the token), the cache should be updated or
+					operations may show stale results.</p></dd><dt><span class="term"><code class="option">--read-certificate</code> <code class="varname">cert</code>,
+					<code class="option">-r</code> <code class="varname">cert</code></span></dt><dd><p>Reads the certificate with the given id.</p></dd><dt><span class="term"><code class="option">--list-certificates, -c</code></span></dt><dd><p>Lists all certificates stored on the token.</p></dd><dt><span class="term"><code class="option">--list-pins</code></span></dt><dd><p>Lists all PINs stored on the token. General information
+					about each PIN is listed (eg. PIN name). Actual PIN values are not shown.</p></dd><dt><span class="term"><code class="option">--change-pin</code></span></dt><dd><p>Changes a PIN stored on the token. User authentication
+					is required for this operation.</p></dd><dt><span class="term"><code class="option">--list-keys, -k</code></span></dt><dd><p>Lists all private keys stored on the token. General
+					information about each private key is listed (eg. key name, id and
+					algorithm). Actual private key values are not displayed.</p></dd><dt><span class="term"><code class="option">--list-public-keys</code></span></dt><dd><p>Lists all public keys stored on the token, including
+					key name, id, algorithm and length information.</p></dd><dt><span class="term"><code class="option">--read-public-key</code> <code class="varname">id</code></span></dt><dd><p>Reads the public key with id <code class="varname">id</code>,
+					allowing the user to extract and store or use the public key.</p></dd><dt><span class="term"><code class="option">--output</code> <code class="varname">filename</code>,
+					<code class="option">-o</code> <code class="varname">filename</code></span></dt><dd><p>Specifies where key output should be written.
+					If <code class="varname">filename</code> already exists, it will be overwritten.
+					If this option is not given, keys will be printed to standard output.</p></dd><dt><span class="term"><code class="option">--no-cache</code></span></dt><dd><p>Disables token data caching.</p></dd><dt><span class="term"><code class="option">--pin-id</code> <code class="varname">pin</code>,
+					<code class="option">-a</code> <code class="varname">pin</code></span></dt><dd><p>Specifies the auth id of the PIN to use for the
+					operation. This is useful with the --change-pin operation.</p></dd><dt><span class="term"><code class="option">--reader</code> <code class="varname">num</code></span></dt><dd><p>Forces <span><strong class="command">pkcs15-tool</strong></span> to use reader
+					number <code class="varname">num</code> for operations. The default is to use
+					reader number 0, the first reader in the system.</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>Causes <span><strong class="command">pkcs15-tool</strong></span> to be more
+					verbose. Specify this flag several times to enable debug output
+					in the OpenSC library.</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2498497"></a><h2>See also</h2><p>opensc(7), pkcs15-init(1), pkcs15-crypt(1)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name=""></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>pkcs15-init &#8212; smart card personalization utility</p></div><div class="refsect1" lang="en"><a name="id2498526"></a><h2>Description</h2><p>
+			The <span><strong class="command">pkcs15-init</strong></span> utility can be used to create a PKCS #15
+			structure on a smart card, and add key or certificate objects. Details of the
+			structure that will be created are controlled via profiles.
+		</p><p>
+			The profile used by default is <span><strong class="command">pkcs15</strong></span>. Alternative
+			profiles can be specified via the <code class="option">-p</code> switch.
+		</p></div><div class="refsect1" lang="en"><a name="id2498556"></a><h2>PIN Usage</h2><p>
+			<span><strong class="command">pkcs15-init</strong></span> can be used to create a PKCS #15 structure on
+			your smart card, create PINs, and install keys and certificates on the card.
+			This process is also called <span class="emphasis"><em>personalization</em></span>.
+		</p><p>
+			An OpenSC card can have one security officer PIN, and zero or more user PINs.
+			PIN stands for Personal Identification Number, and is a secret code you need
+			to present to the card before being allowed to perform certain operations,
+			such as using one of the stored RSA keys to sign a document, or modifying
+			the card itself.
+		</p><p>
+			Usually, PINs are a sequence of decimal digits, but some cards will accept
+			arbitrary ASCII characters. Be aware however that using characters other
+			than digits will make the card unusable with PIN pad readers, because those
+			usually have keys for entering digits only.
+		</p><p>
+			The security officer (SO) PIN is special; it is used to protect meta data
+			information on the card, such as the PKCS #15 structure itself. Setting
+			the SO PIN is optional, because the worst that can usually happen is that
+			someone finding your card can mess it up. To extract any of your secret
+			keys stored on the card, an attacker will still need your user PIN, at
+			least for the default OpenSC profiles. However, it is possible to create
+			card profiles that will allow the security officer to override user PINs.
+		</p><p>
+			For each PIN, you can specify a PUK (also called <span class="emphasis"><em>unblock PIN</em></span>).
+			The PUK can be used to overwrite or unlock a PIN if too many incorrect values
+			have been entered in a row.
+		</p></div><div class="refsect1" lang="en"><a name="id2498612"></a><h2>Modes of operation</h2><div class="refsect2" lang="en"><a name="id2498618"></a><h3>Initialization</h3><p>This is the first step during card personalization, and will create the
+				basic files on the card. To create the initial PKCS #15 structure, invoke the
+				utility as
+			</p><p>
+				<span><strong class="command">pkcs15-init --create-pkcs15</strong></span></p><p>
+				You will then be asked for several the security officer PIN and PUK. Simply
+				pressing return at the SO PIN prompt will skip installation of an SO PIN.
+			</p><p>
+				If the card supports it, you can also request that the card is erased prior
+				to creating the PKCS #15 structure, by specifying the <code class="option">--erase-card</code>
+				option.
+			</p></div><div class="refsect2" lang="en"><a name="id2498654"></a><h3>User PIN Installation</h3><p>
+				Before installing any user objects such as private keys, you need at least one
+				PIN to protect these objects. you can do this using
+			</p><p>
+				<span><strong class="command">pkcs15-init --store-pin --id " nn</strong></span>
+			</p><p>
+				where <span class="emphasis"><em>nn</em></span> is a PKCS #15 ID in hexadecimal notation. Common
+				values are 01, 02, etc.
+			</p><p>
+				Entering the command above will ask you for the user's PIN and PUK. If you do
+				not wish to install an unblock PIN, simply press return at the PUK prompt.
+			</p><p>
+				To set a label for this PIN object (which can be used by applications to display
+				a meaningful prompt to the user), use the <code class="option">--label</code> command line option.
+			</p></div><div class="refsect2" lang="en"><a name="id2498700"></a><h3>Key generation</h3><p>
+				<span><strong class="command">pkcs15-init</strong></span> lets you generate a new key and store it on the card.
+				You can do this using:
+			</p><p>
+				<span><strong class="command">pkcs15-init --generate-key " keyspec " --auth-id " nn</strong></span>
+			</p><p>
+				where <code class="option">keyspec</code> describes the algorithm and length of the
+				key to be created, such as <code class="option">rsa/512</code>. This will create a 512 bit
+				RSA key. Currently, only RSA key generation is supported. Note that cards
+				usually support just a few different key lengths. Almost all cards will support
+				512 and 1024 bit keys, some will support 768 or 2048 as well.
+			</p><p>
+				<code class="option">nn</code> is the ID of a user PIN installed previously, e.g. 01.
+			</p><p>
+				In addition to storing the private portion of the key on the card,
+				<span><strong class="command">pkcs15-init</strong></span> will also store the the public portion of the
+				key as a PKCS #15 public key object.
+			</p><p>
+				By default, <span><strong class="command">pkcs15-init</strong></span> will try to use the card's
+				on-board key generation facilities, if available. If the card does not
+				support on-board key generation, <span><strong class="command">pkcs15-init</strong></span> will fall
+				back to software key generation.
+			</p></div><div class="refsect2" lang="en"><a name="id2498773"></a><h3>Private Key Download</h3><p>
+				You can use a private key generated by other means and download it to the card.
+				For instance, to download a private key contained in a file named
+				<span class="emphasis"><em>okir.pem</em></span>, which is in PEM format, you would use
+			</p><p>
+				<span><strong class="command">pkcs15-init --store-private-key okir.pem --id 45 --auth-id 01</strong></span>
+			</p><p>
+				If the key is protected by a pass phrase, <span><strong class="command">pkcs15-init</strong></span>
+				will prompt you for a pass phrase to unlock the key.
+			</p><p>
+				In addition to storing the private portion of the key on the card,
+				<span><strong class="command">pkcs15-init</strong></span> will also store the the public portion of the
+				key as a PKCS #15 public key object.
+			</p><p>
+				Note the use of the <code class="option">--id</code> option. The current
+				<span><strong class="command">pkcs15</strong></span> profile defines two key templates, one for
+				authentication (key ID 45), and one for non-repudiation purposes (key ID 46).
+				Other key templates will probably be added in the future. Note that if you don't
+				specify a key ID, <span><strong class="command">pkcs15-init</strong></span> will pick just the first key
+				template defined by the profile.
+			</p><p>
+				In addition to the PEM key file format, <span><strong class="command">pkcs15-init</strong></span> also 
+				supports DER encoded keys, and PKCS #12 files. The latter is the file format
+				used by Netscape Navigator (among others) when exporting certificates to
+				a file. A PKCS #12 file usually contains the X.509 certificate corresponding
+				to the private key. If that is the case, <span><strong class="command">pkcs15-init</strong></span> will
+				store the certificate instead of the public key portion.
+			</p></div><div class="refsect2" lang="en"><a name="id2498854"></a><h3>Public Key Download</h3><p>
+				You can also download individual public keys to the card using the
+				<code class="option">--store-public-key</code> option, which takes a filename as an
+				argument. This file is supposed to contain the public key. If you don't
+				specify a key file format using the <code class="option">--format</code> option,
+				<span><strong class="command">pkcs15-init</strong></span> will assume PEM format. The only other
+				supported public key file format is DER.
+			</p><p>
+				Since the corresponding public keys are always downloaded automatically
+				when generating a new key, or when downloading a private key, you will
+				probably use this option only very rarely.
+			</p></div><div class="refsect2" lang="en"><a name="id2498889"></a><h3>Certificate Download</h3><p>
+				You can download certificates to the card using the
+				<code class="option">--store-certificate</code> option, which takes a filename as
+				an argument. This file is supposed to contain the DER encoded X.509
+				certificate.
+			</p></div><div class="refsect2" lang="en"><a name="id2498907"></a><h3>Downloading PKCS #12 bags</h3><p>
+				Most browsers nowadays use PKCS #12 format files when you ask them to
+				export your key and certificate to a file. <span><strong class="command">pkcs15-init</strong></span>
+				is capable of parsing these files, and storing their contents on the
+				card in a single operation. This works just like storing a private key,
+				except that you need to specify the file format:
+			</p><p>
+				<span><strong class="command">pkcs15-init --store-private-key okir.p12 --format pkcs12 --auth-id
+				01</strong></span>
+			</p><p>
+				This will install the private key contained in the file <span class="emphasis"><em>okir.p12</em></span>,
+				and protect it with the PIN referenced by authentication ID <span class="emphasis"><em>01</em></span>.
+				It will also store any X.509 certificates contained in the file, which is
+				usually the user certificate that goes with the key, as well as the CA certificate.
+			</p></div></div><div class="refsect1" lang="en"><a name="id2498952"></a><h2>Options</h2><p>
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--profile</code> <span class="emphasis"><em>name</em></span>,
+					<code class="option">-p</code> <span class="emphasis"><em>name</em></span></span></dt><dd><p>
+							Tells <span><strong class="command">pkcs15-init</strong></span> to load the specified general
+							profile. Currently, the only application profile defined is
+							<span><strong class="command">pkcs15</strong></span>, but you can write your own profiles and
+							specify them using this option.
+						</p><p>
+							The profile name can be combined with one or more <span class="emphasis"><em>profile
+							options</em></span>, which slightly modify the profile's behavior.
+							For instance, the default OpenSC profile supports the
+							<code class="option">openpin</code> option, which installs a single PIN during
+							card initialization. This PIN is then used both as the SO PIN as
+							well as the user PIN for all keys stored on the card.
+						</p><p>
+							Profile name and options are separated by a <code class="option">+</code>
+							character, as in <code class="option">pkcs15+onepin</code>.
+						</p></dd><dt><span class="term"><code class="option">--card-profile</code> <span class="emphasis"><em>name</em></span>,
+					<code class="option">-c</code> <span class="emphasis"><em>name</em></span></span></dt><dd><p>
+							Tells <span><strong class="command">pkcs15-init</strong></span> to load the specified card
+							profile option. You will rarely need this option.
+						</p></dd><dt><span class="term"><code class="option">--create-pkcs15, -C</code></span></dt><dd><p>
+							This tells <span><strong class="command">pkcs15-init</strong></span> to create a PKCS #15
+							structure on the card, and initialize any PINs.
+						</p></dd><dt><span class="term"><code class="option">--erase-card, -E</code></span></dt><dd><p>
+							This will erase the card prior to creating the PKCS #15 structure,
+							if the card supports it. If the card does not support erasing,
+							<span><strong class="command">pkcs15-init</strong></span> will fail.
+						</p></dd><dt><span class="term"><code class="option">--generate-key</code> <span class="emphasis"><em>keyspec</em></span>,
+					<code class="option">-G</code> <span class="emphasis"><em>keyspec</em></span></span></dt><dd><p>
+							Tells the card to generate new key and store it on the card.
+							<span class="emphasis"><em>keyspec</em></span> consists of an algorithm name
+							(currently, the only supported name is <code class="option">RSA</code>),
+							optionally followed by a slash and the length of the key in bits.
+							It is a good idea to specify the key ID along with this command,
+							using the <code class="option">id</code> option.
+						</p></dd><dt><span class="term"><code class="option">--store-private-key</code> <span class="emphasis"><em>filename</em></span>,
+					<code class="option">-S</code> <span class="emphasis"><em>filename</em></span></span></dt><dd><p>
+							Tells <span><strong class="command">pkcs15-init</strong></span> to download the specified
+							private key to the card. This command will also create a public
+							key object containing the public key portion. By default, the
+							file is assumed to contain the key in PEM format. Alternative
+							formats can be specified using <code class="option">--format</code>.
+							It is a good idea to specify the key ID along with this command,
+							using the <code class="option">--id</code> option.
+						</p></dd><dt><span class="term"><code class="option">--store-public-key</code> <span class="emphasis"><em>filename</em></span>,
+					<code class="option">-P</code> <span class="emphasis"><em>filename</em></span></span></dt><dd><p>
+							Tells <span><strong class="command">pkcs15-init</strong></span> to download the specified
+							public key to the card and create a public key object with the
+							key ID specified via the <code class="option">--id</code>. By default,
+							the file is assumed to contain the key in PEM format. Alternative
+							formats can be specified using <code class="option">--format</code>.
+						</p></dd><dt><span class="term"><code class="option">--store-certificate</code> <span class="emphasis"><em>filename</em></span>,
+					<code class="option">-X</code> <span class="emphasis"><em>filename</em></span></span></dt><dd><p>
+							Tells <span><strong class="command">pkcs15-init</strong></span> to store the certificate given
+							in <code class="option">filename</code> on the card, creating a certificate
+							object with the ID specified via the <code class="option">--id</code> option.
+							The file is assumed to contain the DER encoded certificate.
+						</p></dd><dt><span class="term"><code class="option">--so-pin, --so-puk, --pin, --puk</code></span></dt><dd><p>
+							These options can be used to specify PIN/PUK values on the command
+							line. Note that on most operation systems, any user can display
+							the command line of any process on the system using utilities such
+							as <span><strong class="command">ps(1)</strong></span>. Therefore, you should use these options
+							only on a secured system, or in an options file specified with
+							<code class="option">--options-file</code>.
+						</p></dd><dt><span class="term"><code class="option">--passphrase</code></span></dt><dd><p>
+							When downloading a private key, this option can be used to specify
+							the pass phrase to unlock the private key. The same caveat applies
+							here as in the case of the <code class="option">--pin</code> options.
+						</p></dd><dt><span class="term"><code class="option">--options-file</code> <span class="emphasis"><em>filename</em></span></span></dt><dd><p>
+							Tells <span><strong class="command">pkcs15-init</strong></span> to read additional options
+							from <span class="emphasis"><em>filename</em></span>. The file is supposed to
+							contain one long option per line, without the leading dashes,
+							for instance:
+</p><pre class="programlisting">
+	pin		frank
+	puk		zappa
+</pre><p>
+						</p><p>
+							You can specify <code class="option">--options-file</code> several times.
+						</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>
+							Causes <span><strong class="command">pkcs15-init</strong></span> to be more verbose. Specify this
+							flag several times to enable debug output in the OpenSC library.
+						</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2499894"></a><h2>See also</h2><p>pkcs15-profile(5)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name=""></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>pkcs15-profile &#8212; format of profile for <span><strong class="command">pkcs15-init</strong></span></p></div><div class="refsect1" lang="en"><a name="id2449402"></a><h2>Synopsis</h2><p>
+			<span><strong class="command"></strong></span>
+		</p></div><div class="refsect1" lang="en"><a name="id2449416"></a><h2>Description</h2><p>
+			The <span><strong class="command">pkcs15-init</strong></span> utility for PKCS #15 smart card
+			personalization is controlled via profiles. When starting, it will read two
+			such profiles at the moment, a generic application profile, and a card
+			specific profile. The generic profile must be specified on the command line,
+			while the card-specific file is selected based on the type of card detected.
+		</p><p>
+			The generic application profile defines general information about the card
+			layout, such as the path of the application DF, various PKCS #15 files within
+			that directory, and the access conditions on these files. It also defines
+			general information about PIN, key and certificate objects. Currently, there
+			is only one such generic profile, <span><strong class="command">pkcs15.profile</strong></span>.
+		</p><p>
+			The card specific profile contains additional information required during
+			card intialization, such as location of PIN files, key references etc.
+			Profiles currently reside in <span><strong class="command">@pkgdata@</strong></span>
+		</p></div><div class="refsect1" lang="en"><a name="id2450472"></a><h2>Syntax</h2><p>
+			This section should contain information about the profile syntax. Will add
+			this soonishly.
+		</p></div><div class="refsect1" lang="en"><a name="id2498017"></a><h2>See also</h2><p>
+			<span><strong class="command">pkcs15</strong></span>(7), <span><strong class="command">pkcs15-init</strong></span>(1),
+			<span><strong class="command">pkcs15-crypt</strong></span>(1), <span><strong class="command">opensc</strong></span>(7), 
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="cardos-info"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>cardos-info &#8212; displays information about Card OS-based security tokens
+		</p></div><div class="refsect1" lang="en"><a name="id2499540"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">cardos-info</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2499555"></a><h2>Description</h2><p>
+			The <span><strong class="command">cardos-info</strong></span> utility is used to display information about
+smart cards and similar security tokens based on Siemens Card/OS M4.
+		</p></div><div class="refsect1" lang="en"><a name="id2499572"></a><h2>Options</h2><p>
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--reader</code> number, <code class="option">-r</code> number</span></dt><dd><p>Display information about the token in reader number <code class="varname">number</code>.
+					The default is reader 0.</p></dd><dt><span class="term"><code class="option">--card-driver</code> name, <code class="option">-c</code> driver</span></dt><dd><p>Use the card driver specified by <code class="varname">name</code>. The default
+					is to auto-detect the correct card driver.</p></dd><dt><span class="term"><code class="option">--wait, -w</code></span></dt><dd><p>Causes <span><strong class="command">cardos-info</strong></span> to wait for the token
+					to be inserted into reader.</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>Causes <span><strong class="command">cardos-info</strong></span> to be more verbose. Specify this flag several times
+to enable debug output in the opensc library.</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2499135"></a><h2>See also</h2><p>opensc(7)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="cryptoflex-tool"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>cryptoflex-tool &#8212; utility for manipulating Schlumberger Cryptoflex data structures</p></div><div class="refsect1" lang="en"><a name="id2499164"></a><h2>Synopsis</h2><p>
+			<span><strong class="command">cryptoflex-tool</strong></span> [OPTIONS]
+		</p></div><div class="refsect1" lang="en"><a name="id2499180"></a><h2>Description</h2><p>
+			<span><strong class="command">cryptoflex-tool</strong></span> is used to manipulate PKCS
+			data structures on Schlumberger Cryptoflex smart cards. Users
+			can create, list and read PINs and keys stored on the smart card.
+			User PIN authentication is performed for those operations that require it.
+		</p></div><div class="refsect1" lang="en"><a name="id2499199"></a><h2>Options</h2><p>
+			</p><div class="variablelist"><dl><dt><span class="term"><code class="option">--verify-pin, -V</code></span></dt><dd><p>Verifies CHV1 before issuing commands</p></dd><dt><span class="term"><code class="option">--list-keys, -l</code></span></dt><dd><p>Lists all keys stored in a public key file</p></dd><dt><span class="term"><code class="option">--create-key-files</code> <code class="varname">arg</code>,
+					<code class="option">-c</code> <code class="varname">arg</code></span></dt><dd><p>Creates new RSA key files for <code class="varname">arg</code> keys</p></dd><dt><span class="term"><code class="option">--create-pin-files</code> <code class="varname">id</code>,
+					<code class="option">-P</code> <code class="varname">id</code></span></dt><dd><p>Creates new PIN file for CHV<code class="varname">id</code></p></dd><dt><span class="term"><code class="option">--generate-key, -g</code></span></dt><dd><p>Generate a new RSA key pair</p></dd><dt><span class="term"><code class="option">--read-key</code></span></dt><dd><p>Reads a public key from the card, allowing the user to
+					extract and store or use the public key
+					</p></dd><dt><span class="term"><code class="option">--key-num</code> <code class="varname">num</code>,
+					<code class="option">-k</code> <code class="varname">num</code></span></dt><dd><p>Specifies the key number to operate on.  The default is
+					key number 1.</p></dd><dt><span class="term"><code class="option">--app-df</code> <code class="varname">num</code>,
+					<code class="option">-a</code> <code class="varname">num</code></span></dt><dd><p>Specifies the DF to operate in</p></dd><dt><span class="term"><code class="option">--prkey-file</code> <code class="varname">id</code>,
+					<code class="option">-p</code> <code class="varname">id</code></span></dt><dd><p>Specifies the private key file id, <code class="varname">id</code>,
+					to use</p></dd><dt><span class="term"><code class="option">--pubkey-file</code> <code class="varname">id</code>,
+					<code class="option">-u</code> <code class="varname">id</code></span></dt><dd><p>Specifies the public key file id, <code class="varname">id</code>,
+					to use</p></dd><dt><span class="term"><code class="option">--exponent</code> <code class="varname">exp</code>,
+					<code class="option">-e</code> <code class="varname">exp</code></span></dt><dd><p>Specifies the RSA exponent, <code class="varname">exp</code>,
+					to use in key generation. The default value is 3.</p></dd><dt><span class="term"><code class="option">--modulus-length</code> <code class="varname">length</code>,
+					<code class="option">-m</code> <code class="varname">length</code></span></dt><dd><p>Specifies the modulus <code class="varname">length</code> to use
+					in key generation. The default value is 1024.</p></dd><dt><span class="term"><code class="option">--reader</code> <code class="varname">num</code>,
+					<code class="option">-r</code> <code class="varname">num</code></span></dt><dd><p>Forces <span><strong class="command">cryptoflex-tool</strong></span> to use
+					reader number <code class="varname">num</code> for operations. The default
+					is to use reader number 0, the first reader in the system.</p></dd><dt><span class="term"><code class="option">--verbose, -v</code></span></dt><dd><p>Causes <span><strong class="command">cryptoflex-tool</strong></span> to be more
+					verbose. Specify this flag several times to enable debug output in
+					the opensc library.</p></dd></dl></div><p>
+		</p></div><div class="refsect1" lang="en"><a name="id2500019"></a><h2>See also</h2><p>opensc(7), pkcs15-tool(1)</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="netkey-tool"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>netkey-tool &#8212; administrative utility for Netkey E4 cards</p></div><div class="refsect1" lang="en"><a name="id2500048"></a><h2>Synopsis</h2><p><span><strong class="command">netkey-tool</strong></span> [OPTIONS] [COMMAND]</p></div><div class="refsect1" lang="en"><a name="id2500061"></a><h2>Description</h2><p>The <span><strong class="command">netkey-tool</strong></span> utility can be used from the
+    command line to perform some smart card operations with NetKey E4 cards
+    that cannot be done easily with other OpenSC-tools, such as changing local
+    PINs, storing certificates into empty NetKey E4 cert-files or displaying
+    the initial PUK-value.</p></div><div class="refsect1" lang="en"><a name="id2500081"></a><h2>Options</h2><p>
+      </p><div class="variablelist"><dl><dt><span class="term"><code class="option">--help</code>, <code class="option">-h</code></span></dt><dd><p>Displays a short help message.</p></dd><dt><span class="term"><code class="option">--reader</code> number, <code class="option">-r</code> number</span></dt><dd><p>Use smart card in specified reader. Default is reader 0.</p></dd><dt><span class="term"><code class="option">-v</code></span></dt><dd><p>Causes <span><strong class="command">netkey-tool</strong></span> to be more verbose. This
+          options may be specified multiple times to increase verbosity.</p></dd><dt><span class="term"><code class="option">--pin</code> pin-value, <code class="option">-p</code> pin-value</span></dt><dd><p>Specifies the current value of the global PIN.</p></dd><dt><span class="term"><code class="option">--puk</code> pin-value, <code class="option">-u</code> pin-value</span></dt><dd><p>Specifies the current value of the global PUK.</p></dd><dt><span class="term"><code class="option">--pin0</code> pin-value, <code class="option">-0</code> pin-value</span></dt><dd><p>Specifies the current value of the local PIN0 (aka local PIN).</p></dd><dt><span class="term"><code class="option">--pin1</code> pin-value, <code class="option">-1</code> pin-value</span></dt><dd><p>Specifies the current value of the local PIN1 (aka local PUK).</p></dd></dl></div><p>
+    </p></div><div class="refsect1" lang="en"><a name="id2500224"></a><h2>PIN format</h2><p>With the <code class="option">-p</code>, <code class="option">-u</code>, <code class="option">-0</code> or the <code class="option">-1</code>
+    one of the cards pins may be specified. You may use plain ascii-strings (i.e. 123456) or a hex-string
+    (i.e. 31:32:33:34:35:36). A hex-string must consists of exacly n 2-digit hexnumbers separated by n-1 colons.
+    Otherwise it will be interpreted as an ascii string. For example :12:34: and 1:2:3:4 are both pins of
+    length 7, while 12:34 and 01:02:03:04 are pins of length 2 and 4.</p></div><div class="refsect1" lang="en"><a name="id2500257"></a><h2>Commands</h2><p>When used without any options or commands, <span><strong class="command">netkey-tool</strong></span> will
+    display information about the smart cards pins and certificates. This will not change
+    your card in any aspect (assumed there are no bugs in <span><strong class="command">netkey-tool</strong></span>).
+    In particular the tries-left counters of the pins are investigated without doing
+    actual pin-verifications.</p><p>If you specify the global PIN via the <code class="option">--pin</code> option,
+    <span><strong class="command">netkey-tool</strong></span> will also display the initial value of the cards
+    global PUK. If your global PUK was changed <span><strong class="command">netkey-tool</strong></span> will still
+    diplay its initial value. There's no way to recover a lost global PUK once it was changed.
+    There's also no way to display the initial value of your global PUK without knowing the
+    current value of your global PIN. </p><p>For most of the commands that <span><strong class="command">netkey-tool</strong></span> can execute, you have
+    to specify one pin. One notable exeption is the <span><strong class="command">nullpin</strong></span> command, but
+    this command can only be executed once in the lifetime of a NetKey E4 card.</p><p>
+      </p><div class="variablelist"><dl><dt><span class="term"><code class="option">unblock</code> { <code class="option">pin</code> | <code class="option">pin0</code> |
+          <code class="option">pin1</code> }</span></dt><dd><p>This unblocks the specified pin. You must specify another pin
+          to be able to do this and if you don't specify a correct one,
+          <span><strong class="command">netkey-tool</strong></span> will tell you which one is needed.</p></dd><dt><span class="term"><code class="option">change</code> { <code class="option">pin</code> | <code class="option">puk</code> |
+          <code class="option">pin0</code> | <code class="option">pin1</code> } new-pin</span></dt><dd><p>This changes the value of the specified pin to the given new value.
+          You must specify either the current value of the pin or another pin to be able to do
+          this and if you don't specify a correct one, <span><strong class="command">netkey-tool</strong></span> will tell
+          you which one is needed.</p></dd><dt><span class="term"><code class="option">nullpin</code> initial-pin</span></dt><dd><p>This command can be executed only if the global PIN of your card is
+          in nullpin-state. There's no way to return back to nullpin-state once you have changed
+          your global PIN. You don't need a pin to execute the nullpin-command. After a succesfull
+          nullpin-command <span><strong class="command">netkey-tool</strong></span> will display your cards initial
+          PUK-value.</p></dd><dt><span class="term"><code class="option">cert</code> number filename</span></dt><dd><p>This command will read one of your cards certificates (as specified by
+          <code class="option">number</code>) and save this certificate into file <code class="option">filename</code>
+          in PEM-format.  Certificates on a NetKey E4 card are readable without a pin, so you don't
+          have to specify one.</p></dd><dt><span class="term"><code class="option">cert</code> filename number</span></dt><dd><p>This command will read the first PEM-encoded certificate from file
+          <code class="option">filename</code> and store this into your smart cards certificate file
+          <code class="option">number</code>. Some of your smart cards certificate files might be readonly, so
+          this will not work with all values of <code class="option">number</code>. If a certificate file is
+          writable you must specify a pin in order to change it. If you try to use this command
+          without specifying a pin, <span><strong class="command">netkey-tool</strong></span> will tell you which one is
+          needed.</p></dd></dl></div><p>
+    </p></div><div class="refsect1" lang="en"><a name="id2500477"></a><h2>See also</h2><p>opensc(7), opensc-explorer(1)</p></div><div class="refsect1" lang="en"><a name="id2500489"></a><h2>Authors</h2><p><span><strong class="command">netkey-tool</strong></span> was written by
+    Peter Koch <code class="email">&lt;<a href="mailto:pk_opensc@web.de">pk_opensc@web.de</a>&gt;</code>.</p></div></div></div></div></body></html>

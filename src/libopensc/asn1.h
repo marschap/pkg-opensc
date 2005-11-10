@@ -21,7 +21,7 @@
 #ifndef _OPENSC_ASN1_H
 #define _OPENSC_ASN1_H
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -83,7 +83,7 @@ const u8 *sc_asn1_skip_tag(struct sc_context *ctx, const u8 ** buf,
 
 /* Argument 'ptr' is set to the location of the next possible ASN.1 object.
  * If NULL, no action on 'ptr' is performed. */
-int sc_asn1_put_tag(int tag, const u8 * data, int datalen, u8 * out, int outlen, u8 ** ptr);
+int sc_asn1_put_tag(int tag, const u8 * data, size_t datalen, u8 * out, size_t outlen, u8 ** ptr);
 
 /* ASN.1 printing functions */
 void sc_asn1_print_tags(const u8 * buf, size_t buflen);
@@ -192,7 +192,7 @@ void sc_asn1_clear_algorithm_id(struct sc_algorithm_id *);
 #define ASN1_UNIVERSALSTRING          28
 #define ASN1_BMPSTRING                30
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 

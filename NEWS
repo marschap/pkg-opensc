@@ -1,6 +1,39 @@
 NEWS for OpenSC -- History of user visible changes
 
-New in 0.9.6; not yet released;
+Please also see doc/WhatsNew.html or
+http://www.opensc.org/opensc/wiki/WhatsNew
+
+Also see the svn changelog using svn command
+or doc/ChangeLog.
+
+New in 0.10.0-rc2; 2005-10-24; Andreas Jellinghaus
+* Add more documentation, fix man page installtion.
+* New generic ATR/card matching code with
+  atrmask support, used by all card drivers.
+* Much improved and unified ATR handling in
+  the configuration file.
+* Support for the next generation FinEID cards
+  with ISO/IEC 7816-15 data layout.
+* Preliminary code merge with the Belgian
+  Belpic EID project.
+* Experimental multi-slot support for CT-API
+  and dynamic loading support for win32.
+  Thanks to Bernhard Froehlich <ted@convey.de>
+* Experimental Class 2 pinpad reader support
+  via TeleTrust compatible PC/SC interface.
+* Fixed OpenSSL behaviour in the configure
+  script.
+* PKCS#15 emulation layer improvements and
+  a new driver for the Italian postecert
+  card.
+* New API documentation and generic documentation
+  structure renovation to base future work on.
+  Many thanks to Bert Vermeulen <bert@biot.com>
+* Spanish manual translation from opensc-ceres
+  project merged.
+* Several memory leaks and other bugs fixed.
+
+New in 0.9.6; 2005-04-25; Andreas Jellinghaus:
 * undo user_content changes to retain compatibility with 0.9.4.
 * add solaris/ files for easier installation on solaris.
 * Makefile.am: require automake 1.5

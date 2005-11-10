@@ -1,0 +1,48 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>MacOsXTokend - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><p>
+Mac OS X 10.4 has a native support for smart cards, called Tokend.
+</p>
+<p>
+You can build and register such tokend for your card, and securityd
+will call this tokend whenever your card should be used by applications
+such as Safari, Mail, logon, ...
+</p>
+<p>
+For more info:
+</p>
+<ul><li><a class="missing" href="/opensc/wiki/OpenDarwin" shape="rect">OpenDarwin?</a>: [<a class="ext-link" title="http://opendarwin.org/" href="http://opendarwin.org/" shape="rect">http://opendarwin.org/</a>]
+</li><li>Tokend sources: search for <i>Tokend-11</i> in [<a class="ext-link" title="http://darwinsource.opendarwin.org/10.4.2/" href="http://darwinsource.opendarwin.org/10.4.2/" shape="rect">http://darwinsource.opendarwin.org/10.4.2/</a>]
+</li><li>Apple-cdsa mailing list: [<a class="ext-link" title="http://lists.apple.com/mailman/listinfo/apple-cdsa" href="http://lists.apple.com/mailman/listinfo/apple-cdsa" shape="rect">http://lists.apple.com/mailman/listinfo/apple-cdsa</a>]
+</li><li>Mac OS X for UNIX Users: [<a class="ext-link" title="http://images.apple.com/macosx/pdf/MacOSX_UNIX_TB.pdf" href="http://images.apple.com/macosx/pdf/MacOSX_UNIX_TB.pdf" shape="rect">http://images.apple.com/macosx/pdf/MacOSX_UNIX_TB.pdf</a>]
+</li></ul><h2>How integrate OpenSC and Tokend?</h2>
+<p>
+Ideas from Stef:
+</p>
+<ul><li>It's the Tokend 'framework' that takes care of the interaction with
+the reader (card insertions, card reset, ...) and that provides a
+transmit() function that allows tokend implementations to send APDUs
+to the card
+</li><li>OpenSC takes care of the card interaction to (by means of 'reader drivers'
+such are reader-pcsc.c and reader-openct.c) so here's a conflict...
+</li><li>Proposal: create a new reader driver, e.g. reader-tokend.c that calls
+Tokend's trasmit() function when having to send an APDU.
+</li><li>But what about the other functionality? Looking at the sc_reader_operations
+struct in opensc.h, we can probably let most of the reader driver functions
+(init, finish, release, detect_card_presence, lock, unlock, ...) return 'OK'
+without realy doing something.
+</li><li>This would require a new sc_establish_context() function that doesn't check
+for readers and reader drivers, but always uses the 'tokend' reader driver;
+that may be the only change to the existing OpenSC code (or we can simply
+put this new sc_establish_context() into the tokend code).
+</li></ul><p>
+This would allow use the use all pkcs15 functions on all available cards
+without any card-specific code in the tokend.
+</p>
+<p>
+Comments wellcome...
+</p>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

@@ -1,0 +1,30 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Mozilla - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>Mozilla Applications</h1>
+<p>
+All Mozilla applications can use OpenSC PKCS#11 module "opensc-pkcs11.so" for authentication, signing and decryption.
+</p>
+<p>
+A step by step guide how to install the OpenSC PKCS<a href="/opensc/ticket/11" title="CLOSED : gcc4 build failure" shape="rect"><del>#11</del></a> module here: <a href="MozillaSteps.html" shape="rect">MozillaSteps</a>.
+</p>
+<p>
+Once the module is installed you can use it to access web pages with https and client certificates.
+Firefox will ask you to provide a certificate and you can select one from your smart card.
+</p>
+<p>
+Keypair generation, certificate request
+and writing the requested cert through an on-line CA should also be <a href="pkcs11_keypair_gen.html" shape="rect">possible</a>.
+</p>
+<p>
+In Thunderbird and Mozilla Mail you can select the certificate for signing and decryption exactly
+like you would do with normal certificates.
+</p>
+<p>
+Note: some people do not recommend to use smart card with email encryption&amp;decryption, unless you
+have a way to backup your private key. It would be a pitty if your smart card was damaged and
+you had no way to decrypt private emails.
+</p>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

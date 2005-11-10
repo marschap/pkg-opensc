@@ -29,7 +29,6 @@
 #include <opensc/opensc.h>
 #include <opensc/cardctl.h>
 #include <opensc/log.h>
-#include <opensc/scrandom.h>
 #include "pkcs15-init.h"
 #include "profile.h"
 
@@ -60,7 +59,7 @@ static int	etoken_store_pin(sc_profile_t *profile, sc_card_t *card,
 			const u8 *pin, size_t pin_len);
 static int	etoken_create_sec_env(sc_profile_t *, sc_card_t *,
 			unsigned int, unsigned int);
-static int	etoken_put_key(struct sc_profile *, struct sc_card *,
+static int	etoken_put_key(struct sc_profile *, sc_card_t *,
 			int, sc_pkcs15_prkey_info_t *,
 		       	struct sc_pkcs15_prkey_rsa *);
 static int	etoken_key_algorithm(unsigned int, int *);
@@ -124,7 +123,7 @@ tlv_len(struct tlv *tlv)
  * it's close enough to be useful.
  */
 static int
-etoken_erase(struct sc_profile *profile, struct sc_card *card)
+etoken_erase(struct sc_profile *profile, sc_card_t *card)
 {
 	return sc_pkcs15init_erase_card_recursively(card, profile, -1);
 }
@@ -292,7 +291,6 @@ etoken_generate_key(sc_profile_t *profile, sc_card_t *card,
 	struct sc_cardctl_etoken_genkey_info args;
 	struct sc_file	*temp;
 	u8		abignum[RSAKEY_MAX_SIZE];
-	u8		randbuf[64];
 	unsigned int	keybits;
 	int		algorithm, r, delete_it = 0;
 	
@@ -337,24 +335,10 @@ etoken_generate_key(sc_profile_t *profile, sc_card_t *card,
 		goto out;
 
 	memset(&args, 0, sizeof(args));
-#ifdef notyet
-	if ((r = scrandom_get_data(randbuf, sizeof(randbuf))) < 0)
-		goto out;
-
-	/* For now, we have to rely on the card's internal number
-	 * generator because libscrandom is static, which causes
-	 * all sorts of headaches when linking against it
-	 * (some platforms don't allow non-PIC code in a shared lib,
-	 * such as ia64).
-	 */
-	args.random_data = randbuf;
-	args.random_len = sizeof(randbuf);
-#endif
 	args.key_id = key_info->key_reference;
 	args.key_bits = keybits;
 	args.fid = temp->id;
 	r = sc_card_ctl(card, SC_CARDCTL_ETOKEN_GENERATE_KEY, &args);
-	memset(randbuf, 0, sizeof(randbuf));
 	if (r < 0)
 		goto out;
 
@@ -460,7 +444,7 @@ etoken_store_pin(sc_profile_t *profile, sc_card_t *card,
  * Create an empty security environment
  */
 static int
-etoken_create_sec_env(struct sc_profile *profile, struct sc_card *card,
+etoken_create_sec_env(struct sc_profile *profile, sc_card_t *card,
 		unsigned int se_id, unsigned int key_id)
 {
 	struct sc_cardctl_etoken_obj_info args;
@@ -520,7 +504,7 @@ etoken_key_algorithm(unsigned int usage, int *algop)
 #define ETOKEN_KEY_OPTIONS	0x02
 #define ETOKEN_KEY_FLAGS	0x00
 static int
-etoken_store_key_component(struct sc_card *card,
+etoken_store_key_component(sc_card_t *card,
 		int algorithm,
 		unsigned int key_id, unsigned int pin_id,
 		unsigned int num,
@@ -608,7 +592,7 @@ etoken_put_key(sc_profile_t *profile, sc_card_t *card,
  * GENERATE KEY PAIR
  */
 static int
-etoken_extract_pubkey(struct sc_card *card, int nr, u8 tag,
+etoken_extract_pubkey(sc_card_t *card, int nr, u8 tag,
 			sc_pkcs15_bignum_t *bn)
 {
 	u8	buf[256];
@@ -627,19 +611,25 @@ etoken_extract_pubkey(struct sc_card *card, int nr, u8 tag,
 	return 0;
 }
 
-static struct sc_pkcs15init_operations sc_pkcs15init_etoken_operations;
+static struct sc_pkcs15init_operations sc_pkcs15init_etoken_operations = {
+	etoken_erase,
+	NULL,				/* init_card */
+	etoken_create_dir,
+	NULL,				/* create_domain */
+	etoken_select_pin_reference,
+	etoken_create_pin,
+	etoken_select_key_reference,
+	etoken_create_key,
+	etoken_store_key,
+	etoken_generate_key,
+	NULL, NULL, 			/* encode private/public key */
+	NULL,				/* finalize_card */
+	NULL, NULL, NULL, NULL, NULL,	/* old style api */
+	NULL 				/* delete_object */
+};
 
 struct sc_pkcs15init_operations *
 sc_pkcs15init_get_etoken_ops(void)
 {
-	sc_pkcs15init_etoken_operations.erase_card = etoken_erase;
-	sc_pkcs15init_etoken_operations.create_dir = etoken_create_dir;
-	sc_pkcs15init_etoken_operations.select_pin_reference = etoken_select_pin_reference;
-	sc_pkcs15init_etoken_operations.create_pin = etoken_create_pin;
-	sc_pkcs15init_etoken_operations.select_key_reference = etoken_select_key_reference;
-	sc_pkcs15init_etoken_operations.create_key = etoken_create_key;
-	sc_pkcs15init_etoken_operations.store_key = etoken_store_key;
-	sc_pkcs15init_etoken_operations.generate_key = etoken_generate_key;
-
 	return &sc_pkcs15init_etoken_operations;
 }

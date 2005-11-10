@@ -47,10 +47,8 @@
 
 #define PATH_MAX _MAX_PATH
 
-#define sleep(t) Sleep((t) * 1000)
-
 #ifndef VERSION
-#define VERSION "0.9.6"
+#define VERSION "0.10.0"
 #endif
 
 /* src/common/getpass.c */
