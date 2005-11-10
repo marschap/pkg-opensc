@@ -155,6 +155,8 @@ new_entry(const sc_path_t *path, int type, int ref)
 	struct secret	*s;
 
 	s = (struct secret *) calloc(1, sizeof(*s));
+	if (s == NULL)
+		return NULL;
 	s->next = secret_cache;
 	secret_cache = s;
 	if (path)
@@ -185,6 +187,8 @@ sc_keycache_put_key(const sc_path_t *path, int type, int ref,
 
 	if (!(s = find_entry(path, type, ref, 0))) {
 		s = new_entry(path, type, ref);
+		if (s == NULL)
+			return SC_ERROR_OUT_OF_MEMORY;
 		if (type == SC_AC_SYMBOLIC)
 			named_pin[ref] = s;
 	}
@@ -203,7 +207,7 @@ int
 sc_keycache_put_pin(const sc_path_t *path, int ref, const u8 *pin)
 {
 	return sc_keycache_put_key(path, SC_AC_CHV, ref, pin,
-					pin? strlen((char *) pin) : 0);
+					pin? strlen((const char *) pin) : 0);
 }
 
 /*
@@ -256,8 +260,11 @@ sc_keycache_set_pin_name(const sc_path_t *path, int ref, int name)
 
 	if (ref >= 0) {
 		/* Create the named PIN if it doesn't exist */
-		if (!(s = find_entry(path, SC_AC_CHV, ref, 0)))
+		if (!(s = find_entry(path, SC_AC_CHV, ref, 0))) {
 			s = new_entry(path, SC_AC_CHV, ref);
+			if (s == NULL)
+				return SC_ERROR_OUT_OF_MEMORY;
+		}
 
 		/* Set the pin name */
 		s->named_pin = name;
@@ -326,7 +333,7 @@ sc_keycache_forget_key(const sc_path_t *path, int type, int ref)
 			*prev = s->next;
 			if (s->named_pin != -1 && s->ref == -1)
 				named_pin[s->named_pin] = NULL;
-			memset(s, 0, sizeof(*s));
+			sc_mem_clear(s, sizeof(*s));
 			free(s);
 		} else {
 			prev = &s->next;

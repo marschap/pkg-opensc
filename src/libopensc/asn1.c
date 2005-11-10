@@ -26,10 +26,10 @@
 #include <assert.h>
 #include <stdlib.h>
 
-static int asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
+static int asn1_decode(sc_context_t *ctx, struct sc_asn1_entry *asn1,
 		       const u8 *in, size_t len, const u8 **newp, size_t *len_left,
 		       int choice, int depth);
-static int asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
+static int asn1_encode(sc_context_t *ctx, const struct sc_asn1_entry *asn1,
 		       u8 **ptr, size_t *size, int depth);
 
 static const char *tag2str(unsigned int tag)
@@ -121,24 +121,6 @@ void sc_copy_asn1_entry(const struct sc_asn1_entry *src,
 	dest->name = NULL;
 }
 
-size_t _sc_count_bit_string_size(const void * buf, size_t bufsize)
-{
-        const u8 *p = (const u8 *) buf + bufsize - 1;
-        u8 c;
-        size_t skip = 0;
-        int i;
-        
-        while (p >= (const u8 *) buf && *p == 0) {
-                skip += 8;
-                p--;
-        }
-        if (p < (const u8 *) buf)
-                return 0;
-        c = *p;
-        for (i = 0; (c >> (7-i)) == 0; i++);
-        return bufsize * 8 - (skip + i);
-}
-
 static void sc_asn1_print_octet_string(const u8 * buf, size_t buflen)
 {
 	size_t i;
@@ -160,7 +142,7 @@ static void sc_asn1_print_integer(const u8 * buf, size_t buflen)
 #ifndef _WIN32
 	long long a = 0;
 #else
-        __int64 a = 0;
+	__int64 a = 0;
 #endif
 	size_t i;
 
@@ -180,10 +162,9 @@ static void sc_asn1_print_bit_string(const u8 * buf, size_t buflen)
 #ifndef _WIN32
 	long long a = 0;
 #else
-        __int64 a = 0;
+	__int64 a = 0;
 #endif
-	int r;
-	size_t i;
+	int r, i;
 
 	if (buflen > sizeof(a) + 1) {
 		printf("too long");
@@ -304,7 +285,7 @@ void sc_asn1_print_tags(const u8 * buf, size_t buflen)
 	print_tags_recursive(buf, buf, buflen, 0);
 }
 
-const u8 *sc_asn1_find_tag(struct sc_context *ctx, const u8 * buf,
+const u8 *sc_asn1_find_tag(sc_context_t *ctx, const u8 * buf,
 			   size_t buflen, unsigned int tag_in, size_t *taglen_in)
 {
 	size_t left = buflen, taglen;
@@ -316,7 +297,10 @@ const u8 *sc_asn1_find_tag(struct sc_context *ctx, const u8 * buf,
 		buf = p;
 		if (sc_asn1_read_tag(&p, left, &cla, &tag, &taglen) != 1)
 			return NULL;
-		assert(left >= (p - buf)); /* should not happen */
+		if (left < (size_t)(p - buf)) {
+			sc_error(ctx, "invalid TLV object\n");
+			return NULL;
+		}
 		left -= (p - buf);
 		if ((tag | cla) == tag_in) {
 			if (taglen > left)
@@ -324,14 +308,17 @@ const u8 *sc_asn1_find_tag(struct sc_context *ctx, const u8 * buf,
 			*taglen_in = taglen;
 			return p;
 		}
-		assert(left >= taglen); /* should not happen */
+		if (left < taglen) {
+			sc_error(ctx, "invalid TLV object\n");
+			return NULL;
+		}
 		left -= taglen;
 		p += taglen;
 	}
 	return NULL;
 }
 
-const u8 *sc_asn1_skip_tag(struct sc_context *ctx, const u8 ** buf, size_t *buflen,
+const u8 *sc_asn1_skip_tag(sc_context_t *ctx, const u8 ** buf, size_t *buflen,
 			   unsigned int tag_in, size_t *taglen_out)
 {
 	const u8 *p = *buf;
@@ -378,7 +365,7 @@ const u8 *sc_asn1_skip_tag(struct sc_context *ctx, const u8 ** buf, size_t *bufl
 	return p;
 }
 
-const u8 *sc_asn1_verify_tag(struct sc_context *ctx, const u8 * buf, size_t buflen,
+const u8 *sc_asn1_verify_tag(sc_context_t *ctx, const u8 * buf, size_t buflen,
 			     unsigned int tag_in, size_t *taglen_out)
 {
 	return sc_asn1_skip_tag(ctx, &buf, &buflen, tag_in, taglen_out);
@@ -504,7 +491,7 @@ static int encode_bit_field(const u8 *inbuf, size_t inlen,
 {
 	u8		data[sizeof(unsigned int)];
 	unsigned int	field = 0;
-	int		i, bits;
+	size_t		i, bits;
 
 	if (inlen != sizeof(data))
 		return SC_ERROR_BUFFER_TOO_SMALL;
@@ -565,11 +552,11 @@ int sc_asn1_decode_object_id(const u8 * inbuf, size_t inlen,
 {
 	int i, a;
 	const u8 *p = inbuf;
-	int *octet = id->value;
+	int *octet;
 	
-	assert(id != NULL);
-	if (inlen < 1)
-		return SC_ERROR_INVALID_ASN1_OBJECT;
+	if (inlen == 0 || inbuf == NULL || id == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	octet = id->value;
 	for (i = 0; i < SC_MAX_OBJECT_ID_OCTETS; i++)
 		id->value[i] = -1;
 	a = *p;
@@ -595,12 +582,13 @@ int sc_asn1_decode_object_id(const u8 * inbuf, size_t inlen,
 	return 0;
 }
 
-int sc_asn1_encode_object_id(u8 **buf, size_t *buflen,
+static int sc_asn1_encode_object_id(u8 **buf, size_t *buflen,
 			     const struct sc_object_id *id)
 {
 	u8 temp[SC_MAX_OBJECT_ID_OCTETS*5], *p = temp;
-	size_t count = 0;
-	int *value = (int *) id->value, i = 0;
+	size_t	count = 0;
+	int	i;
+	const int *value = (const int *) id->value;
 
 	for (i = 0; value[i] > 0 && i < SC_MAX_OBJECT_ID_OCTETS; i++) {
 		unsigned int k, shift;
@@ -631,11 +619,13 @@ int sc_asn1_encode_object_id(u8 **buf, size_t *buflen,
 	}
 	*buflen = count = p - temp;
 	*buf = (u8 *) malloc(count);
+	if (!*buf)
+		return SC_ERROR_OUT_OF_MEMORY;
 	memcpy(*buf, temp, count);
 	return 0;
 }
 
-int sc_asn1_decode_utf8string(const u8 *inbuf, size_t inlen,
+static int sc_asn1_decode_utf8string(const u8 *inbuf, size_t inlen,
 			      u8 *out, size_t *outlen)
 {
 	if (inlen+1 > *outlen)
@@ -646,13 +636,13 @@ int sc_asn1_decode_utf8string(const u8 *inbuf, size_t inlen,
 	return 0;
 }
 
-int sc_asn1_put_tag(int tag, const u8 * data, int datalen, u8 * out, int outlen, u8 **ptr)
+int sc_asn1_put_tag(int tag, const u8 * data, size_t datalen, u8 * out, size_t outlen, u8 **ptr)
 {
 	u8 *p = out;
 
 	if (outlen < 2)
 		return SC_ERROR_INVALID_ARGUMENTS;
-	if (datalen < 0 || datalen > 127)
+	if (datalen > 127)
 		return SC_ERROR_INVALID_ARGUMENTS;
 	*p++ = tag & 0xFF;	/* FIXME: Support longer tags */
 	outlen--;
@@ -668,8 +658,8 @@ int sc_asn1_put_tag(int tag, const u8 * data, int datalen, u8 * out, int outlen,
 	return 0;
 }
 
-int asn1_write_element(struct sc_context *ctx, unsigned int tag, const u8 * data,
-		       size_t datalen, u8 ** out, size_t * outlen)
+static int asn1_write_element(sc_context_t *ctx, unsigned int tag,
+	const u8 * data, size_t datalen, u8 ** out, size_t * outlen)
 {
 	u8 t;
 	u8 *buf, *p;
@@ -718,14 +708,14 @@ int asn1_write_element(struct sc_context *ctx, unsigned int tag, const u8 * data
 }
 
 static const struct sc_asn1_entry c_asn1_path[4] = {
-	{ "path",   SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL },
-	{ "index",  SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL },
-	{ "length", SC_ASN1_INTEGER, SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "path",   SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ "index",  SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "length", SC_ASN1_INTEGER, SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
-static int asn1_decode_path(struct sc_context *ctx, const u8 *in, size_t len,
-			    struct sc_path *path, int depth)
+static int asn1_decode_path(sc_context_t *ctx, const u8 *in, size_t len,
+			    sc_path_t *path, int depth)
 {
 	int idx, count, r;
 	struct sc_asn1_entry asn1_path[4];
@@ -753,40 +743,41 @@ static int asn1_decode_path(struct sc_context *ctx, const u8 *in, size_t len,
 	return 0;
 }
 
-static int asn1_encode_path(struct sc_context *ctx, const struct sc_path *path,
+static int asn1_encode_path(sc_context_t *ctx, const sc_path_t *path,
 			    u8 **buf, size_t *bufsize, int depth)
 {
 	int r;
  	struct sc_asn1_entry asn1_path[4];
+	sc_path_t tpath = *path;
 
 	sc_copy_asn1_entry(c_asn1_path, asn1_path);
-	sc_format_asn1_entry(asn1_path + 0, (void *) &path->value, (void *) &path->len, 1);
+	sc_format_asn1_entry(asn1_path + 0, (void *) &tpath.value, (void *) &tpath.len, 1);
 	if (path->count > 0) {
-		sc_format_asn1_entry(asn1_path + 1, (void *) &path->index, NULL, 1);
-		sc_format_asn1_entry(asn1_path + 2, (void *) &path->count, NULL, 1);
+		sc_format_asn1_entry(asn1_path + 1, (void *) &tpath.index, NULL, 1);
+		sc_format_asn1_entry(asn1_path + 2, (void *) &tpath.count, NULL, 1);
 	}
 	r = asn1_encode(ctx, asn1_path, buf, bufsize, depth + 1);
 	return r;	
 }
 
 static const struct sc_asn1_entry c_asn1_com_obj_attr[6] = {
-	{ "label", SC_ASN1_UTF8STRING, ASN1_UTF8STRING, SC_ASN1_OPTIONAL, NULL },
-	{ "flags", SC_ASN1_BIT_FIELD, ASN1_BIT_STRING, SC_ASN1_OPTIONAL, NULL },
-	{ "authId", SC_ASN1_PKCS15_ID, ASN1_OCTET_STRING, SC_ASN1_OPTIONAL, NULL },
-	{ "userConsent", SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL },
-	{ "accessControlRules", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "label", SC_ASN1_UTF8STRING, ASN1_UTF8STRING, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "flags", SC_ASN1_BIT_FIELD, ASN1_BIT_STRING, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "authId", SC_ASN1_PKCS15_ID, ASN1_OCTET_STRING, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "userConsent", SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "accessControlRules", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_p15_obj[5] = {
-	{ "commonObjectAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ "classAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ "subClassAttributes", SC_ASN1_STRUCT, SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-	{ "typeAttributes", SC_ASN1_STRUCT, SC_ASN1_CTX | 1 | SC_ASN1_CONS, 0, NULL },
-	{ NULL }
+	{ "commonObjectAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "classAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "subClassAttributes", SC_ASN1_STRUCT, SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "typeAttributes", SC_ASN1_STRUCT, SC_ASN1_CTX | 1 | SC_ASN1_CONS, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
-static int asn1_decode_p15_object(struct sc_context *ctx, const u8 *in,
+static int asn1_decode_p15_object(sc_context_t *ctx, const u8 *in,
 				  size_t len, struct sc_asn1_pkcs15_object *obj,
 				  int depth)
 {
@@ -813,27 +804,27 @@ static int asn1_decode_p15_object(struct sc_context *ctx, const u8 *in,
 	return r;
 }
 
-static int asn1_encode_p15_object(struct sc_context *ctx, const struct sc_asn1_pkcs15_object *obj,
+static int asn1_encode_p15_object(sc_context_t *ctx, const struct sc_asn1_pkcs15_object *obj,
 				  u8 **buf, size_t *bufsize, int depth)
 {
 	int r;
-	const struct sc_pkcs15_object *p15_obj = obj->p15_obj;
-	struct sc_asn1_entry asn1_c_attr[6], asn1_p15_obj[5];
-	size_t label_len = strlen(p15_obj->label);
+	struct sc_pkcs15_object p15_obj = *obj->p15_obj;
+	struct sc_asn1_entry    asn1_c_attr[6], asn1_p15_obj[5];
+	size_t label_len = strlen(p15_obj.label);
 	size_t flags_len;
 
 	sc_copy_asn1_entry(c_asn1_com_obj_attr, asn1_c_attr);
 	sc_copy_asn1_entry(c_asn1_p15_obj, asn1_p15_obj);
 	if (label_len != 0)
-		sc_format_asn1_entry(asn1_c_attr + 0, (void *) p15_obj->label, &label_len, 1);
-	if (p15_obj->flags) {
-		flags_len = sizeof(p15_obj->flags);
-		sc_format_asn1_entry(asn1_c_attr + 1, (void *) &p15_obj->flags, &flags_len, 1);
+		sc_format_asn1_entry(asn1_c_attr + 0, (void *) p15_obj.label, &label_len, 1);
+	if (p15_obj.flags) {
+		flags_len = sizeof(p15_obj.flags);
+		sc_format_asn1_entry(asn1_c_attr + 1, (void *) &p15_obj.flags, &flags_len, 1);
 	}
-	if (p15_obj->auth_id.len)
-		sc_format_asn1_entry(asn1_c_attr + 2, (void *) &p15_obj->auth_id, NULL, 1);
-	if (p15_obj->user_consent)
-		sc_format_asn1_entry(asn1_c_attr + 3, (void *) &p15_obj->user_consent, NULL, 1);
+	if (p15_obj.auth_id.len)
+		sc_format_asn1_entry(asn1_c_attr + 2, (void *) &p15_obj.auth_id, NULL, 1);
+	if (p15_obj.user_consent)
+		sc_format_asn1_entry(asn1_c_attr + 3, (void *) &p15_obj.user_consent, NULL, 1);
 	/* FIXME: decode accessControlRules */
 	sc_format_asn1_entry(asn1_p15_obj + 0, asn1_c_attr, NULL, 1);
 	sc_format_asn1_entry(asn1_p15_obj + 1, obj->asn1_class_attr, NULL, 1);
@@ -845,15 +836,16 @@ static int asn1_encode_p15_object(struct sc_context *ctx, const struct sc_asn1_p
 	return r;
 }
 
-static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry,
+static int asn1_decode_entry(sc_context_t *ctx,struct sc_asn1_entry *entry,
 			     const u8 *obj, size_t objlen, int depth)
 {
 	void *parm = entry->parm;
-	int (*callback_func)(struct sc_context *ctx, void *arg, const u8 *obj,
-			     size_t objlen, int depth) =
-		(int (*)(struct sc_context *, void *, const u8 *, size_t, int)) parm;
+	int (*callback_func)(sc_context_t *nctx, void *arg, const u8 *nobj,
+			     size_t nobjlen, int ndepth); 
 	size_t *len = (size_t *) entry->arg;
 	int r = 0;
+
+	*(void **)(&callback_func) = parm;
 
 	if (ctx->debug >= 3)
 		sc_debug(ctx, "%*.*sdecoding '%s'\n", depth, depth, "", entry->name);
@@ -912,7 +904,7 @@ static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry
 		break;
 	case SC_ASN1_OCTET_STRING:
 		if (parm != NULL) {
-			int c;
+			size_t c;
 			assert(len != NULL);
 
 			/* Strip off padding zero */
@@ -940,10 +932,8 @@ static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry
 		}
 		break;
 	case SC_ASN1_GENERALIZEDTIME:
-                /* FIXME: we should parse the string and convert it
-                   into a standard ISO time string. */
 		if (parm != NULL) {
-			int c;
+			size_t c;
 			assert(len != NULL);
 			if (entry->flags & SC_ASN1_ALLOC) {
 				u8 **buf = (u8 **) parm;
@@ -965,6 +955,7 @@ static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry
 		if (parm != NULL)
 			r = sc_asn1_decode_object_id(obj, objlen, (struct sc_object_id *) parm);
 		break;
+	case SC_ASN1_PRINTABLESTRING:
 	case SC_ASN1_UTF8STRING:
 		if (parm != NULL) {
 			assert(len != NULL);
@@ -983,12 +974,12 @@ static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry
 		break;
 	case SC_ASN1_PATH:
 		if (entry->parm != NULL)
-			r = asn1_decode_path(ctx, obj, objlen, (struct sc_path *) parm, depth);
+			r = asn1_decode_path(ctx, obj, objlen, (sc_path_t *) parm, depth);
 		break;
 	case SC_ASN1_PKCS15_ID:
 		if (entry->parm != NULL) {
 			struct sc_pkcs15_id *id = (struct sc_pkcs15_id *) parm;
-			int c = objlen > sizeof(id->value) ? sizeof(id->value) : objlen;
+			size_t c = objlen > sizeof(id->value) ? sizeof(id->value) : objlen;
 			
 			memcpy(id->value, obj, c);
 			id->len = c;
@@ -1001,14 +992,14 @@ static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry
 	case SC_ASN1_ALGORITHM_ID:
 		if (entry->parm != NULL)
 			r = sc_asn1_decode_algorithm_id(ctx, obj, objlen, (struct sc_algorithm_id *) parm, depth);
-                break;
+		break;
 	case SC_ASN1_CALLBACK:
 		if (entry->parm != NULL)
 			r = callback_func(ctx, entry->arg, obj, objlen, depth);
 		break;
 	default:
 		sc_error(ctx, "invalid ASN.1 type: %d\n", entry->type);
-		assert(0);
+		return SC_ERROR_INVALID_ASN1_OBJECT;
 	}
 	if (r) {
 		sc_error(ctx, "decoding of ASN.1 object '%s' failed: %s\n", entry->name,
@@ -1019,7 +1010,7 @@ static int asn1_decode_entry(struct sc_context *ctx, struct sc_asn1_entry *entry
 	return 0;
 }
 
-static int asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
+static int asn1_decode(sc_context_t *ctx, struct sc_asn1_entry *asn1,
 		       const u8 *in, size_t len, const u8 **newp, size_t *len_left,
 		       int choice, int depth)
 {
@@ -1046,7 +1037,7 @@ static int asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
 			      asn1->name);
 		return SC_ERROR_ASN1_OBJECT_NOT_FOUND;
 	}
-	if (p[0] == 0 || p[0] == 0xFF)
+	if (p[0] == 0 || p[0] == 0xFF || len == 0)
 		return SC_ERROR_ASN1_END_OF_CONTENTS;
 
 	for (idx = 0; asn1[idx].name != NULL; idx++) {
@@ -1111,29 +1102,30 @@ decode_ok:
 	SC_FUNC_RETURN(ctx, 3, 0);
 }
 
-int sc_asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
+int sc_asn1_decode(sc_context_t *ctx, struct sc_asn1_entry *asn1,
 		   const u8 *in, size_t len, const u8 **newp, size_t *len_left)
 {
 	return asn1_decode(ctx, asn1, in, len, newp, len_left, 0, 0);
 }
 
-int sc_asn1_decode_choice(struct sc_context *ctx, struct sc_asn1_entry *asn1,
+int sc_asn1_decode_choice(sc_context_t *ctx, struct sc_asn1_entry *asn1,
 			  const u8 *in, size_t len, const u8 **newp, size_t *len_left)
 {
 	return asn1_decode(ctx, asn1, in, len, newp, len_left, 1, 0);
 }
 
-static int asn1_encode_entry(struct sc_context *ctx, const struct sc_asn1_entry *entry,
+static int asn1_encode_entry(sc_context_t *ctx, const struct sc_asn1_entry *entry,
 			     u8 **obj, size_t *objlen, int depth)
 {
 	void *parm = entry->parm;
-	int (*callback_func)(struct sc_context *ctx, void *arg, u8 **obj,
-			     size_t *objlen, int depth) =
-		(int (*)(struct sc_context *, void *, u8 **, size_t *, int)) parm;
+	int (*callback_func)(sc_context_t *nctx, void *arg, u8 **nobj,
+			     size_t *nobjlen, int ndepth);
 	const size_t *len = (const size_t *) entry->arg;
 	int r = 0;
 	u8 * buf = NULL;
 	size_t buflen = 0;
+
+	*(void **)(&callback_func) = parm;
 
 	if (ctx->debug >= 3)
 		sc_debug(ctx, "%*.*sencoding '%s'%s\n",
@@ -1172,7 +1164,11 @@ static int asn1_encode_entry(struct sc_context *ctx, const struct sc_asn1_entry 
 		return asn1_encode_entry(ctx, choice, obj, objlen, depth + 1);
 	}
 
-	assert(entry->type == SC_ASN1_NULL || parm != NULL);
+	if (entry->type != SC_ASN1_NULL && parm == NULL) {
+		sc_error(ctx, "unexpected parm == NULL\n");
+		return SC_ERROR_INVALID_ASN1_OBJECT;
+	}
+
 	switch (entry->type) {
 	case SC_ASN1_STRUCT:
 		r = asn1_encode(ctx, (const struct sc_asn1_entry *) parm, &buf,
@@ -1207,6 +1203,7 @@ static int asn1_encode_entry(struct sc_context *ctx, const struct sc_asn1_entry 
 		assert(len != NULL);
 		r = encode_bit_field((const u8 *) parm, *len, &buf, &buflen);
 		break;
+	case SC_ASN1_PRINTABLESTRING:
 	case SC_ASN1_OCTET_STRING:
 	case SC_ASN1_UTF8STRING:
 		assert(len != NULL);
@@ -1225,15 +1222,24 @@ static int asn1_encode_entry(struct sc_context *ctx, const struct sc_asn1_entry 
 		memcpy(buf + buflen, parm, *len);
 		buflen += *len;
 		break;
+	case SC_ASN1_GENERALIZEDTIME:
+		assert(len != NULL);
+		buf = (u8 *) malloc(*len);
+		if (buf == NULL) {
+			r = SC_ERROR_OUT_OF_MEMORY;
+			break;
+		}
+		memcpy(buf, parm, *len);
+		buflen = *len;
+		break;
 	case SC_ASN1_OBJECT:
-		if (parm != NULL)
-			r = sc_asn1_encode_object_id(&buf, &buflen, (struct sc_object_id *) parm);
+		r = sc_asn1_encode_object_id(&buf, &buflen, (struct sc_object_id *) parm);
 		break;
 	case SC_ASN1_PATH:
-		r = asn1_encode_path(ctx, (const struct sc_path *) parm, &buf, &buflen, depth);
+		r = asn1_encode_path(ctx, (const sc_path_t *) parm, &buf, &buflen, depth);
 		break;
 	case SC_ASN1_PKCS15_ID:
-		if (entry->parm != NULL) {
+		{
 			const struct sc_pkcs15_id *id = (const struct sc_pkcs15_id *) parm;
 
 			buf = (u8 *) malloc(id->len);
@@ -1256,7 +1262,7 @@ static int asn1_encode_entry(struct sc_context *ctx, const struct sc_asn1_entry 
 		break;
 	default:
 		sc_error(ctx, "invalid ASN.1 type: %d\n", entry->type);
-		assert(0);
+		return SC_ERROR_INVALID_ASN1_OBJECT;
 	}
 	if (r) {
 		sc_error(ctx, "encoding of ASN.1 object '%s' failed: %s\n", entry->name,
@@ -1305,7 +1311,7 @@ no_object:
 	return r;
 }
 
-static int asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
+static int asn1_encode(sc_context_t *ctx, const struct sc_asn1_entry *asn1,
 		      u8 **ptr, size_t *size, int depth)
 {
 	int r, idx = 0;
@@ -1336,6 +1342,7 @@ static int asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
 		buf = tmp;
 		memcpy(buf + total, obj, objsize);
 		free(obj);
+		obj = NULL;
 		total += objsize;
 	}
 	*ptr = buf;
@@ -1343,20 +1350,20 @@ static int asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
 	return 0;
 }
 
-int sc_asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
+int sc_asn1_encode(sc_context_t *ctx, const struct sc_asn1_entry *asn1,
 		   u8 **ptr, size_t *size)
 {
 	return asn1_encode(ctx, asn1, ptr, size, 0);
 }
 
-int _sc_asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
+int _sc_asn1_encode(sc_context_t *ctx, const struct sc_asn1_entry *asn1,
 		    u8 **ptr, size_t *size, int depth)
 {
 	return asn1_encode(ctx, asn1, ptr, size, depth);
 }
 
 int
-_sc_asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
+_sc_asn1_decode(sc_context_t *ctx, struct sc_asn1_entry *asn1,
 		       const u8 *in, size_t len, const u8 **newp, size_t *left,
 		       int choice, int depth)
 {

@@ -1,0 +1,25 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>OpenSSL - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>OpenSSL Engines</h1>
+<p>
+The <a class="ext-link" title="http://www.openssl.org" href="http://www.openssl.org" shape="rect">OpenSSL project</a> offers the possibility to source out cryptographic functionality to plugin modules called engines. Usually there is one of two reasons for doing this, performance and security. 
+</p>
+<p>
+The performance reason is rather obvious, specialized hardware can do cryptography much faster than a general purpose computer. 
+</p>
+<p>
+The reason for using an engine with opensc typically is a security reason. If you are storing your private keys on a harddisk there is a lot of things an administrator (or a virus with root privileges) can do to steal your key. If the key is on a smart card there is usually no way to export the private key, so if you pull the card from the reader noone can use your keys. And if you use a certified and sealed reader device you can even be reasonably sure that noone can steal your PIN.
+</p>
+<p>
+OpenSC up to version 0.9.6 included two engines directly - engine_opensc and engine_pkcs11. The former was only a proof of concept code and
+has several issues. The later works fine. Starting with OpenSC 0.10.0 this engine was splitted off and is now in an independend project,
+as it can be used with any PKCS<a href="/opensc/ticket/11" title="CLOSED : gcc4 build failure" shape="rect"><del>#11</del></a> implementation, not only OpenSC.
+</p>
+<p>
+Please visit the <a class="ext-link" title="http://www.opensc.org/engine_pkcs11/" href="http://www.opensc.org/engine_pkcs11/" shape="rect">engine_pkcs11 homepage</a> for more details. Also see the <a href="QuickStart.html" shape="rect">QuickStart</a> file for an example
+how to sign a certificate using openssl and your smart card.
+</p>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

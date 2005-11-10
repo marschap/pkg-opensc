@@ -1,0 +1,75 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>WindowsCSP - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>Windows CSP</h1>
+<p>
+On Windows usualy all Applications use the Crypto API - a very high level and very generic framework.
+If Applications use this framework, no changes are needed to use certificates and keys 
+not only from either files/registry but also from smart cards. 
+</p>
+<p>
+Such Applications can not use OpenSC directly. Instead they access the Crypto API on the upper side,
+and a Crypto Service Provider needs to register smart card resource on the lower side.
+That CSP can use OpenSC via the PKCS#11 API.
+</p>
+<p>
+And of course you need the PC/SC Middleware and a driver for your smart card reader.
+PC/SC is already included in Windows NT, 2000, XP and later.
+</p>
+<p>
+The whole picture with all layers is:
+</p>
+<pre class="wiki" xml:space="preserve">+------------------------------------+
+|           Application              |
++------------------------------------+
++============Crypto API==============+
+|            Middleware              |
++==Crypto Server Provier Interface===+
++------------------------------------+
+|        Crypto Service Provider     |
++--------------PKCS#11---------------+
+|         OpenSC-PKCS11.dll          |
++--------------PC/SC-----------------+
+|         PC/SC Middleware           |
++-------------Ifdhandler-------------+
+|      Smart card Reader Driver      |
++------------------------------------+
+</pre><h2>CSP#11</h2>
+<p>
+CSP#11 is an open source implementation of the Crypto Service Provider API. It works with any PKCS#11 module
+including the OpenSC-PKCS11.DLL included in OpenSC.
+</p>
+<p>
+You can download CSP#11 at <a class="ext-link" title="http://csp11.labs.libre-entreprise.org/" href="http://csp11.labs.libre-entreprise.org/" shape="rect">http://csp11.labs.libre-entreprise.org/</a>.
+</p>
+<p>
+<a class="ext-link" title="http://www.opensc.org/scb/" href="http://www.opensc.org/scb/" shape="rect">Smart card bundle</a> is our windows installer and it has a more detailed
+web page about <a class="ext-link" title="http://www.opensc.org/scb/wiki/CSP11" href="http://www.opensc.org/scb/wiki/CSP11" shape="rect">CSP11</a>.
+</p>
+<h2>Idendity Alliance CSP</h2>
+<p>
+Idendity Alliance also offers a CSP implementation in their 
+<a class="ext-link" title="http://www.identityalliance.com/identity_ally.php" href="http://www.identityalliance.com/identity_ally.php" shape="rect">ID Ally</a> package.
+(free for personal use, 30 days use for evaluation.)
+</p>
+<p>
+<a class="ext-link" title="http://www.opensc.org/scb/" href="http://www.opensc.org/scb/" shape="rect">Smart card bundle</a> is our windows installer and it has a more detailed
+web page about <a class="ext-link" title="http://www.opensc.org/scb/wiki/IdAlly" href="http://www.opensc.org/scb/wiki/IdAlly" shape="rect">ID Ally</a>.
+</p>
+<h2>PKCS CSP</h2>
+<p>
+PKCS CSP is a CSP to use PKCS#11 modules, I guess. The web site is in french, so I don't understand
+it. Assistence is very welcome!
+</p>
+<p>
+<a class="ext-link" title="http://www.ilex.fr/en/opensource/pkcscsp.htm" href="http://www.ilex.fr/en/opensource/pkcscsp.htm" shape="rect">http://www.ilex.fr/en/opensource/pkcscsp.htm</a>
+</p>
+<h2>Windows Vista</h2>
+<p>
+It looks like Microsoft will replace Crypto API with something new, but still
+support Crypto API. More information can be found in this presentation:
+<a class="ext-link" title="http://216.55.183.63/pdc2005/slides/FUN210_Ben-Menahem_Tucker.ppt" href="http://216.55.183.63/pdc2005/slides/FUN210_Ben-Menahem_Tucker.ppt" shape="rect">http://216.55.183.63/pdc2005/slides/FUN210_Ben-Menahem_Tucker.ppt</a>
+</p>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

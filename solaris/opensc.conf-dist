@@ -28,7 +28,7 @@ app default {
 	#
 	# error_file = /tmp/opensc-errors.log;
 
-	# Where to find the *.profile files for pkcs15init;
+        # Where to find the *.profile files for pkcs15init;
 
 	profile_dir = /usr/share/opensc;
 

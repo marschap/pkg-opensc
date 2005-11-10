@@ -1,0 +1,130 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>OverView - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>Overview</h1>
+<p>
+So you want to use a smart card with some application? Here is a small introductions on the parts you need.
+</p>
+<ul><li>Application
+</li><li>Smart card library
+</li><li>Middleware
+</li><li>Driver for your smart card reader
+</li></ul><p>
+OpenSC is a smart card library. It also comes with tools to manage your smart cards.
+</p>
+<h2>Application Interface</h2>
+<p>
+Applications need to use the smart card library using some interface. Unfortunatly there
+are several different interfaces. PKCS#11 is a standard interface available on all operating
+systems. OpenSC implements this interface as smart card library, and Applications such as Mozilla,
+Firefox and Thunderbird implement it as applications. Thus you can use these applications with
+OpenSC on all plattforms.
+</p>
+<p>
+Native Windows applications often use the Crypto API interface. OpenSC does not implement
+the matching interface - CSP - but with the help of an additional software it does. See
+<a href="WindowsCSP.html" shape="rect">WindowsCSP</a> for details. The advantage of Crypto API/CSP is that applications
+do not need special code to use smart cards, all applications gain that feature automaticaly.
+</p>
+<p>
+Native Mac OS X applications also have a special interface called CDSA or CSP. See
+<a href="AppleCSP.html" shape="rect">AppleCSP</a> for details. At this moment OpenSC does not support that interface
+and also there is no bridge to do so. But you can still use applications on Mac OS X
+that implement the PKCS#11 interface like Mozilla, Firefox or Thunderbird.
+</p>
+<p>
+Under Linux, BSD, Solaris and under Unix PKCS#11 is the prefered interface for all
+applications.
+</p>
+<p>
+Some Open Source applications use the non standardized native OpenSC interface directly.
+These days we promote PKCS#11 as interface, but for the time being these applications
+also work well with OpenSC.
+</p>
+<h2>Driver Interface</h2>
+<p>
+Windows implements the PC/SC standard. That means OpenSC will use the PCSC interface to talk
+to the middleware, and the middleware will use drivers in "IfdHandler" format to talk to the
+hardware. Nearly all vendors of smart card readers ship such drivers, or the driver is even
+included in Windows, so there shouldn't be any issue. OpenSC will be able to talk to your
+smart card just fine.
+</p>
+<p>
+Windows NT/2000/XP and newer include the PC/SC middleware. For older versions you need to install
+an addon package from Microsoft first.
+</p>
+<p>
+Apple/Mac OS X also implements the PC/SC standard, same situation as windows, except few
+vendors ship drivers for Mac OS X, but most smart card readers will work with the generic
+driver included in Mac OS X. OpenSC will talk to the reader using the PC/SC Middleware
+and thus be able to talk to your smart card just fine.
+</p>
+<p>
+Apple includes a modified copy of pcsc-lite, an open source implementation of the PC/SC
+standard. Most of the time you will be fine, but in some cases it is necessary to install
+an updated version of pcsc-lite, for example if you have a smart card reader with a pinpad
+and would like to use that capability.
+</p>
+<p>
+On Linux you might want to use the open source project <a class="ext-link" title="http://www.opensc.org/openct/" href="http://www.opensc.org/openct/" shape="rect">OpenCT</a>
+for smart card drivers. It implements support for many drivers at the same time, is still
+small and lean, and OpenSC can use it directly without the need for any middleware.
+Many OpenSC developers also work on OpenCT so this combination is best tested. Most linux
+distribution include the latest version of OpenCT.
+</p>
+<p>
+On Linux you can also use pcsc-lite and drivers in ifdhandler format. Many distributions
+include pcsc-lite and some open source drivers, and some vendors also offer binary drivers
+for linux in ifdhandler format.
+</p>
+<p>
+Solaris situation is like Linux, except Sun has some special stuff for their Sunray
+terminals that contain smart card readers. You can use <a class="ext-link" title="http://www.opensc.org/openct/" href="http://www.opensc.org/openct/" shape="rect">OpenCT</a>
+with those terminals, source contains a solaris/ subdirectory with a README files and
+additional files to make using OpenCT on solaris easy. OpenCT hides the differences,
+so OpenSC works on Solaris well, just like on other plattforms,
+</p>
+<p>
+There is also a very old interface called CT-API which was developed many years ago while
+people were using DOS. It only works well if you have a single application with a single
+user on your system. It is still being used for specialised machines like ticket point of
+sales, but usualy not used with modern multi user, multi application computers. OpenSC
+can use drivers in CT-API format directly, without any middleware, on all operating sytems.
+</p>
+<h2>Smart card support</h2>
+<p>
+Basicaly you can get smart card in two states: either blank or initialized.
+</p>
+<p>
+For blank cards OpenSC has code to initialize the card in PKCS#15 format.
+</p>
+<p>
+You can't change initialized cards at all, or only with the software that
+was used to initialize it. But you can use the card with OpenSC if OpenSC
+knows the format. So the format has either to be PKCS#15 - very few other
+software implement that standard however. Or maybe the format was published
+and OpenSC contains an emulation for that format. 
+</p>
+<p>
+Check the list on the main page to see if your card is supported. Also
+check the page itself, as some cards have not been tested for a while,
+or only some members or a card family are supported.
+</p>
+<p>
+Also if you want to buy blank cards and initialize them yourself,
+make sure you buy realy blank cards. Many vendors have also a 
+half initialized version, and those can be only changed with the
+vendor software, and the result is not compatible with OpenSC unless
+OpenSC has an emulation code. Even then OpenSC can only offer you to
+use the card, but not to alter it.
+</p>
+<p>
+As a general rule OpenSC only supports cards with a filesystem and
+cryptographic functions (RSA). That excludes nearly all Java Cards,
+those usualy don't have a filesystem. Please check the 
+<a class="ext-link" title="http://www.musclecard.com/" href="http://www.musclecard.com/" shape="rect">Musclecard</a> project, they offer 
+open source software for using many different javacards.
+</p>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

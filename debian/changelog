@@ -1,3 +1,9 @@
+opensc (0.10.0-1) UNRELEASED; urgency=low
+
+  * (NOT RELEASED YET) New upstream release
+
+ -- Eric Dorland <eric@debian.org>  Wed,  9 Nov 2005 23:31:22 -0500
+
 opensc (0.9.6-3) unstable; urgency=medium
 
   * debian/control, debian/rules: Use gcc-3.3 instead of default gcc-4.0

@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <assert.h>
 
 /*
  * The asn.1 stuff from openssl and the one from opensc don't
@@ -42,7 +41,7 @@
 
 #ifndef HAVE_OPENSSL
 int
-sc_pkcs15_wrap_data(struct sc_context *ctx,
+sc_pkcs15_wrap_data(sc_context_t *ctx,
 		const char *passphrase,
 		const u8 *in, size_t in_len,
 		u8 **out, size_t *out_len)
@@ -51,7 +50,7 @@ sc_pkcs15_wrap_data(struct sc_context *ctx,
 }
 
 int
-sc_pkcs15_unwrap_data(struct sc_context *ctx,
+sc_pkcs15_unwrap_data(sc_context_t *ctx,
 		const char *passphrase,
 		const u8 *in, size_t in_len,
 		u8 **out, size_t *out_len)
@@ -62,7 +61,7 @@ sc_pkcs15_unwrap_data(struct sc_context *ctx,
 #else /* HAVE_OPENSSL */
 
 static int
-sc_pkcs15_derive_key(struct sc_context *ctx,
+sc_pkcs15_derive_key(sc_context_t *ctx,
 		const struct sc_algorithm_id *der_alg, 
 		const struct sc_algorithm_id *enc_alg,
 		const char *passphrase,
@@ -120,8 +119,7 @@ sc_pkcs15_derive_key(struct sc_context *ctx,
 }
 
 static int
-do_cipher(struct sc_context *ctx, EVP_CIPHER_CTX *cipher_ctx,
-		const u8 *in, size_t in_len,
+do_cipher(EVP_CIPHER_CTX *cipher_ctx, const u8 *in, size_t in_len,
 		u8 **out, size_t *out_len)
 {
 	const u8 *end;
@@ -138,7 +136,7 @@ do_cipher(struct sc_context *ctx, EVP_CIPHER_CTX *cipher_ctx,
 			left = bl;
 		if (!EVP_CipherUpdate(cipher_ctx,
 					p + total, (int *) &done,
-					(u8 *) in, left))
+					(u8 *) in, (int)left))
 			goto fail;
 		total += done;
 		in += left;
@@ -156,7 +154,7 @@ fail:	free(p);
 }
 
 int
-sc_pkcs15_wrap_data(struct sc_context *ctx,
+sc_pkcs15_wrap_data(sc_context_t *ctx,
 		const char *passphrase,
 		const u8 *in, size_t in_len,
 		u8 **out, size_t *out_len)
@@ -187,7 +185,7 @@ sc_pkcs15_wrap_data(struct sc_context *ctx,
 		return r;
 
 	/* Now encrypt the data using the derived key */
-	r = do_cipher(ctx, &cipher_ctx, in, in_len,
+	r = do_cipher(&cipher_ctx, in, in_len,
 			&envdata.content, &envdata.content_len);
 	if (r < 0)
 		return r;
@@ -201,7 +199,7 @@ sc_pkcs15_wrap_data(struct sc_context *ctx,
 
 
 int
-sc_pkcs15_unwrap_data(struct sc_context *ctx,
+sc_pkcs15_unwrap_data(sc_context_t *ctx,
 		const char *passphrase,
 		const u8 *in, size_t in_len,
 		u8 **out, size_t *out_len)
@@ -224,7 +222,7 @@ sc_pkcs15_unwrap_data(struct sc_context *ctx,
 		return r;
 
 	/* Now decrypt the data using the derived key */
-	r = do_cipher(ctx, &cipher_ctx, envdata.content, envdata.content_len,
+	r = do_cipher(&cipher_ctx, envdata.content, envdata.content_len,
 			out, out_len);
 	if (r < 0)
 		return r;
@@ -244,48 +242,48 @@ sc_pkcs15_unwrap_data(struct sc_context *ctx,
  * we treat it as if there's always just one element in the set.
  */
 static const struct sc_asn1_entry	c_asn1_enveloped_data_attr[] = {
-	{ "version",	SC_ASN1_INTEGER, ASN1_INTEGER, 0, NULL, 0 },
-	{ "originator",	SC_ASN1_STRUCT,	SC_ASN1_CONS|ASN1_SEQUENCE, SC_ASN1_OPTIONAL },
-	{ "recipients",	SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SET, 0 },
-	{ "contentInfo",SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SEQUENCE, 0 },
+	{ "version",	SC_ASN1_INTEGER, ASN1_INTEGER, 0, NULL, NULL },
+	{ "originator",	SC_ASN1_STRUCT,	SC_ASN1_CONS|ASN1_SEQUENCE, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "recipients",	SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SET, 0, NULL, NULL },
+	{ "contentInfo",SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SEQUENCE, 0, NULL, NULL },
 	/* some more optional foo we ignore for now */
-	{ NULL}
+	{ NULL, 0, 0, 0, NULL, NULL}
 };
 
 static const struct sc_asn1_entry	c_asn1_content_attr[] = {
-	{ "contentType",SC_ASN1_OBJECT, ASN1_OBJECT, 0 },
-	{ "contentEncrAlg", SC_ASN1_ALGORITHM_ID, SC_ASN1_CONS|ASN1_SEQUENCE, 0 },
-	{ "encrContent",SC_ASN1_STRUCT, SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL },
-	{ NULL }
+	{ "contentType",SC_ASN1_OBJECT, ASN1_OBJECT, 0, NULL, NULL },
+	{ "contentEncrAlg", SC_ASN1_ALGORITHM_ID, SC_ASN1_CONS|ASN1_SEQUENCE, 0, NULL, NULL },
+	{ "encrContent",SC_ASN1_STRUCT, SC_ASN1_CTX | 0 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry	c_asn1_encr_content[] = {
-	{ "data",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, SC_ASN1_ALLOC },
-	{ NULL }
+	{ "data",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, SC_ASN1_ALLOC, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry	c_asn1_recipients_attr[] = {
-	{ "kekri",	SC_ASN1_STRUCT, SC_ASN1_CTX | 2 | SC_ASN1_CONS },
-	{ NULL }
+	{ "kekri",	SC_ASN1_STRUCT, SC_ASN1_CTX | 2 | SC_ASN1_CONS , 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry	c_asn1_kekri_attr[] = {
-	{ "version",	SC_ASN1_INTEGER, ASN1_INTEGER, 0 },
-	{ "id",		SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SEQUENCE, 0 },
-	{ "keyEncrAlg",	SC_ASN1_ALGORITHM_ID, SC_ASN1_CONS|ASN1_SEQUENCE, 0 },
-	{ "keyEncrKey",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, SC_ASN1_ALLOC },
-	{ NULL }
+	{ "version",	SC_ASN1_INTEGER, ASN1_INTEGER, 0, NULL, NULL },
+	{ "id",		SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SEQUENCE, 0, NULL, NULL },
+	{ "keyEncrAlg",	SC_ASN1_ALGORITHM_ID, SC_ASN1_CONS|ASN1_SEQUENCE, 0, NULL, NULL },
+	{ "keyEncrKey",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, SC_ASN1_ALLOC, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry	c_asn1_kek_attr[] = {
-	{ "id",		SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0 },
-	{ "date",	SC_ASN1_OCTET_STRING, ASN1_GENERALIZEDTIME, SC_ASN1_OPTIONAL },
-	{ "other",	SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SEQUENCE, SC_ASN1_OPTIONAL },
-	{ NULL}
+	{ "id",		SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ "date",	SC_ASN1_OCTET_STRING, ASN1_GENERALIZEDTIME, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "other",	SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SEQUENCE, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 int
-sc_pkcs15_decode_enveloped_data(struct sc_context *ctx,
+sc_pkcs15_decode_enveloped_data(sc_context_t *ctx,
 				struct sc_pkcs15_enveloped_data *result,
 				const u8 *buf, size_t buflen)
 {
@@ -338,7 +336,7 @@ sc_pkcs15_decode_enveloped_data(struct sc_context *ctx,
 }
 
 int
-sc_pkcs15_encode_enveloped_data(struct sc_context *ctx,
+sc_pkcs15_encode_enveloped_data(sc_context_t *ctx,
 				struct sc_pkcs15_enveloped_data *data,
 				u8 **buf, size_t *buflen)
 {

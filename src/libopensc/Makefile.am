@@ -4,17 +4,16 @@ includedir = @includedir@/opensc
 
 MAINTAINERCLEANFILES = Makefile.in
 
-EXTRA_DIST = Makefile.mak libopensc.pc.in libpkcs15init.pc.in \
-	libscam.pc.in libscconf.pc.in libscldap.pc.in
+EXTRA_DIST = Makefile.mak libopensc.pc.in libpkcs15init.pc.in libscconf.pc.in 
 
-INCLUDES = @CPPFLAGS@ @OPENCT_CFLAGS@ @PCSC_CFLAGS@
-AM_LDFLAGS = @OPENCT_LDFLAGS@
+INCLUDES = $(CPPFLAGS) $(OPENSSL_CFLAGS) $(OPENCT_CFLAGS) $(PCSC_CFLAGS)
+AM_LDFLAGS = 
 
 bin_SCRIPTS = opensc-config
 
 lib_LTLIBRARIES = libopensc.la
 libopensc_la_SOURCES = \
-	sc.c ctx.c ui.c log.c errors.c portability.c module.c \
+	sc.c ctx.c ui.c log.c errors.c portability.c \
 	asn1.c base64.c sec.c card.c iso7816.c dir.c padding.c \
 	\
 	pkcs15.c pkcs15-cert.c pkcs15-data.c pkcs15-pin.c \
@@ -24,25 +23,24 @@ libopensc_la_SOURCES = \
 	emv.c \
 	\
 	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
-	pinpad-ccid.c \
 	\
 	card-setcos.c card-miocos.c card-flex.c card-gpk.c \
 	card-etoken.c card-tcos.c card-emv.c card-default.c \
-	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c\
-	card-oberthur.c card-oberthur.h \
+	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
+	card-oberthur.c card-belpic.c card-atrust-acos.c \
 	\
 	pkcs15-openpgp.c pkcs15-infocamere.c pkcs15-starcert.c \
-	pkcs15-netkey.c pkcs15-esteid.c
+	pkcs15-tcos.c pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafe.c \
+	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c
 libopensc_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@
-libopensc_la_LIBADD = @LIBSCCONF@ ../scdl/libscdl.la @LIBDL@ @LIBCRYPTO@ @OPENCT_LIBS@ @PCSC_LIBS@
+libopensc_la_LIBADD = @LIBSCCONF@ $(OPENSSL_LIBS) $(OPENCT_LIBS) $(PCSC_LIBS) $(LTLIBLTDL)
 
 include_HEADERS = \
 	opensc.h pkcs15.h emv.h \
 	cardctl.h asn1.h log.h ui.h \
 	errors.h types.h
 
-noinst_HEADERS = ctbcs.h internal.h esteid.h card-oberthur.h pinpad-ccid.h
+noinst_HEADERS = cards.h ctbcs.h internal.h esteid.h
 
-pkgconfigdir = @libdir@/pkgconfig
-pkgconfig_DATA = libopensc.pc libpkcs15init.pc \
-	libscam.pc libscconf.pc libscldap.pc
+pkgconfigdir = $(libdir)/pkgconfig
+pkgconfig_DATA = libopensc.pc libpkcs15init.pc libscconf.pc

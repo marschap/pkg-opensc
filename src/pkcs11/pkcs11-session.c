@@ -30,7 +30,7 @@ CK_RV C_OpenSession(CK_SLOT_ID            slotID,        /* the slot's ID */
 		    CK_SESSION_HANDLE_PTR phSession)     /* receives new session handle */
 {
 	struct sc_pkcs11_slot *slot;
-        struct sc_pkcs11_session *session;
+	struct sc_pkcs11_session *session;
 	int rv;
 
 	rv = sc_pkcs11_lock();
@@ -49,7 +49,7 @@ CK_RV C_OpenSession(CK_SLOT_ID            slotID,        /* the slot's ID */
 		goto out;
 	}
 
-        rv = slot_get_token(slotID, &slot);
+	rv = slot_get_token(slotID, &slot);
 	if (rv != CKR_OK)
 		goto out;
 
@@ -59,34 +59,38 @@ CK_RV C_OpenSession(CK_SLOT_ID            slotID,        /* the slot's ID */
 		goto out;
 	}
 
-        session = (struct sc_pkcs11_session*) malloc(sizeof(struct sc_pkcs11_session));
-	memset(session, 0, sizeof(struct sc_pkcs11_session));
+	session = (struct sc_pkcs11_session*) calloc(1, sizeof(struct sc_pkcs11_session));
+	if (session == NULL) {
+		rv = CKR_HOST_MEMORY;
+		goto out;
+	}
+		
 	session->slot = slot;
 	session->notify_callback = Notify;
-        session->notify_data = pApplication;
-        session->flags = flags;
+	session->notify_data = pApplication;
+	session->flags = flags;
 
 	rv = pool_insert(&session_pool, session, phSession);
 	if (rv != CKR_OK)
-                free(session);
+		free(session);
 	else
 		slot->nsessions++;
 
 out:	sc_pkcs11_unlock();
-        return rv;
+	return rv;
 }
 
 /* Internal version of C_CloseSession that gets called with
  * the global lock held */
-CK_RV sc_pkcs11_close_session(CK_SESSION_HANDLE hSession)
+static CK_RV sc_pkcs11_close_session(CK_SESSION_HANDLE hSession)
 {
 	struct sc_pkcs11_slot *slot;
-        struct sc_pkcs11_session *session;
+	struct sc_pkcs11_session *session;
 	int rv;
 
 	rv = pool_find_and_delete(&session_pool, hSession, (void**) &session);
 	if (rv != CKR_OK)
-                return rv;
+		return rv;
 
 	/* If we're the last session using this slot, make sure
 	 * we log out */
@@ -106,18 +110,18 @@ CK_RV sc_pkcs11_close_session(CK_SESSION_HANDLE hSession)
 CK_RV sc_pkcs11_close_all_sessions(CK_SLOT_ID slotID)
 {
 	struct sc_pkcs11_pool_item *item, *next;
-        struct sc_pkcs11_session *session;
+	struct sc_pkcs11_session *session;
 
 	sc_debug(context, "C_CloseAllSessions(slot %d).\n", (int) slotID);
 	for (item = session_pool.head; item != NULL; item = next) {
 		session = (struct sc_pkcs11_session*) item->item;
-                next = item->next;
+		next = item->next;
 
-		if (session->slot->id == slotID)
-                        sc_pkcs11_close_session(item->handle);
+		if (session->slot->id == (int)slotID)
+			sc_pkcs11_close_session(item->handle);
 	}
 
-        return CKR_OK;
+	return CKR_OK;
 }
 
 CK_RV C_CloseSession(CK_SESSION_HANDLE hSession) /* the session's handle */
@@ -142,7 +146,7 @@ CK_RV C_CloseAllSessions(CK_SLOT_ID slotID) /* the token's slot */
 	if (rv != CKR_OK)
 		return rv;
 
-        rv = slot_get_token(slotID, &slot);
+	rv = slot_get_token(slotID, &slot);
 	if (rv != CKR_OK)
 		goto out;
 
@@ -157,7 +161,7 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession,  /* the session's handle */
 {
 	struct sc_pkcs11_session *session;
 	struct sc_pkcs11_slot *slot;
-        int rv;
+	int rv;
 
 	rv = sc_pkcs11_lock();
 	if (rv != CKR_OK)
@@ -168,14 +172,14 @@ CK_RV C_GetSessionInfo(CK_SESSION_HANDLE hSession,  /* the session's handle */
 		goto out;
 	}
 
-        rv = pool_find(&session_pool, hSession, (void**) &session);
+	rv = pool_find(&session_pool, hSession, (void**) &session);
 	if (rv != CKR_OK)
 		goto out;
 
 	sc_debug(context, "C_GetSessionInfo(slot %d).\n", session->slot->id);
 	pInfo->slotID = session->slot->id;
-        pInfo->flags = session->flags;
-        pInfo->ulDeviceError = 0;
+	pInfo->flags = session->flags;
+	pInfo->ulDeviceError = 0;
 
 	slot = session->slot;
 	if (slot->login_user == CKU_SO) {
@@ -198,7 +202,7 @@ CK_RV C_GetOperationState(CK_SESSION_HANDLE hSession,             /* the session
 			  CK_BYTE_PTR       pOperationState,      /* location receiving state */
 			  CK_ULONG_PTR      pulOperationStateLen) /* location receiving state length */
 {
-        return CKR_FUNCTION_NOT_SUPPORTED;
+	return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession,            /* the session's handle */
@@ -207,7 +211,7 @@ CK_RV C_SetOperationState(CK_SESSION_HANDLE hSession,            /* the session'
 			  CK_OBJECT_HANDLE hEncryptionKey,       /* handle of en/decryption key */
 			  CK_OBJECT_HANDLE hAuthenticationKey)   /* handle of sign/verify key */
 {
-        return CKR_FUNCTION_NOT_SUPPORTED;
+	return CKR_FUNCTION_NOT_SUPPORTED;
 }
 
 CK_RV C_Login(CK_SESSION_HANDLE hSession,  /* the session's handle */
@@ -215,26 +219,26 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession,  /* the session's handle */
 	      CK_CHAR_PTR       pPin,      /* the user's PIN */
 	      CK_ULONG          ulPinLen)  /* the length of the PIN */
 {
-        int rv;
+	int rv;
 	struct sc_pkcs11_session *session;
-        struct sc_pkcs11_slot *slot;
+	struct sc_pkcs11_slot *slot;
 
 	rv = sc_pkcs11_lock();
 	if (rv != CKR_OK)
 		return rv;
 
 	if (userType != CKU_USER && userType != CKU_SO) {
-                rv = CKR_USER_TYPE_INVALID;
+		rv = CKR_USER_TYPE_INVALID;
 		goto out;
 	}
 
-        rv = pool_find(&session_pool, hSession, (void**) &session);
+	rv = pool_find(&session_pool, hSession, (void**) &session);
 	if (rv != CKR_OK)
 		goto out;
 
 	sc_debug(context, "Login for session %d\n", hSession);
 
-        slot = session->slot;
+	slot = session->slot;
 
 	if (!(slot->token_info.flags & CKF_USER_PIN_INITIALIZED)) {
 		rv = CKR_USER_PIN_NOT_INITIALIZED;
@@ -242,31 +246,30 @@ CK_RV C_Login(CK_SESSION_HANDLE hSession,  /* the session's handle */
 	}
 
 	if (slot->login_user >= 0) {
-                rv = CKR_USER_ALREADY_LOGGED_IN;
+		rv = CKR_USER_ALREADY_LOGGED_IN;
 		goto out;
 	}
 
-	rv = slot->card->framework->login(slot->card,
-                                          slot->fw_data,
-					  userType, pPin, ulPinLen);
+	rv = slot->card->framework->login(slot->card, slot->fw_data,
+	                                  userType, pPin, ulPinLen);
 	if (rv == CKR_OK)
-                slot->login_user = userType;
+		slot->login_user = userType;
 
 out:	sc_pkcs11_unlock();
-        return rv;
+	return rv;
 }
 
 CK_RV C_Logout(CK_SESSION_HANDLE hSession) /* the session's handle */
 {
-        int rv;
+	int rv;
 	struct sc_pkcs11_session *session;
-        struct sc_pkcs11_slot *slot;
+	struct sc_pkcs11_slot *slot;
 
 	rv = sc_pkcs11_lock();
 	if (rv != CKR_OK)
 		return rv;
 
-        rv = pool_find(&session_pool, hSession, (void**) &session);
+	rv = pool_find(&session_pool, hSession, (void**) &session);
 	if (rv != CKR_OK)
 		goto out;
 
@@ -291,13 +294,13 @@ CK_RV C_InitPIN(CK_SESSION_HANDLE hSession,
 {
 	struct sc_pkcs11_session *session;
 	struct sc_pkcs11_slot *slot;
-        int rv;
+	int rv;
 
 	rv = sc_pkcs11_lock();
 	if (rv != CKR_OK)
 		return rv;
 
-        rv = pool_find(&session_pool, hSession, (void**) &session);
+	rv = pool_find(&session_pool, hSession, (void**) &session);
 	if (rv != CKR_OK)
 		goto out;
 
@@ -322,15 +325,15 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession,
 	       CK_CHAR_PTR pNewPin,
 	       CK_ULONG ulNewLen)
 {
-        int rv;
+	int rv;
 	struct sc_pkcs11_session *session;
-        struct sc_pkcs11_slot *slot;
+	struct sc_pkcs11_slot *slot;
 
 	rv = sc_pkcs11_lock();
 	if (rv != CKR_OK)
 		return rv;
 
-        rv = pool_find(&session_pool, hSession, (void**) &session);
+	rv = pool_find(&session_pool, hSession, (void**) &session);
 	if (rv != CKR_OK)
 		goto out;
 
@@ -343,7 +346,7 @@ CK_RV C_SetPIN(CK_SESSION_HANDLE hSession,
 #endif
 
 	slot = session->slot;
-        rv = slot->card->framework->change_pin(slot->card, slot->fw_data,
+	rv = slot->card->framework->change_pin(slot->card, slot->fw_data,
 			pOldPin, ulOldLen,
 			pNewPin, ulNewLen);
 

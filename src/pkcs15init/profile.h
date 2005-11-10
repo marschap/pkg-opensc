@@ -7,7 +7,7 @@
 #ifndef _OPENSC_PROFILE_H
 #define _OPENSC_PROFILE_H
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -110,14 +110,19 @@ struct sc_profile {
 	struct {
 		unsigned int	direct_certificates;
 		unsigned int	encode_df_length;
+		unsigned int	do_last_update;
 	} pkcs15;
 
 	/* PKCS15 information */
 	sc_pkcs15_card_t *	p15_spec; /* as given by profile */
 	sc_pkcs15_card_t *	p15_data; /* as found on card */
+	/* flag to indicate whether the TokenInfo::lastUpdate field
+	 * needs to be updated (in other words: if the card content
+	 * has been changed) */
+	int			dirty;
 };
 
-struct sc_profile *sc_profile_new();
+struct sc_profile *sc_profile_new(void);
 int		sc_profile_load(struct sc_profile *, const char *);
 int		sc_profile_finish(struct sc_profile *);
 void		sc_profile_free(struct sc_profile *);
@@ -141,7 +146,7 @@ int		sc_profile_instantiate_template(struct sc_profile *,
 int		sc_profile_add_file(struct sc_profile *,
 			const char *, sc_file_t *);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 

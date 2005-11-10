@@ -7,11 +7,19 @@
 #ifndef PKCS15_INIT_H
 #define PKCS15_INIT_H
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <opensc/pkcs15.h>
+
+#define SC_PKCS15INIT_X509_DIGITAL_SIGNATURE     0x0080UL
+#define SC_PKCS15INIT_X509_NON_REPUDIATION       0x0040UL
+#define SC_PKCS15INIT_X509_KEY_ENCIPHERMENT      0x0020UL
+#define SC_PKCS15INIT_X509_DATA_ENCIPHERMENT     0x0010UL
+#define SC_PKCS15INIT_X509_KEY_AGREEMENT         0x0008UL
+#define SC_PKCS15INIT_X509_KEY_CERT_SIGN         0x0004UL
+#define SC_PKCS15INIT_X509_CRL_SIGN              0x0002UL
 
 typedef struct sc_profile sc_profile_t; /* opaque type */
 
@@ -107,7 +115,7 @@ struct sc_pkcs15init_operations {
 
 	/*
 	 * Finalize card
-	 * Ends the initialization phase of the smartcard/token
+	 * Ends the initialization phase of the smart card/token
 	 * (actually this command is currently only for starcos spk 2.3
 	 * cards).
 	 */
@@ -134,7 +142,7 @@ struct sc_pkcs15init_operations {
 	 * pin file index.
 	 */
 	int	(*new_pin)(struct sc_profile *, struct sc_card *,
-			struct sc_pkcs15_pin_info *, unsigned int index,
+			struct sc_pkcs15_pin_info *, unsigned int idx,
 			const u8 *pin, size_t pin_len,
 			const u8 *puk, size_t puk_len);
 
@@ -142,7 +150,7 @@ struct sc_pkcs15init_operations {
 	 * Store a key on the card
 	 */
 	int	(*new_key)(struct sc_profile *, struct sc_card *,
-			struct sc_pkcs15_prkey *key, unsigned int index,
+			struct sc_pkcs15_prkey *key, unsigned int idx,
 			struct sc_pkcs15_prkey_info *);
 
 	/*
@@ -155,10 +163,15 @@ struct sc_pkcs15init_operations {
 	 * Generate a new key pair
 	 */
 	int	(*old_generate_key)(struct sc_profile *, struct sc_card *,
-			unsigned int index, unsigned int keybits,
+			unsigned int idx, unsigned int keybits,
 			sc_pkcs15_pubkey_t *pubkey_res,
 			struct sc_pkcs15_prkey_info *);
 
+	/*
+	 * Delete object
+	 */
+	int (*delete_object)(struct sc_profile *, struct sc_card *,
+			unsigned int type, const void *data, const sc_path_t *path);
 };
 
 /* Do not change these or reorder these */
@@ -317,6 +330,18 @@ extern int	sc_pkcs15init_change_attrib(struct sc_pkcs15_card *p15card,
 				int new_attrib_type,
 				void *new_value,
 				int new_len);
+extern int	sc_pkcs15init_delete_object(sc_pkcs15_card_t *p15card,
+				sc_profile_t *profile,
+				sc_pkcs15_object_t *obj);
+/* Replace an existing cert with a new one, which is assumed to be
+ * compatible with the correcsponding private key (e.g. the old and
+ * new cert should have the same public key).
+ */
+extern int	sc_pkcs15init_update_certificate(sc_pkcs15_card_t *p15card,
+				sc_profile_t *profile,
+				sc_pkcs15_object_t *obj,
+				const unsigned char *rawcert,
+				int certlen);
 
 extern int	sc_pkcs15init_create_file(struct sc_profile *,
 				struct sc_card *, struct sc_file *);
@@ -340,8 +365,12 @@ extern int	sc_pkcs15init_get_label(struct sc_profile *, const char **);
 
 extern void	sc_pkcs15init_set_secret(struct sc_profile *,
 				int, int, u8 *, size_t);
+extern int	sc_pkcs15init_set_pin_data(struct sc_profile *, int,
+				const u8 *, size_t);
 extern int	sc_pkcs15init_verify_key(struct sc_profile *, struct sc_card *,
 				sc_file_t *,  unsigned int, unsigned int);
+extern int	sc_pkcs15init_delete_by_path(struct sc_profile *,
+				struct sc_card *, const sc_path_t *path);
 
 /* Erasing the card structure via rm -rf */
 extern int	sc_pkcs15init_erase_card_recursively(struct sc_card *,
@@ -366,8 +395,9 @@ extern struct sc_pkcs15init_operations *sc_pkcs15init_get_etoken_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_jcop_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_starcos_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_oberthur_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_setcos_ops(void);
 
-#ifdef  __cplusplus
+#ifdef __cplusplus
 }
 #endif
 

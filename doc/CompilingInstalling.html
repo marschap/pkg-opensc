@@ -1,0 +1,129 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>CompilingInstalling - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h1>Compiling and Installing OpenSC</h1>
+<p>
+This page has all the details on compiling and installing OpenSC.
+First some general instructions for Linux (and all unix operating
+systems not mentioned), and then the special cases for Solaris,
+Mac OS X and Windows.
+</p>
+<p>
+First a small warning: do not use gcc 4.0.1/2, opensc will segfault.
+The backtraces we have show some stack corruption, and we haven't been
+able to isolate the issue yet. So in the meantime we can only ask you
+to use gcc 3.3 or 3.4, they work well, and we are not aware of any
+issue. Exception: the apple gcc 4.0 on Mac OS X is fine, so far no
+problem reports.
+</p>
+<p>
+To compile OpenSC you need to have installed:
+pkg-config, openssl (runtime and development), openct and/or pcsc-lite
+(runtime and development), libltdl (runtime and development) and if you want the signer part:
+libassuan (runtime and development) and x libraries (runtime and development).
+</p>
+<p>
+OpenSC tries to auto-detect all libraries using the pkg-config system.
+Most big software projects like KDE or Gnome use it already for a long
+time, so most users will have it installed.
+</p>
+<p>
+Note: if you don't have libassuan installed, the signer won't be built.
+Most users and developers neither use nor need it. Also note the configure
+script does currently not properly check for x11 libraries and development
+files, it simply tries to build the signer if libassuan is found, and possibly
+fails, if x11 libs and development files are missing.
+</p>
+<p>
+If you don't have pkg-config installed, and don't want to, you can
+use environment variables to tell configure, how to link with some
+library:
+</p>
+<ul><li>OPENCT_CFLAGS and OPENCT_LIBS for OpenCT
+</li><li>PCSC_CFLAGS and PCSC_LIBS for PC/SC-Lite
+</li><li>OPENSSL_CFLAGS and OPENSSL_LIBS for OpenSSL
+</li><li>ASSUAN_CFLAGS and ASSUAN_LIBS for Assuan
+</li></ul><p>
+But most of the time it is easier to let pkg-config handle the
+automatic detection. If some libraries are not installed in
+typical locations, you need to tell pkg-config where to find the
+*.pc files. You can do this with the PKG_CONFIG_PATH environment
+variable, for exmaple:
+</p>
+<pre class="wiki" xml:space="preserve">export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:/opt/mystuff/liv/pkgconfig
+</pre><h2>Typical Installation</h2>
+<p>
+But most users use whatever their linux distributions or other operating
+systems provide, and thus don't need any of this. We suggest to install
+OpenSC into /usr and to put the configfile into /etc. The default
+however would be /usr/local and /usr/local/etcc, so you might want
+to change those. We suggest to compile OpenSC like this:
+</p>
+<pre class="wiki" xml:space="preserve">tar xfvz opensc-a.b.c.tar.gz
+cd opensc-a.b.c
+./configure --prefix=/usr --sysconfdir=/etc
+make
+make install
+cp etc/opensc.conf /etc/
+</pre><h3>PC/SC-Lite</h3>
+<p>
+Most distributions will include pcsc-lite version 1.2.0.
+However if you want to use pinpad readers, at least those
+that support the new PC/SC v2 Part 10 standard for pinpad
+readers, then you need to have pcsc-lite 1.2.9-beta8 or later.
+</p>
+<p>
+The configure script will tell you about this:
+</p>
+<pre class="wiki" xml:space="preserve">checking for PCSC_CFLAGS... -I/usr/include/PCSC
+checking for PCSC_LIBS... -lpcsclite
+checking for reader.h... no
+configure: WARNING: reader.h not found, install pcsc-lite 1.2.9-beta8 or later, or use PCSC_CFLAGS=... ./configure
+</pre><p>
+In this example pcsc-lite was found, but only an older version without
+support for the new PCSC v2 part 10 standard. This is fine, except
+for suport of modern pinpad readers.
+</p>
+<h2>Mac OS X</h2>
+<p>
+Apple did not include pkg-config in Mac OS X, changed the pcsc-lite
+header files and includes a version of pcsc-lite that does not
+support the new PCSC v2 part 10 pinpad reader standard.
+</p>
+<p>
+To compile OpenSC on Mac OS X we suggest:
+</p>
+<pre class="wiki" xml:space="preserve">export OPENSSL_CFLAGS="-I/usr/include"
+export OPENSSL_LIBS="-L/usr/lib -lcrypto"
+tar xfvz opensc-a.b.c.tar.gz
+cd opensc-a.b.c
+./configure --prefix=/usr --sysconfdir=/etc
+make
+make install
+cp etc/opensc.conf /etc/
+</pre><h2>Microsoft Windows</h2>
+<p>
+OpenSC can be compiled on Microsoft Windows, but currently the only supported
+compile plattform is Visual Studio (tested with VC7) using makefiles.
+</p>
+<p>
+To compile OpenSC first unpack the opensc-a.b.c.tar.gz file using 7-Zip,
+Winzip or some compatible software. You need to have libltdl3 installed
+(runtime and development). We suggest the installer provided by the
+GnuWin32 project. You need to edit the file <tt>win32/Make.rules.mak</tt>
+and ppint to the location where you installed LIBLTDL.
+</p>
+<p>
+We recommend to compile OpenSC with OpenSSL support. To do that, you
+also need to edit the file <tt>win32/Make.rules.mak</tt> and point
+to the OpenSSL location.
+</p>
+<p>
+Compiling OpenSC is down with a terminal/ "cmd.exe" window
+and entering the commands:
+</p>
+<pre class="wiki" xml:space="preserve">cd opensc-a.b.c
+nmake /f Makefile.mak
+</pre></div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

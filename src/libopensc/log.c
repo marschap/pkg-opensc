@@ -36,7 +36,7 @@
 #endif
 
 #ifndef __GNUC__
-void sc_error(struct sc_context *ctx, const char *format, ...)
+void sc_error(sc_context_t *ctx, const char *format, ...)
 {
 	va_list ap;
 
@@ -45,7 +45,7 @@ void sc_error(struct sc_context *ctx, const char *format, ...)
 	va_end(ap);
 }
 
-void sc_debug(struct sc_context *ctx, const char *format, ...)
+void sc_debug(sc_context_t *ctx, const char *format, ...)
 {
 	va_list ap;
 
@@ -56,7 +56,7 @@ void sc_debug(struct sc_context *ctx, const char *format, ...)
 
 #endif
 
-void sc_do_log(struct sc_context *ctx, int type, const char *file, int line, const char *func, const char *format, ...)
+void sc_do_log(sc_context_t *ctx, int type, const char *file, int line, const char *func, const char *format, ...)
 {
 	va_list ap;
 
@@ -65,11 +65,13 @@ void sc_do_log(struct sc_context *ctx, int type, const char *file, int line, con
 	va_end(ap);
 }
 
-void sc_do_log_va(struct sc_context *ctx, int type, const char *file, int line, const char *func, const char *format, va_list args)
+void sc_do_log_va(sc_context_t *ctx, int type, const char *file, int line, const char *func, const char *format, va_list args)
 {
 	int	(*display_fn)(sc_context_t *, const char *);
-	char	buf[1536], *p, *tag = "";
-	int	left, r;
+	char	buf[1536], *p;
+	const char *tag = "";
+	int	r;
+	size_t	left;
 
 	assert(ctx != NULL);
 
@@ -97,7 +99,7 @@ void sc_do_log_va(struct sc_context *ctx, int type, const char *file, int line, 
 
 	if (file != NULL) {
 		r = snprintf(buf, sizeof(buf), "%s:%d:%s: ", file, line, func ? func : "");
-		if (r < 0 || r > sizeof(buf))
+		if (r < 0 || (unsigned int)r > sizeof(buf))
 			return;
 	} else {
 		r = 0;
@@ -114,7 +116,7 @@ void sc_do_log_va(struct sc_context *ctx, int type, const char *file, int line, 
 	display_fn(ctx, buf);
 }
 
-void sc_hex_dump(struct sc_context *ctx, const u8 * in, size_t count, char *buf, size_t len)
+void sc_hex_dump(sc_context_t *ctx, const u8 * in, size_t count, char *buf, size_t len)
 {
 	char *p = buf;
 	int lines = 0;

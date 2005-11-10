@@ -30,12 +30,12 @@
  * AlgorithmIdentifier handling
  */
 static struct sc_asn1_entry	c_asn1_des_iv[] = {
-	{ "iv",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0 },
-	{ NULL }
+	{ "iv",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static int
-asn1_decode_des_params(struct sc_context *ctx, void **paramp,
+asn1_decode_des_params(sc_context_t *ctx, void **paramp,
 				const u8 *buf, size_t buflen, int depth)
 {
 	struct sc_asn1_entry asn1_des_iv[2];
@@ -50,12 +50,14 @@ asn1_decode_des_params(struct sc_context *ctx, void **paramp,
 	if (ivlen != 8)
 		return SC_ERROR_INVALID_ASN1_OBJECT;
 	*paramp = malloc(8);
+	if (!*paramp)
+		return SC_ERROR_OUT_OF_MEMORY;
 	memcpy(*paramp, iv, 8);
 	return 0;
 }
 
 static int
-asn1_encode_des_params(struct sc_context *ctx, void *params,
+asn1_encode_des_params(sc_context_t *ctx, void *params,
 				u8 **buf, size_t *buflen, int depth)
 {
 	struct sc_asn1_entry asn1_des_iv[2];
@@ -67,15 +69,15 @@ asn1_encode_des_params(struct sc_context *ctx, void *params,
 }
 
 static const struct sc_asn1_entry	c_asn1_pbkdf2_params[] = {
-	{ "salt",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0 },
-	{ "count",	SC_ASN1_INTEGER, ASN1_INTEGER, 0 },
-	{ "keyLength",	SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL },
-	{ "prf",	SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE, SC_ASN1_OPTIONAL },
-	{ NULL }
+	{ "salt",	SC_ASN1_OCTET_STRING, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ "count",	SC_ASN1_INTEGER, ASN1_INTEGER, 0, NULL, NULL },
+	{ "keyLength",	SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "prf",	SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static int
-asn1_decode_pbkdf2_params(struct sc_context *ctx, void **paramp,
+asn1_decode_pbkdf2_params(sc_context_t *ctx, void **paramp,
 				const u8 *buf, size_t buflen, int depth)
 {
 	struct sc_pbkdf2_params info;
@@ -101,12 +103,14 @@ asn1_decode_pbkdf2_params(struct sc_context *ctx, void **paramp,
 		return r;
 
 	*paramp = malloc(sizeof(info));
+	if (*paramp)
+		return SC_ERROR_OUT_OF_MEMORY;
 	memcpy(*paramp, &info, sizeof(info));
 	return 0;
 }
 
 static int
-asn1_encode_pbkdf2_params(struct sc_context *ctx, void *params,
+asn1_encode_pbkdf2_params(sc_context_t *ctx, void *params,
 				u8 **buf, size_t *buflen, int depth)
 {
 	struct sc_pbkdf2_params *info;
@@ -130,13 +134,13 @@ asn1_encode_pbkdf2_params(struct sc_context *ctx, void *params,
 }
 
 static const struct sc_asn1_entry	c_asn1_pbes2_params[] = {
-	{ "keyDerivationAlg", SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE, 0 },
-	{ "keyEcnryptionAlg", SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE, 0 },
-	{ NULL }
+	{ "keyDerivationAlg", SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE, 0, NULL, NULL },
+	{ "keyEcnryptionAlg", SC_ASN1_ALGORITHM_ID, ASN1_SEQUENCE, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static int
-asn1_decode_pbes2_params(struct sc_context *ctx, void **paramp,
+asn1_decode_pbes2_params(sc_context_t *ctx, void **paramp,
 				const u8 *buf, size_t buflen, int depth)
 {
 	struct sc_asn1_entry asn1_pbes2_params[3];
@@ -154,12 +158,14 @@ asn1_decode_pbes2_params(struct sc_context *ctx, void **paramp,
 	if (r < 0)
 		return r;
 	*paramp = malloc(sizeof(info));
+	if (!*paramp)
+		return SC_ERROR_OUT_OF_MEMORY;
 	memcpy(*paramp, &info, sizeof(info));
 	return 0;
 }
 
 static int
-asn1_encode_pbes2_params(struct sc_context *ctx, void *params,
+asn1_encode_pbes2_params(sc_context_t *ctx, void *params,
 				u8 **buf, size_t *buflen, int depth)
 {
 	struct sc_asn1_entry asn1_pbes2_params[3];
@@ -187,25 +193,25 @@ asn1_free_pbes2_params(void *ptr)
 static struct sc_asn1_pkcs15_algorithm_info algorithm_table[] = {
 #ifdef SC_ALGORITHM_SHA1
 	/* hmacWithSHA1 */
-	{ SC_ALGORITHM_SHA1, {{ 1, 2, 840, 113549, 2, 7 }} },
-	{ SC_ALGORITHM_SHA1, {{ 1, 3, 6, 1, 5, 5, 8, 1, 2 }} },
+	{ SC_ALGORITHM_SHA1, {{ 1, 2, 840, 113549, 2, 7 }}, NULL, NULL, NULL },
+	{ SC_ALGORITHM_SHA1, {{ 1, 3, 6, 1, 5, 5, 8, 1, 2 }}, NULL, NULL, NULL },
 	/* SHA1 */
-	{ SC_ALGORITHM_SHA1, {{ 1, 3, 14, 3, 2, 26, }} },
+	{ SC_ALGORITHM_SHA1, {{ 1, 3, 14, 3, 2, 26, }}, NULL, NULL, NULL },
 #endif
 #ifdef SC_ALGORITHM_MD5
-	{ SC_ALGORITHM_MD5, {{ 1, 2, 840, 113549, 2, 5, }} },
+	{ SC_ALGORITHM_MD5, {{ 1, 2, 840, 113549, 2, 5, }}, NULL, NULL, NULL },
 #endif
 #ifdef SC_ALGORITHM_DSA
-	{ SC_ALGORITHM_DSA, {{ 1, 2, 840, 10040, 4, 3 }} },
+	{ SC_ALGORITHM_DSA, {{ 1, 2, 840, 10040, 4, 3 }}, NULL, NULL, NULL },
 #endif
 #ifdef SC_ALGORITHM_RSA /* really rsaEncryption */
-	{ SC_ALGORITHM_RSA, {{ 1, 2, 840, 113549, 1, 1, 1 }} },
+	{ SC_ALGORITHM_RSA, {{ 1, 2, 840, 113549, 1, 1, 1 }}, NULL, NULL, NULL },
 #endif
 #ifdef SC_ALGORITHM_DH
-	{ SC_ALGORITHM_DH, {{ 1, 2, 840, 10046, 2, 1 }} },
+	{ SC_ALGORITHM_DH, {{ 1, 2, 840, 10046, 2, 1 }}, NULL, NULL, NULL },
 #endif
 #ifdef SC_ALGORITHM_RC2_WRAP /* from CMS */
-	{ SC_ALGORITHM_RC2_WRAP,  {{ 1, 2, 840, 113549, 1, 9, 16, 3, 7 }} },
+	{ SC_ALGORITHM_RC2_WRAP,  {{ 1, 2, 840, 113549, 1, 9, 16, 3, 7 }}, NULL, NULL, NULL },
 #endif
 #ifdef SC_ALGORITHM_RC2 /* CBC mode */
 	{ SC_ALGORITHM_RC2, {{ 1, 2, 840, 113549, 3, 2 }},
@@ -219,7 +225,7 @@ static struct sc_asn1_pkcs15_algorithm_info algorithm_table[] = {
 			free },
 #endif
 #ifdef SC_ALGORITHM_3DES_WRAP /* from CMS */
-	{ SC_ALGORITHM_3DES_WRAP, {{ 1, 2, 840, 113549, 1, 9, 16, 3, 6 }} },
+	{ SC_ALGORITHM_3DES_WRAP, {{ 1, 2, 840, 113549, 1, 9, 16, 3, 6 }}, NULL, NULL, NULL },
 #endif
 #ifdef SC_ALGORITHM_3DES /* EDE CBC mode */
 	{ SC_ALGORITHM_3DES, {{ 1, 2, 840, 113549, 3, 7 }},
@@ -239,7 +245,7 @@ static struct sc_asn1_pkcs15_algorithm_info algorithm_table[] = {
 			asn1_decode_pbes2_params,
 			asn1_encode_pbes2_params,
 			asn1_free_pbes2_params },
-	{ -1 }
+	{ -1, {{ -1 }}, NULL, NULL, NULL }
 #endif
 };
 
@@ -277,13 +283,13 @@ sc_asn1_get_algorithm_info(const struct sc_algorithm_id *id)
 }
 
 static const struct sc_asn1_entry c_asn1_alg_id[6] = {
-	{ "algorithm",  SC_ASN1_OBJECT, ASN1_OBJECT, 0, NULL },
-	{ "nullParam",  SC_ASN1_NULL, ASN1_NULL, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "algorithm",  SC_ASN1_OBJECT, ASN1_OBJECT, 0, NULL, NULL },
+	{ "nullParam",  SC_ASN1_NULL, ASN1_NULL, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 int
-sc_asn1_decode_algorithm_id(struct sc_context *ctx, const u8 *in,
+sc_asn1_decode_algorithm_id(sc_context_t *ctx, const u8 *in,
 			    size_t len, struct sc_algorithm_id *id,
 			    int depth)
 {
@@ -315,7 +321,7 @@ sc_asn1_decode_algorithm_id(struct sc_context *ctx, const u8 *in,
 }
 
 int
-sc_asn1_encode_algorithm_id(struct sc_context *ctx,
+sc_asn1_encode_algorithm_id(sc_context_t *ctx,
 			    u8 **buf, size_t *len,
 			    const struct sc_algorithm_id *id,
 			    int depth)

@@ -24,9 +24,9 @@
 
 #define DUMP_TEMPLATE_MAX	32
 
-void strcpy_bp(u8 *dst, const char *src, int dstsize)
+void strcpy_bp(u8 *dst, const char *src, size_t dstsize)
 {
-	int c;
+	size_t c;
 
 	if (!dst || !src || !dstsize)
 		return;
@@ -74,6 +74,7 @@ CK_RV sc_to_cryptoki_error(int rc, int reader)
 	case SC_ERROR_INVALID_ARGUMENTS:
 		return CKR_ARGUMENTS_BAD;
 	case SC_ERROR_INVALID_DATA:
+	case SC_ERROR_INCORRECT_PARAMETERS:
 		return CKR_DATA_INVALID;
 	}
 	sc_debug(context, "opensc error: %s (%d)\n", sc_strerror(rc), rc);
@@ -88,31 +89,31 @@ CK_RV pool_initialize(struct sc_pkcs11_pool *pool, int type)
 	pool->num_items = 0;
 	pool->head = pool->tail = NULL;
 
-        return CKR_OK;
+	return CKR_OK;
 }
 
 CK_RV pool_insert(struct sc_pkcs11_pool *pool, void *item_ptr, CK_ULONG_PTR pHandle)
 {
 	struct sc_pkcs11_pool_item *item;
-        int handle = pool->next_free_handle++;
+	int handle = pool->next_free_handle++;
 
 	item = (struct sc_pkcs11_pool_item*) malloc(sizeof(struct sc_pkcs11_pool_item));
 
 	if (pHandle != NULL)
-                *pHandle = handle;
+		*pHandle = handle;
 
-        item->handle = handle;
+	item->handle = handle;
 	item->item = item_ptr;
 	item->next = NULL;
-        item->prev = pool->tail;
+	item->prev = pool->tail;
 
 	if (pool->head != NULL && pool->tail != NULL) {
 		pool->tail->next = item;
-                pool->tail = item;
+		pool->tail = item;
 	} else
-                pool->head = pool->tail = item;
-
-        return CKR_OK;
+		pool->head = pool->tail = item;
+		
+	return CKR_OK;
 }
 
 CK_RV pool_find(struct sc_pkcs11_pool *pool, CK_ULONG handle, void **item_ptr)
@@ -120,12 +121,12 @@ CK_RV pool_find(struct sc_pkcs11_pool *pool, CK_ULONG handle, void **item_ptr)
 	struct sc_pkcs11_pool_item *item;
 
 	if (context == NULL)
-                return CKR_CRYPTOKI_NOT_INITIALIZED;
+		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	for (item = pool->head; item != NULL; item = item->next) {
 		if (item->handle == handle) {
 			*item_ptr = item->item;
-                        return CKR_OK;
+				return CKR_OK;
 		}
 	}
 
@@ -145,10 +146,10 @@ CK_RV pool_find_and_delete(struct sc_pkcs11_pool *pool, CK_ULONG handle, void **
 			if (item->prev) item->prev->next = item->next;
 			if (item->next) item->next->prev = item->prev;
 			if (pool->head == item) pool->head = item->next;
-                        if (pool->tail == item) pool->tail = item->prev;
+			if (pool->tail == item) pool->tail = item->prev;
 
 			*item_ptr = item->item;
-                        free(item);
+			free(item);
 
 			return CKR_OK;
 		}
@@ -167,7 +168,7 @@ CK_RV session_start_operation(struct sc_pkcs11_session *session,
 	sc_pkcs11_operation_t *op;
 
 	if (context == NULL)
-                return CKR_CRYPTOKI_NOT_INITIALIZED;
+		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	if (type < 0 || type >= SC_PKCS11_OPERATION_MAX)
 		return CKR_ARGUMENTS_BAD;
@@ -182,7 +183,7 @@ CK_RV session_start_operation(struct sc_pkcs11_session *session,
 	if (operation)
 		*operation = op;
 
-        return CKR_OK;
+	return CKR_OK;
 }
 
 CK_RV session_get_operation(struct sc_pkcs11_session *session, int type,
@@ -199,7 +200,7 @@ CK_RV session_get_operation(struct sc_pkcs11_session *session, int type,
 	if (operation)
 		*operation = op;
 
-        return CKR_OK;
+	return CKR_OK;
 }
 
 CK_RV session_stop_operation(struct sc_pkcs11_session *session, int type)
@@ -211,7 +212,7 @@ CK_RV session_stop_operation(struct sc_pkcs11_session *session, int type)
 		return CKR_OPERATION_NOT_INITIALIZED;
 
 	sc_pkcs11_release_operation(&session->operation[type]);
-        return CKR_OK;
+	return CKR_OK;
 }
 
 CK_RV attr_extract(CK_ATTRIBUTE_PTR pAttr, void *ptr, size_t *sizep)
@@ -308,7 +309,7 @@ CK_RV attr_find_var(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
 	return attr_extract(pTemplate, ptr, sizep);
 }
 
-void load_pkcs11_parameters(struct sc_pkcs11_config *conf, struct sc_context *ctx)
+void load_pkcs11_parameters(struct sc_pkcs11_config *conf, sc_context_t *ctx)
 {
 	scconf_block *conf_block = NULL, **blocks;
 	int i;

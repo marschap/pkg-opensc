@@ -27,63 +27,63 @@
 #include <assert.h>
 
 static const struct sc_asn1_entry c_asn1_com_key_attr[] = {
-	{ "iD",		 SC_ASN1_PKCS15_ID, ASN1_OCTET_STRING, 0, NULL },
-	{ "usage",	 SC_ASN1_BIT_FIELD, ASN1_BIT_STRING, 0, NULL },
-	{ "native",	 SC_ASN1_BOOLEAN, ASN1_BOOLEAN, SC_ASN1_OPTIONAL, NULL },
-	{ "accessFlags", SC_ASN1_BIT_FIELD, ASN1_BIT_STRING, SC_ASN1_OPTIONAL, NULL },
-	{ "keyReference",SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "iD",		 SC_ASN1_PKCS15_ID, ASN1_OCTET_STRING, 0, NULL, NULL },
+	{ "usage",	 SC_ASN1_BIT_FIELD, ASN1_BIT_STRING, 0, NULL, NULL },
+	{ "native",	 SC_ASN1_BOOLEAN, ASN1_BOOLEAN, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "accessFlags", SC_ASN1_BIT_FIELD, ASN1_BIT_STRING, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "keyReference",SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_com_prkey_attr[] = {
         /* FIXME */
-	{ NULL }
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_rsakey_attr[] = {
-	{ "value",	   SC_ASN1_PATH, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ "modulusLength", SC_ASN1_INTEGER, ASN1_INTEGER, 0, NULL },
-	{ "keyInfo",	   SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "value",	   SC_ASN1_PATH, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "modulusLength", SC_ASN1_INTEGER, ASN1_INTEGER, 0, NULL, NULL },
+	{ "keyInfo",	   SC_ASN1_INTEGER, ASN1_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_prk_rsa_attr[] = {
-	{ "privateRSAKeyAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ NULL }
+	{ "privateRSAKeyAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_dsakey_i_p_attr[] = {
-	{ "path",	SC_ASN1_PATH, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ NULL }
+	{ "path",	SC_ASN1_PATH, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_dsakey_value_attr[] = {
-	{ "path",	SC_ASN1_PATH, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ "pathProtected",SC_ASN1_STRUCT, SC_ASN1_CTX | 1 | SC_ASN1_CONS, },
-	{ NULL }
+	{ "path",	SC_ASN1_PATH, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "pathProtected",SC_ASN1_STRUCT, SC_ASN1_CTX | 1 | SC_ASN1_CONS, 0, NULL, NULL},
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_dsakey_attr[] = {
-	{ "value",	SC_ASN1_CHOICE, 0, 0, NULL },
-	{ NULL }
+	{ "value",	SC_ASN1_CHOICE, 0, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_prk_dsa_attr[] = {
-	{ "privateDSAKeyAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL },
-	{ NULL }
+	{ "privateDSAKeyAttributes", SC_ASN1_STRUCT, ASN1_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static const struct sc_asn1_entry c_asn1_prkey[] = {
-	{ "privateRSAKey", SC_ASN1_PKCS15_OBJECT, ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-	{ "privateDSAKey", SC_ASN1_PKCS15_OBJECT,  2 | SC_ASN1_CTX | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL },
-	{ NULL }
+	{ "privateRSAKey", SC_ASN1_PKCS15_OBJECT, ASN1_SEQUENCE | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ "privateDSAKey", SC_ASN1_PKCS15_OBJECT,  2 | SC_ASN1_CTX | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };		
 
 int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 				 struct sc_pkcs15_object *obj,
 				 const u8 ** buf, size_t *buflen)
 {
-        struct sc_context *ctx = p15card->card->ctx;
+        sc_context_t *ctx = p15card->card->ctx;
         struct sc_pkcs15_prkey_info info;
 	int r;
 	size_t usage_len = sizeof(info.usage);
@@ -161,7 +161,7 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 	return 0;
 }
 
-int sc_pkcs15_encode_prkdf_entry(struct sc_context *ctx,
+int sc_pkcs15_encode_prkdf_entry(sc_context_t *ctx,
 				 const struct sc_pkcs15_object *obj,
 				 u8 **buf, size_t *buflen)
 {
@@ -239,12 +239,12 @@ int sc_pkcs15_encode_prkdf_entry(struct sc_context *ctx,
  * Store private keys on the card, encrypted
  */
 static const struct sc_asn1_entry	c_asn1_dsa_prkey_obj[] = {
-	{ "privateKey", SC_ASN1_OCTET_STRING, ASN1_INTEGER, SC_ASN1_ALLOC },
-	{ NULL }
+	{ "privateKey", SC_ASN1_OCTET_STRING, ASN1_INTEGER, SC_ASN1_ALLOC, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static int
-sc_pkcs15_encode_prkey_dsa(struct sc_context *ctx,
+sc_pkcs15_encode_prkey_dsa(sc_context_t *ctx,
 		struct sc_pkcs15_prkey_dsa *key,
 		u8 **buf, size_t *buflen)
 {
@@ -258,7 +258,7 @@ sc_pkcs15_encode_prkey_dsa(struct sc_context *ctx,
 }
 
 static int
-sc_pkcs15_decode_prkey_dsa(struct sc_context *ctx,
+sc_pkcs15_decode_prkey_dsa(sc_context_t *ctx,
 		struct sc_pkcs15_prkey_dsa *key,
 		const u8 *buf, size_t buflen)
 {
@@ -272,7 +272,7 @@ sc_pkcs15_decode_prkey_dsa(struct sc_context *ctx,
 }
 
 int
-sc_pkcs15_encode_prkey(struct sc_context *ctx,
+sc_pkcs15_encode_prkey(sc_context_t *ctx,
 		struct sc_pkcs15_prkey *key,
 		u8 **buf, size_t *len)
 {
@@ -284,7 +284,7 @@ sc_pkcs15_encode_prkey(struct sc_context *ctx,
 }
 
 int
-sc_pkcs15_decode_prkey(struct sc_context *ctx,
+sc_pkcs15_decode_prkey(sc_context_t *ctx,
 		struct sc_pkcs15_prkey *key,
 		const u8 *buf, size_t len)
 {
@@ -301,10 +301,10 @@ sc_pkcs15_read_prkey(struct sc_pkcs15_card *p15card,
 		const char *passphrase,
 		struct sc_pkcs15_prkey **out)
 {
-	struct sc_context *ctx = p15card->card->ctx;
+	sc_context_t *ctx = p15card->card->ctx;
 	struct sc_pkcs15_prkey_info *info;
 	struct sc_pkcs15_prkey key;
-	struct sc_path path;
+	sc_path_t path;
 	u8 *data = NULL;
 	size_t len;
 	int r;
@@ -402,12 +402,19 @@ sc_pkcs15_erase_prkey(struct sc_pkcs15_prkey *key)
 		free(key->u.dsa.priv.data);
 		break;
 	}
-	memset(key, 0, sizeof(key));
+	sc_mem_clear(key, sizeof(key));
 }
 
 void
 sc_pkcs15_free_prkey(struct sc_pkcs15_prkey *key)
 {
 	sc_pkcs15_erase_prkey(key);
+	free(key);
+}
+
+void sc_pkcs15_free_prkey_info(sc_pkcs15_prkey_info_t *key)
+{
+	if (key->subject)
+		free(key->subject);
 	free(key);
 }

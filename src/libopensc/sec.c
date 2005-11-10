@@ -26,7 +26,7 @@
 #include <string.h>
 #include <assert.h>
 
-int sc_decipher(struct sc_card *card,
+int sc_decipher(sc_card_t *card,
 		const u8 * crgram, size_t crgram_len, u8 * out, size_t outlen)
 {
 	int r;
@@ -39,7 +39,7 @@ int sc_decipher(struct sc_card *card,
         SC_FUNC_RETURN(card->ctx, 2, r);
 }
 
-int sc_compute_signature(struct sc_card *card,
+int sc_compute_signature(sc_card_t *card,
 			 const u8 * data, size_t datalen,
 			 u8 * out, size_t outlen)
 {
@@ -53,8 +53,8 @@ int sc_compute_signature(struct sc_card *card,
         SC_FUNC_RETURN(card->ctx, 2, r);
 }
 
-int sc_set_security_env(struct sc_card *card,
-			const struct sc_security_env *env,
+int sc_set_security_env(sc_card_t *card,
+			const sc_security_env_t *env,
 			int se_num)
 {
 	int r;
@@ -67,7 +67,7 @@ int sc_set_security_env(struct sc_card *card,
         SC_FUNC_RETURN(card->ctx, 2, r);
 }
 
-int sc_restore_security_env(struct sc_card *card, int se_num)
+int sc_restore_security_env(sc_card_t *card, int se_num)
 {
 	int r;
 
@@ -79,7 +79,7 @@ int sc_restore_security_env(struct sc_card *card, int se_num)
 	SC_FUNC_RETURN(card->ctx, 2, r);
 }
 
-int sc_verify(struct sc_card *card, unsigned int type, int ref, 
+int sc_verify(sc_card_t *card, unsigned int type, int ref, 
 	      const u8 *pin, size_t pinlen, int *tries_left)
 {
 	struct sc_pin_cmd_data data;
@@ -94,7 +94,7 @@ int sc_verify(struct sc_card *card, unsigned int type, int ref,
 	return sc_pin_cmd(card, &data, tries_left);
 }
 
-int sc_logout(struct sc_card *card)
+int sc_logout(sc_card_t *card)
 {
 	int r;
 	if (card->ops->logout == NULL)
@@ -104,7 +104,7 @@ int sc_logout(struct sc_card *card)
         SC_FUNC_RETURN(card->ctx, 2, r);
 }
 
-int sc_change_reference_data(struct sc_card *card, unsigned int type,
+int sc_change_reference_data(sc_card_t *card, unsigned int type,
 			     int ref, const u8 *old, size_t oldlen,
 			     const u8 *newref, size_t newlen,
 			     int *tries_left)
@@ -123,7 +123,7 @@ int sc_change_reference_data(struct sc_card *card, unsigned int type,
 	return sc_pin_cmd(card, &data, tries_left);
 }
 
-int sc_reset_retry_counter(struct sc_card *card, unsigned int type, int ref,
+int sc_reset_retry_counter(sc_card_t *card, unsigned int type, int ref,
 			   const u8 *puk, size_t puklen, const u8 *newref,
 			   size_t newlen)
 {
@@ -148,7 +148,7 @@ int sc_reset_retry_counter(struct sc_card *card, unsigned int type, int ref,
  * send this PIN to the card. If no PIN was given, the driver should
  * ask the reader to obtain the pin(s) via the pin pad
  */
-int sc_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data,
+int sc_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
 		int *tries_left)
 {
 	int r;
@@ -201,7 +201,7 @@ int sc_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data,
 		sc_error(card->ctx, "Use of pin pad not supported by card driver");
 		r = SC_ERROR_NOT_SUPPORTED;
 	}
-        SC_FUNC_RETURN(card->ctx, 2, r);
+	SC_FUNC_RETURN(card->ctx, 2, r);
 }
 
 /*
@@ -217,10 +217,8 @@ int sc_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data,
  */
 int sc_build_pin(u8 *buf, size_t buflen, struct sc_pin_cmd_pin *pin, int pad)
 {
-	size_t i = 0, j, pad_length = 0;
-	size_t pin_len = pin->len;
+	size_t i = 0, j, pin_len = pin->len;
 
-	/* XXX: Should we silently truncate PINs that are too long? */
 	if (pin->max_length && pin_len > pin->max_length)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
@@ -262,21 +260,22 @@ int sc_build_pin(u8 *buf, size_t buflen, struct sc_pin_cmd_pin *pin, int pad)
 
 	/* Pad to maximum PIN length if requested */
 	if (pad || pin->encoding == SC_PIN_ENCODING_GLP) {
-		pad_length = pin->max_length;
+		size_t pad_length = pin->pad_length;
+		u8     pad_char   = pin->encoding == SC_PIN_ENCODING_GLP ? 0xFF : pin->pad_char;
+
 		if (pin->encoding == SC_PIN_ENCODING_BCD)
 			pad_length >>= 1;
 		if (pin->encoding == SC_PIN_ENCODING_GLP)
 			pad_length = 8;
+
+		if (pad_length > buflen)
+			return SC_ERROR_BUFFER_TOO_SMALL;
+
+		if (pad_length && i < pad_length) {
+			memset(buf + i, pad_char, pad_length - i);
+			i = pad_length;
+		}
 	}
 
-	if (pad_length > buflen)
-		return SC_ERROR_BUFFER_TOO_SMALL;
-
-	if (pad_length && i < pad_length) {
-		memset(buf + i, 
-			pin->encoding == SC_PIN_ENCODING_GLP ? 0xFF : pin->pad_char,
-			pad_length - i);
-		i = pad_length;
-	}
 	return i;
 }

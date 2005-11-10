@@ -28,35 +28,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
-
 #include "esteid.h"
 
-#define TYPE_UNKNOWN   0
-#define TYPE_ANY       1
-#define TYPE_ESTEID    2
-
-
-/* this structure should be somewhere else. Copied from other card source. 
- * I need to make sure a 'variant' of a card to make decisions.
- */
-struct sc_card_atrs {
-	const char *atr;
-	const int type;
-	const char *name;
-};
-
-static struct sc_card_atrs mcrd_atrs[] = {
-	{"3B:FF:94:00:FF:80:B1:FE:45:1F:03:00:68:D2:76:00:00:28:FF:05:1E:31:80:00:90:00:23", TYPE_ANY, "German BMI"},
-	{"3B:FE:94:00:FF:80:B1:FA:45:1F:03:45:73:74:45:49:44:20:76:65:72:20:31:2E:30:43", TYPE_ESTEID, "EstEID (cold)"},
-	{"3B:6E:00:FF:45:73:74:45:49:44:20:76:65:72:20:31:2E:30", TYPE_ESTEID, "EstEID (warm)"},
-	{NULL, TYPE_UNKNOWN, NULL}
+static struct sc_atr_table mcrd_atrs[] = {
+	{ "3B:FF:94:00:FF:80:B1:FE:45:1F:03:00:68:D2:76:00:00:28:FF:05:1E:31:80:00:90:00:23", NULL, "German BMI", SC_CARD_TYPE_MCRD_GENERIC, 0, NULL },
+	{ "3B:FE:94:00:FF:80:B1:FA:45:1F:03:45:73:74:45:49:44:20:76:65:72:20:31:2E:30:43", NULL, "EstEID (cold)", SC_CARD_TYPE_MCRD_ESTEID, 0, NULL },
+	{ "3B:6E:00:FF:45:73:74:45:49:44:20:76:65:72:20:31:2E:30", NULL, "EstEID (warm)", SC_CARD_TYPE_MCRD_ESTEID, 0, NULL },
+	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
 static struct sc_card_operations mcrd_ops;
 static struct sc_card_driver mcrd_drv = {
 	"MICARDO 2.1",
 	"mcrd",
-	&mcrd_ops
+	&mcrd_ops,
+	NULL, 0, NULL
 };
 
 static const struct sc_card_operations *iso_ops = NULL;
@@ -72,7 +58,7 @@ enum {
 #define EF_KeyD 0x0013  /* File with extra key information. */
 #define EF_Rule 0x0030  /* Default ACL file. */
 
-#define MAX_CURPATH 10 
+#define MAX_CURPATH 10
 
 struct rule_record_s {
 	struct rule_record_s *next;
@@ -91,7 +77,7 @@ struct keyd_record_s {
 struct df_info_s {
 	struct df_info_s *next;
 	unsigned short path[MAX_CURPATH];
-	size_t pathlen; 
+	size_t pathlen;
 	struct rule_record_s *rule_file; /* keeps records of EF_Rule. */
 	struct keyd_record_s *keyd_file; /* keeps records of EF_KeyD. */
 };
@@ -100,21 +86,21 @@ struct mcrd_priv_data {
 	unsigned short curpath[MAX_CURPATH]; /* The currently selected path. */
 	size_t curpathlen; /* Length of this path or 0 if unknown. */
 	int is_ef;      /* True if the path points to an EF. */
-	struct df_info_s *df_infos; 
+	struct df_info_s *df_infos;
 	sc_security_env_t sec_env;	/* current security environment */
 };
 
 #define DRVDATA(card)        ((struct mcrd_priv_data *) ((card)->drv_data))
 
-static int load_special_files(struct sc_card *card);
-static int select_part (struct sc_card *card, u8 kind, unsigned short int fid,
-	                struct sc_file **file);
+static int load_special_files(sc_card_t *card);
+static int select_part (sc_card_t *card, u8 kind, unsigned short int fid,
+	                sc_file_t **file);
 
 /* Return the DF_info for the current path.  If does not yet exist,
    create it.  Returns NULL on error. */
-static struct df_info_s *get_df_info (struct sc_card *card)
+static struct df_info_s *get_df_info (sc_card_t *card)
 {
-	struct sc_context *ctx = card->ctx;
+	sc_context_t *ctx = card->ctx;
 	struct mcrd_priv_data *priv = DRVDATA (card);
 	struct df_info_s *dfi;
 
@@ -134,7 +120,7 @@ static struct df_info_s *get_df_info (struct sc_card *card)
 	/* Not found, create it. */
 	dfi = (struct df_info_s *) calloc (1, sizeof *dfi);
 	if (!dfi) {
-		sc_debug(ctx, "out of core while allocating df_info\n");
+		sc_debug(ctx, "out of memory while allocating df_info\n");
 		return NULL;
 	}
 	dfi->pathlen = priv->curpathlen;
@@ -160,35 +146,15 @@ static void clear_special_files (struct df_info_s *dfi)
 	}
 }
 
-// this function should be somewhere else in opensc code, too
-static int
-sc_card_identify (struct sc_card *card, struct sc_card_atrs *atr_list)
-{
-	int i;
-	for (i = 0; atr_list[i].atr != NULL; i++)
-	{
-		u8 defatr[SC_MAX_ATR_SIZE];
-		size_t len = sizeof (defatr);
-		const char *atrp = atr_list[i].atr;
-		if (sc_hex_to_bin (atrp, defatr, &len))
-			continue;
-		if (len != card->atr_len)
-			continue;
-		if (memcmp (card->atr, defatr, len) == 0)
-		return atr_list[i].type;
-	}
-	return 0;
-}
-
-/* Some functionality straight from the EstEID manual. 
+/* Some functionality straight from the EstEID manual.
  * Official notice: Refer to the Micardo 2.1 Public manual.
  * Sad side: not available without a NDA.
  */
- 
-int
-mcrd_delete_ref_to_authkey (struct sc_card *card)
+
+static int
+mcrd_delete_ref_to_authkey (sc_card_t *card)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	int r;
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	
@@ -205,10 +171,10 @@ mcrd_delete_ref_to_authkey (struct sc_card *card)
 	SC_FUNC_RETURN (card->ctx, 2, sc_check_sw (card, apdu.sw1, apdu.sw2));
 }
 
-int
-mcrd_delete_ref_to_signkey (struct sc_card *card)
+static int
+mcrd_delete_ref_to_signkey (sc_card_t *card)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	int r;
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	assert (card != NULL);
@@ -226,17 +192,17 @@ mcrd_delete_ref_to_signkey (struct sc_card *card)
 
 }
 
-int
-mcrd_set_decipher_key_ref (struct sc_card *card, int key_reference)
+static int
+mcrd_set_decipher_key_ref (sc_card_t *card, int key_reference)
 {
-	struct sc_apdu apdu;
-	struct sc_path path;
+	sc_apdu_t apdu;
+	sc_path_t path;
 	int r;
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 keyref_data[SC_ESTEID_KEYREF_FILE_RECLEN];
 	assert (card != NULL);
 
-	sc_format_apdu (card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0x41, 0xB8);   
+	sc_format_apdu (card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0x41, 0xB8);
 	/* track the active keypair  */
 	sc_format_path("0033", &path);
 	r = sc_select_file(card, &path, NULL);
@@ -249,12 +215,12 @@ mcrd_set_decipher_key_ref (struct sc_card *card, int key_reference)
 		    "Can't read keyref info file!");
 
 	sc_debug(card->ctx,
-		 "authkey reference 0x%02x%02x\n", 
+		 "authkey reference 0x%02x%02x\n",
 		  keyref_data[9], keyref_data[10]);
 
 	sc_debug(card->ctx,
-		 "signkey reference 0x%02x%02x\n", 
-		  keyref_data[19], keyref_data[20]);		  
+		 "signkey reference 0x%02x%02x\n",
+		  keyref_data[19], keyref_data[20]);
 
 
 	sbuf[0] = 0x83;
@@ -278,12 +244,17 @@ mcrd_set_decipher_key_ref (struct sc_card *card, int key_reference)
 	SC_FUNC_RETURN (card->ctx, 2, sc_check_sw (card, apdu.sw1, apdu.sw2));
 }
 
-static int mcrd_match_card(struct sc_card *card)
+static int mcrd_match_card(sc_card_t *card)
 {
-	 return sc_card_identify(card, mcrd_atrs) != 0;
+	int i;
+
+	i = _sc_match_atr(card, mcrd_atrs, &card->type);
+	if (i < 0)
+		return 0;
+	return 1;
 }
 
-static int mcrd_init(struct sc_card *card)
+static int mcrd_init(sc_card_t *card)
 {
 	unsigned long flags;
 	struct mcrd_priv_data *priv;
@@ -294,6 +265,7 @@ static int mcrd_init(struct sc_card *card)
 	card->name = "MICARDO 2.1";
 	card->drv_data = priv;
 	card->cla = 0x00;
+	card->caps |= SC_CARD_CAP_RNG;
 
 	flags = SC_ALGORITHM_RSA_RAW;
 	flags |= SC_ALGORITHM_RSA_PAD_PKCS1;
@@ -305,12 +277,13 @@ static int mcrd_init(struct sc_card *card)
 
 	priv->curpath[0] = MFID;
 	priv->curpathlen = 1;
-	if (sc_card_identify(card, mcrd_atrs) != TYPE_ESTEID)
+	/* The special file loading thing doesn't work for EstEID */
+	if (card->type != SC_CARD_TYPE_MCRD_ESTEID)
 		load_special_files (card);
-	return 0;
+	return SC_SUCCESS;
 }
 
-static int mcrd_finish(struct sc_card *card)
+static int mcrd_finish(sc_card_t *card)
 {
 	struct mcrd_priv_data *priv;
 
@@ -327,15 +300,11 @@ static int mcrd_finish(struct sc_card *card)
 }
 
 
-
-
-
-
 /* Load the rule and keyd file into our private data.
    Return 0 on success */
-static int load_special_files (struct sc_card *card)
+static int load_special_files (sc_card_t *card)
 {
-	struct sc_context *ctx = card->ctx;
+	sc_context_t *ctx = card->ctx;
 	struct mcrd_priv_data *priv = DRVDATA (card);
 	int r, recno;
 	struct df_info_s *dfi;
@@ -346,7 +315,7 @@ static int load_special_files (struct sc_card *card)
 
 	/* First check whether we already cached it. */
 	dfi = get_df_info (card);
-	if (dfi && dfi->rule_file) 
+	if (dfi && dfi->rule_file)
 		return 0; /* yes. */
 	clear_special_files (dfi);
 
@@ -355,7 +324,7 @@ static int load_special_files (struct sc_card *card)
 	SC_TEST_RET(ctx, r, "selecting EF_Rule failed");
 
 	for (recno=1;; recno++) {
-		struct sc_apdu apdu;
+		sc_apdu_t apdu;
 		u8 recvbuf[200];
 
 		sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT,
@@ -392,7 +361,7 @@ static int load_special_files (struct sc_card *card)
 	SC_TEST_RET(ctx, r, "selecting EF_KeyD failed");
 
 	for (recno=1;; recno++) {
-		struct sc_apdu apdu;
+		sc_apdu_t apdu;
 		u8 recvbuf[200];
 
 		sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT,
@@ -429,10 +398,10 @@ static int load_special_files (struct sc_card *card)
 /* Return the SE number from the keyD for the FID.  If ref_data is not
    NULL the reference data is returned; this shoudl be an array of at
    least 2 bytes.  Returns -1 on error.  */
-static int get_se_num_from_keyd (struct sc_card *card, unsigned short fid,
+static int get_se_num_from_keyd (sc_card_t *card, unsigned short fid,
 	                         u8 *ref_data)
 {
-	struct sc_context *ctx = card->ctx;
+	sc_context_t *ctx = card->ctx;
 	struct df_info_s *dfi;
 	struct keyd_record_s *keyd;
 	size_t len, taglen;
@@ -447,7 +416,7 @@ static int get_se_num_from_keyd (struct sc_card *card, unsigned short fid,
 	if (!dfi || !dfi->keyd_file) {
 		sc_debug (ctx, "EF_keyD not loaded\n");
 		return -1;
-	}    
+	}
 
 	for (keyd=dfi->keyd_file; keyd; keyd = keyd->next) {
 		p = keyd->data;
@@ -482,10 +451,10 @@ static int get_se_num_from_keyd (struct sc_card *card, unsigned short fid,
 }
 
 /* Process an ARR (7816-9/8.5.4) and setup the ACL. */
-static void process_arr(struct sc_card *card, struct sc_file *file,
+static void process_arr(sc_card_t *card, sc_file_t *file,
 	                const u8 *buf, size_t buflen)
 {
-	struct sc_context *ctx = card->ctx;
+	sc_context_t *ctx = card->ctx;
 	struct df_info_s *dfi;
 	struct rule_record_s *rule;
 	size_t left, taglen;
@@ -582,10 +551,10 @@ static void process_arr(struct sc_card *card, struct sc_file *file,
 }
 
 
-static void process_fcp(struct sc_card *card, struct sc_file *file,
+static void process_fcp(sc_card_t *card, sc_file_t *file,
 	                     const u8 *buf, size_t buflen)
 {
-	struct sc_context *ctx = card->ctx;
+	sc_context_t *ctx = card->ctx;
 	size_t taglen, len = buflen;
 	const u8 *tag = NULL, *p = buf;
 	int bad_fde = 0;
@@ -688,20 +657,20 @@ static void process_fcp(struct sc_card *card, struct sc_file *file,
 	/* Proprietary information. */
 	tag = bad_fde? NULL : sc_asn1_find_tag(ctx, p, len, 0x85, &taglen);
 	if (tag != NULL && taglen) {
-		sc_file_set_prop_attr(file, tag, taglen); 
+		sc_file_set_prop_attr(file, tag, taglen);
 	} else
 		file->prop_attr_len = 0;
 
 	/* Proprietary information, constructed. */
 	tag = sc_asn1_find_tag(ctx, p, len, 0xA5, &taglen);
 	if (tag != NULL && taglen) {
-		sc_file_set_prop_attr(file, tag, taglen); 
+		sc_file_set_prop_attr(file, tag, taglen);
 	}
 
 	/* Security attributes, proprietary format. */
 	tag = sc_asn1_find_tag(ctx, p, len, 0x86, &taglen);
 	if (tag != NULL && taglen) {
-		sc_file_set_sec_attr(file, tag, taglen); 
+		sc_file_set_sec_attr(file, tag, taglen);
 	}
 
 	/* Security attributes, reference to expanded format. */
@@ -723,11 +692,11 @@ static void process_fcp(struct sc_card *card, struct sc_file *file,
 
 /* Send a select command and parse the response. */
 static int
-do_select(struct sc_card *card, u8 kind,
+do_select(sc_card_t *card, u8 kind,
 	  const u8 *buf, size_t buflen,
-	  struct sc_file **file)
+	  sc_file_t **file)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8	resbuf[SC_MAX_APDU_BUFFER_SIZE];
 	int r;
 
@@ -750,7 +719,7 @@ do_select(struct sc_card *card, u8 kind,
 		if (apdu.sw1 == 0x61)
 				SC_FUNC_RETURN(card->ctx, 2, 0);
 		r = sc_check_sw(card, apdu.sw1, apdu.sw2);
-		if (!r && kind == MCRD_SEL_AID) 
+		if (!r && kind == MCRD_SEL_AID)
 				card->cache.current_path.len = 0;
 		SC_FUNC_RETURN(card->ctx, 2, r);
 	}
@@ -777,8 +746,8 @@ do_select(struct sc_card *card, u8 kind,
 /* Wrapper around do_select to be used when multiple selects are
    required. */
 static int
-select_part (struct sc_card *card, u8 kind, unsigned short int fid,
-	     struct sc_file **file)
+select_part (sc_card_t *card, u8 kind, unsigned short int fid,
+	     sc_file_t **file)
 {
 	u8 fbuf[2];
 	int r;
@@ -805,17 +774,17 @@ select_part (struct sc_card *card, u8 kind, unsigned short int fid,
    passed as true only DF are selected, otherwise the function tries
    to figure out whether the last path item is a DF or EF. */
 static int
-select_down (struct sc_card *card,
+select_down (sc_card_t *card,
 	     unsigned short *pathptr, size_t pathlen,
 	     int df_only,
-	     struct sc_file **file)
+	     sc_file_t **file)
 {
 	struct mcrd_priv_data *priv = DRVDATA (card);
 	int r;
 	int found_ef = 0;
 
 	if (!pathlen)
-		return SC_ERROR_INVALID_ARGUMENTS; 
+		return SC_ERROR_INVALID_ARGUMENTS;
 
 	for (; pathlen; pathlen--, pathptr++) {
 		if (priv->curpathlen == MAX_CURPATH)
@@ -826,7 +795,7 @@ select_down (struct sc_card *card,
 			/* first try to select an EF and retry an DF
 			   on error. */
 			r = select_part (card, MCRD_SEL_EF,*pathptr, file);
-			if (!r) 
+			if (!r)
 				found_ef = 1;
 		}
 		if (r)
@@ -837,7 +806,7 @@ select_down (struct sc_card *card,
 		priv->curpathlen++;
 	}
 	priv->is_ef = found_ef;
-	if (!found_ef) 
+	if (!found_ef)
 		load_special_files (card);
 	
 	return 0;
@@ -849,11 +818,11 @@ select_down (struct sc_card *card,
    this is accomplished be keeping track of the currently selected
    file.  Note that PATH is an array of PATHLEN file ids and not the
    usual sc_path structure. */
-   
+
 static int
-select_file_by_path (struct sc_card *card, unsigned short *pathptr,
+select_file_by_path (sc_card_t *card, unsigned short *pathptr,
 	             size_t pathlen,
-	             struct sc_file **file)
+	             sc_file_t **file)
 {
 	struct mcrd_priv_data *priv = DRVDATA (card);
 	int r;
@@ -913,7 +882,7 @@ select_file_by_path (struct sc_card *card, unsigned short *pathptr,
 			priv->curpathlen = 0;
 			priv->is_ef = 0;
 			r = select_down (card, pathptr, pathlen, 0, file);
-		} 
+		}
 	} else {
 		/* Relative addressing. */
 		if (!priv->curpathlen) {
@@ -936,8 +905,8 @@ select_file_by_path (struct sc_card *card, unsigned short *pathptr,
 }
 
 static int
-select_file_by_fid (struct sc_card *card, unsigned short *pathptr,
-	            size_t pathlen, struct sc_file **file)
+select_file_by_fid (sc_card_t *card, unsigned short *pathptr,
+	            size_t pathlen, sc_file_t **file)
 {
 	struct mcrd_priv_data *priv = DRVDATA (card);
 	int r;
@@ -947,7 +916,7 @@ select_file_by_fid (struct sc_card *card, unsigned short *pathptr,
 	if (pathlen > 1)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
-	if (pathlen && *pathptr == 0x3FFF) 
+	if (pathlen && *pathptr == 0x3FFF)
 		return 0;
 
 	if (!pathlen) {
@@ -1000,8 +969,8 @@ select_file_by_fid (struct sc_card *card, unsigned short *pathptr,
 
 /* This drivers select command handler. */
 static int
-mcrd_select_file(struct sc_card *card, const struct sc_path *path,
-	         struct sc_file **file)
+mcrd_select_file(sc_card_t *card, const sc_path_t *path,
+	         sc_file_t **file)
 {
 	struct mcrd_priv_data *priv = DRVDATA (card);
 	int r = 0;
@@ -1048,7 +1017,7 @@ mcrd_select_file(struct sc_card *card, const struct sc_path *path,
 		for (n = 0; n < path->len; n += 2)
 			pathptr[n>>1] = (path->value[n] << 8)|path->value[n+1];
 		pathlen = path->len >> 1;
-		if (path->type == SC_PATH_TYPE_PATH) 
+		if (path->type == SC_PATH_TYPE_PATH)
 			r = select_file_by_path (card, pathptr, pathlen, file);
 		else {  /* SC_PATH_TYPE_FILEID */
 			r = select_file_by_fid (card, pathptr, pathlen, file);
@@ -1071,10 +1040,9 @@ mcrd_select_file(struct sc_card *card, const struct sc_path *path,
 
 
 /* Crypto operations */
-
-static int mcrd_enable_se (struct sc_card *card, int se_num)
+static int mcrd_restore_se (sc_card_t *card, int se_num)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	int r;
 
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_1, 0x22, 0xF3, se_num);
@@ -1087,16 +1055,16 @@ static int mcrd_enable_se (struct sc_card *card, int se_num)
 
 /* It seems that MICARDO does not fully comply with ISO, so I use
    values gathered from peeking actual signing opeations using a
-   different system. 
+   different system.
    It has been generalized [?] and modified by information coming from
    openpgp card implementation, EstEID 'manual' and some other sources. -mp
    */
-static int mcrd_set_security_env(struct sc_card *card,
-	                         const struct sc_security_env *env,
+static int mcrd_set_security_env(sc_card_t *card,
+	                         const sc_security_env_t *env,
 	                         int se_num)
 {
 	struct mcrd_priv_data *priv = DRVDATA(card);
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 *p;
 	int r, locked = 0;
@@ -1104,8 +1072,8 @@ static int mcrd_set_security_env(struct sc_card *card,
 	assert(card != NULL && env != NULL);
 	SC_FUNC_CALLED(card->ctx, 2);
 	
-	/* special environemnt handling for esteid, stolen from openpgp */
-	if (sc_card_identify(card, mcrd_atrs) == TYPE_ESTEID) {
+	/* special environment handling for esteid, stolen from openpgp */
+	if (card->type == SC_CARD_TYPE_MCRD_ESTEID) {
 		/* some sanity checks */
 		if (env->flags & SC_SEC_ENV_ALG_PRESENT) {
 			if (env->algorithm != SC_ALGORITHM_RSA)
@@ -1115,13 +1083,13 @@ static int mcrd_set_security_env(struct sc_card *card,
 		    || env->key_ref_len != 1)
 			return SC_ERROR_INVALID_ARGUMENTS;
 
-		select_esteid_df(card);	// is it needed?
+		select_esteid_df(card);	/* is it needed? */
 		switch (env->operation) {
 		case SC_SEC_OPERATION_DECIPHER:
 			sc_debug(card->ctx,
 				 "Using keyref %d to dechiper\n",
 				 env->key_ref[0]);
-			mcrd_enable_se(card, 6);
+			mcrd_restore_se(card, 6);
 			mcrd_delete_ref_to_authkey(card);
 			mcrd_delete_ref_to_signkey(card);
 			mcrd_set_decipher_key_ref(card, env->key_ref[0]);
@@ -1129,7 +1097,7 @@ static int mcrd_set_security_env(struct sc_card *card,
 		case SC_SEC_OPERATION_SIGN:
 			sc_debug(card->ctx, "Using keyref %d to sign\n",
 				 env->key_ref[0]);
-			mcrd_enable_se(card, 1);
+			mcrd_restore_se(card, 1);
 			break;
 		default:
 			return SC_ERROR_INVALID_ARGUMENTS;
@@ -1167,7 +1135,7 @@ static int mcrd_set_security_env(struct sc_card *card,
 		if (num != -1) {
 			/* Need to restore the security environmnet. */
 			if (num) {
-				r = mcrd_enable_se (card, num);
+				r = mcrd_restore_se (card, num);
 				SC_TEST_RET(card->ctx, r, "mcrd_enable_se failed");
 			}
 			p += 2;
@@ -1211,14 +1179,14 @@ err:
 }
 
 /* heavily modified by -mp */
-static int mcrd_compute_signature(struct sc_card *card,
+static int mcrd_compute_signature(sc_card_t *card,
                                   const u8 * data, size_t datalen,
                                   u8 * out, size_t outlen)
 {
 	struct mcrd_priv_data *priv = DRVDATA(card);
 	sc_security_env_t *env = &priv->sec_env;
 	int r;
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 
 	assert(card != NULL && data != NULL && out != NULL);
 	SC_FUNC_CALLED(card->ctx, 2);
@@ -1228,8 +1196,8 @@ static int mcrd_compute_signature(struct sc_card *card,
 		SC_FUNC_RETURN(card->ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
 
 	sc_debug(card->ctx,
-		 "Will compute signature for %d (0x%02x) bytes using key %d\n",
-		 datalen, datalen, env->key_ref[0]);
+		 "Will compute signature (%d) for %d (0x%02x) bytes using key %d algorithm %d flags %d\n",
+		 env->operation, datalen, datalen, env->key_ref[0], env->algorithm, env->algorithm_flags);
 
 	switch (env->key_ref[0]) {
 	case SC_ESTEID_AUTH:	/* authentication key */
@@ -1257,13 +1225,13 @@ static int mcrd_compute_signature(struct sc_card *card,
 }
 
 /* added by -mp */
-int mcrd_decipher(struct sc_card *card,
+static int mcrd_decipher(sc_card_t *card,
 		  const u8 * crgram, size_t crgram_len, u8 * out,
 		  size_t out_len)
 {
 
 	int r;
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	struct mcrd_priv_data *priv = DRVDATA(card);
 	sc_security_env_t *env = &priv->sec_env;
 	u8 *temp;
@@ -1303,10 +1271,10 @@ int mcrd_decipher(struct sc_card *card,
 }
 
 /* added by -mp, to give pin information in the card driver (pkcs15emu->driver needed) */
-int mcrd_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data,
+static int mcrd_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
 		 int *tries_left)
 {
-	SC_FUNC_CALLED(card->ctx, 3); 
+	SC_FUNC_CALLED(card->ctx, 3);
 	data->pin1.offset = 5;
 	data->pin1.length_offset = 4;
 	data->pin2.offset = 5;

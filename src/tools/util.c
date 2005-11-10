@@ -15,7 +15,7 @@ int connect_card(sc_context_t *ctx, sc_card_t **cardp,
 	int r;
 
 	if (wait) {
-		struct sc_reader *readers[16];
+		sc_reader_t *readers[16];
 		int slots[16];
 		int i, j, k, found;
 		unsigned int event;
@@ -188,7 +188,7 @@ void print_usage_and_die(void)
 	exit(2);
 }
 
-const char * acl_to_str(const struct sc_acl_entry *e)
+const char * acl_to_str(const sc_acl_entry_t *e)
 {
 	static char line[80], buf[10];
 	unsigned int acl;
@@ -270,3 +270,33 @@ warn(const char *fmt, ...)
 	fprintf(stderr, "\n");
 	va_end(ap);
 }
+
+
+int parse_application_id(struct sc_object_id *oid, char *oid_str)
+{
+	int ii, ret = SC_ERROR_INVALID_ARGUMENTS;
+	char *p, *q;
+
+	if (!oid)
+		return ret;
+	/* init oid */
+	for (ii=0; ii<SC_MAX_OBJECT_ID_OCTETS; ii++)
+		oid->value[ii] = -1;
+
+	if (!(p = oid_str))
+		return ret;
+	
+	for (ii=0; ii < SC_MAX_OBJECT_ID_OCTETS; ii++)   {
+		oid->value[ii] = strtol(p, &q, 10);
+		if (!*q)
+			break;
+		if (!(q[0] == '.' && isdigit(q[1]))) {
+			return ret;
+		}
+		p = q + 1;
+	}
+
+	return SC_SUCCESS;
+}
+
+

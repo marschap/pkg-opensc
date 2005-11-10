@@ -31,63 +31,50 @@
  * Either coincidence, or a known problem. */
 #define ETOKEN_MAX_PAYLOAD	120
 
-/* Different eToken types */
-#define CARDOS_TYPE_ANY		1
-
 static const struct sc_card_operations *iso_ops = NULL;
 
 struct sc_card_operations etoken_ops;
-struct sc_card_driver etoken_drv = {
+static struct sc_card_driver etoken_drv = {
 	"Siemens CardOS",
 	"etoken",
-	&etoken_ops
+	&etoken_ops,
+	NULL, 0, NULL
 };
 
-const struct {
-	const char *	atr;
-	int		type;
-} etoken_atrs[] = {
-    { "3b:e2:00:ff:c1:10:31:fe:55:c8:02:9c",	CARDOS_TYPE_ANY }, /* 4.0 */
-    { "3b:f2:98:00:ff:c1:10:31:fe:55:c8:03:15",	CARDOS_TYPE_ANY }, /* 4.01 */
-    { "3b:f2:98:00:ff:c1:10:31:fe:55:c8:04:12",	CARDOS_TYPE_ANY }, /* 4.01a */
-    /* Italian eID card: */
-    { "3b:e9:00:ff:c1:10:31:fe:55:00:64:05:00:c8:02:31:80:00:47", CARDOS_TYPE_ANY },
-    /* Italian eID card from Infocamere */
-    { "3b:fb:98:00:ff:c1:10:31:fe:55:00:64:05:20:47:03:31:80:00:90:00:f3", CARDOS_TYPE_ANY },
-
-    { NULL }
+static struct sc_atr_table etoken_atrs[] = {
+	/* 4.0 */
+	{ "3b:e2:00:ff:c1:10:31:fe:55:c8:02:9c", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
+	/* 4.01 */
+	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:03:15", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
+	/* 4.01a */
+	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:04:12", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
+	/* aladdin etoken pro 64 - aj: not compatible :/ */
+	/* { "3b f2 18 00 ff c1 0a 31 fe 55 c8 06 8a", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL }, */
+	/* Italian eID card, postecert */
+	{ "3b:e9:00:ff:c1:10:31:fe:55:00:64:05:00:c8:02:31:80:00:47", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
+	/* Italian eID card, infocamere */
+	{ "3b:fb:98:00:ff:c1:10:31:fe:55:00:64:05:20:47:03:31:80:00:90:00:f3", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
+	/* Another Italian InfocamereCard */
+	{ "3b:fc:98:00:ff:c1:10:31:fe:55:c8:03:49:6e:66:6f:63:61:6d:65:72:65:28", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
+	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
-int etoken_finish(struct sc_card *card)
+static int etoken_finish(sc_card_t *card)
 {
 	return 0;
 }
 
-int etoken_identify_card(struct sc_card *card)
+static int etoken_match_card(sc_card_t *card)
 {
 	int i;
 
-	for (i = 0; etoken_atrs[i].atr; i++) {
-		u8 defatr[SC_MAX_ATR_SIZE];
-		size_t len = sizeof(defatr);
-
-		if (sc_hex_to_bin(etoken_atrs[i].atr, defatr, &len))
-			continue;
-		if (len != card->atr_len)
-			continue;
-		if (!memcmp(card->atr, defatr, len))
-			return etoken_atrs[i].type;
-	}
-
-	return 0;
+	i = _sc_match_atr(card, etoken_atrs, &card->type);
+	if (i < 0)
+		return 0;
+	return 1;
 }
 
-int etoken_match_card(struct sc_card *card)
-{
-	return etoken_identify_card(card) != 0;
-}
-
-int etoken_init(struct sc_card *card)
+static int etoken_init(sc_card_t *card)
 {
 	unsigned long	flags;
 
@@ -107,7 +94,7 @@ int etoken_init(struct sc_card *card)
 	return 0;
 }
 
-const static struct sc_card_error etoken_errors[] = {
+static const struct sc_card_error etoken_errors[] = {
 /* some error inside the card */
 /* i.e. nothing you can do */
 { 0x6581, SC_ERROR_MEMORY_FAILURE,	"EEPROM error; command aborted"}, 
@@ -168,7 +155,7 @@ const static struct sc_card_error etoken_errors[] = {
 { 0x9850, SC_NO_ERROR,		"over/underflow useing in/decrease"}
 };
 
-static int etoken_check_sw(struct sc_card *card, int sw1, int sw2)
+static int etoken_check_sw(sc_card_t *card, unsigned int sw1, unsigned int sw2)
 {
 	const int err_count = sizeof(etoken_errors)/sizeof(etoken_errors[0]);
 	int i;
@@ -186,7 +173,7 @@ static int etoken_check_sw(struct sc_card *card, int sw1, int sw2)
 	return SC_ERROR_CARD_CMD_FAILED;
 }
 
-u8 etoken_extract_offset(u8 *buf, int buflen) {
+static u8 etoken_extract_offset(u8 *buf, int buflen) {
 	int i;
 	int mode;
 	u8 tag,len;
@@ -220,7 +207,7 @@ u8 etoken_extract_offset(u8 *buf, int buflen) {
 	return 0;
 }
 
-u8* etoken_extract_fid(u8 *buf, int buflen) {
+static u8* etoken_extract_fid(u8 *buf, int buflen) {
 	int i;
 	int mode;
 	u8 tag,len;
@@ -256,9 +243,9 @@ u8* etoken_extract_fid(u8 *buf, int buflen) {
 	return NULL;
 }
 
-int etoken_list_files(struct sc_card *card, u8 *buf, size_t buflen)
+static int etoken_list_files(sc_card_t *card, u8 *buf, size_t buflen)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	u8 rbuf[256];
 	int r;
 	int len;
@@ -325,7 +312,7 @@ get_next_part:
 	SC_FUNC_RETURN(card->ctx, 1, r);
 }
 
-static void add_acl_entry(struct sc_file *file, int op, u8 byte)
+static void add_acl_entry(sc_file_t *file, int op, u8 byte)
 {
 	unsigned int method, key_ref = SC_AC_KEY_REF_NONE;
 
@@ -348,7 +335,7 @@ static void add_acl_entry(struct sc_file *file, int op, u8 byte)
 	sc_file_add_acl_entry(file, op, method, key_ref);
 }
 
-static int acl_to_byte(const struct sc_acl_entry *e)
+static int acl_to_byte(const sc_acl_entry_t *e)
 {
 	if (e != NULL) {
 		switch (e->method) {
@@ -361,7 +348,7 @@ static int acl_to_byte(const struct sc_acl_entry *e)
 		case SC_AC_AUT:
 			if (e->key_ref == SC_AC_KEY_REF_NONE)
 				return -1;
-			if (e->key_ref < 0x00 || e->key_ref > 0x7F)
+			if (e->key_ref > 0x7F)
 				return -1;
 			return e->key_ref;
 		}
@@ -398,7 +385,7 @@ static const int ef_acl[9] = {
 	-1			/* DEC */
 };
 
-static void parse_sec_attr(struct sc_file *file, const u8 *buf, size_t len)
+static void parse_sec_attr(sc_file_t *file, const u8 *buf, size_t len)
 {
 	size_t i;
 	const int *idx;
@@ -411,9 +398,9 @@ static void parse_sec_attr(struct sc_file *file, const u8 *buf, size_t len)
 			add_acl_entry(file, idx[i], (u8)((i < len) ? buf[i] : 0xFF));
 }
 
-static int etoken_select_file(struct sc_card *card,
-			      const struct sc_path *in_path,
-			      struct sc_file **file)
+static int etoken_select_file(sc_card_t *card,
+			      const sc_path_t *in_path,
+			      sc_file_t **file)
 {
 	int r;
 	
@@ -424,7 +411,7 @@ static int etoken_select_file(struct sc_card *card,
 	SC_FUNC_RETURN(card->ctx, 1, r);
 }
 
-static int etoken_create_file(struct sc_card *card, struct sc_file *file)
+static int etoken_create_file(sc_card_t *card, sc_file_t *file)
 {
 	int r, i, byte;
 	const int *idx;
@@ -522,9 +509,9 @@ out:	SC_FUNC_RETURN(card->ctx, 1, r);
  * Restore the indicated SE
  */
 static int
-etoken_restore_security_env(struct sc_card *card, int se_num)
+etoken_restore_security_env(sc_card_t *card, int se_num)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	int	r;
 
 	SC_FUNC_CALLED(card->ctx, 1);
@@ -551,11 +538,11 @@ etoken_restore_security_env(struct sc_card *card, int se_num)
  * XXX Need to find out how the Aladdin drivers do it.
  */
 static int
-etoken_set_security_env(struct sc_card *card,
-			    const struct sc_security_env *env,
+etoken_set_security_env(sc_card_t *card,
+			    const sc_security_env_t *env,
 			    int se_num)
 {
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	u8	data[3];
 	int	key_id, r;
 
@@ -601,11 +588,11 @@ etoken_set_security_env(struct sc_card *card,
 
 /* internal function to do the actual signature computation */
 static int
-do_compute_signature(struct sc_card *card, const u8 *data, size_t datalen,
+do_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 		     u8 *out, size_t outlen)
 {
 	int r;
-	struct sc_apdu apdu;
+	sc_apdu_t apdu;
 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 
@@ -637,13 +624,13 @@ do_compute_signature(struct sc_card *card, const u8 *data, size_t datalen,
 }
 
 static int
-etoken_compute_signature(struct sc_card *card, const u8 *data, size_t datalen,
+etoken_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 			 u8 *out, size_t outlen)
 {
 	int    r;
 	u8     buf[SC_MAX_APDU_BUFFER_SIZE];
 	size_t buf_len = sizeof(buf), tmp_len = buf_len;
-	struct sc_context *ctx;
+	sc_context_t *ctx;
 
 	assert(card != NULL && data != NULL && out != NULL);	
 	ctx = card->ctx;
@@ -692,9 +679,9 @@ etoken_compute_signature(struct sc_card *card, const u8 *data, size_t datalen,
 }
 
 static int
-etoken_lifecycle_get(struct sc_card *card, int *mode)
+etoken_lifecycle_get(sc_card_t *card, int *mode)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
 	int		r;
 
@@ -736,9 +723,9 @@ etoken_lifecycle_get(struct sc_card *card, int *mode)
 }
 
 static int
-etoken_lifecycle_set(struct sc_card *card, int *mode)
+etoken_lifecycle_set(sc_card_t *card, int *mode)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	int		r;
 
 	int current;
@@ -772,10 +759,10 @@ etoken_lifecycle_set(struct sc_card *card, int *mode)
 }
 
 static int
-etoken_put_data_oci(struct sc_card *card,
+etoken_put_data_oci(sc_card_t *card,
 			struct sc_cardctl_etoken_obj_info *args)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	int		r;
 
 	SC_FUNC_CALLED(card->ctx, 1);
@@ -800,10 +787,10 @@ etoken_put_data_oci(struct sc_card *card,
 }
 
 static int
-etoken_put_data_seci(struct sc_card *card,
+etoken_put_data_seci(sc_card_t *card,
 			struct sc_cardctl_etoken_obj_info *args)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	int		r;
 
 	memset(&apdu, 0, sizeof(apdu));
@@ -826,20 +813,12 @@ etoken_put_data_seci(struct sc_card *card,
 }
 
 static int
-etoken_generate_key(struct sc_card *card,
+etoken_generate_key(sc_card_t *card,
 		struct sc_cardctl_etoken_genkey_info *args)
 {
-	struct sc_apdu	apdu;
+	sc_apdu_t	apdu;
 	u8		data[8];
 	int		r;
-
-	if (args->random_len) {
-		/* XXX FIXME: do a GIVE_RANDOM command with this data */
-		sc_error(card->ctx,
-			"initialization of card's random pool "
-			"not yet implemented\n");
-		return SC_ERROR_INTERNAL;
-	}
 
 	data[0] = 0x20;		/* store as PSO object */
 	data[1] = args->key_id;
@@ -868,8 +847,35 @@ etoken_generate_key(struct sc_card *card,
 	return r;
 }
 
+static int etoken_get_serialnr(sc_card_t *card, sc_serial_number_t *serial)
+{
+	int r;
+	sc_apdu_t apdu;
+	u8  rbuf[SC_MAX_APDU_BUFFER_SIZE];
+
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xca, 0x01, 0x81);
+	apdu.resp = rbuf;
+	apdu.resplen = sizeof(rbuf);
+	apdu.le   = 256;
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r,  "APDU transmit failed");
+	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
+		return SC_ERROR_INTERNAL;
+	if (apdu.resplen != 32) {
+		sc_debug(card->ctx, "unexpected response to GET DATA serial"
+				" number\n");
+		return SC_ERROR_INTERNAL;
+	}
+	/* cache serial number */
+	memcpy(card->serialnr.value, &rbuf[10], 6);
+	card->serialnr.len = 6;
+	/* copy and return serial number */
+	memcpy(serial, &card->serialnr, sizeof(*serial));
+	return SC_SUCCESS;
+}
+
 static int
-etoken_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
+etoken_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
 {
 	switch (cmd) {
 	case SC_CARDCTL_ETOKEN_PUT_DATA_FCI:
@@ -889,6 +895,8 @@ etoken_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
 		return etoken_lifecycle_get(card, (int *) ptr);
 	case SC_CARDCTL_LIFECYCLE_SET:
 		return etoken_lifecycle_set(card, (int *) ptr);
+	case SC_CARDCTL_GET_SERIALNR:
+		return etoken_get_serialnr(card, (sc_serial_number_t *)ptr);
 	}
 	return SC_ERROR_NOT_SUPPORTED;
 }
@@ -899,7 +907,7 @@ etoken_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
  * Unfortunately, it doesn't seem to work without this flag :-/
  */
 static int
-etoken_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data,
+etoken_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
 		 int *tries_left)
 {
 	data->flags |= SC_PIN_CMD_NEED_PADDING;

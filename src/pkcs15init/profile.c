@@ -208,7 +208,7 @@ static file_info *	sc_profile_find_file(struct sc_profile *,
 				const sc_path_t *, const char *);
 static file_info *	sc_profile_find_file_by_path(
 				struct sc_profile *,
-				const struct sc_path *);
+				const sc_path_t *);
 
 static pin_info *	new_pin(struct sc_profile *, unsigned int);
 static file_info *	new_file(struct state *, const char *,
@@ -224,7 +224,7 @@ static void		set_pin_defaults(struct sc_profile *,
 static void		new_macro(sc_profile_t *, const char *, scconf_list *);
 static sc_macro_t *	find_macro(sc_profile_t *, const char *);
 
-static struct sc_file *
+static sc_file_t *
 init_file(unsigned int type)
 {
 	struct sc_file	*file;
@@ -236,7 +236,8 @@ init_file(unsigned int type)
 	}
 	file->type = type;
 	file->status = SC_FILE_STATUS_ACTIVATED;
-	file->ef_structure = SC_FILE_EF_TRANSPARENT;
+	if (file->type != SC_FILE_TYPE_DF)
+		file->ef_structure = SC_FILE_EF_TRANSPARENT;
 	return file;
 }
 
@@ -244,13 +245,17 @@ init_file(unsigned int type)
  * Initialize profile
  */
 struct sc_profile *
-sc_profile_new()
+sc_profile_new(void)
 {
 	struct sc_pkcs15_card *p15card;
 	struct sc_profile *pro;
 
 	pro = (struct sc_profile *) calloc(1, sizeof(*pro));
+	if (pro == NULL)
+		return NULL;
 	pro->p15_spec = p15card = sc_pkcs15_card_new();
+
+	pro->pkcs15.do_last_update = 1;
 
 	/* Set up EF(TokenInfo) and EF(ODF) */
 	p15card->file_tokeninfo = init_file(SC_FILE_TYPE_WORKING_EF);
@@ -278,29 +283,29 @@ sc_profile_new()
 int
 sc_profile_load(struct sc_profile *profile, const char *filename)
 {
-        struct sc_context *ctx = profile->card->ctx;
+	struct sc_context *ctx = profile->card->ctx;
 	scconf_context	*conf;
 	const char *profile_dir = NULL;
 	char path[PATH_MAX];
-	int		res = 0, i;
+	int             res = 0, i;
 
-        for (i = 0; ctx->conf_blocks[i]; i++) {
-                profile_dir = scconf_get_str(ctx->conf_blocks[i], "profile_dir", NULL);
-                if (profile_dir)
-                        break;
-        }
+	for (i = 0; ctx->conf_blocks[i]; i++) {
+		profile_dir = scconf_get_str(ctx->conf_blocks[i], "profile_dir", NULL);
+		if (profile_dir)
+			break;
+	}
 
 	if (!profile_dir) {
 		sc_error(ctx, "you need to set profile_dir in your config file.");
 		return SC_ERROR_FILE_NOT_FOUND;
-	}
+	 }
 
 #ifdef _WIN32
 	snprintf(path, sizeof(path), "%s\\%s.%s",
-			profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
+		profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
 #else /* _WIN32 */
 	snprintf(path, sizeof(path), "%s/%s.%s",
-			profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
+		profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
 #endif /* _WIN32 */
 
 	if (profile->card->ctx->debug >= 2) {
@@ -311,9 +316,9 @@ sc_profile_load(struct sc_profile *profile, const char *filename)
 	conf = scconf_new(path);
 	res = scconf_parse(conf);
 
-        if (res > 0 && profile->card->ctx->debug >= 2) {
-                sc_debug(profile->card->ctx,
-                        "profile %s loaded ok", path);
+	if (res > 0 && profile->card->ctx->debug >= 2) {
+		sc_debug(profile->card->ctx,
+			"profile %s loaded ok", path);
 	}
 
 	if (res < 0)
@@ -388,7 +393,7 @@ sc_profile_free(struct sc_profile *profile)
 	while ((ti = profile->template_list) != NULL) {
 		profile->template_list = ti->next;
 		if (ti->data)
-			free(ti->data);
+			sc_profile_free(ti->data);
 		if (ti->name)
 			free(ti->name);
 		free(ti);
@@ -421,6 +426,8 @@ sc_profile_get_pin_info(struct sc_profile *profile,
 	struct pin_info	*pi;
 
 	pi = new_pin(profile, id);
+	if (pi == NULL)
+		return;
 	*info = pi->pin;
 }
 
@@ -430,6 +437,8 @@ sc_profile_get_pin_retries(sc_profile_t *profile, unsigned int id)
 	struct pin_info	*pi;
 
 	pi = new_pin(profile, id);
+	if (pi == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
 	return pi->pin.tries_left;
 }
 
@@ -440,7 +449,7 @@ sc_profile_get_pin_id(struct sc_profile *profile,
 	struct pin_info	*pi;
 
 	for (pi = profile->pin_list; pi; pi = pi->next) {
-		if (pi->pin.reference == reference) {
+		if (pi->pin.reference == (int)reference) {
 			*id = pi->id;
 			return 0;
 		}
@@ -458,24 +467,28 @@ sc_profile_get_file_in(sc_profile_t *profile,
 	if ((fi = sc_profile_find_file(profile, path, name)) == NULL)
 		return SC_ERROR_FILE_NOT_FOUND;
 	sc_file_dup(ret, fi->file);
+	if (*ret == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
 	return 0;
 }
 
 int
 sc_profile_get_file(struct sc_profile *profile,
-		const char *name, struct sc_file **ret)
+		const char *name, sc_file_t **ret)
 {
 	struct file_info *fi;
 
 	if ((fi = sc_profile_find_file(profile, NULL, name)) == NULL)
 		return SC_ERROR_FILE_NOT_FOUND;
 	sc_file_dup(ret, fi->file);
+	if (*ret == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
 	return 0;
 }
 
 int
 sc_profile_get_path(struct sc_profile *profile,
-		const char *name, struct sc_path *ret)
+		const char *name, sc_path_t *ret)
 {
 	struct file_info *fi;
 
@@ -487,13 +500,15 @@ sc_profile_get_path(struct sc_profile *profile,
 
 int
 sc_profile_get_file_by_path(struct sc_profile *profile,
-		const struct sc_path *path, struct sc_file **ret)
+		const sc_path_t *path, sc_file_t **ret)
 {
 	struct file_info *fi;
 
 	if ((fi = sc_profile_find_file_by_path(profile, path)) == NULL)
 		return SC_ERROR_FILE_NOT_FOUND;
 	sc_file_dup(ret, fi->file);
+	if (*ret == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
 	return 0;
 }
 
@@ -509,6 +524,8 @@ sc_profile_add_file(sc_profile_t *profile, const char *name, sc_file_t *file)
 		return SC_ERROR_FILE_NOT_FOUND;
 	}
 	sc_file_dup(&file, file);
+	if (file == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
 	add_file(profile, name, file, parent);
 	return 0;
 }
@@ -525,7 +542,7 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	sc_card_t	*card = profile->card;
 	sc_profile_t	*tmpl;
 	sc_template_t	*info;
-	unsigned int	index;
+	unsigned int	idx;
 	struct file_info *fi, *base_file, *match = NULL;
 
 	for (info = profile->template_list; info; info = info->next) {
@@ -536,13 +553,15 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 		return SC_ERROR_TEMPLATE_NOT_FOUND;
 
 	tmpl = info->data;
-	index = id->value[id->len-1];
+	idx = id->value[id->len-1];
 	for (fi = profile->ef_list; fi; fi = fi->next) {
 		if (fi->base_template == tmpl
-		 && fi->inst_index == index
+		 && fi->inst_index == idx
 		 && sc_compare_path(&fi->inst_path, base_path)
 		 && !strcmp(fi->ident, file_name)) {
 			sc_file_dup(ret, fi->file);
+			if (*ret == NULL)
+				return SC_ERROR_OUT_OF_MEMORY;
 			return 0;
 		}
 	}
@@ -571,13 +590,15 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 		fi->instance = NULL;
 		if ((parent = fi->parent) == NULL) {
 			parent = base_file;
-			skew = index;
+			skew = idx;
 		}
 		parent = parent->instance;
 
 		instance = sc_profile_instantiate_file(profile, fi, parent, skew);
+		if (instance == NULL)
+			return SC_ERROR_OUT_OF_MEMORY;
 		instance->base_template = tmpl;
-		instance->inst_index = index;
+		instance->inst_index = idx;
 		instance->inst_path = *base_path;
 
 		if (!strcmp(instance->ident, file_name))
@@ -590,6 +611,8 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 		return SC_ERROR_OBJECT_NOT_FOUND;
 	}
 	sc_file_dup(ret, match->file);
+	if (*ret == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
 	return 0;
 }
 
@@ -601,10 +624,21 @@ sc_profile_instantiate_file(sc_profile_t *profile, file_info *ft,
 	sc_card_t	*card = profile->card;
 
 	fi = (file_info *) calloc(1, sizeof(*fi));
+	if (fi == NULL)
+		return NULL;
 	fi->instance = fi;
 	fi->parent = parent;
 	fi->ident = strdup(ft->ident);
+	if (fi->ident == NULL) {
+		free(fi);
+		return NULL;
+	}
 	sc_file_dup(&fi->file, ft->file);
+	if (fi->file == NULL) {
+		free(fi->ident);
+		free(fi);
+		return NULL;
+	}
 	fi->file->path = parent->file->path;
 	fi->file->id += skew;
 	sc_append_file_id(&fi->file->path, fi->file->id);
@@ -717,6 +751,12 @@ do_encode_df_length(struct state *cur, int argc, char **argv)
 	return get_bool(cur, argv[0], &cur->profile->pkcs15.encode_df_length);
 }
 
+static int
+do_encode_update_field(struct state *cur, int argc, char **argv)
+{
+	return get_bool(cur, argv[0], &cur->profile->pkcs15.do_last_update);
+}
+
 /*
  * Process an option block
  */
@@ -763,13 +803,15 @@ new_key(struct sc_profile *profile, unsigned int type, unsigned int ref)
 	}
 
 	ai = (struct auth_info *) calloc(1, sizeof(*ai));
+	if (ai == NULL)
+		return NULL;
 	ai->type = type;
 	ai->ref = ref;
 	*aip = ai;
 	return ai;
 }
 
-int
+static int
 do_key_value(struct state *cur, int argc, char **argv)
 {
 	struct auth_info *ai = cur->key;
@@ -845,9 +887,19 @@ process_tmpl(struct state *cur, struct block *info,
 	}
 
 	templ = (sc_profile_t *) calloc(1, sizeof(*templ));
+	if (templ == NULL) {
+		parse_error(cur, "memory allocation failed");
+		return 1;
+	}
+		
 	templ->cbs = cur->profile->cbs;
 
 	tinfo = (sc_template_t *) calloc(1, sizeof(*tinfo));
+	if (tinfo == NULL) {
+		parse_error(cur, "memory allocation failed");
+		free(templ);
+		return 1;
+	}
 	tinfo->name = strdup(name);
 	tinfo->data = templ;
 
@@ -866,14 +918,14 @@ process_tmpl(struct state *cur, struct block *info,
  * This is crucial; the profile instantiation code relies on it
  */
 void
-append_file(sc_profile_t *profile, struct file_info *new_file)
+append_file(sc_profile_t *profile, struct file_info *nfile)
 {
 	struct file_info	**list, *fi;
 
 	list = &profile->ef_list;
 	while ((fi = *list) != NULL)
 		list = &fi->next;
-	*list = new_file;
+	*list = nfile;
 }
 
 /*
@@ -887,6 +939,8 @@ add_file(sc_profile_t *profile, const char *name,
 	file_info	*info;
 
 	info = (struct file_info *) calloc(1, sizeof(*info));
+	if (info == NULL)
+		return NULL;
 	info->instance = info;
 	info->ident = strdup(name);
 
@@ -950,13 +1004,17 @@ new_file(struct state *cur, const char *name, unsigned int type)
 		profile->df[df_type] = file;
 	}
 	assert(file);
-	if (file->type != type) {
+	if (file->type != (int)type) {
 		parse_error(cur, "inconsistent file type (should be %s)",
 			(file->type == SC_FILE_TYPE_DF)? "DF" : "EF");
 		return NULL;
 	}
 
 	info = add_file(profile, name, file, cur->file);
+	if (info == NULL) {
+		parse_error(cur, "memory allocation failed");
+		return NULL;
+	}
 	info->dont_free = dont_free;
 	return info;
 }
@@ -1117,7 +1175,7 @@ do_acl(struct state *cur, int argc, char **argv)
 				sc_file_add_acl_entry(file, op, method, id);
 			}
 		} else {
-			const struct sc_acl_entry *acl;
+			const sc_acl_entry_t *acl;
 
 			if (map_str2int(cur, oper, &op, fileOpNames))
 				goto bad;
@@ -1170,8 +1228,10 @@ new_pin(struct sc_profile *profile, unsigned int id)
 	 * profile
 	 */
 	pi = (struct pin_info *) calloc(1, sizeof(*pi));
+	if (pi == NULL)
+		return NULL;
 	pi->id = id;
-	pi->pin.type = -1;
+	pi->pin.type = (unsigned int)-1;
 	pi->pin.flags = 0x32;
 	pi->pin.max_length = 0;
 	pi->pin.min_length = 0;
@@ -1190,7 +1250,7 @@ set_pin_defaults(struct sc_profile *profile, struct pin_info *pi)
 {
 	struct sc_pkcs15_pin_info *info = &pi->pin;
 
-	if (info->type < 0)
+	if (info->type == (unsigned int) -1)
 		info->type = profile->pin_encoding;
 	if (info->max_length == 0)
 		info->max_length = profile->pin_maxlen;
@@ -1336,6 +1396,8 @@ new_macro(sc_profile_t *profile, const char *name, scconf_list *value)
 
 	if ((mac = find_macro(profile, name)) == NULL) {
 		mac = (sc_macro_t *) calloc(1, sizeof(*mac));
+		if (mac == NULL)
+			return;
 		mac->name = strdup(name);
 		mac->next = profile->macro_list;
 		profile->macro_list = mac;
@@ -1361,7 +1423,7 @@ find_macro(sc_profile_t *profile, const char *name)
  */
 static struct command	key_commands[] = {
  { "value",		1,	1,	do_key_value	},
- { NULL }
+ { NULL, 0, 0, NULL }
 };
 
 /*
@@ -1385,7 +1447,7 @@ static struct command	ci_commands[] = {
 static struct block	ci_blocks[] = {
  { "key",		process_key,	key_commands,	NULL	},
 
- { NULL }
+ { NULL, NULL, NULL, NULL }
 };
 
 /*
@@ -1435,6 +1497,7 @@ static struct command	pi_commands[] = {
 static struct command	p15_commands[] = {
  { "direct-certificates", 1,	1,	do_direct_certificates },
  { "encode-df-length",	1,	1,	do_encode_df_length },
+ { "do-last-update", 1, 1, do_encode_update_field },
  { NULL, 0, 0, NULL }
 };
 
@@ -1446,7 +1509,7 @@ static struct block	root_blocks[] = {
  { "macros",		process_macros,	NULL,		NULL	},
  { "pkcs15",		process_block,	p15_commands,	NULL	},
 
- { NULL, NULL , NULL }
+ { NULL, NULL, NULL, NULL }
 };
 
 static struct block	root_ops = {
@@ -1634,7 +1697,7 @@ sc_profile_find_file(struct sc_profile *pro,
 }
 
 struct file_info *
-sc_profile_find_file_by_path(struct sc_profile *pro, const struct sc_path *path)
+sc_profile_find_file_by_path(struct sc_profile *pro, const sc_path_t *path)
 {
 	struct file_info *fi;
 	struct sc_file	*fp;
@@ -1656,7 +1719,7 @@ get_authid(struct state *cur, const char *value,
 		unsigned int *type, unsigned int *num)
 {
 	char	temp[16];
-	int	n;
+	size_t	n;
 
 	if (isdigit((int) *value)) {
 		*num = 0;
@@ -1678,9 +1741,9 @@ get_authid(struct state *cur, const char *value,
 static int
 get_uint(struct state *cur, const char *value, unsigned int *vp)
 {
-	const char	*ep;
+	char	*ep;
 
-	*vp = strtoul(value, (char **) &ep, 0);
+	*vp = strtoul(value, &ep, 0);
 	if (*ep != '\0') {
 		parse_error(cur, 
 			"invalid integer argument \"%s\"\n", value);
@@ -1773,11 +1836,11 @@ expr_fail(struct num_exp_ctx *ctx)
 }
 
 static void
-expr_put(struct num_exp_ctx *ctx, char c)
+expr_put(struct num_exp_ctx *ctx, int c)
 {
-	if (ctx->j >= sizeof(ctx->word))
+	if (ctx->j >= (int)sizeof(ctx->word))
 		expr_fail(ctx);
-	ctx->word[ctx->j++] = c;
+	ctx->word[ctx->j++] = (char)c;
 }
 
 static char *
@@ -1839,12 +1902,12 @@ expr_unget(struct num_exp_ctx *ctx, char *s)
 }
 
 static void
-expr_expect(struct num_exp_ctx *ctx, char c)
+expr_expect(struct num_exp_ctx *ctx, int c)
 {
 	char	*tok;
 
 	tok = expr_get(ctx);
-	if (tok[0] != c || tok[1])
+	if (tok[0] != (char)c || tok[1])
 		expr_fail(ctx);
 }
 
