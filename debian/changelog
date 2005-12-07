@@ -6,6 +6,7 @@ opensc (0.10.0-1) unstable; urgency=low
     - Remove gcc-3.3, libpam and libldap build dependencies.
     - Bump soname part of library names, and add appropriate Conflicts 
       and Replaces.
+    - Build depend on libltdl3-dev.
     - Bump Standards-Version to 3.6.2.1.
   * debian/libopensc-openssl.install, debian/libpam-opensc.docs,
     debian/libpam-opensc.install, debian/libscam1.examples,
