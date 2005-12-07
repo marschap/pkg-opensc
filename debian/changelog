@@ -14,8 +14,9 @@ opensc (0.10.0-1) unstable; urgency=low
     Remove.
   * debian/libopensc1*: Renamed to libopensc2*.
   * debian/libopensc2.shlibs: Remove libpkcs11, bump other version info.
-  * debian/libopensc2-dev.install: Use *.so, *.la instead of individual
-    listing.
+  * debian/libopensc2.install: New location for spy and pkcs11 modules.
+  * debian/libopensc2-dev.install: Use *.so, *.la and *.a instead of
+    individual listing.
   * debian/rules: 
     - Try building with default gcc.
     - Add new upstream changelog location.

@@ -1,12 +1,9 @@
 debian/tmp/usr/include/*
-debian/tmp/usr/lib/lib*.a
+debian/tmp/usr/lib/*.a
 debian/tmp/usr/lib/*.so
 debian/tmp/usr/lib/*.la
 debian/tmp/usr/bin/opensc-config
 debian/tmp/usr/lib/pkgconfig
 debian/tmp/usr/share/man/man1/opensc-config.1
 debian/tmp/usr/share/man/man3/*
-debian/tmp/usr/lib/pkcs11/*.a
-debian/tmp/usr/lib/pkcs11/libpkcs11.so
-debian/tmp/usr/lib/pkcs11/libpkcs11.la
 
