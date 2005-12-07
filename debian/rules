@@ -3,10 +3,10 @@
 include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/autotools.mk
 
-export CC=gcc-3.3
-
-DEB_INSTALL_DOCS_ALL := AUTHORS NEWS ANNOUNCE
+DEB_INSTALL_DOCS_ALL := README NEWS
 
 DEB_SHLIBDEPS_INCLUDE := debian/tmp/usr/lib debian/tmp/usr/lib/pkcs11
 
 DEB_CONFIGURE_SYSCONFDIR := /etc/opensc
+
+DEB_INSTALL_CHANGELOGS_ALL := doc/ChangeLog

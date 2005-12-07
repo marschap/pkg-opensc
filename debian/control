@@ -2,8 +2,8 @@ Source: opensc
 Priority: extra
 Section: utils
 Maintainer: Eric Dorland <eric@debian.org>
-Build-Depends: cdbs, debhelper (>> 4.1.0), libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libpam0g-dev, libldap-dev, libassuan-dev (>= 0.6.4-2), libopenct1-dev, libxt-dev, flex, pkg-config, gcc-3.3
-Standards-Version: 3.6.1
+Build-Depends: cdbs, debhelper (>> 4.1.0), libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libassuan-dev (>= 0.6.4-2), libopenct1-dev, libxt-dev, flex, pkg-config
+Standards-Version: 3.6.2.1
 
 Package: opensc
 Section: utils
@@ -22,24 +22,24 @@ Description: SmartCard utilities with support for PKCS#15 compatible cards
  Supported cards include Gemplus GPK, Schlumberger Cryptoflex,
  Finnish FINEID, Swedish eID, MioCOS and TCOS cards.
 
-Package: libopensc1-dev
+Package: libopensc2-dev
 Section: libdevel
 Priority: optional
 Architecture: any
-Conflicts: libopensc0-dev
-Replaces: libopensc0-dev, libscam1 (<< 0.9.4-5)
+Conflicts: libopensc0-dev, libopensc1-dev
+Replaces: libopensc0-dev, libopensc1-dev, libscam1 (<< 0.9.4-5)
 Provides: libopensc-dev
-Depends: libopensc1 (= ${Source-Version}), libscam1 (= ${Source-Version}), libssl-dev
+Depends: libopensc2 (= ${Source-Version}), libssl-dev
 Description: OpenSC development files
  Files necessary for developing applications with the libopensc 
  libraries from OpenSC.org.
 
-Package: libopensc1
+Package: libopensc2
 Section: libs
 Priority: optional
 Architecture: any
-Conflicts: libopensc0
-Replaces: libopensc0
+Conflicts: libopensc0, libopensc1
+Replaces: libopensc0, libopensc1
 Depends: ${shlibs:Depends}
 Description: SmartCard library with support for PKCS#15 compatible smart cards
  This package contains the libopensc libraries from OpenSC.org.
@@ -49,43 +49,6 @@ Description: SmartCard library with support for PKCS#15 compatible smart cards
  .
  Supported cards include Gemplus GPK, Schlumberger Cryptoflex,
  Finnish FINEID, Swedish eID, MioCOS and TCOS cards.
- .
- Card initialization can be performed by utilities in the opensc package.
-
-Package: libpam-opensc
-Section: admin
-Architecture: any
-Depends: ${shlibs:Depends}
-Recommends: opensc
-Description: Pluggable Authentication Module for using PKCS#15 Smart Cards
- This package allows an administrator to configure a host to
- cryptographically authenticate users via PKCS#15 smart cards.
- User public keys can be stored in LDAP or in user home directories.
- User private keys are PIN-protected on issued smartcards.
- .
- This module supports any security token supported by the libopensc libraries.
- .
- Card initialization can be performed by utilities in the opensc package.
-
-Package: libopensc-openssl
-Section: libs
-Architecture: any
-Depends: ${shlibs:Depends}
-Description: OpenSSL engine using PKCS#15 Smart Cards
- This package allows OpenSSL to access the the private keys stored on
- PKCS#15 smart cards.
- .
- Card initialization can be performed by utilities in the opensc package.
-
-Package: libscam1
-Section: libs
-Priority: optional
-Architecture: any
-Conflicts: libscam0
-Replaces: libscam0
-Depends: ${shlibs:Depends}
-Description: Authentication modules for PKCS#15 Smart Cards
- LDAP and eid authentication libraries for use with the PAM modules. 
  .
  Card initialization can be performed by utilities in the opensc package.
 

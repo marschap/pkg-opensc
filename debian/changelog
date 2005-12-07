@@ -1,8 +1,26 @@
-opensc (0.10.0-1) UNRELEASED; urgency=low
+opensc (0.10.0-1) unstable; urgency=low
 
-  * (NOT RELEASED YET) New upstream release
+  * New upstream release.
+  * debian/control:
+    - Remove libpam-opensc, libscam1 and libopensc-openssl.
+    - Remove gcc-3.3, libpam and libldap build dependencies.
+    - Bump soname part of library names, and add appropriate Conflicts 
+      and Replaces.
+    - Bump Standards-Version to 3.6.2.1.
+  * debian/libopensc-openssl.install, debian/libpam-opensc.docs,
+    debian/libpam-opensc.install, debian/libscam1.examples,
+    debian/libscam1.install, debian/libscam1.shlibs, debian/scldap.conf:
+    Remove.
+  * debian/libopensc1*: Renamed to libopensc2*.
+  * debian/libopensc2.shlibs: Remove libpkcs11, bump other version info.
+  * debian/rules: 
+    - Try building with default gcc.
+    - Add new upstream changelog location.
+  * debian/copyright: UTF8ify.
+  * debian/opensc.docs: Install new tools doc. 
+  * debian/libopensc2-dev.docs: New file, install api HTML doc.
 
- -- Eric Dorland <eric@debian.org>  Wed,  9 Nov 2005 23:31:22 -0500
+ -- Eric Dorland <eric@debian.org>  Tue,  6 Dec 2005 22:40:35 -0500
 
 opensc (0.9.6-3) unstable; urgency=medium
 
