@@ -24,7 +24,7 @@ opensc (0.10.0-1) unstable; urgency=low
   * debian/opensc.docs: Install new tools doc. 
   * debian/libopensc2-dev.docs: New file, install api HTML doc.
 
- -- Eric Dorland <eric@debian.org>  Tue,  6 Dec 2005 22:40:35 -0500
+ -- Eric Dorland <eric@debian.org>  Sun, 11 Dec 2005 00:03:08 -0500
 
 opensc (0.9.6-3) unstable; urgency=medium
 
