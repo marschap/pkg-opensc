@@ -23,8 +23,11 @@ opensc (0.10.0-1) unstable; urgency=low
   * debian/copyright: UTF8ify.
   * debian/opensc.docs: Install new tools doc. 
   * debian/libopensc2-dev.docs: New file, install api HTML doc.
+  * debian/mozilla-opensc.install: Don't install /usr/lib/mozilla.
+  * debian/mozilla-opensc.links: Install to new firefox location and make
+    a link for mozilla plugin dir.
 
- -- Eric Dorland <eric@debian.org>  Sun, 11 Dec 2005 00:03:08 -0500
+ -- Eric Dorland <eric@debian.org>  Wed, 21 Dec 2005 01:21:34 -0500
 
 opensc (0.9.6-3) unstable; urgency=medium
 
