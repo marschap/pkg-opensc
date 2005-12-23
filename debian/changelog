@@ -1,3 +1,10 @@
+opensc (0.10.0-2) unstable; urgency=low
+
+  * debian/libopensc2-dev.install: Only install lib*.so, etc, not
+    *.so. (Closes: #344591)
+
+ -- Eric Dorland <eric@debian.org>  Fri, 23 Dec 2005 18:38:46 -0500
+
 opensc (0.10.0-1) unstable; urgency=low
 
   * New upstream release.
