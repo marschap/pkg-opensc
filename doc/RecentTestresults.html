@@ -108,9 +108,9 @@ Which cards passed the "pkcs11-tool --test --login" test? (Only for pre-initiali
 <col width="6%" span="1"></col>
 <col width="11%" span="1"></col>
 <col width="19%" span="1"></col>
-<col width="15%" span="1"></col>
-<col width="8%" span="1"></col>
-<col width="22%" span="1"></col>
+<col width="16%" span="1"></col>
+<col width="7%" span="1"></col>
+<col width="21%" span="1"></col>
 </colgroup>
 <tbody valign="top">
 <tr><td rowspan="1" colspan="1">Card Name</td>
@@ -129,9 +129,32 @@ Which cards passed the "pkcs11-tool --test --login" test? (Only for pre-initiali
 <td rowspan="1" colspan="1">???</td>
 <td rowspan="1" colspan="1">Andreas Jellinghaus</td>
 </tr>
+<tr><td rowspan="1" colspan="1">Signtrust TCOS</td>
+<td rowspan="1" colspan="1">0.10.0</td>
+<td rowspan="1" colspan="1">2005-11-01</td>
+<td rowspan="1" colspan="1">Kobil Kaan</td>
+<td rowspan="1" colspan="1">PCSC-lite 1.2.0</td>
+<td rowspan="1" colspan="1">OK 1)</td>
+<td rowspan="1" colspan="1">Peter Koch</td>
+</tr>
+<tr><td rowspan="1" colspan="1">TeleSec TCOS</td>
+<td rowspan="1" colspan="1">0.10.0</td>
+<td rowspan="1" colspan="1">2005-11-01</td>
+<td rowspan="1" colspan="1">Kobil Kaan</td>
+<td rowspan="1" colspan="1">PCSC-lite 1.2.0</td>
+<td rowspan="1" colspan="1">OK 1)</td>
+<td rowspan="1" colspan="1">Peter Koch</td>
+</tr>
 </tbody>
 </table>
 </div><p>
+1) TCOS supports raw RSA padding and therefor pkcs11-tool tries raw RSA padding with ALL keys.
+But TCOS supports RSA padding for decryption keys ONLY, so pkcs11-tool fails when it tests
+raw RSA padding with the signature key. This is a minor problem as regular application will
+NOT do signature operations with raw RSA padding but use PKCS1 padding instead. The latter
+works fine with both signature and decryption keys.
+</p>
+<p>
 Which operating system works fine with OpenSC? Add one line for every feature that works or not.
 </p>
 <div class="document">

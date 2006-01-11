@@ -1,7 +1,8 @@
 /*
- * card-etoken.c: Support for Siemens CardOS based cards and tokens
- * 	(for example Aladdin eToken PRO, Eutron CryptoIdentity IT-SEC)
+ * card-incrypto34.c: Support for Incard Incrypto34 based cards and tokens
+ * 	(for example Italian CNS)
  *
+ * Copyright (C) 2005  ST Incard srl, Giuseppe Amato <giuseppe dot amato at st dot com>
  * Copyright (C) 2002  Andreas Jellinghaus <aj@dungeon.inka.de>
  * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
  *
@@ -29,57 +30,44 @@
 /* comment by okir: one of the examples in the developer guide
  * also talks about copying data in chunks of 128.
  * Either coincidence, or a known problem. */
-#define ETOKEN_MAX_PAYLOAD	120
+#define INCRYPTO34_MAX_PAYLOAD	120
 
 static const struct sc_card_operations *iso_ops = NULL;
 
-struct sc_card_operations etoken_ops;
-static struct sc_card_driver etoken_drv = {
-	"Siemens CardOS",
-	"etoken",
-	&etoken_ops,
-	NULL, 0, NULL
+struct sc_card_operations incrypto34_ops;
+struct sc_card_driver incrypto34_drv = {
+	"Incard Incripto34",
+	"incrypto34",
+	&incrypto34_ops
 };
 
-static struct sc_atr_table etoken_atrs[] = {
-	/* 4.0 */
-	{ "3b:e2:00:ff:c1:10:31:fe:55:c8:02:9c", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
-	/* 4.01 */
-	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:03:15", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
-	/* 4.01a */
-	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:04:12", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
-	/* aladdin etoken pro 64 - aj: not compatible :/ */
-	/* { "3b f2 18 00 ff c1 0a 31 fe 55 c8 06 8a", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL }, */
-	/* Italian eID card, postecert */
-	{ "3b:e9:00:ff:c1:10:31:fe:55:00:64:05:00:c8:02:31:80:00:47", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
-	/* Italian eID card, infocamere */
-	{ "3b:fb:98:00:ff:c1:10:31:fe:55:00:64:05:20:47:03:31:80:00:90:00:f3", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
-	/* Another Italian InfocamereCard */
-	{ "3b:fc:98:00:ff:c1:10:31:fe:55:c8:03:49:6e:66:6f:63:61:6d:65:72:65:28", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL },
-	{ "3b:f4:98:00:ff:c1:10:31:fe:55:4d:34:63:76:b4", NULL, NULL, SC_CARD_TYPE_ETOKEN_GENERIC, 0, NULL},
+static struct sc_atr_table incrypto34_atrs[] = {
+	/* Italian CNS (similar to a eID) card*/
+	{ "3b:ff:18:00:ff:81:31:fe:55:00:6b:02:09:02:00:01:01:01:43:4e:53:10:31:80:9f", NULL, NULL, SC_CARD_TYPE_INCRYPTO34_GENERIC, 0, NULL },
+	{ "3b:ff:18:00:ff:81:31:fe:55:00:6b:02:09:02:00:01:01:01:44:53:44:10:31:80:92", NULL, NULL, SC_CARD_TYPE_INCRYPTO34_GENERIC, 0, NULL },
 	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
-static int etoken_finish(sc_card_t *card)
+int incrypto34_finish(struct sc_card *card)
 {
 	return 0;
 }
 
-static int etoken_match_card(sc_card_t *card)
+int incrypto34_match_card(struct sc_card *card)
 {
 	int i;
 
-	i = _sc_match_atr(card, etoken_atrs, &card->type);
+	i = _sc_match_atr(card, incrypto34_atrs, &card->type);
 	if (i < 0)
 		return 0;
 	return 1;
 }
 
-static int etoken_init(sc_card_t *card)
+int incrypto34_init(sc_card_t *card)
 {
 	unsigned long	flags;
 
-	card->name = "CardOS M4";
+	card->name = "Incrypto34";
 	card->cla = 0x00;
 
 	/* Set up algorithm info. */
@@ -95,78 +83,79 @@ static int etoken_init(sc_card_t *card)
 	return 0;
 }
 
-static const struct sc_card_error etoken_errors[] = {
+static const struct sc_card_error incrypto34_errors[] = {
 /* some error inside the card */
 /* i.e. nothing you can do */
-{ 0x6581, SC_ERROR_MEMORY_FAILURE,	"EEPROM error; command aborted"}, 
+{ 0x6581, SC_ERROR_MEMORY_FAILURE,	"EEPROM error; command aborted"},
 { 0x6fff, SC_ERROR_CARD_CMD_FAILED,	"internal assertion error"},
-{ 0x6700, SC_ERROR_WRONG_LENGTH,	"LC invalid"}, 
-{ 0x6985, SC_ERROR_CARD_CMD_FAILED,	"no random number available"}, 
-{ 0x6f81, SC_ERROR_CARD_CMD_FAILED,	"file invalid, maybe checksum error"}, 
-{ 0x6f82, SC_ERROR_CARD_CMD_FAILED,	"not enough memory in xram"}, 
-{ 0x6f84, SC_ERROR_CARD_CMD_FAILED,	"general protection fault"}, 
+{ 0x6700, SC_ERROR_WRONG_LENGTH,	"LC invalid"},
+{ 0x6985, SC_ERROR_CARD_CMD_FAILED,	"no random number available"},
+{ 0x6f81, SC_ERROR_CARD_CMD_FAILED,	"file invalid, maybe checksum error"},
+{ 0x6f82, SC_ERROR_CARD_CMD_FAILED,	"not enough memory in xram"},
+{ 0x6f84, SC_ERROR_CARD_CMD_FAILED,	"general protection fault"},
 
 /* the card doesn't now thic combination of ins+cla+p1+p2 */
 /* i.e. command will never work */
-{ 0x6881, SC_ERROR_NO_CARD_SUPPORT,	"logical channel not supported"}, 
-{ 0x6a86, SC_ERROR_INCORRECT_PARAMETERS,"p1/p2 invalid"}, 
-{ 0x6d00, SC_ERROR_INS_NOT_SUPPORTED,	"ins invalid"}, 
-{ 0x6e00, SC_ERROR_CLASS_NOT_SUPPORTED,	"class invalid (hi nibble)"}, 
+{ 0x6881, SC_ERROR_NO_CARD_SUPPORT,	"logical channel not supported"},
+{ 0x6a86, SC_ERROR_INCORRECT_PARAMETERS,"p1/p2 invalid"},
+{ 0x6d00, SC_ERROR_INS_NOT_SUPPORTED,	"ins invalid"},
+{ 0x6e00, SC_ERROR_CLASS_NOT_SUPPORTED,	"class invalid (hi nibble)"},
 
 /* known command, but incorrectly used */
 /* i.e. command could work, but you need to change something */
-{ 0x6981, SC_ERROR_CARD_CMD_FAILED,	"command cannot be used for file structure"}, 
-{ 0x6a80, SC_ERROR_INCORRECT_PARAMETERS,"invalid parameters in data field"}, 
-{ 0x6a81, SC_ERROR_NOT_SUPPORTED,	"function/mode not supported"}, 
-{ 0x6a85, SC_ERROR_INCORRECT_PARAMETERS,"lc does not fit the tlv structure"}, 
-{ 0x6986, SC_ERROR_INCORRECT_PARAMETERS,"no current ef selected"}, 
-{ 0x6a87, SC_ERROR_INCORRECT_PARAMETERS,"lc does not fit p1/p2"}, 
-{ 0x6c00, SC_ERROR_WRONG_LENGTH,	"le does not fit the data to be sent"}, 
-{ 0x6f83, SC_ERROR_CARD_CMD_FAILED,	"command must not be used in transaction"}, 
+{ 0x6981, SC_ERROR_CARD_CMD_FAILED,	"command cannot be used for file structure"},
+{ 0x6a80, SC_ERROR_INCORRECT_PARAMETERS,"invalid parameters in data field"},
+{ 0x6a81, SC_ERROR_NOT_SUPPORTED,	"function/mode not supported"},
+{ 0x6a85, SC_ERROR_INCORRECT_PARAMETERS,"lc does not fit the tlv structure"},
+{ 0x6986, SC_ERROR_INCORRECT_PARAMETERS,"no current ef selected"},
+{ 0x6a87, SC_ERROR_INCORRECT_PARAMETERS,"lc does not fit p1/p2"},
+{ 0x6c00, SC_ERROR_WRONG_LENGTH,	"le does not fit the data to be sent"},
+{ 0x6f83, SC_ERROR_CARD_CMD_FAILED,	"command must not be used in transaction"},
 
 /* (something) not found */
-{ 0x6987, SC_ERROR_INCORRECT_PARAMETERS,"key object for sm not found"}, 
-{ 0x6f86, SC_ERROR_CARD_CMD_FAILED,	"key object not found"}, 
-{ 0x6a82, SC_ERROR_FILE_NOT_FOUND,	"file not found"}, 
-{ 0x6a83, SC_ERROR_RECORD_NOT_FOUND,	"record not found"}, 
-{ 0x6a88, SC_ERROR_CARD_CMD_FAILED,	"object not found"}, 
+{ 0x6987, SC_ERROR_INCORRECT_PARAMETERS,"key object for sm not found"},
+{ 0x6f86, SC_ERROR_CARD_CMD_FAILED,	"key object not found"},
+{ 0x6a82, SC_ERROR_FILE_NOT_FOUND,	"file not found"},
+{ 0x6a83, SC_ERROR_RECORD_NOT_FOUND,	"record not found"},
+{ 0x6a88, SC_ERROR_CARD_CMD_FAILED,	"object not found"},
+{ 0x6a89, SC_ERROR_FILE_ALREADY_EXISTS,	"file/object already exists"},
 
 /* (something) invalid */
-{ 0x6884, SC_ERROR_CARD_CMD_FAILED,	"chaining error"}, 
-{ 0x6984, SC_ERROR_CARD_CMD_FAILED,	"bs object has invalid format"}, 
-{ 0x6988, SC_ERROR_INCORRECT_PARAMETERS,"key object used for sm has invalid format"}, 
+{ 0x6884, SC_ERROR_CARD_CMD_FAILED,	"chaining error"},
+{ 0x6984, SC_ERROR_CARD_CMD_FAILED,	"bs object has invalid format"},
+{ 0x6988, SC_ERROR_INCORRECT_PARAMETERS,"key object used for sm has invalid format"},
 
 /* (something) deactivated */
 { 0x6283, SC_ERROR_CARD_CMD_FAILED,	"file is deactivated"	},
-{ 0x6983, SC_ERROR_AUTH_METHOD_BLOCKED,	"bs object blocked"}, 
+{ 0x6983, SC_ERROR_AUTH_METHOD_BLOCKED,	"bs object blocked"},
 
 /* access denied */
-{ 0x6300, SC_ERROR_SECURITY_STATUS_NOT_SATISFIED,"authentication failed"}, 
-{ 0x6982, SC_ERROR_SECURITY_STATUS_NOT_SATISFIED,"required access right not granted"}, 
+{ 0x6300, SC_ERROR_SECURITY_STATUS_NOT_SATISFIED,"authentication failed"},
+{ 0x6982, SC_ERROR_SECURITY_STATUS_NOT_SATISFIED,"required access right not granted"},
 
 /* other errors */
-{ 0x6a84, SC_ERROR_CARD_CMD_FAILED,	"not enough memory"}, 
+{ 0x6a84, SC_ERROR_CARD_CMD_FAILED,	"not enough memory"},
 
 /* command ok, execution failed */
-{ 0x6f00, SC_ERROR_CARD_CMD_FAILED,	"technical error (see eToken developers guide)"}, 
+{ 0x6f00, SC_ERROR_CARD_CMD_FAILED,	"technical error (see incrypto34 developers guide)"},
 
 /* no error, maybe a note */
-{ 0x9000, SC_NO_ERROR,		NULL}, 
-{ 0x9001, SC_NO_ERROR,		"success, but eeprom weakness detected"}, 
+{ 0x9000, SC_NO_ERROR,		NULL},
+{ 0x9001, SC_NO_ERROR,		"success, but eeprom weakness detected"},
 { 0x9850, SC_NO_ERROR,		"over/underflow useing in/decrease"}
 };
 
-static int etoken_check_sw(sc_card_t *card, unsigned int sw1, unsigned int sw2)
+static int incrypto34_check_sw(sc_card_t *card, unsigned int sw1, unsigned int sw2)
 {
-	const int err_count = sizeof(etoken_errors)/sizeof(etoken_errors[0]);
+	const int err_count = sizeof(incrypto34_errors)/sizeof(incrypto34_errors[0]);
 	int i;
-			        
+
 	for (i = 0; i < err_count; i++) {
-		if (etoken_errors[i].SWs == ((sw1 << 8) | sw2)) {
-			if ( etoken_errors[i].errorstr ) 
+		if (incrypto34_errors[i].SWs == ((sw1 << 8) | sw2)) {
+			if ( incrypto34_errors[i].errorstr )
 				sc_error(card->ctx, "%s\n",
-				 	etoken_errors[i].errorstr);
-			return etoken_errors[i].errorno;
+				 	incrypto34_errors[i].errorstr);
+			return incrypto34_errors[i].errorno;
 		}
 	}
 
@@ -174,140 +163,55 @@ static int etoken_check_sw(sc_card_t *card, unsigned int sw1, unsigned int sw2)
 	return SC_ERROR_CARD_CMD_FAILED;
 }
 
-static u8 etoken_extract_offset(u8 *buf, int buflen) {
-	int i;
-	int mode;
-	u8 tag,len;
 
-	tag=0; len=0;
-	mode = 0;
-
-	for (i=0; i < buflen;) {
-		if (mode == 0) {
-			tag = buf[i++];
-			mode=1;
-			continue;
-		}
-		if (mode == 1) {
-			len=buf[i++];
-			mode=2;
-			continue;
-		}
-		if (len == 0) {
-			mode=0;
-			continue;
-		}
-		if (tag == 0x8a && len == 1) {
-			return buf[i];
-		}
-
-		i+=len;
-		mode=0;
-	}
-	
-	return 0;
-}
-
-static u8* etoken_extract_fid(u8 *buf, int buflen) {
-	int i;
-	int mode;
-	u8 tag,len;
-
-	mode = 0;
-	tag = 0;
-	len = 0;
-
-
-	for (i=0; i < buflen;) {
-		if (mode == 0) {
-			tag = buf[i++];
-			mode=1;
-			continue;
-		}
-		if (mode == 1) {
-			len=buf[i++];
-			mode=2;
-			continue;
-		}
-		if (len == 0) {
-			mode=0;
-			continue;
-		}
-		if ((tag == 0x86) && (len == 2) && (i+1 < buflen)) {
-			return &buf[i];
-		}
-
-		i+=len;
-		mode=0;
-	}
-	
-	return NULL;
-}
-
-static int etoken_list_files(sc_card_t *card, u8 *buf, size_t buflen)
+int incrypto34_list_files(sc_card_t *card, u8 *buf, size_t buflen)
 {
 	sc_apdu_t apdu;
 	u8 rbuf[256];
 	int r;
-	int len;
-	size_t i, fids;
+	size_t fids;
 	u8 offset;
-	u8 *fid;
 
 	SC_FUNC_CALLED(card->ctx, 1);
 
 	fids=0;
 	offset=0;
 
-	/* 0x16: DIRECTORY */
-	/* 0x02: list both DF and EF */
+	/* INS 0xFC: SCAN DF*/
+	/* P1 0x00: list both DF and EF */
+	/* P2 0x00/0x01: first/next element */
+	/* LE 0x03*/
+	/*
+		returns 3 bytes: FILE_TYPE + FID_HI_BYTE + FID_LO_BYTE
+	*/
 
 get_next_part:
-	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0x16, 0x02, offset);
-	apdu.cla = 0x80;
-	apdu.le = 256;
-	apdu.resplen = 256;
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xFC, 0x00, offset?0x01:0x00);
+	apdu.cla = 0xB0;
+	apdu.le = 3;
+	apdu.resplen = sizeof(rbuf);
 	apdu.resp = rbuf;
 
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	if (apdu.sw1 == 0x6a && apdu.sw2 == 0x82)
+		goto end; // no more files
+
 	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 	SC_TEST_RET(card->ctx, r, "DIRECTORY command returned error");
 
-	if (apdu.resplen > 256) {
-		sc_error(card->ctx, "directory listing > 256 bytes, cutting");
-		r = 256;
-	}
-	for (i=0; i < apdu.resplen;) {
-		/* is there a file informatin block (0x6f) ? */
-		if (rbuf[i] != 0x6f) {
-			sc_error(card->ctx, "directory listing not parseable");
-			break;
-		}
-		if (i+1 > apdu.resplen) {
-			sc_error(card->ctx, "directory listing short");
-			break;
-		}
-		len = rbuf[i+1];
-		if (i + 1 + len > apdu.resplen) {
-			sc_error(card->ctx, "directory listing short");
-			break;
-		}
-		fid = etoken_extract_fid(&rbuf[i+2], len);
-
-		if (fid) {
-			if (fids + 2 >= buflen)
-				break;
-			buf[fids++] = fid[0];
-			buf[fids++] = fid[1];
-		}
-
-		offset = etoken_extract_offset(&rbuf[i+2], len);
-		if (offset) 
-			goto get_next_part;
-		i += len+2;
+	if (apdu.resplen >= 3
+		&& ((rbuf[0] >= 0x01 && rbuf[0] <= 0x07) || 0x38 == rbuf[0])
+		&& fids + 2 >= buflen)
+	{
+		buf[fids++] = rbuf[1];
+		buf[fids++] = rbuf[2];
 	}
 
+	++offset;
+	goto get_next_part;
+
+end:
 	r = fids;
 
 	SC_FUNC_RETURN(card->ctx, 1, r);
@@ -399,12 +303,12 @@ static void parse_sec_attr(sc_file_t *file, const u8 *buf, size_t len)
 			add_acl_entry(file, idx[i], (u8)((i < len) ? buf[i] : 0xFF));
 }
 
-static int etoken_select_file(sc_card_t *card,
+static int incrypto34_select_file(sc_card_t *card,
 			      const sc_path_t *in_path,
 			      sc_file_t **file)
 {
 	int r;
-	
+
 	SC_FUNC_CALLED(card->ctx, 1);
 	r = iso_ops->select_file(card, in_path, file);
 	if (r >= 0 && file)
@@ -412,7 +316,7 @@ static int etoken_select_file(sc_card_t *card,
 	SC_FUNC_RETURN(card->ctx, 1, r);
 }
 
-static int etoken_create_file(sc_card_t *card, sc_file_t *file)
+static int incrypto34_create_file(sc_card_t *card, sc_file_t *file)
 {
 	int r, i, byte;
 	const int *idx;
@@ -427,7 +331,7 @@ static int etoken_create_file(sc_card_t *card, sc_file_t *file)
 				"%02X", file->path.value[n]);
 		}
 
-		sc_debug(card->ctx, "etoken_create_file(%s)\n", pbuf);
+		sc_debug(card->ctx, "incrypto34_create_file(%s)\n", pbuf);
 	}
 
 	if (file->type_attr_len == 0) {
@@ -510,14 +414,14 @@ out:	SC_FUNC_RETURN(card->ctx, 1, r);
  * Restore the indicated SE
  */
 static int
-etoken_restore_security_env(sc_card_t *card, int se_num)
+incrypto34_restore_security_env(sc_card_t *card, int se_num)
 {
 	sc_apdu_t apdu;
 	int	r;
 
 	SC_FUNC_CALLED(card->ctx, 1);
 
-	sc_format_apdu(card, &apdu, SC_APDU_CASE_1, 0x22, 3, se_num);
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_1, 0x22, 0xF3, se_num);
 
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
@@ -539,7 +443,7 @@ etoken_restore_security_env(sc_card_t *card, int se_num)
  * XXX Need to find out how the Aladdin drivers do it.
  */
 static int
-etoken_set_security_env(sc_card_t *card,
+incrypto34_set_security_env(sc_card_t *card,
 			    const sc_security_env_t *env,
 			    int se_num)
 {
@@ -556,7 +460,10 @@ etoken_set_security_env(sc_card_t *card,
 	}
 	key_id = env->key_ref[0];
 
-	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 1, 0);
+	r = incrypto34_restore_security_env(card, 1);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0xF1, 0);
 	switch (env->operation) {
 	case SC_SEC_OPERATION_DECIPHER:
 		apdu.p2 = 0xB8;
@@ -625,7 +532,7 @@ do_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 }
 
 static int
-etoken_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
+incrypto34_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 			 u8 *out, size_t outlen)
 {
 	int    r;
@@ -633,7 +540,7 @@ etoken_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	size_t buf_len = sizeof(buf), tmp_len = buf_len;
 	sc_context_t *ctx;
 
-	assert(card != NULL && data != NULL && out != NULL);	
+	assert(card != NULL && data != NULL && out != NULL);
 	ctx = card->ctx;
 	SC_FUNC_CALLED(ctx, 1);
 
@@ -669,7 +576,7 @@ etoken_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	ctx->suppress_errors++;
 	r = do_compute_signature(card, buf, tmp_len, out, outlen);
 	ctx->suppress_errors--;
-	if (r >= SC_SUCCESS)	
+	if (r >= SC_SUCCESS)
 		SC_FUNC_RETURN(ctx, 4, r);
 	if (ctx->debug >= 3)
 		sc_debug(ctx, "trying to sign raw hash value\n");
@@ -680,7 +587,7 @@ etoken_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 }
 
 static int
-etoken_lifecycle_get(sc_card_t *card, int *mode)
+incrypto34_lifecycle_get(sc_card_t *card, int *mode)
 {
 	sc_apdu_t	apdu;
 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
@@ -723,8 +630,9 @@ etoken_lifecycle_get(sc_card_t *card, int *mode)
 	SC_FUNC_RETURN(card->ctx, 1, r);
 }
 
+#if 0
 static int
-etoken_lifecycle_set(sc_card_t *card, int *mode)
+incrypto34_lifecycle_set(sc_card_t *card, int *mode)
 {
 	sc_apdu_t	apdu;
 	int		r;
@@ -736,8 +644,8 @@ etoken_lifecycle_set(sc_card_t *card, int *mode)
 
 	target = *mode;
 
-	r = etoken_lifecycle_get(card, &current);
-	
+	r = incrypto34_lifecycle_get(card, &current);
+
 	if (r != SC_SUCCESS)
 		return r;
 
@@ -758,10 +666,11 @@ etoken_lifecycle_set(sc_card_t *card, int *mode)
 
 	SC_FUNC_RETURN(card->ctx, 1, r);
 }
+#endif
 
 static int
-etoken_put_data_oci(sc_card_t *card,
-			struct sc_cardctl_etoken_obj_info *args)
+incrypto34_put_data_oci(sc_card_t *card,
+			struct sc_cardctl_incrypto34_obj_info *args)
 {
 	sc_apdu_t	apdu;
 	int		r;
@@ -788,8 +697,34 @@ etoken_put_data_oci(sc_card_t *card,
 }
 
 static int
-etoken_put_data_seci(sc_card_t *card,
-			struct sc_cardctl_etoken_obj_info *args)
+incrypto34_change_key_data(struct sc_card *card,
+			struct sc_cardctl_incrypto34_obj_info *args)
+{
+	struct sc_apdu	apdu;
+	int		r;
+
+	memset(&apdu, 0, sizeof(apdu));
+	apdu.cse = SC_APDU_CASE_3_SHORT;
+	apdu.cla = 0x90;
+	apdu.ins = 0x24;
+	apdu.p1  = args->key_class;
+	apdu.p2  = args->key_id;
+	apdu.lc  = args->len;
+	apdu.data = args->data;
+	apdu.datalen = args->len;
+
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	SC_TEST_RET(card->ctx, r, "Card returned error");
+
+	return r;
+}
+
+static int
+incrypto34_put_data_seci(sc_card_t *card,
+			struct sc_cardctl_incrypto34_obj_info *args)
 {
 	sc_apdu_t	apdu;
 	int		r;
@@ -814,8 +749,8 @@ etoken_put_data_seci(sc_card_t *card,
 }
 
 static int
-etoken_generate_key(sc_card_t *card,
-		struct sc_cardctl_etoken_genkey_info *args)
+incrypto34_generate_key(sc_card_t *card,
+		struct sc_cardctl_incrypto34_genkey_info *args)
 {
 	sc_apdu_t	apdu;
 	u8		data[8];
@@ -848,56 +783,103 @@ etoken_generate_key(sc_card_t *card,
 	return r;
 }
 
-static int etoken_get_serialnr(sc_card_t *card, sc_serial_number_t *serial)
+static int
+incrypto34_erase_files(sc_card_t *card)
 {
-	int r;
-	sc_apdu_t apdu;
-	u8  rbuf[SC_MAX_APDU_BUFFER_SIZE];
+	sc_apdu_t	apdu;
+	int		r;
+	static u8 pCreateAtrFile[] = {
+			0x62, 0x1b,
+			0x80, 0x02, 0x00, 0x1e,
+			0x82, 0x03, 0x01, 0xff, 0xff,
+			0x83, 0x02, 0x2f, 0x01,
+			0x85, 0x01, 0x01,
+			0x86, 0x09, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	static u8 pWriteAtr[] = { 0x19, 0x3b, 0xff,
+			0x18, 0x00, 0xff, 0x81, 0x31, 0xfe, 0x55, 0x00,
+			0x6b, 0x02, 0x09, 0x02, 0x00, 0x01, 0x01, 0x01,
+			0x43, 0x4e, 0x53, 0x10, 0x31, 0x80, 0x9f };
+	static u8 pCreateEF_DIR_ADOFile[] = { 0x6F, 0x1D,
+			0x83, 0x02,
+			0xFD, 0x01, 0x85, 0x03, 0x01, 0xff, 0xff,
+			0x81, 0x02,
+			0x00, 0x64,
+			0x82, 0x03, 0x05, 0xff, 0xff,
+			0x86, 0x09, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
-	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xca, 0x01, 0x81);
-	apdu.resp = rbuf;
-	apdu.resplen = sizeof(rbuf);
-	apdu.le   = 256;
+	/* Erasing Filesystem */
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_1, 0xf5, 0, 0);
+	apdu.cla = 0xb0;
+
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r,  "APDU transmit failed");
-	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
-		return SC_ERROR_INTERNAL;
-	if (apdu.resplen != 32) {
-		sc_debug(card->ctx, "unexpected response to GET DATA serial"
-				" number\n");
-		return SC_ERROR_INTERNAL;
-	}
-	/* cache serial number */
-	memcpy(card->serialnr.value, &rbuf[10], 6);
-	card->serialnr.len = 6;
-	/* copy and return serial number */
-	memcpy(serial, &card->serialnr, sizeof(*serial));
-	return SC_SUCCESS;
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	SC_TEST_RET(card->ctx, r, "Card returned error Erasing Filesystem");
+
+	/* Creating ATR file*/
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xe0, 0, 0);
+	apdu.data = pCreateAtrFile;
+	apdu.datalen = apdu.lc = sizeof(pCreateAtrFile);
+
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	SC_TEST_RET(card->ctx, r, "Card returned error Creating ATR file");
+
+	/* Filling ATR file*/
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xd6, 0, 0);
+	apdu.data = pWriteAtr;
+	apdu.datalen = apdu.lc = sizeof(pWriteAtr);
+
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	SC_TEST_RET(card->ctx, r, "Card returned error Filling ATR file");
+
+	/* Creating DIR-ADO file*/
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xe0, 0, 0);
+	apdu.data = pCreateEF_DIR_ADOFile;
+	apdu.datalen = apdu.lc = sizeof(pCreateEF_DIR_ADOFile);
+
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	SC_TEST_RET(card->ctx, r, "Card returned error Creating DIR-ADO file");
+
+	return r;
+
 }
 
+
 static int
-etoken_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
+incrypto34_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
 {
 	switch (cmd) {
-	case SC_CARDCTL_ETOKEN_PUT_DATA_FCI:
+	case SC_CARDCTL_INCRYPTO34_PUT_DATA_FCI:
 		break;
-	case SC_CARDCTL_ETOKEN_PUT_DATA_OCI:
-		return etoken_put_data_oci(card,
-			(struct sc_cardctl_etoken_obj_info *) ptr);
+	case SC_CARDCTL_INCRYPTO34_PUT_DATA_OCI:
+		return incrypto34_put_data_oci(card,
+			(struct sc_cardctl_incrypto34_obj_info *) ptr);
 		break;
-	case SC_CARDCTL_ETOKEN_PUT_DATA_SECI:
-		return etoken_put_data_seci(card,
-			(struct sc_cardctl_etoken_obj_info *) ptr);
+	case SC_CARDCTL_INCRYPTO34_PUT_DATA_SECI:
+		return incrypto34_put_data_seci(card,
+			(struct sc_cardctl_incrypto34_obj_info *) ptr);
 		break;
-	case SC_CARDCTL_ETOKEN_GENERATE_KEY:
-		return etoken_generate_key(card,
-			(struct sc_cardctl_etoken_genkey_info *) ptr);
+	case SC_CARDCTL_INCRYPTO34_GENERATE_KEY:
+		return incrypto34_generate_key(card,
+			(struct sc_cardctl_incrypto34_genkey_info *) ptr);
 	case SC_CARDCTL_LIFECYCLE_GET:
-		return etoken_lifecycle_get(card, (int *) ptr);
+		return incrypto34_lifecycle_get(card, (int *) ptr);
 	case SC_CARDCTL_LIFECYCLE_SET:
-		return etoken_lifecycle_set(card, (int *) ptr);
-	case SC_CARDCTL_GET_SERIALNR:
-		return etoken_get_serialnr(card, (sc_serial_number_t *)ptr);
+		return 0;
+	case SC_CARDCTL_INCRYPTO34_CHANGE_KEY_DATA:
+		return incrypto34_change_key_data(card, (struct sc_cardctl_incrypto34_obj_info*) ptr);
+	case SC_CARDCTL_INCRYPTO34_ERASE_FILES:
+		return incrypto34_erase_files(card);
 	}
 	return SC_ERROR_NOT_SUPPORTED;
 }
@@ -908,7 +890,7 @@ etoken_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
  * Unfortunately, it doesn't seem to work without this flag :-/
  */
 static int
-etoken_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
+incrypto34_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
 		 int *tries_left)
 {
 	data->flags |= SC_PIN_CMD_NEED_PADDING;
@@ -923,32 +905,31 @@ etoken_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
 }
 
 
-/* eToken R2 supports WRITE_BINARY, PRO Tokens support UPDATE_BINARY */
 
 static struct sc_card_driver * sc_get_driver(void)
 {
 	if (iso_ops == NULL)
 		iso_ops = sc_get_iso7816_driver()->ops;
-	etoken_ops = *iso_ops;
-	etoken_ops.match_card = etoken_match_card;
-	etoken_ops.init = etoken_init;
-	etoken_ops.finish = etoken_finish;
-	etoken_ops.select_file = etoken_select_file;
-	etoken_ops.create_file = etoken_create_file;
-	etoken_ops.set_security_env = etoken_set_security_env;
-	etoken_ops.restore_security_env = etoken_restore_security_env;
-	etoken_ops.compute_signature = etoken_compute_signature;
+	incrypto34_ops = *iso_ops;
+	incrypto34_ops.match_card = incrypto34_match_card;
+	incrypto34_ops.init = incrypto34_init;
+	incrypto34_ops.finish = incrypto34_finish;
+	incrypto34_ops.select_file = incrypto34_select_file;
+	incrypto34_ops.create_file = incrypto34_create_file;
+	incrypto34_ops.set_security_env = incrypto34_set_security_env;
+	incrypto34_ops.restore_security_env = incrypto34_restore_security_env;
+	incrypto34_ops.compute_signature = incrypto34_compute_signature;
 
-	etoken_ops.list_files = etoken_list_files;
-	etoken_ops.check_sw = etoken_check_sw;
-	etoken_ops.card_ctl = etoken_card_ctl;
-	etoken_ops.pin_cmd = etoken_pin_cmd;
+	incrypto34_ops.list_files = incrypto34_list_files;
+	incrypto34_ops.check_sw = incrypto34_check_sw;
+	incrypto34_ops.card_ctl = incrypto34_card_ctl;
+	incrypto34_ops.pin_cmd = incrypto34_pin_cmd;
 
-	return &etoken_drv;
+	return &incrypto34_drv;
 }
 
 #if 1
-struct sc_card_driver * sc_get_etoken_driver(void)
+struct sc_card_driver * sc_get_incrypto34_driver(void)
 {
 	return sc_get_driver();
 }

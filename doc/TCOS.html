@@ -16,7 +16,7 @@ If OpenSC would fully support TCOS, one could erase the preformatted card and in
 The good news are: With the help of an emulation layer OpenSC can use cards that are almost PKCS#15 compatible. For the above mentioned cards such an emulation layer exists. The emulation cannot store certificates, keys or pins on the card, but you can use whatever is visible through the emulation layer. 
 </p>
 <p>
-If you know of other TCOS based cards and are willing to help, please post information on the mailing list. You might also send "opensc-tool -f" output to <a class="ext-link" title="mail:pk_opensc@web.de" href="mail:pk_opensc@web.de" shape="rect">me</a>, maybe I can extend the emulation such that it works with your card as well.
+If you know of other TCOS based cards and are willing to help, please post information on the mailing list. You might also send <tt>opensc-tool -f</tt> output to <a class="ext-link" title="mail:pk_opensc@web.de" href="mail:pk_opensc@web.de" shape="rect">me</a>, maybe I can extend the emulation such that it works with your card as well.
 </p>
 <h2>NetKey E4 filesystem layout</h2>
 <p>
@@ -67,7 +67,7 @@ The public-keys are record-based transparent files and cannot be used for crypto
 <p>
 The Signature-Key can do signature-operations only. All other private keys can be used for decryption- and signature operations.
 </p>
-<h2>How do I store additional certificates into the above mentioned empty certificate-files?</h2>
+<h3>How do I store additional certificates into the above mentioned empty certificate-files?</h3>
 <p>
 You (and OpenSC) dont see the empty certificate files through the emulation layer. One consequence of this is, that you cannot store your own certificates into these files with pkcs11-tool or pkcs15-init.
 </p>
@@ -77,22 +77,41 @@ You must use opensc-explorer and store the certificate directly into the right p
 <p>
 In general (and in particular with TCOS-cards) it's a lot more complicated to create a new file on a smartcard than updating an existing one. That's the reason why there are empty certificate files on a NetKey card. They contain 1536 0xFF-bytes and you can overwrite them with your own certificate (if your certificate has at most 1536 bytes).
 </p>
+<h3>Some remarks about the pins of a Netkey card</h3>
 <p>
-netkey-tool can do other !NetKey-card specific things as well. In particular it will display your initial PUK value and all certificates (including the emtpy ones, which are invisible to pkcs15-tool). As of this writing (September 2005) netkey-tool is included in the CVS-version only.
+There are two global pins on a NetKey-card and some of the directories contain further pins. The NetKey emuation will list the two global pins (PIN and PUK) and the two local pins contained in directory DF01 (PIN0 and PIN1). The TCOS card operation system can protect a private key by more than one pin. OpenSC does NOT support this and will always ask for one specific pin. If a key is protected by both a global pin and a local pin OpenSC will always ask for the local one.
 </p>
-<h2>SignTrust filesystem layout</h2>
 <p>
-SignTrust cards contain three directories. Each of them contain one certificate, one private key and one PIN.
+Now that you know that you MUST use local PIN0 or local PIN1 and cannot use global PIN instead you probably want to know the initial value of those local pins. But these local pins were set to a random 6-digit number when TeleSec Gmbh produced your card. So you cannot know them until you changed them.
+</p>
+<p>
+You can change local PIN0 only if you know either local PIN0 itself or your global PIN. And you cannot change a pin once it was blocked. So if your local PIN0 is blocked (for example because you provided you global PIN when OpenSC asked you for the local one and you did that for at least three times) then you must unblock it first.
+</p>
+<p>
+Here's an example about how to unblock your local PIN0, how to change its value to 111111 with your global PIN and then change its value from 111111 to 222222. It assumes that your global PIN is 123456
+</p>
+<pre class="wiki" xml:space="preserve">netkey-tool --pin 123456 unblock pin0
+netkey-tool --pin 123456 change pin0 111111
+netkey-tool --pin0 111111 change pin0 222222
+</pre><p>
+One more hint: Your global PUK was set to an 8-digit random number at production time. This random number is stored on your card in a transparent file. This transparent file is read-protected by your global PIN.
+</p>
+<p>
+<tt>netkey-tool --pin &lt;your_global_pin&gt;</tt> will print out the initial PUK-value. If you change your global PUK the transparent file on your card will still contain the initial value.
+</p>
+<h2>SignTrust layout</h2>
+<p>
+SignTrust cards contain three directories. Each of them contain one certificate, one private key and one pin.
 </p>
 <p>
 All Keys can be used for decryption- and signature operations. As with all TCOS cards one could store additional certificates on a SignTrust card. But since there are no empty files on the card (as with NetKey cards) the emulations layer does not support this.
 </p>
-<h2>Kobil Smartkey cards</h2>
+<h2>Kobil Smartkey layout</h2>
 <p>
-There are two sorts of Kobil Smartkey cards. The first one are !Netkey E4 cards with one additional directory where Kobil stores a Windows 2000 logon certificate. The emulation detects this kind of Smartkey cards as a NetKey card.
+There are two sorts of Kobil Smartkey cards. The first one are NetKey E4 cards with one additional directory where Kobil stores a Windows 2000 logon certificate. The emulation detects this kind of Smartkey cards as a NetKey card.
 </p>
 <p>
-The second one has a Kobil specific undocumented layout. The emulation tries its best to support this kind of card.
+The second one has a Kobil specific undocumented layout. The emulation tries its best to support this kind of cards too. One Smartkey-variant that already works is the student card of the Technical University of Darmstadt. If you are using a Kobil Smartkey card that OpenSC does not yet support please let <a class="ext-link" title="mail:pk_opensc@web.de" href="mail:pk_opensc@web.de" shape="rect">me</a> know.
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

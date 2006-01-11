@@ -51,7 +51,7 @@ Replace "gpk" with the card driver of your card and "00:11:22" with the atr
 printed by "opensc-tool --atr". WARNING: this can damage your card and render
 it useless (in case the driver is not compatible with your card). So don't do
 this, unless you are absolutely sure of what you are doing. If you are not
-sure, please contact the OpenSC Team (see <a class="missing" href="/opensc/wiki/ContactInfo" shape="rect">ContactInfo?</a> for details).
+sure, please contact the OpenSC Team (see <a href="MailingLists.html" shape="rect">MailingLists</a> for details).
 </p>
 <p>
 Also note: more and more drivers have internal flags, for example for subtypes
@@ -59,6 +59,17 @@ of cards or for certain properties, like whether or nor a card can generate
 keys (very old smartcards can't do that). Currently it is not possible to set
 those flags in the config file, so often it might be necessary to edit OpenSC
 source code and recompile OpenSC.
+</p>
+<p>
+If you have a card with some new format, and you are not sure whether some
+emulation layer in OpenSC supports it, you can try this command and send us
+the output:
+</p>
+<pre class="wiki" xml:space="preserve">opensc-tool -f
+</pre><p>
+It will read all directories, files, permissions and file content, i.e.
+all public content on the card, thus we can have a look, maybe it is something
+we already know.
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

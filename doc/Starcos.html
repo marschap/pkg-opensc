@@ -5,6 +5,8 @@
     <div id="searchable"><h1>Starcos</h1>
 <p>
 Is fully supported by OpenSC. It is tested very often (to be precise: Rainbow iKey 3000 which contains Starcos).
+The <a class="missing" href="/opensc/wiki/StarKey" shape="rect">StarKey?</a> 100 (USB) token from G&amp;D doesn't seem to work. It features Starcos SPK 2.3, but adding
+usb:096e/0005 to the ikey3k driver ids in openct.conf still won't access the card.
 </p>
 <p>
 Currently only Starcos SPK 2.3 is tested. If you have a newer version, please report back.
@@ -13,6 +15,12 @@ Currently only Starcos SPK 2.3 is tested. If you have a newer version, please re
 G&amp;D is a very nice company, their APDU manuals are public available, all you need to do
 is send an email asking for them, and they send you the latest version. This is great!
 Thanks G&amp;D!
+</p>
+<h2>Erasing cards</h2>
+<p>
+Not all starcos tokens are erasable. If the last byte of the return
+value of "opensc-tool -s 80:f6:00:01" is 0x00 the card is afaik not
+erasable, if it's 0xc0 it should be erasble.
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>
