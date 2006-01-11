@@ -1,35 +1,290 @@
-2005-10-31 09:19  aj
+2006-01-08 20:52  aj
 
-	* releases/opensc-0.10.0/configure.in: create final release 0.10.0
+	* releases/opensc-0.10.1/configure.in: release as 0.10.1 without
+	  changes.
+
+2005-12-26 23:12  aj
+
+	* releases/opensc-0.10.1/configure.in: new release candidate with
+	  tcos fix by peter koch.
+
+2005-12-26 18:58  aj
+
+	* releases/opensc-0.10.1/src/libopensc/pkcs15-tcos.c,
+	  releases/opensc-0.10.1/src/tools/netkey-tool.c: tcos update by
+	  peter koch. adds compatibility with th darmstadt cards.
+
+2005-12-23 11:57  aj
+
+	* releases/opensc-0.10.1/etc/opensc.conf.in: add windows example
+	  paths as well (patch by stef in trunk/0.10 branch).
+
+2005-12-23 11:05  aj
+
+	* releases/opensc-0.10.1/configure.in: create release candidate
+	  for 0.10.1
+
+2005-12-23 11:04  aj
+
+	* releases/opensc-0.10.1: create copy of 0.10 branch for 0.10.1
+	  release.
+
+2005-12-23 10:54  sth
+
+	* branches/opensc-0.10/src/pkcs11/pkcs11-global.c: Let a blocking
+	  C_WaitForSlotEvent() return CKR_FUNCTION_NOT_SUPPORTED. This
+	  isn't a solution for the multihread problems (see ticket #64)
+	  but at least Firefox 1.5 seems to work now
+
+2005-12-22 15:55  nils
+
+	* branches/opensc-0.10/src/libopensc/card-flex.c: use correct apdu
+	  case and set Le value
+
+2005-12-17 21:17  nils
+
+	* branches/opensc-0.10/src/pkcs15init/pkcs15-lib.c: fix key usage
+	  flags and ensure that we are in the correct lifecycle
+
+2005-12-16 20:52  nils
+
+	* branches/opensc-0.10/src/tools/cardos-info.c: add cardos m4.2
+	  and print the startkey version in hex
+
+2005-12-14 11:00  aj
+
+	* branches/opensc-0.10/src/tools/Makefile.am: pkcs15-tools needs
+	  to be linkes with openssl_libs, too, if available. older gcc
+	  versions found this bug, recent versions don't seem to care.
+
+2005-12-12 20:37  nils
+
+	* branches/opensc-0.10/src/libopensc/card-gpk.c,
+	  branches/opensc-0.10/src/libopensc/card-starcos.c: fix APDU case
+
+2005-12-05 22:21  aj
+
+	* branches/opensc-0.10/src/scconf/scconf.c: remove unused variable
+	  item in scconf_put_str. remove unused variable ret in
+	  scconf_put_int. from the readme: "if parm not NULL, then ...
+	  parm points to ..." so we need to get the value of the location
+	  where it points to.
+
+2005-12-05 22:20  aj
+
+	* branches/opensc-0.10/src/pkcs15init/pkcs15-oberthur.c: free
+	  pub_buff in error path. removed unused pubfile variable and dead
+	  code. check prvfile != NULL.
+	* branches/opensc-0.10/src/pkcs15init/pkcs15-cflex.c: check prkf
+	  != NULL.
+	* branches/opensc-0.10/src/pkcs15init/pkcs15-lib.c: free profilke
+	  and pin_obj in the error path. check res_obj and keybits/keyargs
+	  before dereferencing.
+	* branches/opensc-0.10/src/pkcs15init/profile.c: check p15card !=
+	  NULL before accessing it. in the error path free file if it was
+	  allocated.
+
+2005-12-05 22:19  aj
+
+	* branches/opensc-0.10/src/pkcs11/secretkey.c: easier to parse,
+	  and better error handling.
+
+2005-12-05 22:18  aj
+
+	* branches/opensc-0.10/src/signer/opensc-crypto.c: also check that
+	  priv->p15card is not NULL.
+	* branches/opensc-0.10/src/libopensc/pkcs15-infocamere.c: for
+	  example if the card was removed, select file on the main folder
+	  will fail. so I think it is best to return the error.
+	* branches/opensc-0.10/src/libopensc/pkcs15-postecert.c: even
+	  select_file can fail (if card was removed etc.) so better check
+	  the error and return the problem, right?
+	* branches/opensc-0.10/src/libopensc/pkcs15-algo.c: fix typo on
+	  *paramp test. check alg_info always, not only in some case.
+
+2005-12-05 22:17  aj
+
+	* branches/opensc-0.10/src/libopensc/pkcs15-syn.c: check
+	  scconf_find_blocks returning NULL add a free(obj) to the error
+	  path.
+	* branches/opensc-0.10/src/libopensc/card-oberthur.c: check file
+	  parameter. set file=NULL after freeing it to avoid potential
+	  double free. check key_file parameter before dereferencing it.
+	  check card first, then derefence it.
+	* branches/opensc-0.10/src/libopensc/card-setcos.c: sizeof(int[7])
+	  is 28. I think bCommands_pin should have 7 elements, too.
+	* branches/opensc-0.10/src/libopensc/card-openpgp.c: remove
+	  unneeded if(1) block. free temp in error paths.
+
+2005-12-05 22:16  aj
+
+	* branches/opensc-0.10/src/libopensc/card-belpic.c: check if
+	  scconf_find_blocks returned NULL
+	* branches/opensc-0.10/src/libopensc/reader-ctapi.c: check if
+	  scconf_find_blocks returned NULL
+	* branches/opensc-0.10/src/libopensc/pkcs15.c: check if
+	  scconf_find_blocks returned NULL.
+	* branches/opensc-0.10/src/libopensc/iso7816.c: add proper free to
+	  error path.
+
+2005-12-05 22:15  aj
+
+	* branches/opensc-0.10/src/libopensc/sc.c: simply code / remove
+	  dead code.
+	* branches/opensc-0.10/src/libopensc/card.c: check if
+	  scconf_find_blocks returns NULL;
+	* branches/opensc-0.10/src/libopensc/ctx.c: add paranoia: what if
+	  scconf_find_bloicks returns NULL?
+	* branches/opensc-0.10/src/libopensc/pkcs15-wrap.c: add paranoia:
+	  check all arguments before dereferencing them to prevent
+	  segfaults.
+	* branches/opensc-0.10/src/libopensc/dir.c: free allocated
+	  variable in error path. set rec=NULL after freeing it to prevent
+	  double free'ing.
+
+2005-12-05 22:14  aj
+
+	* branches/opensc-0.10/src/tools/cryptoflex-tool.c: free buf if
+	  pin was entered incorrectly. check if file is not NULL (out of
+	  memory). free file, if something goes wrong. free pin/puk once
+	  no longer needed.
+	* branches/opensc-0.10/src/tools/pkcs15-init.c: make code easier
+	  by removing match variable. check if cert was returned != NULL.
+	  free cert if there is some error. set variables to NULL after
+	  being freed, to avoid potential double free bugs.
+	* branches/opensc-0.10/src/tools/opensc-explorer.c: proper
+	  cleanup: close files if something goes wrong.
+
+2005-12-05 22:13  aj
+
+	* branches/opensc-0.10/src/tools/pkcs15-tool.c: check publickey
+	  variable before de-referencing. change newpin to NULL so it
+	  can't get free'd twice. allocate buf from heap, not stack (quite
+	  large).
+	* branches/opensc-0.10/src/tools/pkcs11-tool.c: #if out the dead
+	  code. remove some dead code in the hexdump code.
+	* branches/opensc-0.10/src/scconf/test-conf.c: does not work, will
+	  segfault. also no need to assign foo_item all the time,
+	  scconf_item_add returns the item parameter, so it does not
+	  change.
+
+2005-12-05 22:12  aj
+
+	* branches/opensc-0.10/src/scconf/parse.c: add a few sanity checks.
+
+2005-12-04 23:24  nils
+
+	* branches/opensc-0.10/src/pkcs11/framework-pkcs15.c: fix problem
+	  with uninitialized pointer; this patch resolves opensc ticket #61
+
+2005-12-02 22:25  nils
+
+	* branches/opensc-0.10/src/libopensc/card-incrypto34.c,
+	  branches/opensc-0.10/src/pkcs15init/pkcs15-incrypto34.c: fix
+	  pkcs15 initialization + fix DIRECTORY command; patch supplied by
+	  Giuseppe AMATO <giuseppe.amato@st.com>
+
+2005-12-01 22:20  aj
+
+	* branches/opensc-0.10/src/libopensc/card-flex.c: fix for the
+	  combination of cryptoflex, 2048bit keys and some smart card
+	  readers by Jean-Pierre Szikora
+
+2005-11-29 20:56  nils
+
+	* branches/opensc-0.10/src/tools/opensc-tool.c,
+	  branches/opensc-0.10/src/tools/pkcs15-tool.c: use sc_print_path
+
+2005-11-28 23:08  nils
+
+	* branches/opensc-0.10/src/tests/print.c: use sc_print_path
+
+2005-11-26 10:12  nils
+
+	* branches/opensc-0.10/src/libopensc/card-atrust-acos.c,
+	  branches/opensc-0.10/src/libopensc/card-starcos.c: remove
+	  senseless and inconsistent checks + cleanup
+
+2005-11-25 19:12  nils
+
+	* branches/opensc-0.10/src/libopensc/reader-pcsc.c: use unsigned
+	  int instead of uint16_t
+
+2005-11-17 10:29  nils
+
+	* branches/opensc-0.10/src/libopensc/opensc.h: fix ac for file
+	  deletion
+
+2005-11-01 22:34  aj
+
+	* branches/opensc-0.10/src/tools/cardos-info.c: add more cardos
+	  versions.
+
+2005-10-30 09:23  nils
+
+	* branches/opensc-0.10: create separate branch for 0.10.1
+
+2005-10-29 21:17  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: Update pcsc pinpad code to
+	  latest pcsc-lite code, limit to pcsc-lite only. Verify works
+	  fine, modify needs some debugging-testing.
+
+2005-10-28 18:10  nils
+
+	* trunk/src/libopensc/pkcs15-infocamere.c: update from Sirio
+	  Capizzi <graaf@virgilio.it>
+
+2005-10-27 21:39  martin
+
+	* trunk/src/libopensc/card-etoken.c: This works better.
+
+2005-10-27 20:16  nils
+
+	* trunk/src/libopensc/card-etoken.c: add another cardos ATR,
+	  supplied by graaf@virgilio.it
 
 2005-10-24 22:00  aj
 
-	* releases/opensc-0.10.0/configure.in: release candidate 2.
-	* releases/opensc-0.10.0/CodingStyle,
-	  releases/opensc-0.10.0/INSTALL,
-	  releases/opensc-0.10.0/Makefile.am, releases/opensc-0.10.0/NEWS,
-	  releases/opensc-0.10.0/README: remove obsolete files CodingStyle
-	  and INSTALL (neither reflects the current situation in OpenSC),
-	  and improve README and NEWS. prepare for release candidate 2.
+	* trunk/CodingStyle, trunk/INSTALL, trunk/Makefile.am, trunk/NEWS,
+	  trunk/README: remove outdated files, improve documentation
+	  slightly.
 
-2005-10-24 21:19  aj
+2005-10-24 21:58  nils
 
-	* releases/opensc-0.10.0/man/Makefile.am: fix man page
-	  installation.
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/card-incrypto34.c,
+	  trunk/src/libopensc/cardctl.h, trunk/src/libopensc/cards.h,
+	  trunk/src/libopensc/ctx.c, trunk/src/libopensc/log.h,
+	  trunk/src/libopensc/opensc.h, trunk/src/pkcs15init/Makefile.am,
+	  trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/pkcs15init/incrypto34.profile,
+	  trunk/src/pkcs15init/pkcs15-incrypto34.c,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c: add support for the Italian
+	  Incrypto34 smartcard; patch supplied by Giuseppe AMATO
+	  <giuseppe.amato@st.com>
+
+2005-10-24 21:18  aj
+
+	* trunk/man/Makefile.am: fix man page installation.
+
+2005-10-24 15:19  martin
+
+	* trunk/etc/opensc.conf.in: More comments on default config options
 
 2005-10-21 20:12  aj
 
-	* releases/opensc-0.10.0/configure.in: not compatible with 0.9.*.
-	  increase major version of the library.
+	* trunk/configure.in: not compatible with 0.9.*. increse library
+	  major revision.
 
-2005-10-21 17:35  aj
+2005-10-21 19:40  nils
 
-	* releases/opensc-0.10.0/configure.in: prepare release candidate
-	  0.10.0-rc1
+	* trunk/src/tools/pkcs11-tool.c: fix typo
 
 2005-10-21 17:34  aj
 
-	* releases/opensc-0.10.0: copy trunk to release folder.
 	* trunk/NEWS, trunk/doc/old/doxygen.conf,
 	  trunk/src/include/winconfig.h, trunk/win32/version.rc: prepare
 	  0.10.0 release.

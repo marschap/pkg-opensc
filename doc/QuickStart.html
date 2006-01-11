@@ -19,6 +19,13 @@ module) or <a class="ext-link" title="http://www.opensc.org/pam_pkcs11/" href="h
 authentication module).
 </p>
 <p>
+Before we start a word of warning: these experiments can destroy your card
+(e.g. if we have a bug. there is _NO WARRANTY_ on opensc of any kind).
+Also be sure to make notes of everything you do, for example the pin and puk
+and so-pin and so-puk you set, as it is for example not possible to erase
+some cards.
+</p>
+<p>
 But lets start. First test if OpenSC works: check if your smart card
 reader is found:
 </p>
@@ -67,6 +74,11 @@ your vendor sold you a real blank card, many vendors
 also have pre-initialized cards, and those only work
 with the vendors software, but not or only limited with
 OpenSC.
+</p>
+<p>
+<strong></strong>Warning: <strong></strong>before writing any data on the token please
+read the smartcard os specific wiki pages as some smartcards cannot be
+deleted once initialized.
 </p>
 <p>
 You can add "-v" to all of these commands, to get a more verbose

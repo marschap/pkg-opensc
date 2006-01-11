@@ -43,14 +43,14 @@ span.errortext {
   font-style: italic;
 }
 
---></style></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="book" lang="en"><div class="titlepage"><div><div><h1 class="title"><a name="id2449669"></a>OpenSC API reference</h1></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="chapter"><a href="#id2487507">1. Initialization</a></span></dt><dt><span class="chapter"><a href="#id2448716">2. Card operations</a></span></dt><dt><span class="chapter"><a href="#id2483389">3. File operations</a></span></dt><dt><span class="chapter"><a href="#id2516701">4. Applications</a></span></dt><dt><span class="chapter"><a href="#id2481376">5. ASN.1 functions</a></span></dt><dt><span class="chapter"><a href="#id2482145">6. Miscellaneous utility functions</a></span></dt><dt><span class="chapter"><a href="#id2484664">7. Data types</a></span></dt></dl></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id2487507"></a>Chapter 1. Initialization</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scestablishcontext">sc_establish_context</a></span><span class="refpurpose"> - Establish an OpenSC context</span></dt><dt><span class="refentrytitle"><a href="#screleasecontext">sc_release_context</a></span><span class="refpurpose"> - Release an OpenSC context</span></dt><dt><span class="refentrytitle"><a href="#scgetcachedir">sc_get_cache_dir</a></span><span class="refpurpose"> - Get the OpenSC cache directory</span></dt><dt><span class="refentrytitle"><a href="#scmakecachedir">sc_make_cache_dir</a></span><span class="refpurpose"> - Create the OpenSC cache directory</span></dt><dt><span class="refentrytitle"><a href="#scconnectcard">sc_connect_card</a></span><span class="refpurpose"> - Connect to smart card in reader</span></dt><dt><span class="refentrytitle"><a href="#scdisconnectcard">sc_disconnect_card</a></span><span class="refpurpose"> - Disconnect from a smart card</span></dt><dt><span class="refentrytitle"><a href="#scdetectcardpresence">sc_detect_card_presence</a></span><span class="refpurpose"> - Detect presence of smart card in a reader</span></dt><dt><span class="refentrytitle"><a href="#sccardvalid">sc_card_valid</a></span><span class="refpurpose"> - Check if a card is valid</span></dt><dt><span class="refentrytitle"><a href="#scsetcarddriver">sc_set_card_driver</a></span><span class="refpurpose"> - Force the use of a specified smart card driver</span></dt></dl></div><div class="refentry" lang="en"><a name="scestablishcontext"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_establish_context &#8212; Establish an OpenSC context</p></div><div class="refsect1" lang="en"><a name="id2528327"></a><h2>Synopsis</h2><p>
+--></style></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="book" lang="en"><div class="titlepage"><div><div><h1 class="title"><a name="id51281"></a>OpenSC API reference</h1></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="chapter"><a href="#id236092">1. Initialization</a></span></dt><dt><span class="chapter"><a href="#id282926">2. Card operations</a></span></dt><dt><span class="chapter"><a href="#id307123">3. File operations</a></span></dt><dt><span class="chapter"><a href="#id279401">4. Applications</a></span></dt><dt><span class="chapter"><a href="#id287663">5. ASN.1 functions</a></span></dt><dt><span class="chapter"><a href="#id310479">6. Miscellaneous utility functions</a></span></dt><dt><span class="chapter"><a href="#id274886">7. Data types</a></span></dt></dl></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id236092"></a>Chapter 1. Initialization</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scestablishcontext">sc_establish_context</a></span><span class="refpurpose"> - Establish an OpenSC context</span></dt><dt><span class="refentrytitle"><a href="#screleasecontext">sc_release_context</a></span><span class="refpurpose"> - Release an OpenSC context</span></dt><dt><span class="refentrytitle"><a href="#scgetcachedir">sc_get_cache_dir</a></span><span class="refpurpose"> - Get the OpenSC cache directory</span></dt><dt><span class="refentrytitle"><a href="#scmakecachedir">sc_make_cache_dir</a></span><span class="refpurpose"> - Create the OpenSC cache directory</span></dt><dt><span class="refentrytitle"><a href="#scconnectcard">sc_connect_card</a></span><span class="refpurpose"> - Connect to smart card in reader</span></dt><dt><span class="refentrytitle"><a href="#scdisconnectcard">sc_disconnect_card</a></span><span class="refpurpose"> - Disconnect from a smart card</span></dt><dt><span class="refentrytitle"><a href="#scdetectcardpresence">sc_detect_card_presence</a></span><span class="refpurpose"> - Detect presence of smart card in a reader</span></dt><dt><span class="refentrytitle"><a href="#sccardvalid">sc_card_valid</a></span><span class="refpurpose"> - Check if a card is valid</span></dt><dt><span class="refentrytitle"><a href="#scsetcarddriver">sc_set_card_driver</a></span><span class="refpurpose"> - Force the use of a specified smart card driver</span></dt></dl></div><div class="refentry" lang="en"><a name="scestablishcontext"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_establish_context &#8212; Establish an OpenSC context</p></div><div class="refsect1" lang="en"><a name="id244694"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_establish_context(sc_context_t **ctx,
                          const char *appname);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2525178"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id289351"></a><h2>Description</h2><p>
 			This function establishes an OpenSC context. This context is required
 			in all subsequent calls to OpenSC functions.
 		</p><p>
@@ -84,45 +84,45 @@ typedef struct sc_reader {
 				</pre><p>
 		</p><p>In this structure, <span class="emphasis"><em>name</em></span> contains a printable name of the reader, and
 			<span class="emphasis"><em>slot_count</em></span> has the number of slots supported by this device.
-		</p></div><div class="refsect1" lang="en"><a name="id2542602"></a><h2>Return value</h2><p>Returns 0 if successful, or a negative value in case of error.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="screleasecontext"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_release_context &#8212; Release an OpenSC context</p></div><div class="refsect1" lang="en"><a name="id2542652"></a><h2>Synopsis</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id225687"></a><h2>Return value</h2><p>Returns 0 if successful, or a negative value in case of error.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="screleasecontext"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_release_context &#8212; Release an OpenSC context</p></div><div class="refsect1" lang="en"><a name="id225734"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_release_context(sc_context_t *ctx);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2542670"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id224698"></a><h2>Description</h2><p>
 			This function releases OpenSC context <span class="emphasis"><em>ctx</em></span> previously obtained through a call
 			to <a href="#scestablishcontext" title="sc_establish_context">sc_establish_context()</a>. No further calls to OpenSC
 			using this context are possible after this.
-		</p></div><div class="refsect1" lang="en"><a name="id2542692"></a><h2>Return value</h2><p>This function always return 0, indicating success.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scgetcachedir"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_get_cache_dir &#8212; Get the OpenSC cache directory</p></div><div class="refsect1" lang="en"><a name="id2473733"></a><h2>Synopsis</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id224717"></a><h2>Return value</h2><p>This function always return 0, indicating success.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scgetcachedir"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_get_cache_dir &#8212; Get the OpenSC cache directory</p></div><div class="refsect1" lang="en"><a name="id224764"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_get_cache_dir(struct sc_context *ctx, char *buf, size_t bufsize);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2473752"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id305928"></a><h2>Description</h2><p>
 			This function stores the OpenSC cache directory for the current user in the buffer pointed to by
 			<span class="emphasis"><em>buf</em></span>, which is <span class="emphasis"><em>bufsize</em></span> bytes long.
-		</p></div><div class="refsect1" lang="en"><a name="id2473772"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id305948"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scmakecachedir"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_make_cache_dir &#8212; Create the OpenSC cache directory</p></div><div class="refsect1" lang="en"><a name="id2473822"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scmakecachedir"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_make_cache_dir &#8212; Create the OpenSC cache directory</p></div><div class="refsect1" lang="en"><a name="id305995"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_make_cache_dir(struct sc_context *ctx);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2473840"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id306011"></a><h2>Description</h2><p>
 			This function creates the OpenSC cache directory for the current user, and any directories
 			leading up to it.
-		</p></div><div class="refsect1" lang="en"><a name="id2473853"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id306023"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scconnectcard"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_connect_card &#8212; Connect to smart card in reader</p></div><div class="refsect1" lang="en"><a name="id2518162"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scconnectcard"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_connect_card &#8212; Connect to smart card in reader</p></div><div class="refsect1" lang="en"><a name="id279918"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_connect_card(sc_reader_t *reader, int slot, <a href="#sccardt" title="sc_card_t">sc_card_t</a> **card);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2518187"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id279941"></a><h2>Description</h2><p>
 			This function connects to a card in a reader, resets the card and retrieves the ATR (Answer To
 			Reset). Based on the ATR, it tries to auto-detect which card driver to use.
 		</p><p>
@@ -132,51 +132,51 @@ int sc_connect_card(sc_reader_t *reader, int slot, <a href="#sccardt" title="sc_
 			If OpenSC was able to connect to the card, a pointer to the sc_card_t object is stored in the
 			location pointer to by the <span class="emphasis"><em>card</em></span> parameter. The card handle should be
 			released with <a href="#scdisconnectcard" title="sc_disconnect_card">sc_disconnect_card</a> when no longer in use.
-		</p></div><div class="refsect1" lang="en"><a name="id2518226"></a><h2>Return value</h2><p>Returns 0 if successful, or a negative value in case of error.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdisconnectcard"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_disconnect_card &#8212; Disconnect from a smart card</p></div><div class="refsect1" lang="en"><a name="id2518276"></a><h2>Synopsis</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id279976"></a><h2>Return value</h2><p>Returns 0 if successful, or a negative value in case of error.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdisconnectcard"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_disconnect_card &#8212; Disconnect from a smart card</p></div><div class="refsect1" lang="en"><a name="id280024"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_disconnect_card(<a href="#sccardt" title="sc_card_t">sc_card_t</a> *card, int action);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2518300"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id280047"></a><h2>Description</h2><p>
 			This function disconnects from <span class="emphasis"><em>card</em></span>, and frees the card structure. Any locks made
 			by the application must be released before calling this function.
 		</p><p>
 			The <span class="emphasis"><em>action</em></span> parameter is not used at the moment and should be set to 0.
 		</p><p>
 			The card is not reset nor powered down after the operation.
-		</p></div><div class="refsect1" lang="en"><a name="id2518330"></a><h2>Return value</h2><p>Returns 0 if successful, or a negative value in case of error.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdetectcardpresence"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_detect_card_presence &#8212; Detect presence of smart card in a reader</p></div><div class="refsect1" lang="en"><a name="id2518378"></a><h2>Synopsis</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id280073"></a><h2>Return value</h2><p>Returns 0 if successful, or a negative value in case of error.</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdetectcardpresence"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_detect_card_presence &#8212; Detect presence of smart card in a reader</p></div><div class="refsect1" lang="en"><a name="id280121"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_detect_card_presence(sc_reader_t *reader, int slot_id);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2518396"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id280138"></a><h2>Description</h2><p>
 			This function checks whether <span class="emphasis"><em>reader</em></span> has a card present in
 			<span class="emphasis"><em>slot_id</em></span>.
-		</p></div><div class="refsect1" lang="en"><a name="id2449918"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id280157"></a><h2>Return value</h2><p>
 			If an error occurred, the return value is a a negative OpenSC error code. If no card is present, 0
 			is returned. Otherwise, a positive value is returned, which is a combination of flags. The flag
 			SC_SLOT_CARD_PRESENT is always set. In addition, if the card was exchanged, the
 			SC_SLOT_CARD_CHANGED flag is set.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sccardvalid"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_card_valid &#8212; Check if a card is valid</p></div><div class="refsect1" lang="en"><a name="id2449971"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sccardvalid"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_card_valid &#8212; Check if a card is valid</p></div><div class="refsect1" lang="en"><a name="id306199"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_card_valid(const <a href="#sccardt" title="sc_card_t">sc_card_t</a> *card);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2449995"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id306219"></a><h2>Description</h2><p>
 			Checks if <span class="emphasis"><em>card</em></span> is a valid <a href="#sccardt" title="sc_card_t">sc_card_t</a> object.
 			Mostly used internally by the library.
-		</p></div><div class="refsect1" lang="en"><a name="id2450017"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id306237"></a><h2>Return value</h2><p>
 			Returns 1 if <span class="emphasis"><em>card</em></span> is a valid object.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scsetcarddriver"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_set_card_driver &#8212; Force the use of a specified smart card driver</p></div><div class="refsect1" lang="en"><a name="id2450070"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scsetcarddriver"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_set_card_driver &#8212; Force the use of a specified smart card driver</p></div><div class="refsect1" lang="en"><a name="id306282"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_set_card_driver(struct sc_context *ctx, const char *short_name);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2450089"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id306297"></a><h2>Description</h2><p>
 			This function forces the use of a a specific card driver to be used in context
 			<span class="emphasis"><em>ctx</em></span>. The name of the driver is specified in <span class="emphasis"><em>short_name</em></span>.
 			Possible options are:
@@ -185,48 +185,48 @@ int sc_set_card_driver(struct sc_context *ctx, const char *short_name);
 			This function only needs to be called if OpenSC fails to auto-detect your card. If used, it
 			should be called immediately after establishing a new context with <a href="#scestablishcontext" title="sc_establish_context">sc_establish_context()</a>, but before doing anything else with
 			the context.
-		</p></div><div class="refsect1" lang="en"><a name="id2541917"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id306375"></a><h2>Return value</h2><p>
 			If an error occurred, a negative value is returned indicating the error. Otherwise, 0 is
 			returned.
-		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id2448716"></a>Chapter 2. Card operations</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#sccardctl">sc_card_ctl</a></span><span class="refpurpose"> - Send a control command to a card</span></dt><dt><span class="refentrytitle"><a href="#sclock">sc_lock</a></span><span class="refpurpose"> - Lock a card for exclusive use</span></dt><dt><span class="refentrytitle"><a href="#scunlock">sc_unlock</a></span><span class="refpurpose"> - Unlock a card</span></dt><dt><span class="refentrytitle"><a href="#scwaitforevent">sc_wait_for_event</a></span><span class="refpurpose"> - Wait for an event on a smart card reader</span></dt><dt><span class="refentrytitle"><a href="#scformatapdu">sc_format_apdu</a></span><span class="refpurpose"> - Populate an APDU structure</span></dt><dt><span class="refentrytitle"><a href="#sctransmitapdu">sc_transmit_apdu</a></span><span class="refpurpose"> - Transmit an APDU structure</span></dt><dt><span class="refentrytitle"><a href="#scchecksw">sc_check_sw</a></span><span class="refpurpose"> - Check return status from a card transaction</span></dt><dt><span class="refentrytitle"><a href="#scgetchallenge">sc_get_challenge</a></span><span class="refpurpose"> - Request a challenge from a card</span></dt><dt><span class="refentrytitle"><a href="#scgetdata">sc_get_data</a></span><span class="refpurpose"> - Get a primitive data object from a card</span></dt><dt><span class="refentrytitle"><a href="#scputdata">sc_put_data</a></span><span class="refpurpose"> - Store a primitive data object on a card</span></dt></dl></div><div class="refentry" lang="en"><a name="sccardctl"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_card_ctl &#8212; Send a control command to a card</p></div><div class="refsect1" lang="en"><a name="id2519517"></a><h2>Synopsis</h2><p>
+		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id282926"></a>Chapter 2. Card operations</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#sccardctl">sc_card_ctl</a></span><span class="refpurpose"> - Send a control command to a card</span></dt><dt><span class="refentrytitle"><a href="#sclock">sc_lock</a></span><span class="refpurpose"> - Lock a card for exclusive use</span></dt><dt><span class="refentrytitle"><a href="#scunlock">sc_unlock</a></span><span class="refpurpose"> - Unlock a card</span></dt><dt><span class="refentrytitle"><a href="#scwaitforevent">sc_wait_for_event</a></span><span class="refpurpose"> - Wait for an event on a smart card reader</span></dt><dt><span class="refentrytitle"><a href="#scformatapdu">sc_format_apdu</a></span><span class="refpurpose"> - Populate an APDU structure</span></dt><dt><span class="refentrytitle"><a href="#sctransmitapdu">sc_transmit_apdu</a></span><span class="refpurpose"> - Transmit an APDU structure</span></dt><dt><span class="refentrytitle"><a href="#scchecksw">sc_check_sw</a></span><span class="refpurpose"> - Check return status from a card transaction</span></dt><dt><span class="refentrytitle"><a href="#scgetchallenge">sc_get_challenge</a></span><span class="refpurpose"> - Request a challenge from a card</span></dt><dt><span class="refentrytitle"><a href="#scgetdata">sc_get_data</a></span><span class="refpurpose"> - Get a primitive data object from a card</span></dt><dt><span class="refentrytitle"><a href="#scputdata">sc_put_data</a></span><span class="refpurpose"> - Store a primitive data object on a card</span></dt></dl></div><div class="refentry" lang="en"><a name="sccardctl"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_card_ctl &#8212; Send a control command to a card</p></div><div class="refsect1" lang="en"><a name="id286929"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_card_ctl(struct sc_card *card, unsigned long cmd, void *args);
 
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2449069"></a><h2>Description</h2><p>This function is used to send various control commands to the smart card associated with
+		</p></div><div class="refsect1" lang="en"><a name="id285907"></a><h2>Description</h2><p>This function is used to send various control commands to the smart card associated with
 			<span class="emphasis"><em>card</em></span>. The command is specified in <span class="emphasis"><em>cmd</em></span>, and any
 			command-specific arguments are pointed to by <span class="emphasis"><em>args</em></span>.
 		</p><p>
 			Commands are specific to cards. For more details on which cards accept which
 			commands, check the documentation for your card.
-		</p></div><div class="refsect1" lang="en"><a name="id2544567"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307083"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sclock"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_lock &#8212; Lock a card for exclusive use</p></div><div class="refsect1" lang="en"><a name="id2514100"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sclock"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_lock &#8212; Lock a card for exclusive use</p></div><div class="refsect1" lang="en"><a name="id275905"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_lock(struct sc_card *card);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2514117"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id275922"></a><h2>Description</h2><p>
 			This function locks the card against modification from other threads or processes. The function
 			may be called several times; a counter will be increased, and the card will be unlocked only
 			when this counter reaches zero.
-		</p></div><div class="refsect1" lang="en"><a name="id2514132"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id275935"></a><h2>Return value</h2><p>
 			Returns 0 on success, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scunlock"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_unlock &#8212; Unlock a card</p></div><div class="refsect1" lang="en"><a name="id2514180"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scunlock"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_unlock &#8212; Unlock a card</p></div><div class="refsect1" lang="en"><a name="id281771"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_unlock(struct sc_card *card);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2514199"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id281788"></a><h2>Description</h2><p>
 			This function unlocks <span class="emphasis"><em>card</em></span>. That is, the lock count is decreased, and the
 			card unlocked if it reaches zero.
-		</p></div><div class="refsect1" lang="en"><a name="id2514215"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id281803"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scwaitforevent"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_wait_for_event &#8212; Wait for an event on a smart card reader</p></div><div class="refsect1" lang="en"><a name="id2542961"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scwaitforevent"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_wait_for_event &#8212; Wait for an event on a smart card reader</p></div><div class="refsect1" lang="en"><a name="id240818"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -234,7 +234,7 @@ int sc_wait_for_event(sc_reader_t *readers[], int slots[], size_t numslots,
                       unsigned int event_mask,
                       int *reader, unsigned int *event, int timeout);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2542982"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id240837"></a><h2>Description</h2><p>
 			This function blocks until an event occurs on any of the
 			readers/slots specified. The <span class="emphasis"><em>readers</em></span> and <span class="emphasis"><em>slots</em></span>
 			fields list the readers and
@@ -251,40 +251,40 @@ int sc_wait_for_event(sc_reader_t *readers[], int slots[], size_t numslots,
 			The timeout parameter may be used to specify the maximum amount of
 			time to wait for an event, in milliseconds. This may be set to -1
 			to wait forever.
-		</p></div><div class="refsect1" lang="en"><a name="id2543063"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id240915"></a><h2>Return value</h2><p>
 			Returns 0 if successful, 1 if a timeout occurred, or a negative
 			value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scformatapdu"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_format_apdu &#8212; Populate an APDU structure</p></div><div class="refsect1" lang="en"><a name="id2450456"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scformatapdu"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_format_apdu &#8212; Populate an APDU structure</p></div><div class="refsect1" lang="en"><a name="id307201"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_format_apdu(struct sc_card *card, sc_apdu_t *apdu,
                     int cse, int ins, int p1, int p2);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2450475"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307218"></a><h2>Description</h2><p>
 			This function populates the <a href="#">sc_apdu_t</a> structure
 			pointed to by <span class="emphasis"><em>apdu</em></span> on <span class="emphasis"><em>card</em></span>. It does
 			not allocate memory. The <span class="emphasis"><em>cse</em></span>, <span class="emphasis"><em>ins</em></span>,
 			<span class="emphasis"><em>p1</em></span> and <span class="emphasis"><em>p2</em></span> parameters correspond to
 			the respective APDU parameters as described in the <a href="#">ISO 7816</a> standard.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sctransmitapdu"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_transmit_apdu &#8212; Transmit an APDU structure</p></div><div class="refsect1" lang="en"><a name="id2450559"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sctransmitapdu"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_transmit_apdu &#8212; Transmit an APDU structure</p></div><div class="refsect1" lang="en"><a name="id307300"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_transmit_apdu(struct sc_card *card, sc_apdu_t *apdu);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2518972"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id282511"></a><h2>Description</h2><p>
 			This function transmits the APDU in <span class="emphasis"><em>apdu</em></span> to
 			<span class="emphasis"><em>card</em></span>.
-		</p></div><div class="refsect1" lang="en"><a name="id2518990"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id282529"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scchecksw"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_check_sw &#8212; Check return status from a card transaction</p></div><div class="refsect1" lang="en"><a name="id2519039"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scchecksw"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_check_sw &#8212; Check return status from a card transaction</p></div><div class="refsect1" lang="en"><a name="id282577"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_check_sw(struct sc_card *card, int sw1, int sw2);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2519058"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id282594"></a><h2>Description</h2><p>
 			This function checks the return status as given in <span class="emphasis"><em>sw1</em></span>
 			and <span class="emphasis"><em>sw2</em></span> against the card-specific errors of
 			<span class="emphasis"><em>card</em></span>. These are set by <a href="#sctransmitapdu" title="sc_transmit_apdu">sc_transmit_apdu()</a> in the
@@ -293,28 +293,28 @@ int sc_check_sw(struct sc_card *card, int sw1, int sw2);
 		</p><p>
 			The function should be called after every APDU transmission, to convert the
 			card's status code to an OpenSC error code.
-		</p></div><div class="refsect1" lang="en"><a name="id2519100"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id282634"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scgetchallenge"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_get_challenge &#8212; Request a challenge from a card</p></div><div class="refsect1" lang="en"><a name="id2519151"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scgetchallenge"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_get_challenge &#8212; Request a challenge from a card</p></div><div class="refsect1" lang="en"><a name="id282683"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_get_challenge(struct sc_card *card, unsigned char *rnd, size_t len);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2519170"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id282700"></a><h2>Description</h2><p>
 			This function requests a challenge (i.e. random bytes) from
 			<span class="emphasis"><em>card</em></span>. The returned data will be stored in
 			<span class="emphasis"><em>rnd</em></span>, and will be <span class="emphasis"><em>len</em></span> bytes long.
-		</p></div><div class="refsect1" lang="en"><a name="id2519194"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id282723"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scgetdata"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_get_data &#8212; Get a primitive data object from a card</p></div><div class="refsect1" lang="en"><a name="id2518418"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scgetdata"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_get_data &#8212; Get a primitive data object from a card</p></div><div class="refsect1" lang="en"><a name="id307380"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_get_data(sc_card_t *card, unsigned int tag,
                 unsigned char *buf, size_t buflen);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2518437"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307396"></a><h2>Description</h2><p>
 			This function is used to retrieve a primitive data object from
 			<span class="emphasis"><em>card</em></span>. It corresponds to the GET DATA command in the
 			<a href="#">ISO 7816</a> standard. The data is stored in
@@ -322,16 +322,16 @@ int sc_get_data(sc_card_t *card, unsigned int tag,
 		</p><p>
 			The <span class="emphasis"><em>tag</em></span> parameter specifies the object to be retrieved.
 			Refer to the standard for the correct values to use.
-		</p></div><div class="refsect1" lang="en"><a name="id2518477"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307431"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scputdata"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_put_data &#8212; Store a primitive data object on a card</p></div><div class="refsect1" lang="en"><a name="id2518527"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scputdata"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_put_data &#8212; Store a primitive data object on a card</p></div><div class="refsect1" lang="en"><a name="id307480"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_put_data(sc_card_t *card, unsigned int tag,
                 const unsigned char *buf, size_t len);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2518546"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307498"></a><h2>Description</h2><p>
 			This function is used to store a primitive data object on
 			<span class="emphasis"><em>card</em></span>. It corresponds to the PUT DATA command in the
 			<a href="#">ISO 7816</a> standard. The data to be sent to the
@@ -340,36 +340,36 @@ int sc_put_data(sc_card_t *card, unsigned int tag,
 		</p><p>
 			The <span class="emphasis"><em>tag</em></span> parameter specifies the object to be stored.
 			Refer to the standard for the correct values to use.
-		</p></div><div class="refsect1" lang="en"><a name="id2518586"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307535"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id2483389"></a>Chapter 3. File operations</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scfilenew">sc_file_new</a></span><span class="refpurpose"> - Create a file object</span></dt><dt><span class="refentrytitle"><a href="#scfiledup">sc_file_dup</a></span><span class="refpurpose"> - Duplicate a file object</span></dt><dt><span class="refentrytitle"><a href="#sccreatefile">sc_create_file</a></span><span class="refpurpose"> - Create a file object</span></dt><dt><span class="refentrytitle"><a href="#scselectfile">sc_select_file</a></span><span class="refpurpose"> - Select a file on a smart card</span></dt><dt><span class="refentrytitle"><a href="#scfilefree">sc_file_free</a></span><span class="refpurpose"> - Free file object</span></dt><dt><span class="refentrytitle"><a href="#sclistfiles">sc_list_files</a></span><span class="refpurpose"> - List files</span></dt><dt><span class="refentrytitle"><a href="#scdeletefile">sc_delete_file</a></span><span class="refpurpose"> - Delete a file</span></dt><dt><span class="refentrytitle"><a href="#screadbinary">sc_read_binary</a></span><span class="refpurpose"> - Read a file</span></dt><dt><span class="refentrytitle"><a href="#scupdatebinary">sc_update_binary</a></span><span class="refpurpose"> - Write to an existing file</span></dt><dt><span class="refentrytitle"><a href="#scwritebinary">sc_write_binary</a></span><span class="refpurpose"> - Write to a new file</span></dt><dt><span class="refentrytitle"><a href="#screadrecord">sc_read_record</a></span><span class="refpurpose"> - Read a record from a file</span></dt><dt><span class="refentrytitle"><a href="#scwriterecord">sc_write_record</a></span><span class="refpurpose"> - Write a record to a file</span></dt><dt><span class="refentrytitle"><a href="#scupdaterecord">sc_update_record</a></span><span class="refpurpose"> - Write a record to an existing file</span></dt><dt><span class="refentrytitle"><a href="#scappendrecord">sc_append_record</a></span><span class="refpurpose"> - Append a record to a file</span></dt><dt><span class="refentrytitle"><a href="#scdeleterecord">sc_delete_record</a></span><span class="refpurpose"> - Delete a record from a file</span></dt></dl></div><div class="refentry" lang="en"><a name="scfilenew"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_new &#8212; Create a file object</p></div><div class="refsect1" lang="en"><a name="id2518600"></a><h2>Synopsis</h2><p>
+		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id307123"></a>Chapter 3. File operations</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scfilenew">sc_file_new</a></span><span class="refpurpose"> - Create a file object</span></dt><dt><span class="refentrytitle"><a href="#scfiledup">sc_file_dup</a></span><span class="refpurpose"> - Duplicate a file object</span></dt><dt><span class="refentrytitle"><a href="#sccreatefile">sc_create_file</a></span><span class="refpurpose"> - Create a file object</span></dt><dt><span class="refentrytitle"><a href="#scselectfile">sc_select_file</a></span><span class="refpurpose"> - Select a file on a smart card</span></dt><dt><span class="refentrytitle"><a href="#scfilefree">sc_file_free</a></span><span class="refpurpose"> - Free file object</span></dt><dt><span class="refentrytitle"><a href="#sclistfiles">sc_list_files</a></span><span class="refpurpose"> - List files</span></dt><dt><span class="refentrytitle"><a href="#scdeletefile">sc_delete_file</a></span><span class="refpurpose"> - Delete a file</span></dt><dt><span class="refentrytitle"><a href="#screadbinary">sc_read_binary</a></span><span class="refpurpose"> - Read a file</span></dt><dt><span class="refentrytitle"><a href="#scupdatebinary">sc_update_binary</a></span><span class="refpurpose"> - Write to an existing file</span></dt><dt><span class="refentrytitle"><a href="#scwritebinary">sc_write_binary</a></span><span class="refpurpose"> - Write to a new file</span></dt><dt><span class="refentrytitle"><a href="#screadrecord">sc_read_record</a></span><span class="refpurpose"> - Read a record from a file</span></dt><dt><span class="refentrytitle"><a href="#scwriterecord">sc_write_record</a></span><span class="refpurpose"> - Write a record to a file</span></dt><dt><span class="refentrytitle"><a href="#scupdaterecord">sc_update_record</a></span><span class="refpurpose"> - Write a record to an existing file</span></dt><dt><span class="refentrytitle"><a href="#scappendrecord">sc_append_record</a></span><span class="refpurpose"> - Append a record to a file</span></dt><dt><span class="refentrytitle"><a href="#scdeleterecord">sc_delete_record</a></span><span class="refpurpose"> - Delete a record from a file</span></dt></dl></div><div class="refentry" lang="en"><a name="scfilenew"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_new &#8212; Create a file object</p></div><div class="refsect1" lang="en"><a name="id251318"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 <a href="#scfilet" title="sc_file_t">sc_file_t</a> *sc_file_new(void);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2450579"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309343"></a><h2>Description</h2><p>
 			This function creates an empty OpenSC file object, which can later be passed to <a href="#sccreatefile" title="sc_create_file">sc_create_file()</a>.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfiledup"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_dup &#8212; Duplicate a file object</p></div><div class="refsect1" lang="en"><a name="id2450633"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfiledup"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_dup &#8212; Duplicate a file object</p></div><div class="refsect1" lang="en"><a name="id309396"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_file_dup(<a href="#scfilet" title="sc_file_t">sc_file_t</a> **dest, const <a href="#scfilet" title="sc_file_t">sc_file_t</a> *src)
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2450662"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id287687"></a><h2>Description</h2><p>
 			This function creates a new file object, duplicates all file information from
 			<span class="emphasis"><em>src</em></span> into it, and stores it in the pointer pointed to by
 			<span class="emphasis"><em>dest</em></span>. This object must be released with <a href="#scfilefree" title="sc_file_free">sc_file_free()</a> after use.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sccreatefile"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_create_file &#8212; Create a file object</p></div><div class="refsect1" lang="en"><a name="id2529860"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sccreatefile"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_create_file &#8212; Create a file object</p></div><div class="refsect1" lang="en"><a name="id287357"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_create_file(<a href="#sccardt" title="sc_card_t">sc_card_t</a> *card, <a href="#scfilet" title="sc_file_t">sc_file_t</a> *file);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2529889"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id287386"></a><h2>Description</h2><p>
 			This function creates a file on <span class="emphasis"><em>card</em></span>. The <span class="emphasis"><em>file</em></span> must
 			have been created with a call to <a href="#scfilenew" title="sc_file_new">sc_file_new()</a> beforehand.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scselectfile"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_select_file &#8212; Select a file on a smart card</p></div><div class="refsect1" lang="en"><a name="id2529950"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scselectfile"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_select_file &#8212; Select a file on a smart card</p></div><div class="refsect1" lang="en"><a name="id301938"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -378,7 +378,7 @@ int sc_select_file(<a href="#sccardt" title="sc_card_t">sc_card_t</a> *card,
                    <a href="#scfilet" title="sc_file_t">sc_file_t</a> **result);
 
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2529985"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id301972"></a><h2>Description</h2><p>
 			This function selects the file specified by <span class="emphasis"><em>path</em></span>. If
 			<span class="emphasis"><em>path</em></span> specifies a file within the currently selected DF, sc_select_file() will
 			<span class="emphasis"><em>not</em></span> select the MF first, but interpret the path relative to the current DF.
@@ -388,41 +388,41 @@ int sc_select_file(<a href="#sccardt" title="sc_card_t">sc_card_t</a> *card,
 			If <span class="emphasis"><em>result</em></span> is not NULL, an <a href="#scfilet" title="sc_file_t">sc_file_t</a> object is
 			created, and the pointer to this object is stored in the location pointed to by
 			<span class="emphasis"><em>result</em></span>. This handle should later be released using <a href="#scfilefree" title="sc_file_free">sc_file_free()</a>.
-		</p></div><div class="refsect1" lang="en"><a name="id2536833"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id302020"></a><h2>Return value</h2><p>
 			If an error occurred, a negative error code is returned. Otherwise, the function will return 0.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfilefree"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_free &#8212; Free file object</p></div><div class="refsect1" lang="en"><a name="id2536883"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfilefree"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_free &#8212; Free file object</p></div><div class="refsect1" lang="en"><a name="id309519"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_file_free(<a href="#scfilet" title="sc_file_t">sc_file_t</a> *file);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2536906"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309542"></a><h2>Description</h2><p>
 			This function releases a file object previously allocated by <a href="#scselectfile" title="sc_select_file">sc_select_file()</a>.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sclistfiles"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_list_files &#8212; List files</p></div><div class="refsect1" lang="en"><a name="id2536960"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sclistfiles"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_list_files &#8212; List files</p></div><div class="refsect1" lang="en"><a name="id309596"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_list_files(struct sc_card *card, unsigned char *buf, size_t buflen);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2536979"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309614"></a><h2>Description</h2><p>
 			This function lists all files in the currently selected DF, and stores the file IDs as big-endian
 			16-bit words in <span class="emphasis"><em>buffer</em></span>, which is <span class="emphasis"><em>buflen</em></span> bytes long. If
 			the supplied buffer is too small to hold all file IDs, the listing is silently truncated.
-		</p></div><div class="refsect1" lang="en"><a name="id2537002"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309635"></a><h2>Return value</h2><p>
 			Returns the number of bytes stored in <span class="emphasis"><em>buffer</em></span>, or a negative value in case of
 			error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdeletefile"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_delete_file &#8212; Delete a file</p></div><div class="refsect1" lang="en"><a name="id2537055"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdeletefile"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_delete_file &#8212; Delete a file</p></div><div class="refsect1" lang="en"><a name="id273446"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_delete_file(struct sc_card *card, const struct sc_path *path);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2507507"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id273464"></a><h2>Description</h2><p>
 			This function deletes a file specified by <span class="emphasis"><em>path</em></span> on
 			<span class="emphasis"><em>card</em></span>.
-		</p></div><div class="refsect1" lang="en"><a name="id2507526"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id273482"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="screadbinary"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_read_binary &#8212; Read a file</p></div><div class="refsect1" lang="en"><a name="id2507576"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="screadbinary"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_read_binary &#8212; Read a file</p></div><div class="refsect1" lang="en"><a name="id273531"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -430,7 +430,7 @@ int sc_read_binary(struct sc_card *card, unsigned int offset,
                    unsigned char *buf, size_t count,
                    unsigned long flags);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2507596"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id273550"></a><h2>Description</h2><p>
 			This function reads from a transparent elementary file (EF) on <span class="emphasis"><em>card</em></span>. It
 			corresponds to the <a href="#">ISO 7816</a> READ BINARY function. Call <a href="#scselectfile" title="sc_select_file">sc_select_file()</a> first to select the file to read from.
 		</p><p>
@@ -439,10 +439,10 @@ int sc_read_binary(struct sc_card *card, unsigned int offset,
 		</p><p>
 			The <span class="emphasis"><em>offset</em></span> argument specifies the file offset in bytes. The
 			<span class="emphasis"><em>flags</em></span> argument is currently not used, and should be set to 0.
-		</p></div><div class="refsect1" lang="en"><a name="id2507650"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id273598"></a><h2>Return value</h2><p>
 			If successful, the number of bytes read is returned. Otherwise, a negative value is
 			returned.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scupdatebinary"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_update_binary &#8212; Write to an existing file</p></div><div class="refsect1" lang="en"><a name="id2507700"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scupdatebinary"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_update_binary &#8212; Write to an existing file</p></div><div class="refsect1" lang="en"><a name="id273647"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -450,7 +450,7 @@ int sc_update_binary(struct sc_card *card, unsigned int offset,
                      const unsigned char *buf, size_t count,
                      unsigned long flags);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2507720"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309703"></a><h2>Description</h2><p>
 			This function writes <span class="emphasis"><em>count</em></span> bytes from the buffer pointed to by
 			<span class="emphasis"><em>buf</em></span> to a transparent elementary file (EF) on <span class="emphasis"><em>card</em></span>. It
 			corresponds to the <a href="#">ISO 7816</a> UPDATE BINARY function. Call <a href="#scselectfile" title="sc_select_file">sc_select_file()</a> first to select the file to write to.
@@ -460,10 +460,10 @@ int sc_update_binary(struct sc_card *card, unsigned int offset,
 		</p><p>
 			The <span class="emphasis"><em>offset</em></span> argument specifies the file offset in bytes. The
 			<span class="emphasis"><em>flags</em></span> argument is currently not used, and should be set to 0.
-		</p></div><div class="refsect1" lang="en"><a name="id2546588"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309752"></a><h2>Return value</h2><p>
 			If successful, the number of bytes written is returned. Otherwise, a negative value is
 			returned.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scwritebinary"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_write_binary &#8212; Write to a new file</p></div><div class="refsect1" lang="en"><a name="id2546639"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scwritebinary"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_write_binary &#8212; Write to a new file</p></div><div class="refsect1" lang="en"><a name="id309800"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -471,7 +471,7 @@ int sc_write_binary(struct sc_card *card, unsigned int offset,
                     const unsigned char *buf, size_t count,
                     unsigned long flags);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2546659"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309818"></a><h2>Description</h2><p>
 			This function writes <span class="emphasis"><em>count</em></span> bytes from the buffer pointed to by
 			<span class="emphasis"><em>buf</em></span> to a transparent elementary file (EF) on <span class="emphasis"><em>card</em></span>. It
 			corresponds to the <a href="#">ISO 7816</a> WRITE BINARY function. Call <a href="#scselectfile" title="sc_select_file">sc_select_file()</a> first to select the file to write to.
@@ -481,10 +481,10 @@ int sc_write_binary(struct sc_card *card, unsigned int offset,
 		</p><p>
 			The <span class="emphasis"><em>offset</em></span> argument specifies the file offset in bytes. The
 			<span class="emphasis"><em>flags</em></span> argument is currently not used, and should be set to 0.
-		</p></div><div class="refsect1" lang="en"><a name="id2546720"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309874"></a><h2>Return value</h2><p>
 			If successful, the number of bytes written is returned. Otherwise, a negative value is
 			returned.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="screadrecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_read_record &#8212; Read a record from a file</p></div><div class="refsect1" lang="en"><a name="id2546771"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="screadrecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_read_record &#8212; Read a record from a file</p></div><div class="refsect1" lang="en"><a name="id309924"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -492,7 +492,7 @@ int sc_read_record(struct sc_card *card, unsigned int record,
                    unsigned char *buf, size_t buflen,
                    unsigned long flags);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2546791"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309942"></a><h2>Description</h2><p>
 			This function reads a record-structured elementary file (EF) from <span class="emphasis"><em>card</em></span>. The
 			function corresponds to the <a href="#">ISO 7816</a> READ RECORD function. Call
 			<a href="#scselectfile" title="sc_select_file">sc_select_file()</a> first to select the file to read from.
@@ -503,9 +503,9 @@ int sc_read_record(struct sc_card *card, unsigned int record,
 		</p><p>
 			The read data is stored in <span class="emphasis"><em>buf</em></span>, which is <span class="emphasis"><em>buflen</em></span> bytes
 			long.
-		</p></div><div class="refsect1" lang="en"><a name="id2546852"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id309999"></a><h2>Return value</h2><p>
 			Returns the number of bytes read if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scwriterecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_write_record &#8212; Write a record to a file</p></div><div class="refsect1" lang="en"><a name="id2546902"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scwriterecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_write_record &#8212; Write a record to a file</p></div><div class="refsect1" lang="en"><a name="id310048"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -513,7 +513,7 @@ int sc_write_record(struct sc_card *card, unsigned int record,
                     const unsigned char *buf, size_t buflen,
                     unsigned long flags);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2546923"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310067"></a><h2>Description</h2><p>
 			This function writes a record that is <span class="emphasis"><em>buflen</em></span> bytes long from the buffer
 			pointed to by <span class="emphasis"><em>buf</em></span> to a record-structured elementary file (EF) on
 			<span class="emphasis"><em>card</em></span>. The function corresponds to the <a href="#">ISO
@@ -526,9 +526,9 @@ int sc_write_record(struct sc_card *card, unsigned int record,
 		</p><p>
 			This function is used for newly created files only; for updating or appending to
 			existing files, see the <a href="#scupdaterecord" title="sc_update_record">sc_update_record()</a> and <a href="#scappendrecord" title="sc_append_record">sc_append_record()</a> functions, respectively.
-		</p></div><div class="refsect1" lang="en"><a name="id2547000"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310136"></a><h2>Return value</h2><p>
 			Returns the number of bytes written if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scupdaterecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_update_record &#8212; Write a record to an existing file</p></div><div class="refsect1" lang="en"><a name="id2547050"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scupdaterecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_update_record &#8212; Write a record to an existing file</p></div><div class="refsect1" lang="en"><a name="id310185"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -536,7 +536,7 @@ int sc_update_record(struct sc_card *card, unsigned int record,
                      const unsigned char *buf, size_t buflen,
                      unsigned long flags);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2547145"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310204"></a><h2>Description</h2><p>
 			This function writes a record that is <span class="emphasis"><em>buflen</em></span> bytes long from the buffer
 			pointed to by <span class="emphasis"><em>buf</em></span> to a record-structured elementary file (EF) on
 			<span class="emphasis"><em>card</em></span>. The function corresponds to the <a href="#">ISO
@@ -549,9 +549,9 @@ int sc_update_record(struct sc_card *card, unsigned int record,
 		</p><p>
 			This function can be used for overwriting existing records only; for appending to
 			files, see the <a href="#scappendrecord" title="sc_append_record">sc_append_record()</a> function.
-		</p></div><div class="refsect1" lang="en"><a name="id2547207"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310267"></a><h2>Return value</h2><p>
 			Returns the number of bytes written if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scappendrecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_append_record &#8212; Append a record to a file</p></div><div class="refsect1" lang="en"><a name="id2547251"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scappendrecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_append_record &#8212; Append a record to a file</p></div><div class="refsect1" lang="en"><a name="id310316"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -559,41 +559,41 @@ int sc_append_record(struct sc_card *card,
                      const unsigned char *buf, size_t buflen,
                      unsigned long flags);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2547271"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310335"></a><h2>Description</h2><p>
 			This function appends a record that is <span class="emphasis"><em>buflen</em></span> bytes long from the buffer
 			pointed to by <span class="emphasis"><em>buf</em></span> to a record-structured elementary file (EF) on
 			<span class="emphasis"><em>card</em></span>. The function corresponds to the <a href="#">ISO
 				7816</a> APPEND RECORD function. Call <a href="#scselectfile" title="sc_select_file">sc_select_file()</a>
 			first to select the file to write to.
-		</p></div><div class="refsect1" lang="en"><a name="id2547309"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310368"></a><h2>Return value</h2><p>
 			Returns the number of bytes written if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdeleterecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_delete_record &#8212; Delete a record from a file</p></div><div class="refsect1" lang="en"><a name="id2547359"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdeleterecord"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_delete_record &#8212; Delete a record from a file</p></div><div class="refsect1" lang="en"><a name="id310418"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_delete_record(struct sc_card *card, unsigned int rec_nr);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2547378"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310436"></a><h2>Description</h2><p>
 			This function deletes a record specified by <span class="emphasis"><em>rec_nr</em></span> on
 			<span class="emphasis"><em>card</em></span>. This is not a standard <a href="#">ISO
 				7816</a> operation, and is currently only supported on the <a href="#">Oberthur</a> smart cards.
-		</p></div><div class="refsect1" lang="en"><a name="id2547410"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310466"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id2516701"></a>Chapter 4. Applications</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scenumapps">sc_enum_apps</a></span><span class="refpurpose"> - Enumerate the applications on a card</span></dt><dt><span class="refentrytitle"><a href="#scfindappbyaid">sc_find_app_by_aid</a></span><span class="refpurpose"> - Find an application on a card</span></dt><dt><span class="refentrytitle"><a href="#scfindpkcs15app">sc_find_pkcs15_app</a></span><span class="refpurpose"> - Find a PKCS#15 application on a card</span></dt><dt><span class="refentrytitle"><a href="#scupdatedir">sc_update_dir</a></span><span class="refpurpose"> - Update application directory on a card</span></dt><dt><span class="refentrytitle"><a href="#scfreeapps">sc_free_apps</a></span><span class="refpurpose"> - Free application list</span></dt></dl></div><div class="refentry" lang="en"><a name="scenumapps"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_enum_apps &#8212; Enumerate the applications on a card</p></div><div class="refsect1" lang="en"><a name="id2521533"></a><h2>Synopsis</h2><p>
+		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id279401"></a>Chapter 4. Applications</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scenumapps">sc_enum_apps</a></span><span class="refpurpose"> - Enumerate the applications on a card</span></dt><dt><span class="refentrytitle"><a href="#scfindappbyaid">sc_find_app_by_aid</a></span><span class="refpurpose"> - Find an application on a card</span></dt><dt><span class="refentrytitle"><a href="#scfindpkcs15app">sc_find_pkcs15_app</a></span><span class="refpurpose"> - Find a PKCS#15 application on a card</span></dt><dt><span class="refentrytitle"><a href="#scupdatedir">sc_update_dir</a></span><span class="refpurpose"> - Update application directory on a card</span></dt><dt><span class="refentrytitle"><a href="#scfreeapps">sc_free_apps</a></span><span class="refpurpose"> - Free application list</span></dt></dl></div><div class="refentry" lang="en"><a name="scenumapps"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_enum_apps &#8212; Enumerate the applications on a card</p></div><div class="refsect1" lang="en"><a name="id281025"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_enum_apps(struct sc_card *card);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2538387"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id286640"></a><h2>Description</h2><p>
 			This function enumerates the applications on <span class="emphasis"><em>card</em></span>, and
 			stores them in the structure. The list of applications can then later be
 			searched with <a href="#scfindappbyaid" title="sc_find_app_by_aid">sc_find_app_by_aid()</a> or
 			<a href="#scfindpkcs15app" title="sc_find_pkcs15_app">sc_find_pkcs15_app()</a>.
-		</p></div><div class="refsect1" lang="en"><a name="id2545425"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id287608"></a><h2>Return value</h2><p>
 			Returns the number of applications on the card, or a negative value in case
 			of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfindappbyaid"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_find_app_by_aid &#8212; Find an application on a card</p></div><div class="refsect1" lang="en"><a name="id2545475"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfindappbyaid"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_find_app_by_aid &#8212; Find an application on a card</p></div><div class="refsect1" lang="en"><a name="id287656"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -601,63 +601,63 @@ const sc_app_info_t *sc_find_app_by_aid(sc_card_t *card,
                                         const unsigned char *aid,
                                         size_t aid_len);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2545496"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id265880"></a><h2>Description</h2><p>
 			This function finds an application on <span class="emphasis"><em>card</em></span> by its
 			<span class="emphasis"><em>aid</em></span>. The AID's length is specified in
 			<span class="emphasis"><em>aid_len</em></span>.
 		</p><p>
 			Before calling this function, you MUST call <a href="#scenumapps" title="sc_enum_apps">sc_enum_apps()</a> first.
-		</p></div><div class="refsect1" lang="en"><a name="id2531205"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id265911"></a><h2>Return value</h2><p>
 			Returns a <a href="#scappinfot" title="sc_app_info_t">sc_app_info_t</a> structure
 			describing the application corresponding to <span class="emphasis"><em>aid</em></span>, or NULL
 			if none was found.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfindpkcs15app"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_find_pkcs15_app &#8212; Find a PKCS#15 application on a card</p></div><div class="refsect1" lang="en"><a name="id2531264"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfindpkcs15app"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_find_pkcs15_app &#8212; Find a PKCS#15 application on a card</p></div><div class="refsect1" lang="en"><a name="id270838"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 const sc_app_info_t *sc_find_pkcs15_app(sc_card_t *card);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2531282"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id270855"></a><h2>Description</h2><p>
 			This function attempts to find a PKCS#15 application on
 			<span class="emphasis"><em>card</em></span>. Currently, this means either a standard PKCS#15
 			implementation or a Belgian eID.
 		</p><p>
 			Before calling this function, you MUST call <a href="#scenumapps" title="sc_enum_apps">sc_enum_apps()</a> first.
-		</p></div><div class="refsect1" lang="en"><a name="id2531310"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id270880"></a><h2>Return value</h2><p>
 			Returns a <a href="#scappinfot" title="sc_app_info_t">sc_app_info_t</a> structure
 			describing the PKCS#15 application, or NULL if none was found.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scupdatedir"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_update_dir &#8212; Update application directory on a card</p></div><div class="refsect1" lang="en"><a name="id2504854"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scupdatedir"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_update_dir &#8212; Update application directory on a card</p></div><div class="refsect1" lang="en"><a name="id279805"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_update_dir(sc_card_t *card, sc_app_info_t *app);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2504872"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id279822"></a><h2>Description</h2><p>
 			This function updates the application directory on <span class="emphasis"><em>card</em></span>.
 			If the card has a record-structured directory file, <span class="emphasis"><em>app</em></span>
 			may contain the application to update. Otherwise, the entire directory file
 			is updated.
 		</p><p>
 			Before calling this function, you MUST call <a href="#scenumapps" title="sc_enum_apps">sc_enum_apps()</a> first.
-		</p></div><div class="refsect1" lang="en"><a name="id2504904"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id279850"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfreeapps"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_free_apps &#8212; Free application list</p></div><div class="refsect1" lang="en"><a name="id2504954"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfreeapps"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_free_apps &#8212; Free application list</p></div><div class="refsect1" lang="en"><a name="id279899"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_free_apps(struct sc_card *card);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2524719"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id270958"></a><h2>Description</h2><p>
 			This functions releases all memory associated with the list of applications
 			on <span class="emphasis"><em>card</em></span>, as obtained by a call to <a href="#scenumapps" title="sc_enum_apps">sc_enum_apps()</a>. 
-		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id2481376"></a>Chapter 5. ASN.1 functions</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scasn1encode">sc_asn1_encode</a></span><span class="refpurpose"> - Encode ASN.1 entries into a stream</span></dt><dt><span class="refentrytitle"><a href="#scasn1decode">sc_asn1_decode</a></span><span class="refpurpose"> - Extract entries from an ASN.1 stream</span></dt><dt><span class="refentrytitle"><a href="#scformatasn1entry">sc_format_asn1_entry</a></span><span class="refpurpose"> - Fill in an ASN.1 entry structure</span></dt><dt><span class="refentrytitle"><a href="#sccopyasn1entry">sc_copy_asn1_entry</a></span><span class="refpurpose"> - Copy an ASN.1 entry</span></dt><dt><span class="refentrytitle"><a href="#scasn1printtags">sc_asn1_print_tags</a></span><span class="refpurpose"> - Print an ASN.1 stream to stdout</span></dt><dt><span class="refentrytitle"><a href="#scasn1skiptag">sc_asn1_skip_tag</a></span><span class="refpurpose"> - </span></dt><dt><span class="refentrytitle"><a href="#scasn1verifytag">sc_asn1_verify_tag</a></span><span class="refpurpose"> - Verify validity of an ASN.1 tag</span></dt><dt><span class="refentrytitle"><a href="#scasn1readtag">sc_asn1_read_tag</a></span><span class="refpurpose"> - Extract a tag from an ASN.1 entry</span></dt><dt><span class="refentrytitle"><a href="#scasn1findtag">sc_asn1_find_tag</a></span><span class="refpurpose"> - Find a tag in an ASN.1 stream</span></dt><dt><span class="refentrytitle"><a href="#scasn1puttag">sc_asn1_put_tag</a></span><span class="refpurpose"> - Construct an ASN.1 entry in a buffer</span></dt></dl></div><div class="refentry" lang="en"><a name="scasn1encode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_encode &#8212; Encode ASN.1 entries into a stream</p></div><div class="refsect1" lang="en"><a name="id2487726"></a><h2>Synopsis</h2><p>
+		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id287663"></a>Chapter 5. ASN.1 functions</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scasn1encode">sc_asn1_encode</a></span><span class="refpurpose"> - Encode ASN.1 entries into a stream</span></dt><dt><span class="refentrytitle"><a href="#scasn1decode">sc_asn1_decode</a></span><span class="refpurpose"> - Extract entries from an ASN.1 stream</span></dt><dt><span class="refentrytitle"><a href="#scformatasn1entry">sc_format_asn1_entry</a></span><span class="refpurpose"> - Fill in an ASN.1 entry structure</span></dt><dt><span class="refentrytitle"><a href="#sccopyasn1entry">sc_copy_asn1_entry</a></span><span class="refpurpose"> - Copy an ASN.1 entry</span></dt><dt><span class="refentrytitle"><a href="#scasn1printtags">sc_asn1_print_tags</a></span><span class="refpurpose"> - Print an ASN.1 stream to stdout</span></dt><dt><span class="refentrytitle"><a href="#scasn1skiptag">sc_asn1_skip_tag</a></span><span class="refpurpose"> - </span></dt><dt><span class="refentrytitle"><a href="#scasn1verifytag">sc_asn1_verify_tag</a></span><span class="refpurpose"> - Verify validity of an ASN.1 tag</span></dt><dt><span class="refentrytitle"><a href="#scasn1readtag">sc_asn1_read_tag</a></span><span class="refpurpose"> - Extract a tag from an ASN.1 entry</span></dt><dt><span class="refentrytitle"><a href="#scasn1findtag">sc_asn1_find_tag</a></span><span class="refpurpose"> - Find a tag in an ASN.1 stream</span></dt><dt><span class="refentrytitle"><a href="#scasn1puttag">sc_asn1_put_tag</a></span><span class="refpurpose"> - Construct an ASN.1 entry in a buffer</span></dt></dl></div><div class="refentry" lang="en"><a name="scasn1encode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_encode &#8212; Encode ASN.1 entries into a stream</p></div><div class="refsect1" lang="en"><a name="id302473"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
                    unsigned char **newbuf, size_t *size);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2521466"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id303196"></a><h2>Description</h2><p>
 			This function encodes an array of entries pointed to by <span class="emphasis"><em>asn1</em></span> and terminated
 			by a NULL entry (i.e. where the <em class="structfield"><code>name</code></em> field of the entry is NULL) into
 			a newly allocated buffer.
@@ -665,9 +665,9 @@ int sc_asn1_encode(struct sc_context *ctx, const struct sc_asn1_entry *asn1,
 			The new buffer containing the ASN.1 stream will be stored in <span class="emphasis"><em>newbuf</em></span>, and the
 			size of this buffer is stored in <span class="emphasis"><em>size</em></span>. The application must free this buffer
 			after use.
-		</p></div><div class="refsect1" lang="en"><a name="id2547919"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id269480"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1decode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_decode &#8212; Extract entries from an ASN.1 stream</p></div><div class="refsect1" lang="en"><a name="id2539452"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1decode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_decode &#8212; Extract entries from an ASN.1 stream</p></div><div class="refsect1" lang="en"><a name="id296954"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -675,7 +675,7 @@ int sc_asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
                    const unsigned char *inbuf, size_t len,
                    const unsigned char **newbuf, size_t *len_left);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2539472"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id296973"></a><h2>Description</h2><p>
 			This function extracts information from the ASN.1 stream pointed to by <span class="emphasis"><em>inbuf</em></span>
 			(which is <span class="emphasis"><em>len</em></span> bytes in size) and stores it into the array of
 			<a href="#scasn1entry" title="sc_asn1_entry"><span class="structname">struct sc_asn_1</span></a> entries pointed to by
@@ -694,42 +694,42 @@ int sc_asn1_decode(struct sc_context *ctx, struct sc_asn1_entry *asn1,
 			<span class="emphasis"><em>newbuf</em></span> and <span class="emphasis"><em>len_left</em></span> fields may be passed in to
 			sc_asn1_decode() again, as the <span class="emphasis"><em>inbuf</em></span> and <span class="emphasis"><em>len</em></span> parameters,
 			until <span class="emphasis"><em>len</em></span> reaches 0.
-		</p></div><div class="refsect1" lang="en"><a name="id2539568"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id296750"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scformatasn1entry"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_format_asn1_entry &#8212; Fill in an ASN.1 entry structure</p></div><div class="refsect1" lang="en"><a name="id2510665"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scformatasn1entry"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_format_asn1_entry &#8212; Fill in an ASN.1 entry structure</p></div><div class="refsect1" lang="en"><a name="id225425"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_format_asn1_entry(struct sc_asn1_entry *entry, void *parm, void *arg, int set_present);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2510684"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id225443"></a><h2>Description</h2><p>
 			This function stores the <span class="emphasis"><em>parm</em></span> and <span class="emphasis"><em>arg</em></span> pointers in the
 			<a href="#scasn1entry" title="sc_asn1_entry"><span class="structname">struct sc_asn1_entry</span></a>
 			<span class="emphasis"><em>entry</em></span>. No checking is done. Since the pointers are copied directly, the
 			storage they point to must not be freed by the calling application until the entry itself is
 			destroyed.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sccopyasn1entry"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_copy_asn1_entry &#8212; Copy an ASN.1 entry</p></div><div class="refsect1" lang="en"><a name="id2510753"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="sccopyasn1entry"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_copy_asn1_entry &#8212; Copy an ASN.1 entry</p></div><div class="refsect1" lang="en"><a name="id225511"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_copy_asn1_entry(const struct sc_asn1_entry *src, struct sc_asn1_entry *dest);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2510772"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id225529"></a><h2>Description</h2><p>
 			This function copies an array of <a href="#scasn1entry" title="sc_asn1_entry"><span class="structname">struct
 				sc_asn1_entry</span></a> entries pointed to be <span class="emphasis"><em>src</em></span> to
 			<span class="emphasis"><em>dest</em></span>. The array must be NULL-terminated (that is, the last entry must have
 			its <em class="structfield"><code>name</code></em> field set to NULL). There must be enough space available in
 			<span class="emphasis"><em>dest</em></span>.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1printtags"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_print_tags &#8212; Print an ASN.1 stream to stdout</p></div><div class="refsect1" lang="en"><a name="id2532792"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1printtags"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_print_tags &#8212; Print an ASN.1 stream to stdout</p></div><div class="refsect1" lang="en"><a name="id269591"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_asn1_print_tags(const unsigned char *buf, size_t buflen);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2532811"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id269608"></a><h2>Description</h2><p>
 			This function prints the ASN.1 stream pointed to by <span class="emphasis"><em>buf</em></span>, which is of size
 			<span class="emphasis"><em>buflen</em></span>, to stdout. This is useful for debugging.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1skiptag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_skip_tag &#8212; </p></div><div class="refsect1" lang="en"><a name="id2532867"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1skiptag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_skip_tag &#8212; </p></div><div class="refsect1" lang="en"><a name="id269663"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -737,10 +737,10 @@ const unsigned char *sc_asn1_skip_tag(struct sc_context *ctx,
                                       const unsigned char **buf, size_t *buflen,
                                       unsigned int tag_in, size_t *taglen_out);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2532888"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id267998"></a><h2>Description</h2><p>
 		</p><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2532903"></a><h2>Return value</h2><p>
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1verifytag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_verify_tag &#8212; Verify validity of an ASN.1 tag</p></div><div class="refsect1" lang="en"><a name="id2532952"></a><h2>Synopsis</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id268013"></a><h2>Return value</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1verifytag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_verify_tag &#8212; Verify validity of an ASN.1 tag</p></div><div class="refsect1" lang="en"><a name="id268061"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -748,24 +748,24 @@ const unsigned char *sc_asn1_verify_tag(struct sc_context *ctx,
                                         const unsigned char *buf, size_t buflen,
                                         unsigned int tag_in, size_t *taglen_out);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2532973"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id268080"></a><h2>Description</h2><p>
 			This is an alias for the <a href="#scasn1skiptag" title="sc_asn1_skip_tag">sc_asn1_skip_tag()</a> function.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1readtag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_read_tag &#8212; Extract a tag from an ASN.1 entry</p></div><div class="refsect1" lang="en"><a name="id2538958"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1readtag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_read_tag &#8212; Extract a tag from an ASN.1 entry</p></div><div class="refsect1" lang="en"><a name="id268134"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_asn1_read_tag(const unsigned char **buf, size_t buflen,
                      unsigned int *cla_out, unsigned int *tag_out, size_t *taglen);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2538978"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id268153"></a><h2>Description</h2><p>
 			This function extracts a tag from an ASN.1 entry at the buffer pointed to by
 			the pointer in <span class="emphasis"><em>buf</em></span>. The buffer is <span class="emphasis"><em>buflen</em></span> bytes long.
 			The tag class will be stored in <span class="emphasis"><em>cla_out</em></span>, the tag itself in
 			<span class="emphasis"><em>tag_out</em></span>, and the length of the extracted tag in
 			<span class="emphasis"><em>tag_len</em></span>.
-		</p></div><div class="refsect1" lang="en"><a name="id2539011"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id268183"></a><h2>Return value</h2><p>
 			Returns 1 if successful, or -1 in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1findtag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_find_tag &#8212; Find a tag in an ASN.1 stream</p></div><div class="refsect1" lang="en"><a name="id2539061"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1findtag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_find_tag &#8212; Find a tag in an ASN.1 stream</p></div><div class="refsect1" lang="en"><a name="id268231"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -773,21 +773,21 @@ const unsigned char *sc_asn1_find_tag(struct sc_context *ctx,
                                       const unsigned char *buf, size_t buflen,
                                       unsigned int tag_in, size_t *taglen_in);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2539082"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id268250"></a><h2>Description</h2><p>
 			This function tries to find an ASN.1 tag matching <span class="emphasis"><em>tag_in</em></span> in the buffer
 			pointed to by <span class="emphasis"><em>buf</em></span>, which is of size <span class="emphasis"><em>buflen</em></span>. The buffer
 			should contain a series of ASN.1 entries.
-		</p></div><div class="refsect1" lang="en"><a name="id2539107"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310558"></a><h2>Return value</h2><p>
 			If the specified tag was not found, NULL is returned. If found, the address where it was found is
 			returned, and <span class="emphasis"><em>taglen_in</em></span> is set to the length of the found tag.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1puttag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_put_tag &#8212; Construct an ASN.1 entry in a buffer</p></div><div class="refsect1" lang="en"><a name="id2539161"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1puttag"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_put_tag &#8212; Construct an ASN.1 entry in a buffer</p></div><div class="refsect1" lang="en"><a name="id310608"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_asn1_put_tag(int tag, const unsigned char *data, int datalen,
                     unsigned char *out, int outlen, unsigned char **nextbuf);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2539181"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id294097"></a><h2>Description</h2><p>
 			This function constructs a single entry in an ASN.1 stream, at the buffer pointed to by
 			<span class="emphasis"><em>out</em></span> (which is <span class="emphasis"><em>outlen</em></span> bytes long). The tag to be used
 			is in <span class="emphasis"><em>tag</em></span>, and the entry payload is pointed to by <span class="emphasis"><em>data</em></span>,
@@ -795,18 +795,18 @@ int sc_asn1_put_tag(int tag, const unsigned char *data, int datalen,
 		</p><p>
 			If <span class="emphasis"><em>nextbuf</em></span> is not NULL, it will be filled in with a pointer to the buffer
 			address immediately following the newly copied entry.
-		</p></div><div class="refsect1" lang="en"><a name="id2545602"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id310635"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id2482145"></a>Chapter 6. Miscellaneous utility functions</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scstrerror">sc_strerror</a></span><span class="refpurpose"> - Return string describing error code</span></dt><dt><span class="refentrytitle"><a href="#scbase64encode">sc_base64_encode</a></span><span class="refpurpose"> - Encode a stream to base64</span></dt><dt><span class="refentrytitle"><a href="#scbase64decode">sc_base64_decode</a></span><span class="refpurpose"> - Decode a base64 stream</span></dt><dt><span class="refentrytitle"><a href="#scdercopy">sc_der_copy</a></span><span class="refpurpose"> - Copy a DER structure</span></dt><dt><span class="refentrytitle"><a href="#scderclear">sc_der_clear</a></span><span class="refpurpose"> - Clear DER structure</span></dt></dl></div><div class="refentry" lang="en"><a name="scstrerror"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_strerror &#8212; Return string describing error code</p></div><div class="refsect1" lang="en"><a name="id2538869"></a><h2>Synopsis</h2><p>
+		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id310479"></a>Chapter 6. Miscellaneous utility functions</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#scstrerror">sc_strerror</a></span><span class="refpurpose"> - Return string describing error code</span></dt><dt><span class="refentrytitle"><a href="#scbase64encode">sc_base64_encode</a></span><span class="refpurpose"> - Encode a stream to base64</span></dt><dt><span class="refentrytitle"><a href="#scbase64decode">sc_base64_decode</a></span><span class="refpurpose"> - Decode a base64 stream</span></dt><dt><span class="refentrytitle"><a href="#scdercopy">sc_der_copy</a></span><span class="refpurpose"> - Copy a DER structure</span></dt><dt><span class="refentrytitle"><a href="#scderclear">sc_der_clear</a></span><span class="refpurpose"> - Clear DER structure</span></dt></dl></div><div class="refentry" lang="en"><a name="scstrerror"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_strerror &#8212; Return string describing error code</p></div><div class="refsect1" lang="en"><a name="id292803"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 const char *sc_strerror(int error);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2534437"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id267960"></a><h2>Description</h2><p>
 			This function returns a string describing <span class="emphasis"><em>error</em></span>. It may
 			be used with a negative errorcode returned by any OpenSC function call. 
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scbase64encode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_base64_encode &#8212; Encode a stream to base64</p></div><div class="refsect1" lang="en"><a name="id2547462"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scbase64encode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_base64_encode &#8212; Encode a stream to base64</p></div><div class="refsect1" lang="en"><a name="id281064"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -814,7 +814,7 @@ int sc_base64_encode(const unsigned char *inbuf, size_t inlen,
                      unsigned char *outbuf, size_t outlen,
                      size_t linelength);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2547482"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id281081"></a><h2>Description</h2><p>
 			This function encodes the buffer pointed to by <span class="emphasis"><em>inbuf</em></span> of size
 			<span class="emphasis"><em>inlen</em></span> as base64, and stores the result in <span class="emphasis"><em>outbuf</em></span>, which
 			is <span class="emphasis"><em>outlen</em></span> bytes long. A linefeed (\n) will be inserted every
@@ -822,42 +822,42 @@ int sc_base64_encode(const unsigned char *inbuf, size_t inlen,
 		</p><p>
 			You must ensure <span class="emphasis"><em>outbuf</em></span> has enough space to store the base64-encoded version
 			of <span class="emphasis"><em>inbuf</em></span>.
-		</p></div><div class="refsect1" lang="en"><a name="id2547524"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id303617"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scbase64decode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_base64_decode &#8212; Decode a base64 stream</p></div><div class="refsect1" lang="en"><a name="id2510941"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scbase64decode"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_base64_decode &#8212; Decode a base64 stream</p></div><div class="refsect1" lang="en"><a name="id303666"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 int sc_base64_decode(const char *inbuf,
                      unsigned char *outbuf, size_t outlen);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2510960"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307959"></a><h2>Description</h2><p>
 			This function decodes the base64 stream in <span class="emphasis"><em>inbuf</em></span>, which is NULL-terminated,
 			to the buffer pointed to by <span class="emphasis"><em>outbuf</em></span> (which is <span class="emphasis"><em>outlen</em></span>
 			bytes long);
-		</p></div><div class="refsect1" lang="en"><a name="id2510984"></a><h2>Return value</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id307981"></a><h2>Return value</h2><p>
 			Returns 0 if successful, or a negative value in case of error.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdercopy"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_der_copy &#8212; Copy a DER structure</p></div><div class="refsect1" lang="en"><a name="id2511033"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scdercopy"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_der_copy &#8212; Copy a DER structure</p></div><div class="refsect1" lang="en"><a name="id308030"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_der_copy(sc_pkcs15_der_t *dst, const sc_pkcs15_der_t *src);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2511051"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id305498"></a><h2>Description</h2><p>
 			This function copies the OpenSC DER structure pointed to by <span class="emphasis"><em>src</em></span> to
 			<span class="emphasis"><em>dst</em></span>, which must point to enough space to hold this structure.
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scderclear"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_der_clear &#8212; Clear DER structure</p></div><div class="refsect1" lang="en"><a name="id2543250"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scderclear"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_der_clear &#8212; Clear DER structure</p></div><div class="refsect1" lang="en"><a name="id305555"></a><h2>Synopsis</h2><p>
 		</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
 void sc_der_clear(sc_pkcs15_der_t *der);
 		</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2543268"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id305572"></a><h2>Description</h2><p>
 			This function clears the OpenSC DER structure pointed to by <span class="emphasis"><em>der</em></span>.
-		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id2484664"></a>Chapter 7. Data types</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#sccardt">sc_card_t</a></span><span class="refpurpose"> - OpenSC card structure</span></dt><dt><span class="refentrytitle"><a href="#scpatht">sc_path_t</a></span><span class="refpurpose"> - OpenSC path structure</span></dt><dt><span class="refentrytitle"><a href="#scfilet">sc_file_t</a></span><span class="refpurpose"> - OpenSC file structure</span></dt><dt><span class="refentrytitle"><a href="#scappinfot">sc_app_info_t</a></span><span class="refpurpose"> - OpenSC application structure</span></dt><dt><span class="refentrytitle"><a href="#scasn1entry">sc_asn1_entry</a></span><span class="refpurpose"> - OpenSC ASN1 entry structure</span></dt></dl></div><p>
+		</p></div></div></div><div class="chapter" lang="en"><div class="titlepage"><div><div><h2 class="title"><a name="id274886"></a>Chapter 7. Data types</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl><dt><span class="refentrytitle"><a href="#sccardt">sc_card_t</a></span><span class="refpurpose"> - OpenSC card structure</span></dt><dt><span class="refentrytitle"><a href="#scpatht">sc_path_t</a></span><span class="refpurpose"> - OpenSC path structure</span></dt><dt><span class="refentrytitle"><a href="#scfilet">sc_file_t</a></span><span class="refpurpose"> - OpenSC file structure</span></dt><dt><span class="refentrytitle"><a href="#scappinfot">sc_app_info_t</a></span><span class="refpurpose"> - OpenSC application structure</span></dt><dt><span class="refentrytitle"><a href="#scasn1entry">sc_asn1_entry</a></span><span class="refpurpose"> - OpenSC ASN1 entry structure</span></dt></dl></div><p>
 		This chapter defines the structures OpenSC uses to store information. Fields internal to
 		OpenSC are not shown.
-	</p><div class="refentry" lang="en"><a name="sccardt"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_card_t &#8212; OpenSC card structure</p></div><div class="refsect1" lang="en"><a name="id2499815"></a><h2>Synopsis</h2><p>
+	</p><div class="refentry" lang="en"><a name="sccardt"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_card_t &#8212; OpenSC card structure</p></div><div class="refsect1" lang="en"><a name="id285792"></a><h2>Synopsis</h2><p>
         	</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -874,11 +874,11 @@ typedef struct sc_card {
 } sc_card_t;
 
             </pre><p>
-        </p></div><div class="refsect1" lang="en"><a name="id2517902"></a><h2>Description</h2><p>
+        </p></div><div class="refsect1" lang="en"><a name="id290636"></a><h2>Description</h2><p>
             This structure describes a smart card object. It contains the following
         	members:
             </p><div class="variablelist"><dl><dt><span class="term"><em class="structfield"><code>ctx</code></em></span></dt><dd><p>The context this card is associated with.</p></dd><dt><span class="term"><em class="structfield"><code>reader</code></em></span></dt><dd><p>The reader this card is inserted into.</p></dd><dt><span class="term"><em class="structfield"><code>slot</code></em></span></dt><dd><p>The slot on the reader this card is inserted into.</p></dd><dt><span class="term"><em class="structfield"><code>atr</code></em></span></dt><dd><p>The ATR (Answer To Reset) of the card.</p></dd><dt><span class="term"><em class="structfield"><code>atr_len</code></em></span></dt><dd><p>The length of the <em class="structfield"><code>atr</code></em> field</p></dd></dl></div><p>
-        </p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scpatht"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_t &#8212; OpenSC path structure</p></div><div class="refsect1" lang="en"><a name="id2510912"></a><h2>Synopsis</h2><p>
+        </p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scpatht"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_t &#8212; OpenSC path structure</p></div><div class="refsect1" lang="en"><a name="id268305"></a><h2>Synopsis</h2><p>
         	</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -895,7 +895,7 @@ typedef struct sc_path {
 } sc_path_t;
 
             </pre><p>
-        </p></div><div class="refsect1" lang="en"><a name="id2548527"></a><h2>Description</h2><p>
+        </p></div><div class="refsect1" lang="en"><a name="id268323"></a><h2>Description</h2><p>
             This structure describes a path object on a smart card. It contains the following
         	members:
             </p><div class="variablelist"><dl><dt><span class="term"><em class="structfield"><code>value</code></em></span></dt><dd><p>This is the full path to the file, starting at the MF.</p></dd><dt><span class="term"><em class="structfield"><code>length</code></em></span></dt><dd><p>The length of the path.</p></dd><dt><span class="term"><em class="structfield"><code>index</code></em></span></dt><dd><p>Used only in PKCS15, this indicates the offset into the file.
@@ -903,7 +903,7 @@ typedef struct sc_path {
                     	record, starting from <em class="structfield"><code>index</code></em> above.</p></dd><dt><span class="term"><em class="structfield"><code>type</code></em></span></dt><dd><p>The path type. This can be one of:
                     	</p><table class="simplelist" border="0" summary="Simple list"><tr><td>SC_PATH_TYPE_FILE_ID</td></tr><tr><td>SC_PATH_TYPE_DF_NAME</td></tr><tr><td>SC_PATH_TYPE_PATH</td></tr><tr><td>SC_PATH_TYPE_PATH_PROT</td></tr></table><p>
                     </p></dd></dl></div><p>
-        </p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfilet"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_t &#8212; OpenSC file structure</p></div><div class="refsect1" lang="en"><a name="id2548674"></a><h2>Synopsis</h2><p>
+        </p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scfilet"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_file_t &#8212; OpenSC file structure</p></div><div class="refsect1" lang="en"><a name="id280518"></a><h2>Synopsis</h2><p>
         	</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -918,7 +918,7 @@ typedef struct sc_file {
     int               record_count;
 } sc_file_t;
             </pre><p>
-        </p></div><div class="refsect1" lang="en"><a name="id2544927"></a><h2>Description</h2><p>
+        </p></div><div class="refsect1" lang="en"><a name="id311336"></a><h2>Description</h2><p>
             This structure describes a file object on a smart card. It contains the following members:
             </p><div class="variablelist"><dl><dt><span class="term"><em class="structfield"><code>path</code></em></span></dt><dd><p>This is full the path to the file, starting at the MF.</p></dd><dt><span class="term"><em class="structfield"><code>type</code></em></span></dt><dd><p>This is the file type. It can be one of <span class="symbol">SC_FILE_TYPE_DF</span>,
                         <span class="symbol">SC_FILE_TYPE_WORKING_EF</span>, or <span class="symbol">SC_FILE_TYPE_INTERNAL_EF</span>.
@@ -929,7 +929,7 @@ typedef struct sc_file {
             		</p></dd><dt><span class="term"><em class="structfield"><code>size</code></em></span></dt><dd><p>gives the file's size in bytes.</p></dd><dt><span class="term"><em class="structfield"><code>id</code></em></span></dt><dd><p>gives the file's ID, as a 16-bit number.</p></dd><dt><span class="term"><em class="structfield"><code>record_count, record_length</code></em></span></dt><dd><p>For record structured files, <em class="structfield"><code>record_sount</code></em>
             		specifies the number of records in the file. For files with fixed length records,
             		<em class="structfield"><code>record_length</code></em> contains the record length.</p></dd></dl></div><p>
-        </p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scappinfot"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_app_info_t &#8212; OpenSC application structure</p></div><div class="refsect1" lang="en"><a name="id2513092"></a><h2>Synopsis</h2><p>
+        </p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scappinfot"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_app_info_t &#8212; OpenSC application structure</p></div><div class="refsect1" lang="en"><a name="id271751"></a><h2>Synopsis</h2><p>
 			</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -947,7 +947,7 @@ typedef struct sc_app_info {
 	int rec_nr;
 } sc_app_info_t;
 			</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2513114"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id271770"></a><h2>Description</h2><p>
 			This structure describes a smart card application. It contains the following
 			members:
 			</p><div class="variablelist"><dl><dt><span class="term"><em class="structfield"><code>aid</code></em></span></dt><dd><p>The applications's AID. An AID uniquely identifies an
@@ -958,7 +958,7 @@ typedef struct sc_app_info {
 						application on a smart card is A0 00 00 00 63 50 4B 43 53 2D 31.</p></dd><dt><span class="term"><em class="structfield"><code>aid_len</code></em></span></dt><dd><p>The length of the AID in bytes.</p></dd><dt><span class="term"><em class="structfield"><code>label</code></em></span></dt><dd><p>A UTF-8 string describing the application.</p></dd><dt><span class="term"><em class="structfield"><code>path</code></em></span></dt><dd><p>The application's full path on the card, starting at the MF.</p></dd><dt><span class="term"><em class="structfield"><code>ddo</code></em></span></dt><dd><p></p></dd><dt><span class="term"><em class="structfield"><code>ddo_len</code></em></span></dt><dd><p></p></dd><dt><span class="term"><em class="structfield"><code>desc</code></em></span></dt><dd><p>A description of the application, if available.</p></dd><dt><span class="term"><em class="structfield"><code>rec_nr</code></em></span></dt><dd><p>If the EF(DIR) file is record-structured, this has the
 						record number in which this application is stored. Otherwise, this is -1.
 					</p></dd></dl></div><p>
-		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1entry"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_entry &#8212; OpenSC ASN1 entry structure</p></div><div class="refsect1" lang="en"><a name="id2513283"></a><h2>Synopsis</h2><p>
+		</p></div></div><div class="refentry" lang="en"><div class="refentry.separator"><hr></div><a name="scasn1entry"></a><div class="titlepage"></div><div class="refnamediv"><h2>Name</h2><p>sc_asn1_entry &#8212; OpenSC ASN1 entry structure</p></div><div class="refsect1" lang="en"><a name="id271932"></a><h2>Synopsis</h2><p>
 			</p><pre class="programlisting">
 #include &lt;opensc.h&gt;
 
@@ -971,7 +971,7 @@ struct sc_asn1_entry {
 	void *arg;
 };
 			</pre><p>
-		</p></div><div class="refsect1" lang="en"><a name="id2520494"></a><h2>Description</h2><p>
+		</p></div><div class="refsect1" lang="en"><a name="id271950"></a><h2>Description</h2><p>
 			This structure describes an ASN1 entry structure. It contains the following
 			members:
 			</p><div class="variablelist"><dl><dt><span class="term"><em class="structfield"><code>name</code></em></span></dt><dd><p></p></dd><dt><span class="term"><em class="structfield"><code>type</code></em></span></dt><dd><p></p></dd><dt><span class="term"><em class="structfield"><code>tag</code></em></span></dt><dd><p></p></dd><dt><span class="term"><em class="structfield"><code>flags</code></em></span></dt><dd><p></p></dd><dt><span class="term"><em class="structfield"><code>parm</code></em></span></dt><dd><p></p></dd><dt><span class="term"><em class="structfield"><code>arg</code></em></span></dt><dd><p></p></dd></dl></div><p>

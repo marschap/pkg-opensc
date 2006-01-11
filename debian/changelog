@@ -1,3 +1,10 @@
+opensc (0.10.1-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/opensc.NEWS: Add a note about the package split.
+
+ -- Eric Dorland <eric@debian.org>  Wed, 11 Jan 2006 01:44:11 -0500
+
 opensc (0.10.0-2) unstable; urgency=low
 
   * debian/libopensc2-dev.install: Only install lib*.so, etc, not

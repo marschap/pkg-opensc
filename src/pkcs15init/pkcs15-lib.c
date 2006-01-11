@@ -148,6 +148,7 @@ static struct profile_operations {
 	{ "starcos", (void *) sc_pkcs15init_get_starcos_ops },
 	{ "oberthur", (void *) sc_pkcs15init_get_oberthur_ops },
 	{ "setcos", (void *) sc_pkcs15init_get_setcos_ops },
+	{ "incrypto34", (void *) sc_pkcs15init_get_incrypto34_ops },
 	{ NULL, NULL },
 };
 
@@ -406,6 +407,7 @@ sc_pkcs15init_erase_card_recursively(sc_card_t *card,
 
 		card->ctx->suppress_errors++;
 		if (sc_pkcs15_bind(card, &p15card) >= 0) {
+			/* result of set_so_pin_from_card ignored */
 			set_so_pin_from_card(p15card, profile);
 			profile->p15_data = p15card;
 		}
@@ -563,6 +565,11 @@ sc_pkcs15init_rmdir(sc_card_t *card, struct sc_profile *profile,
 	path.value[1] = df->id & 0xFF;
 	path.len = 2;
 
+	/* ensure that the card is in the correct lifecycle */
+	r = sc_pkcs15init_set_lifecycle(card, SC_CARDCTRL_LIFECYCLE_ADMIN);
+	if (r < 0 && r != SC_ERROR_NOT_SUPPORTED)
+		return r;
+
 	card->ctx->suppress_errors++;
 	r = sc_delete_file(card, &path);
 	card->ctx->suppress_errors--;
@@ -651,7 +658,8 @@ sc_pkcs15init_add_app(sc_card_t *card, struct sc_profile *profile,
 	/* Perform card-specific initialization */
 	if (profile->ops->init_card
 	 && (r = profile->ops->init_card(profile, card)) < 0) {
-		sc_profile_free(profile);
+		if (pin_obj)
+			sc_pkcs15_free_object(pin_obj);
 		return r;
 	}
 
@@ -673,8 +681,11 @@ sc_pkcs15init_add_app(sc_card_t *card, struct sc_profile *profile,
 				args->so_pin, args->so_pin_len,
 				args->so_puk, args->so_puk_len);
 	}
-	if (r < 0)
+	if (r < 0) {
+		if (pin_obj)
+			sc_pkcs15_free_object(pin_obj);
 		return r;
+	}
 
 	/* Put the new SO pin in the key cache (note: in case
 	 * of the "onepin" profile store it as a normal pin) */
@@ -803,8 +814,10 @@ sc_pkcs15init_store_pin(struct sc_pkcs15_card *p15card,
 	pin_info->auth_id = args->auth_id;
 
 	/* Set the SO PIN reference from card */
-	if ((r = set_so_pin_from_card(p15card, profile)) < 0)
+	if ((r = set_so_pin_from_card(p15card, profile)) < 0) {
+		sc_pkcs15_free_object(pin_obj);
 		return r;
+	}
 
 	/* Now store the PINs */
 	if (profile->ops->create_pin) {
@@ -826,9 +839,11 @@ sc_pkcs15init_store_pin(struct sc_pkcs15_card *p15card,
 				SC_PKCS15INIT_USER_PIN);
 	}
 
-	if (r >= 0)
+	if (r >= 0) {
 		r = sc_pkcs15init_add_object(p15card, profile,
 			       	SC_PKCS15_AODF, pin_obj);
+	} else
+		sc_pkcs15_free_object(pin_obj);
 
 	profile->dirty = 1;
 
@@ -979,9 +994,10 @@ sc_pkcs15init_init_prkdf(sc_pkcs15_card_t *p15card,
 	unsigned int	usage;
 	int		r = 0;
 
-	*res_obj = NULL;
-	if (!keybits)
+	if (!res_obj || !keybits)
 		return SC_ERROR_INVALID_ARGUMENTS;
+
+	*res_obj = NULL;
 
 	if ((usage = keyargs->usage) == 0) {
 		usage = SC_PKCS15_PRKEY_USAGE_SIGN;
@@ -1302,13 +1318,18 @@ sc_pkcs15init_store_split_key(struct sc_pkcs15_card *p15card,
 	int		r;
 
 	/* keyEncipherment|dataEncipherment|keyAgreement */
-	keyargs->x509_usage = usage & 0x1C;
+	keyargs->x509_usage = usage & (SC_PKCS15INIT_X509_KEY_ENCIPHERMENT |
+				SC_PKCS15INIT_X509_DATA_ENCIPHERMENT |
+				SC_PKCS15INIT_X509_KEY_AGREEMENT);
 	r = sc_pkcs15init_store_private_key(p15card, profile,
 				keyargs, prk1_obj);
 
 	if (r >= 0) {
 		/* digitalSignature|nonRepudiation|certSign|cRLSign */
-		keyargs->x509_usage = usage & 0x63;
+		keyargs->x509_usage = usage & (SC_PKCS15INIT_X509_DIGITAL_SIGNATURE |
+				SC_PKCS15INIT_X509_NON_REPUDIATION |
+				SC_PKCS15INIT_X509_KEY_CERT_SIGN   |
+				SC_PKCS15INIT_X509_CRL_SIGN);
 
 		/* Prevent pkcs15init from choking on duplicate ID */
 		keyargs->flags |= SC_PKCS15INIT_SPLIT_KEY;
@@ -1368,6 +1389,9 @@ sc_pkcs15init_store_public_key(struct sc_pkcs15_card *p15card,
 	const char	*label;
 	unsigned int	keybits, type, usage;
 	int		r;
+
+	if (!res_obj || !keyargs)
+		return SC_ERROR_NOT_SUPPORTED;
 
 	/* Create a copy of the key first */
 	key = keyargs->key;
@@ -1527,9 +1551,11 @@ sc_pkcs15init_store_certificate(struct sc_pkcs15_card *p15card,
 	}
 
 	/* Now update the CDF */
-	if (r >= 0)
+	if (r >= 0) {
 		r = sc_pkcs15init_add_object(p15card, profile,
 				SC_PKCS15_CDF, object);
+	} else
+		sc_pkcs15_free_object(object);
 
 	if (r >= 0 && res_obj)
 		*res_obj = object;
@@ -2611,6 +2637,10 @@ sc_pkcs15init_update_certificate(sc_pkcs15_card_t *p15card,
 			|| (r = sc_pkcs15init_authenticate(profile, p15card->card,
 				parent, SC_AC_OP_CREATE)) < 0)
 					goto done;
+		/* ensure we are in the correct lifecycle */
+		r = sc_pkcs15init_set_lifecycle(p15card->card, SC_CARDCTRL_LIFECYCLE_ADMIN);
+		if (r < 0 && r != SC_ERROR_NOT_SUPPORTED)
+			return r;
  		if ((r = sc_create_file(p15card->card, file)) < 0)
 			goto done;
 	}
@@ -3022,6 +3052,11 @@ sc_pkcs15init_create_file(struct sc_profile *pro, sc_card_t *card,
 	/* Fix up the file's ACLs */
 	if ((r = sc_pkcs15init_fixup_file(pro, file)) < 0)
 		return r;
+
+	/* ensure we are in the correct lifecycle */
+	r = sc_pkcs15init_set_lifecycle(card, SC_CARDCTRL_LIFECYCLE_ADMIN);
+        if (r < 0 && r != SC_ERROR_NOT_SUPPORTED)
+                return r;
 
 	r = sc_create_file(card, file);
 

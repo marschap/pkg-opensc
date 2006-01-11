@@ -20,6 +20,7 @@ app default {
 	# Default: stdout
 	#
 	# debug_file = /tmp/opensc-debug.log;
+	# debug_file = "C:\Documents and Settings\All Users\Documents\opensc-debug.log";
 
 	# The file to which errors will be written
 	#
@@ -27,6 +28,7 @@ app default {
 	# Default: stderr
 	#
 	# error_file = /tmp/opensc-errors.log;
+	# error_file = "C:\Documents and Settings\All Users\Documents\opensc-errors.log";
 
 	# PKCS#15 initialization / personalization
 	# profiles directory for pkcs15-init.
@@ -261,14 +263,14 @@ app default {
 		use_caching = true;
 		# Enable pkcs15 emulation.
 		# Default: yes
-		enable_pkcs15_emulation = yes;
+		# enable_pkcs15_emulation = yes;
 		# Prefer pkcs15 emulation code before
 		# the normal pkcs15 processing.
 		# Default: no
-		try_emulation_first = no;
+		# try_emulation_first = no;
 		# Enable builtin emulators.
 		# Default: yes
-		enable_builtin_emulation = yes;
+		# enable_builtin_emulation = yes;
 		# list of the builtin pkcs15 emulators to test
 		builtin_emulators = esteid, openpgp, tcos, starcert, infocamere, postecert, actalis, atrust-acosi, gemsafe, tccardos;
 
@@ -320,7 +322,7 @@ app opensc-pkcs11 {
 		# has done a C_Logout or C_Finalize. In the case of
 		# Netscape or Mozilla, this does not happen until
 		# you exit the browser.
-		lock_login = true;
+		# lock_login = true;
 
 		# Normally, the pkcs11 module will not cache PINs
 		# presented via C_Login. However, some cards
