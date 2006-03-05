@@ -1,3 +1,10 @@
+opensc (0.10.1-2) unstable; urgency=low
+
+  * debian/control: Fix stray 2 in the description. Thanks Ludovic
+    Rousseau. (Closes: #354744)
+
+ --
+
 opensc (0.10.1-1) unstable; urgency=low
 
   * New upstream release.

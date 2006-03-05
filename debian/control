@@ -17,7 +17,7 @@ Description: SmartCard utilities with support for PKCS#15 compatible cards
  These utilities allow the user to initialize, personalize and
  otherwise manipulate PKCS#15 cards with PINs and cryptographic 
  keys. Users can sign and decrypt data with private keys 
- residing on-card.2
+ residing on-card.
  .
  Supported cards include Gemplus GPK, Schlumberger Cryptoflex,
  Finnish FINEID, Swedish eID, MioCOS and TCOS cards.
