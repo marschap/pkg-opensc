@@ -3,6 +3,8 @@ opensc (0.10.1-2) unstable; urgency=low
   * debian/control: Fix stray 2 in the description. Thanks Ludovic
     Rousseau. (Closes: #354744)
   * debian/watch: Add watch file.
+  * man/pkcs15-tool.1: Patch from Daniel Kahn Gillmor to add --unblock-pin
+    documentation to the man page. (Closes: #350634)
 
  --
 
