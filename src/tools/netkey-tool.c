@@ -67,10 +67,14 @@ static struct {
 	int   len;
 	u8    value[32];
 } pinlist[]={
-	{"3F005000",     "pin",  "global PIN",  1,-1, 0, 0},
-	{"3F005001",     "puk",  "global PUK", -1,-1, 0, 0},
-	{"3F00DF015080", "pin0", "local PIN0",  3, 0, 0, 0},
-	{"3F00DF015081", "pin1", "local PIN1",  0,-1, 0, 0},
+	{"3F005000",     "pin",  "global PIN",  1,-1, 0, 0,
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
+	{"3F005001",     "puk",  "global PUK", -1,-1, 0, 0,
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
+	{"3F00DF015080", "pin0", "local PIN0",  3, 0, 0, 0,
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
+	{"3F00DF015081", "pin1", "local PIN1",  0,-1, 0, 0,
+	{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}},
 };
 
 
@@ -91,7 +95,7 @@ void show_pin(
 	if(f->type!=SC_FILE_TYPE_WORKING_EF || f->ef_structure!=SC_FILE_EF_LINEAR_VARIABLE_TLV ||
 	   f->prop_attr_len!=5 || f->prop_attr[0]!=0x01 || f->prop_attr[1]!=0x80
 	){
-		printf("\nInvald PIN-file: Type=%d, EF-Structure=%d, Prop-Len=%d %02X:%02X:%02X\n",
+		printf("\nInvald PIN-file: Type=%d, EF-Structure=%d, Prop-Len=%lu %02X:%02X:%02X\n",
 			f->type, f->ef_structure, f->prop_attr_len,
 			f->prop_attr[0], f->prop_attr[1], f->prop_attr[2]
 		);
@@ -124,11 +128,12 @@ void show_certs(
 	sc_file_t *f;
 	X509 *c;
 	u8 buf[2000], *q;
-	int i, j;
+	int j;
+	size_t i;
 
 	printf("\n");
 	for(i=0;i<sizeof(certlist)/sizeof(certlist[0]);++i){
-		printf("Certificate %d: %s", i, certlist[i].label); fflush(stdout);
+		printf("Certificate %lu: %s", i, certlist[i].label); fflush(stdout);
 
 		sc_format_path(certlist[i].path,&p);
 		if((j=sc_select_file(card,&p,&f))<0){
@@ -145,11 +150,11 @@ void show_certs(
 			printf(", Cannot read Cert-file, %s\n", sc_strerror(j));
 			continue;
 		}
-		printf(", Maxlen=%u", f->size);
+		printf(", Maxlen=%lu", f->size);
 		q=buf;
 		if(q[0]==0x30 && q[1]==0x82){
 			if(q[4]==6 && q[5]<10 && q[q[5]+6]==0x30 && q[q[5]+7]==0x82) q+=q[5]+6;
-			printf(", Len=%u\n", (q[2]<<8)|q[3]);
+			printf(", Len=%d\n", (q[2]<<8)|q[3]);
 			if((c=d2i_X509(NULL,&q,f->size))){
 				X509_NAME_get_text_by_NID(c->cert_info->subject, NID_commonName, buf,sizeof(buf));
 				printf("  Subject-CN: %s\n", buf);
@@ -228,7 +233,7 @@ void show_card(
 	if(file->type!=SC_FILE_TYPE_WORKING_EF || file->ef_structure!=SC_FILE_EF_TRANSPARENT ||
 	   file->size!=12 || (len=sc_read_binary(card,0,buf,12,0))!=12 || buf[0]!=0x5A || buf[1]!=0x0A
 	){
-		printf("\nInvald Serial-Number: Type=%d, EF-Structure=%d, Size=%d\n",
+		printf("\nInvald Serial-Number: Type=%d, EF-Structure=%d, Size=%lu\n",
 			file->type, file->ef_structure, file->size
 		);
 		return;
@@ -396,9 +401,12 @@ void handle_writecert(
 		return;
 	}
 	printf("OK\nStoring Cert into Card-Certificate %d: ", cert); fflush(stdout);
-	q=buf; len=i2d_X509(c,NULL); if(len>0 && len<=sizeof(buf)) i2d_X509(c,&q);
+	q=buf;
+	len=i2d_X509(c,NULL);
+	if(len>0 && len<=(int)sizeof(buf))
+		i2d_X509(c,&q);
 	X509_free(c);
-	if(len<=0 || len>sizeof(buf)){
+	if(len<=0 || len>(int)sizeof(buf)){
 		printf("certificate too long or invalid (Len=%d)\n", len);
 		return;
 	}
@@ -419,7 +427,7 @@ void handle_writecert(
 int pin_string2int(
 	char *s
 ){
-	int i;
+	size_t i;
 
 	for(i=0;i<sizeof(pinlist)/sizeof(pinlist[0]);++i) if(!strcasecmp(pinlist[i].name,s)) return i;
 	return -1;
@@ -471,13 +479,15 @@ int main(
 		{ 0, 0, 0, 0 }
 	};
 	sc_context_t *ctx;
+	sc_context_param_t ctx_param;
 	sc_card_t *card;
 	int do_help=0, do_unblock=0, do_change=0, do_nullpin=0, do_readcert=0, do_writecert=0;
 	u8 newpin[32];
 	char *certfile=NULL, *p;
-	int i, oerr=0, reader=0, debug=0, newlen=0, pin_nr=-1, cert_nr=-1;
+	int r, oerr=0, reader=0, debug=0, newlen=0, pin_nr=-1, cert_nr=-1;
+	size_t i;
 
-	while((i=getopt_long(argc,argv,"hvr:p:u:0:1:",options,NULL))!=EOF) switch(i){
+	while((r=getopt_long(argc,argv,"hvr:p:u:0:1:",options,NULL))!=EOF) switch(r){
 		case 'h': ++do_help; break;
 		case 'v': ++debug; break;
 		case 'r': reader=atoi(optarg); break;
@@ -520,7 +530,7 @@ int main(
 		fprintf(stderr,"  %s --pin1 123456 cert /tmp/cert1 2\n", argv[0]);
 		fprintf(stderr,"  %s cert 2 /tmp/cert2\n", argv[0]);
 		fprintf(stderr,"\nBe carful - this tool may destroy your card\n");
-		fprintf(stderr,"\nQuestions? Comments? ==> opensc-user@opensc.org\n");
+		fprintf(stderr,"\nQuestions? Comments? ==> opensc-user@opensc-project.org\n");
 		exit(1);
 	}
 	if(optind==argc-2 && !strcmp(argv[optind],"unblock")){
@@ -541,12 +551,12 @@ int main(
 	if(optind==argc-3 && !strcmp(argv[optind],"cert")){
 		++optind;
 		cert_nr=strtol(argv[optind],&p,10);
-		if(argv[optind][0] && !*p && cert_nr>=0 && cert_nr<sizeof(certlist)/sizeof(certlist[0])){
+		if(argv[optind][0] && !*p && cert_nr>=0 && cert_nr<(int)(sizeof(certlist)/sizeof(certlist[0]))){
 			do_readcert=1, certfile=argv[optind+1];
 		} else {
 			do_writecert=1, certfile=argv[optind];
 			cert_nr=strtol(argv[optind+1],&p,10);
-			if(!argv[optind][0] || *p || cert_nr<0 || cert_nr>=sizeof(certlist)/sizeof(certlist[0])) ++oerr;
+			if(!argv[optind][0] || *p || cert_nr<0 || cert_nr>=(int)(sizeof(certlist)/sizeof(certlist[0]))) ++oerr;
 		}
 		optind+=2;
 	}
@@ -555,40 +565,46 @@ int main(
 		exit(1);
 	}
 
-	if((i=sc_establish_context(&ctx, argv[0]))<0){
-		fprintf(stderr,"Establish-Context failed: %s\n", sc_strerror(i));
+	memset(&ctx_param, 0, sizeof(ctx_param));
+	ctx_param.ver      = 0;
+	ctx_param.app_name = argv[0];
+
+	r = sc_context_create(&ctx, &ctx_param);
+	if(r < 0){
+		fprintf(stderr,"Establish-Context failed: %s\n", sc_strerror(r));
 		exit(1);
 	}
 	ctx->debug=debug;
-	if(ctx->debug>0) printf("Context for application \"%s\" created, Debug=%d\n", ctx->app_name, ctx->debug);
+	if(ctx->debug>0)
+		printf("Context for application \"%s\" created, Debug=%d\n", ctx->app_name, ctx->debug);
 
-	for(i=0;ctx->card_drivers[i];++i) if(!strcmp("tcos", ctx->card_drivers[i]->short_name)) break;
+	for(i=0;ctx->card_drivers[i];++i)
+		if(!strcmp("tcos", ctx->card_drivers[i]->short_name)) break;
 	if(!ctx->card_drivers[i]){
 		fprintf(stderr,"Context does not support TCOS-cards\n");
 		exit(1);
 	}
 
-	printf("%d Reader detected\n", ctx->reader_count);
-	for(i=0;i<ctx->reader_count;++i){
-		printf("%d: %s, Driver: %s, %d Slot(s)\n",
-			i, ctx->reader[i]->name, ctx->reader[i]->driver->name,
-			ctx->reader[i]->slot_count
-		);
+	printf("%d Reader detected\n", sc_ctx_get_reader_count(ctx));
+	for(i=0; i < sc_ctx_get_reader_count(ctx); ++i){
+		sc_reader_t *reader = sc_ctx_get_reader(ctx, i);
+		printf("%lu: %s, Driver: %s, %d Slot(s)\n", i, reader->name,
+			reader->driver->name, reader->slot_count);
 	}
-	if(reader<0 || reader>=ctx->reader_count){
+	if(reader < 0 || reader >= (int)sc_ctx_get_reader_count(ctx)){
 		fprintf(stderr,"Cannot open reader %d\n", reader);
 		exit(1);
 	}
 
-	if((i=sc_connect_card(ctx->reader[0], 0, &card))<0){
-		fprintf(stderr,"Connect-Card failed: %s\n", sc_strerror(i));
+	if((r = sc_connect_card(sc_ctx_get_reader(ctx, 0), 0, &card))<0){
+		fprintf(stderr,"Connect-Card failed: %s\n", sc_strerror(r));
 		exit(1);
 	}
 	printf("\nCard detected (driver: %s)\nATR:", card->driver->name);
 	for(i=0;i<card->atr_len;++i) printf("%c%02X", i?':':' ', card->atr[i]); printf("\n");
 
-	if((i=sc_lock(card))<0){
-		fprintf(stderr,"Lock failed: %s\n", sc_strerror(i));
+	if((r = sc_lock(card))<0){
+		fprintf(stderr,"Lock failed: %s\n", sc_strerror(r));
 		exit(1);
 	}
 

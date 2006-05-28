@@ -31,7 +31,7 @@ For more info:
 </li></ul><h2>How to build the OpenSC tokend</h2>
 <p>
 This is pretty complicated, most is based on the doc "Building Tokend Using the Darwin Build Scripts"
-that can be requisted on the apple-cdsa mailing list.
+that can be requested on the apple-cdsa mailing list.
 </p>
 <p>
 Make sure you have Mac OS 10.4.
@@ -95,6 +95,29 @@ version that you have. For example:
 </p>
 </blockquote>
 </blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>
+** For 10.4.4: Build8G32
+</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote>
+<blockquote>
+<blockquote>
+<p>
+** For 10.4.5: Build8H14
+</p>
+</blockquote>
+</blockquote>
+</blockquote>
+<blockquote>
+<p>
+(See [<a class="ext-link" title="http://darwinsource.opendarwin.org/plists/" href="http://darwinsource.opendarwin.org/plists/" shape="rect">http://darwinsource.opendarwin.org/plists/</a>])
+</p>
 </blockquote>
 <blockquote>
 <p>
@@ -205,18 +228,8 @@ build the OpenSC sources (they will be overwritten)!
 </p>
 <blockquote>
 <p>
-In the future this will be available as a installer from OpenSC website,
-but current you have to get it from SVN:
-</p>
-</blockquote>
-<blockquote>
-<p>
-svn co <a class="ext-link" title="http://www.opensc.org/svn/sca/trunk/" href="http://www.opensc.org/svn/sca/trunk/" shape="rect">http://www.opensc.org/svn/sca/trunk/</a>
-</p>
-</blockquote>
-<blockquote>
-<p>
-Just open sca-x.y.z.dmg and install the package (or build it yourself).
+Download the installer from <a class="ext-link" title="http://www.opensc-project.org/sca/" href="http://www.opensc-project.org/sca/" shape="rect">http://www.opensc-project.org/sca/</a>,
+or look at this site for info on how to get the sources and build it yourself
 </p>
 </blockquote>
 <blockquote>
@@ -229,11 +242,17 @@ After installation, everything should be in /Library/OpenSC/.
 </p>
 <blockquote>
 <p>
-This is part of sca:
-<a class="ext-link" title="http://www.opensc.org/svn/sca/trunk/opensc.tokend/" href="http://www.opensc.org/svn/sca/trunk/opensc.tokend/" shape="rect">http://www.opensc.org/svn/sca/trunk/opensc.tokend/</a>
+This is part of sca, just search for the opensc.tokend/ directory.
 </p>
 </blockquote>
-<ul><li>copy the Tokend-11/ directory in opensc.tokend/ to /Volumes/Builds/Build8F46/Sources/
+<blockquote>
+<p>
+Note: if you should use the OpenSC version was used for building sca.
+E.g. if you used sca-0.1.8, you should use OpenSC 0.10.1.
+And if you used the sca code from SVN, use the OpenSC code from SVN
+</p>
+</blockquote>
+<ul><li>copy the contents of opensc.tokend/ to /Volumes/Builds/Build8F46/Sources/Tokend-11/
 </li></ul><ul><li>cd /Volumes/Builds/Build8F46/Sources/Tokend-11/
 </li></ul><blockquote>
 <p>
@@ -276,7 +295,20 @@ or from within Xcode:
 </blockquote>
 <blockquote>
 <p>
-The result should be an OpenSC.tokend bundle in build/Deployment.
+NOTE: if the build fails with error "can't locate file for: -ltokend", this means that the libtoken.a
+library has moved.
+E.g. before Mac OS 10.4.5, the lib was located at
+$(BuildRoot$/private/var/tmp/Tokend/Tokend-11.obj/UninstalledProducts/libtokend.a
+but if you build with Mac OS 10.4.5 (build 8H14), it's located at
+$(BuildRoot$/private/var/tmp/Tokend/Tokend-25868.obj/UninstalledProducts/libtokend.a
+So you should do an "ls ../../BuildRoot/private/var/tmp/Tokend/" to find out the name of the
+dir containing the libtokend.a; and modify the Tokend.xcodeproj/project.pbxproj accordingly
+by means of a text editor (perhaps it's also possible to do so with Xcode).
+</p>
+</blockquote>
+<blockquote>
+<p>
+The result should be an OpenSC.tokend bundle in build/Deployment/.
 </p>
 </blockquote>
 <blockquote>
@@ -293,7 +325,7 @@ sudo cp -r build/Deployment/OpenSC.tokend /System/Library/Security/tokend/OpenSC
 </blockquote>
 <blockquote>
 <p>
-The Tokend-11/ directory is based on the one from opendarwin:
+FYI: The Tokend-11/ directory is based on the one from opendarwin:
 </p>
 </blockquote>
 <blockquote>

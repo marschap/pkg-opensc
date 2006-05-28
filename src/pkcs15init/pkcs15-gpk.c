@@ -320,6 +320,7 @@ gpk_init_pinfile(struct sc_profile *profile, sc_card_t *card,
 	if (acl->method != SC_AC_NEVER) {
 		sc_error(card->ctx,
 			"PIN file most be protected by WRITE=NEVER");
+		sc_file_free(pinfile);
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 	sc_file_add_acl_entry(pinfile, SC_AC_OP_WRITE, SC_AC_NONE, 0);
@@ -483,6 +484,14 @@ gpk_store_key(sc_profile_t *profile, sc_card_t *card,
 	return r;
 }
 
+/* this could be removed once we include libopensc/internal.h */
+#ifndef _WIN32
+#define msleep(t)	usleep((t) * 1000)
+#else
+#define msleep(t)	Sleep(t)
+#define sleep(t)	Sleep((t) * 1000)
+#endif
+
 /*
  * On-board key generation.
  */
@@ -497,9 +506,17 @@ gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
 	sc_file_t	*keyfile;
 	int             r, n;
 
-	sc_debug(card->ctx, "path=%s, %d bits\n",
-			sc_print_path(&key_info->path),
+	if (card->ctx->debug >= 1) {
+		char pbuf[SC_MAX_PATH_STRING_SIZE];
+
+		r = sc_path_print(pbuf, sizeof(pbuf), &key_info->path);
+		if (r != SC_SUCCESS)
+			pbuf[0] = '\0';
+
+		sc_debug(card->ctx, "path=%s, %d bits\n", pbuf,
 			key_info->modulus_length);
+	}
+
 	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
 		sc_error(card->ctx, "GPK supports generating only RSA keys.");
 		return SC_ERROR_NOT_SUPPORTED;
@@ -561,9 +578,9 @@ gpk_pkfile_create(sc_profile_t *profile, sc_card_t *card, sc_file_t *file)
 	struct sc_file	*found = NULL;
 	int		r;
 
-	card->ctx->suppress_errors++;
+	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_select_file(card, &file->path, &found);
-	card->ctx->suppress_errors--;
+	sc_ctx_suppress_errors_off(card->ctx);
 	if (r == SC_ERROR_FILE_NOT_FOUND) {
 		r = sc_pkcs15init_create_file(profile, card, file);
 		if (r >= 0)
@@ -693,10 +710,10 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 	for (n = 0; n < 6; n++)
 		sysrec[6] ^= sysrec[n];
 
-	card->ctx->suppress_errors++;
+	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_read_record(card, 1, buffer, sizeof(buffer),
 			SC_RECORD_BY_REC_NR);
-	card->ctx->suppress_errors--;
+	sc_ctx_suppress_errors_off(card->ctx);
 	if (r >= 0) {
 		if (r != 7 || buffer[0] != 0) {
 			sc_error(card->ctx,
@@ -729,10 +746,10 @@ gpk_pkfile_update_public(struct sc_profile *profile,
 
 	/* If we've been given a key with public parts, write them now */
 	for (n = 2; n < 256; n++) {
-		card->ctx->suppress_errors++;
+		sc_ctx_suppress_errors_on(card->ctx);
 		r = sc_read_record(card, n, buffer, sizeof(buffer),
 				SC_RECORD_BY_REC_NR);
-		card->ctx->suppress_errors--;
+		sc_ctx_suppress_errors_off(card->ctx);
 		if (r < 0) {
 			r = 0;
 			break;
@@ -1096,10 +1113,10 @@ gpk_read_rsa_key(sc_card_t *card, struct sc_pkcs15_pubkey_rsa *rsa)
 		u8		buffer[256];
 		size_t		m;
 
-		card->ctx->suppress_errors++;
+		sc_ctx_suppress_errors_on(card->ctx);
 		r = sc_read_record(card, n, buffer, sizeof(buffer),
 				SC_RECORD_BY_REC_NR);
-		card->ctx->suppress_errors--;
+		sc_ctx_suppress_errors_off(card->ctx);
 		if (r < 1)
 			break;
 

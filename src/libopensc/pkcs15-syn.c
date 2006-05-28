@@ -40,6 +40,8 @@ extern int sc_pkcs15emu_esteid_init_ex(sc_pkcs15_card_t *,
 					sc_pkcs15emu_opt_t *);
 extern int sc_pkcs15emu_postecert_init_ex(sc_pkcs15_card_t *,
 					sc_pkcs15emu_opt_t *);
+extern int sc_pkcs15emu_piv_init_ex(sc_pkcs15_card_t *p15card,
+					sc_pkcs15emu_opt_t *opts);
 extern int sc_pkcs15emu_gemsafe_init_ex(sc_pkcs15_card_t *p15card,
 					sc_pkcs15emu_opt_t *opts);
 extern int sc_pkcs15emu_actalis_init_ex(sc_pkcs15_card_t *p15card,
@@ -58,6 +60,7 @@ static struct {
 	{ "tcos",	sc_pkcs15emu_tcos_init_ex	},
 	{ "esteid",	sc_pkcs15emu_esteid_init_ex	},
 	{ "postecert",	sc_pkcs15emu_postecert_init_ex  },
+	{ "PIV-II",     sc_pkcs15emu_piv_init_ex        },
 	{ "gemsafe",	sc_pkcs15emu_gemsafe_init_ex	},
 	{ "actalis",	sc_pkcs15emu_actalis_init_ex	},
 	{ "atrust-acos",sc_pkcs15emu_atrust_acos_init_ex},
@@ -331,6 +334,12 @@ int sc_pkcs15emu_add_x509_cert(sc_pkcs15_card_t *p15card,
 	return sc_pkcs15emu_object_add(p15card, SC_PKCS15_TYPE_CERT_X509, obj, cert);
 }
 
+int sc_pkcs15emu_add_data_object(sc_pkcs15_card_t *p15card,
+	const sc_pkcs15_object_t *obj, const sc_pkcs15_data_info_t *data)
+{
+	return sc_pkcs15emu_object_add(p15card, SC_PKCS15_TYPE_DATA_OBJECT, obj, data);
+}
+
 int sc_pkcs15emu_object_add(sc_pkcs15_card_t *p15card, unsigned int type,
 	const sc_pkcs15_object_t *in_obj, const void *data)
 {
@@ -361,6 +370,10 @@ int sc_pkcs15emu_object_add(sc_pkcs15_card_t *p15card, unsigned int type,
 		df_type = SC_PKCS15_CDF;
 		data_len = sizeof(struct sc_pkcs15_cert_info);
 		break;
+	case SC_PKCS15_TYPE_DATA_OBJECT:
+		df_type = SC_PKCS15_DODF;
+		data_len = sizeof(struct sc_pkcs15_data_info);
+		break;
 	default:
 		sc_error(p15card->card->ctx,
 			"Unknown PKCS15 object type %d\n", type);
@@ -381,162 +394,3 @@ int sc_pkcs15emu_object_add(sc_pkcs15_card_t *p15card, unsigned int type,
 	return SC_SUCCESS;
 }
 
-#ifndef OPENSC_NO_DEPRECATED
-int
-sc_pkcs15emu_add_object(sc_pkcs15_card_t *p15card, int type,
-		const char *label, void *data,
-		const sc_pkcs15_id_t *auth_id, int obj_flags)
-{
-	sc_pkcs15_object_t *obj;
-	unsigned int	df_type;
-
-	obj = (sc_pkcs15_object_t *) calloc(1, sizeof(*obj));
-	if (!obj)
-		return SC_ERROR_OUT_OF_MEMORY;
-
-	obj->type  = type;
-	obj->data  = data;
-                
-	if (label)
-		strncpy(obj->label, label, sizeof(obj->label)-1);
-
-	obj->flags = obj_flags;
-	if (auth_id)
-		obj->auth_id = *auth_id;
-
-	switch (type & SC_PKCS15_TYPE_CLASS_MASK) {
-	case SC_PKCS15_TYPE_AUTH:
-		df_type = SC_PKCS15_AODF;
-		break;
-	case SC_PKCS15_TYPE_PRKEY:
-		df_type = SC_PKCS15_PRKDF;
-		break;
-	case SC_PKCS15_TYPE_PUBKEY:
-		df_type = SC_PKCS15_PUKDF;
-		break;
-	case SC_PKCS15_TYPE_CERT:
-		df_type = SC_PKCS15_CDF;
-		break;
-	default:
-		sc_error(p15card->card->ctx,
-			"Unknown PKCS15 object type %d\n", type);
-		return SC_ERROR_INVALID_ARGUMENTS;
-	}
-
-	obj->df = sc_pkcs15emu_get_df(p15card, df_type);
-	sc_pkcs15_add_object(p15card, obj);
-
-	return 0;
-}
-
-int
-sc_pkcs15emu_add_pin(sc_pkcs15_card_t *p15card,
-                const sc_pkcs15_id_t *id, const char *label,
-                const sc_path_t *path, int ref, int type,
-                unsigned int min_length,
-                unsigned int max_length,
-                int flags, int tries_left, const char pad_char, int obj_flags)
-{
-	sc_pkcs15_pin_info_t *info;
-                
-	info = (sc_pkcs15_pin_info_t *) calloc(1, sizeof(*info));
-	if (!info)
-		return SC_ERROR_OUT_OF_MEMORY;
-	info->auth_id           = *id;
-	info->min_length        = min_length;
-	info->max_length        = max_length;
-	info->stored_length     = max_length;
-	info->type              = type;
-	info->reference         = ref;
-	info->flags             = flags;
-	info->tries_left        = tries_left;
-	info->magic             = SC_PKCS15_PIN_MAGIC;
-	info->pad_char          = pad_char;
-        
-	if (path)
-		info->path = *path;     
-	if (type == SC_PKCS15_PIN_TYPE_BCD)
-		info->stored_length /= 2;
-                
-	return sc_pkcs15emu_add_object(p15card,
-	                               SC_PKCS15_TYPE_AUTH_PIN,
-	                               label, info, NULL, obj_flags);
-}
-
-int
-sc_pkcs15emu_add_cert(sc_pkcs15_card_t *p15card,
-		int type, int authority,
-		const sc_path_t *path,
-		const sc_pkcs15_id_t *id,
-                const char *label, int obj_flags)
-{
-	/* const char *label = "Certificate"; */
-	sc_pkcs15_cert_info_t *info;
-	info = (sc_pkcs15_cert_info_t *) calloc(1, sizeof(*info));
-	if (!info)
-		return SC_ERROR_OUT_OF_MEMORY;
-	info->id		= *id;
-	info->authority		= authority;
-	if (path)
-		info->path = *path;
-
-	return sc_pkcs15emu_add_object(p15card, type, label, info, NULL,
-					obj_flags);
-}
-
-int
-sc_pkcs15emu_add_prkey(sc_pkcs15_card_t *p15card,
-                const sc_pkcs15_id_t *id,
-                const char *label,
-                int type, unsigned int modulus_length, int usage,
-                const sc_path_t *path, int ref,
-                const sc_pkcs15_id_t *auth_id, int obj_flags)
-{
-	sc_pkcs15_prkey_info_t *info;   
-        
-	info = (sc_pkcs15_prkey_info_t *) calloc(1, sizeof(*info));
-	if (!info)
-		return SC_ERROR_OUT_OF_MEMORY;
-	info->id                = *id;
-	info->modulus_length    = modulus_length;
-	info->usage             = usage;
-	info->native            = 1;
-	info->access_flags      = SC_PKCS15_PRKEY_ACCESS_SENSITIVE
-                                | SC_PKCS15_PRKEY_ACCESS_ALWAYSSENSITIVE
-                                | SC_PKCS15_PRKEY_ACCESS_NEVEREXTRACTABLE
-                                | SC_PKCS15_PRKEY_ACCESS_LOCAL;
-	info->key_reference     = ref;
- 
-	if (path)
-		info->path = *path;
-
-	return sc_pkcs15emu_add_object(p15card,
-	                               type, label, info, auth_id, obj_flags);
-}
-
-int
-sc_pkcs15emu_add_pubkey(sc_pkcs15_card_t *p15card,
-		const sc_pkcs15_id_t *id,
-		const char *label, int type,
-		unsigned int modulus_length, int usage,
-		const sc_path_t *path, int ref,
-		const sc_pkcs15_id_t *auth_id, int obj_flags)
-{
-	sc_pkcs15_pubkey_info_t *info;
-
-	info = (sc_pkcs15_pubkey_info_t *) calloc(1, sizeof(*info));
-	if (!info)
-		return SC_ERROR_OUT_OF_MEMORY;
-	info->id		= *id;
-	info->modulus_length	= modulus_length;
-	info->usage		= usage;
-	info->access_flags	= SC_PKCS15_PRKEY_ACCESS_EXTRACTABLE;
-	info->key_reference	= ref;
-
-	if (path)
-		info->path = *path;
-
-	return sc_pkcs15emu_add_object(p15card, type, label, info, auth_id,
-					obj_flags);
-}
-#endif /* OPENSC_NO_DEPRECATED */

@@ -93,6 +93,7 @@ struct pcsc_slot_data {
 	SCARD_READERSTATE_A reader_state;
 	DWORD verify_ioctl;
 	DWORD modify_ioctl;
+	int locked;
 };
 
 static int pcsc_detect_card_presence(sc_reader_t *reader, sc_slot_info_t *slot);
@@ -141,7 +142,7 @@ static DWORD opensc_proto_to_pcsc(unsigned int proto)
 	}
 }
 
-static int pcsc_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
+static int pcsc_internal_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
 			 const u8 *sendbuf, size_t sendsize,
 			 u8 *recvbuf, size_t *recvsize,
 			 unsigned long control)
@@ -201,6 +202,62 @@ static int pcsc_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
 
 	return 0;
 }
+
+static int pcsc_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
+	sc_apdu_t *apdu)
+{
+	size_t       ssize, rsize, rbuflen = 0;
+	u8           *sbuf = NULL, *rbuf = NULL;
+	int          r;
+
+	/* we always use a at least 258 byte size big return buffer
+	 * to mimic the behaviour of the old implementation (some readers
+	 * seems to require a larger than necessary return buffer).
+	 * The buffer for the returned data needs to be at least 2 bytes
+	 * larger than the expected data length to store SW1 and SW2. */
+	rsize = rbuflen = apdu->resplen <= 256 ? 258 : apdu->resplen + 2;
+	rbuf     = malloc(rbuflen);
+	if (rbuf == NULL) {
+		r = SC_ERROR_MEMORY_FAILURE;
+		goto out;
+	}
+	/* encode and log the APDU */
+	r = sc_apdu_get_octets(reader->ctx, apdu, &sbuf, &ssize, slot->active_protocol);
+	if (r != SC_SUCCESS)
+		goto out;
+	/* log data if DEBUG is defined */
+#ifdef DEBUG
+	sc_apdu_log(reader->ctx, sbuf, ssize, 1);
+#endif
+
+	r = pcsc_internal_transmit(reader, slot, sbuf, ssize,
+				rbuf, &rsize, apdu->control);
+	if (r < 0) {
+		/* unable to transmit ... most likely a reader problem */
+		sc_error(reader->ctx, "unable to transmit");
+		goto out;
+	}
+	/* log data if DEBUG is defined */
+#ifdef DEBUG
+	sc_apdu_log(reader->ctx, rbuf, rsize, 0);
+#endif
+	/* set response */
+	r = sc_apdu_set_resp(reader->ctx, apdu, rbuf, rsize);
+	if (r != SC_SUCCESS)
+		return r;
+out:
+	if (sbuf != NULL) {
+		sc_mem_clear(sbuf, ssize);
+		free(sbuf);
+	}
+	if (rbuf != NULL) {
+		sc_mem_clear(rbuf, rbuflen);
+		free(rbuf);
+	}
+	
+	return r;
+}
+
 
 static int refresh_slot_attributes(sc_reader_t *reader, sc_slot_info_t *slot)
 {
@@ -396,7 +453,7 @@ static int pcsc_wait_for_event(sc_reader_t **readers,
 	}
 }
 
-static int pcsc_reconnect(sc_reader_t * reader, sc_slot_info_t * slot)
+static int pcsc_reconnect(sc_reader_t * reader, sc_slot_info_t * slot, int reset)
 {
 	DWORD active_proto, protocol;
 	LONG rv;
@@ -420,9 +477,12 @@ static int pcsc_reconnect(sc_reader_t * reader, sc_slot_info_t * slot)
 		protocol = slot->active_protocol;
 	}
 
+	/* reconnect always unlocks transaction */
+	pslot->locked = 0;
+	
 	rv = SCardReconnect(pslot->pcsc_card,
 			    priv->gpriv->connect_exclusive ? SCARD_SHARE_EXCLUSIVE : SCARD_SHARE_SHARED, protocol,
-			    SCARD_LEAVE_CARD, &active_proto);
+			    reset ? SCARD_RESET_CARD : SCARD_LEAVE_CARD, &active_proto);
 	if (rv != SCARD_S_SUCCESS) {
 		PCSC_ERROR(reader->ctx, "SCardReconnect failed", rv);
 		return pcsc_ret_to_error(rv);
@@ -468,6 +528,9 @@ static int pcsc_connect(sc_reader_t *reader, sc_slot_info_t *slot)
 	slot->active_protocol = pcsc_proto_to_opensc(active_proto);
 	pslot->pcsc_card = card_handle;
 
+	/* after connect reader is not locked yet */
+	pslot->locked = 0;
+	
 	/* check for pinpad support */
 #ifdef PINPAD_ENABLED
 	sc_debug(reader->ctx, "Requesting reader features ... ");
@@ -501,14 +564,13 @@ static int pcsc_connect(sc_reader_t *reader, sc_slot_info_t *slot)
 		} else
 			sc_debug(reader->ctx, "Inconsistent TLV from reader!");
 	} else {
-		PCSC_ERROR(reader->ctx, "SCardControl failed", rv)
+		sc_debug(reader->ctx, "SCardControl failed %d", rv);
 	}
 #endif /* PINPAD_ENABLED */
 	return SC_SUCCESS;
 }
 
-static int pcsc_disconnect(sc_reader_t *reader, sc_slot_info_t *slot,
-			   int action)
+static int pcsc_disconnect(sc_reader_t * reader, sc_slot_info_t * slot)
 {
 	struct pcsc_slot_data *pslot = GET_SLOT_DATA(slot);
 	struct pcsc_private_data *priv = GET_PRIV_DATA(reader);
@@ -529,9 +591,9 @@ static int pcsc_lock(sc_reader_t *reader, sc_slot_info_t *slot)
 
 	rv = SCardBeginTransaction(pslot->pcsc_card);
 
-	if (rv == SCARD_W_RESET_CARD) {
+	if ((unsigned int)rv == SCARD_W_RESET_CARD) {
 		/* try to reconnect if the card was reset by some other application */
-		rv = pcsc_reconnect(reader, slot);
+		rv = pcsc_reconnect(reader, slot, 0);
 		if (rv != SCARD_S_SUCCESS) {
 			PCSC_ERROR(reader->ctx, "SCardReconnect failed", rv);
 			return pcsc_ret_to_error(rv);
@@ -545,6 +607,9 @@ static int pcsc_lock(sc_reader_t *reader, sc_slot_info_t *slot)
 		PCSC_ERROR(reader->ctx, "SCardBeginTransaction failed", rv);
 		return pcsc_ret_to_error(rv);
 	}
+
+	pslot->locked = 1;
+	
 	return SC_SUCCESS;
 }
 
@@ -555,12 +620,16 @@ static int pcsc_unlock(sc_reader_t *reader, sc_slot_info_t *slot)
 	struct pcsc_private_data *priv = GET_PRIV_DATA(reader);
 
 	assert(pslot != NULL);
+
 	rv = SCardEndTransaction(pslot->pcsc_card, priv->gpriv->transaction_reset ?
                            SCARD_RESET_CARD : SCARD_LEAVE_CARD);
 	if (rv != SCARD_S_SUCCESS) {
 		PCSC_ERROR(reader->ctx, "SCardEndTransaction failed", rv);
 		return pcsc_ret_to_error(rv);
 	}
+
+	pslot->locked = 0;
+	
 	return 0;
 }
 
@@ -580,13 +649,30 @@ static int pcsc_release(sc_reader_t *reader)
 	return 0;
 }
 
+static int pcsc_reset(sc_reader_t *reader, sc_slot_info_t *slot)
+{
+	int r;
+	struct pcsc_slot_data *pslot = GET_SLOT_DATA(slot);
+	int old_locked = pslot->locked;
+
+	r = pcsc_reconnect(reader, slot, 1);
+	if(r != SC_SUCCESS)
+		return r;
+
+	/* pcsc_reconnect unlocks card... try to lock it again if it was locked */
+	if(old_locked)
+		r = pcsc_lock(reader, slot);
+	
+	return r;
+}
+	
 static struct sc_reader_operations pcsc_ops;
 
 static struct sc_reader_driver pcsc_drv = {
 	"PC/SC reader",
 	"pcsc",
 	&pcsc_ops,
-	0, 0, 0, NULL
+	0, 0, NULL
 };
 
 static int pcsc_init(sc_context_t *ctx, void **reader_data)
@@ -617,7 +703,7 @@ static int pcsc_init(sc_context_t *ctx, void **reader_data)
 	}
 	gpriv->pcsc_ctx = pcsc_ctx;
 	
-	conf_block = _get_conf_block(ctx, "reader_driver", "pcsc", 1);
+	conf_block = sc_get_conf_block(ctx, "reader_driver", "pcsc", 1);
 	if (conf_block) {
 		gpriv->connect_reset =
 		    scconf_get_bool(conf_block, "connect_reset", 1);
@@ -729,6 +815,7 @@ struct sc_reader_driver * sc_get_pcsc_driver(void)
 	pcsc_ops.disconnect = pcsc_disconnect;
 	pcsc_ops.perform_verify = pcsc_pin_cmd;
 	pcsc_ops.wait_for_event = pcsc_wait_for_event;
+	pcsc_ops.reset = pcsc_reset;
 
 	return &pcsc_drv;
 }
@@ -989,7 +1076,7 @@ part10_pin_cmd(sc_reader_t *reader, sc_slot_info_t *slot,
 	sc_bin_to_hex(sbuf, scount, dbuf, sizeof(dbuf), ':');
 	sc_debug(reader->ctx, "Part 10 block: %s", dbuf);
 
-	r = reader->ops->transmit(reader, slot, sbuf, scount, rbuf, &rcount, ioctl);
+	r = pcsc_internal_transmit(reader, slot, sbuf, scount, rbuf, &rcount, ioctl);
 
 	SC_TEST_RET(reader->ctx, r, "Part 10: block transmit failed!");
 

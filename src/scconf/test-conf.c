@@ -1,5 +1,5 @@
 /*
- * $Id: test-conf.c 2701 2005-12-05 21:22:42Z aj $
+ * $Id: test-conf.c 2896 2006-04-26 09:59:36Z aj $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -42,7 +42,7 @@ static int ldap_cb(const scconf_context * config, const scconf_block * block, sc
 		{"base", SCCONF_STRING, SCCONF_VERBOSE, NULL, NULL},
 		{"attributes", SCCONF_LIST, SCCONF_VERBOSE, NULL, NULL},
 		{"filter", SCCONF_STRING, SCCONF_VERBOSE, NULL, NULL},
-		{NULL}
+		{NULL, 0, 0, NULL, NULL}
 	};
 	char *cardprefix = (char *) entry->arg;
 	char *str = scconf_list_strdup(block->name, " ");
@@ -64,7 +64,7 @@ static int card_cb(const scconf_context * config, const scconf_block * block, sc
 	scconf_entry card_entry[] =
 	{
 		{"ldap", SCCONF_CALLBACK, SCCONF_VERBOSE | SCCONF_ALL_BLOCKS, (void *) ldap_cb, str},
-		{NULL}
+		{NULL, 0, 0, NULL, NULL}
 	};
 
 	if (!str)
@@ -88,20 +88,21 @@ static int write_cb(scconf_context * config, scconf_block * block, scconf_entry 
 
 int write_entries(scconf_context *conf, scconf_list *list)
 {
+	static int int42 = 42, int1 = 1;
 	scconf_entry subblock[] =
 	{
-		{"stringIT", SCCONF_STRING, SCCONF_VERBOSE, (void *) "sexy"},
-		{"callback_str", SCCONF_CALLBACK, SCCONF_VERBOSE, (void *) write_cb},
-		{NULL}
+		{"stringIT", SCCONF_STRING, SCCONF_VERBOSE, (void *) "sexy", NULL},
+		{"callback_str", SCCONF_CALLBACK, SCCONF_VERBOSE, (void *) write_cb, NULL},
+		{NULL, 0, 0, NULL, NULL}
 	};
 	scconf_entry wentry[] =
 	{
-		{"string", SCCONF_STRING, SCCONF_VERBOSE, (void *) "value1"},
-		{"integer", SCCONF_INTEGER, SCCONF_VERBOSE, (void *) 42},
-		{"sucks", SCCONF_BOOLEAN, SCCONF_VERBOSE, (void *) 1},
-		{"listN", SCCONF_LIST, SCCONF_VERBOSE, (void *) list},
+		{"string", SCCONF_STRING, SCCONF_VERBOSE, (void *) "value1", NULL},
+		{"integer", SCCONF_INTEGER, SCCONF_VERBOSE, (void *) &int42, NULL},
+		{"sucks", SCCONF_BOOLEAN, SCCONF_VERBOSE,   (void *) &int1, NULL },
+		{"listN", SCCONF_LIST, SCCONF_VERBOSE, (void *) list, NULL},
 		{"blockN", SCCONF_BLOCK, SCCONF_VERBOSE, (void *) subblock, (void *) list},
-		{NULL}
+		{NULL, 0, 0, NULL, NULL}
 	};
 	return scconf_write_entries(conf, NULL, wentry);
 }
@@ -116,9 +117,9 @@ int main(int argc, char **argv)
 	scconf_context *conf = NULL;
 	scconf_entry entry[] =
 	{
-		{"ldap", SCCONF_CALLBACK, SCCONF_VERBOSE | SCCONF_ALL_BLOCKS, (void *) ldap_cb},
-		{"card", SCCONF_CALLBACK, SCCONF_VERBOSE | SCCONF_ALL_BLOCKS, (void *) card_cb},
-		{NULL}
+		{"ldap", SCCONF_CALLBACK, SCCONF_VERBOSE | SCCONF_ALL_BLOCKS, (void *) ldap_cb, NULL},
+		{"card", SCCONF_CALLBACK, SCCONF_VERBOSE | SCCONF_ALL_BLOCKS, (void *) card_cb, NULL},
+		{NULL, 0, 0, NULL, NULL}
 	};
 	char *in = NULL, *out = NULL;
 	int r;
@@ -157,7 +158,7 @@ int main(int argc, char **argv)
 
 	scconf_list_add(&foo_list, "value3");
 
-	/* FIXME - segfault: foo_item is NULL, _item_add dereferences it */
+	/* FIXME: this will segfault as foo_item is NULL */
 	scconf_item_add(conf, foo_block, foo_item, SCCONF_ITEM_TYPE_COMMENT, NULL, "# comment1");
 	scconf_item_add(conf, foo_block, foo_item, SCCONF_ITEM_TYPE_VALUE, "list1", foo_list);
 	foo_block = NULL;

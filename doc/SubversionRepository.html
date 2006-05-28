@@ -17,9 +17,9 @@ In our subversion repository we have
 </li></ul><p>
 You can checkout these with the subversion commands
 </p>
-<pre class="wiki" xml:space="preserve">svn co http://www.opensc.org/svn/opensc/trunk/
-svn co http://www.opensc.org/svn/opensc/branches/opensc-0.10/
-svn co http://www.opensc.org/svn/opensc/releases/opensc-0.10.0/
+<pre class="wiki" xml:space="preserve">svn co http://www.opensc-project.org/svn/opensc/trunk/
+svn co http://www.opensc-project.org/svn/opensc/branches/opensc-0.10/
+svn co http://www.opensc-project.org/svn/opensc/releases/opensc-0.10.0/
 </pre><p>
 Note that the subversion repository only contains development files.
 Before compiling the code you need to run the "<tt>./bootstrap</tt>" script
@@ -31,9 +31,9 @@ Some people have reported problems with some http proxies. If you find some prob
 you can maybe solve it by using https instead. Try to checkout the repository
 like this: 
 </p>
-<pre class="wiki" xml:space="preserve">svn co --non-interactive https://www.opensc.org/svn/opensc/trunk/
-svn co --non-interactive https://www.opensc.org/svn/opensc/branches/opensc-0.10/
-svn co --non-interactive https://www.opensc.org/svn/opensc/releases/opensc-0.10.0/
+<pre class="wiki" xml:space="preserve">svn co --non-interactive https://www.opensc-project.org/svn/opensc/trunk/
+svn co --non-interactive https://www.opensc-project.org/svn/opensc/branches/opensc-0.10/
+svn co --non-interactive https://www.opensc-project.org/svn/opensc/releases/opensc-0.10.0/
 </pre><h1>Write access for developers</h1>
 <p>
 Developers with write access usualy access the repository via https with authentication
@@ -41,16 +41,16 @@ using ssl client certificates. You might want to put something like this into yo
 <tt>~/.subversion/servers</tt> file to point subversion to your client certificate:
 </p>
 <pre class="wiki" xml:space="preserve">[groups]
-opensc = www.opensc.org
+opensc = www.opensc-project.org
 
 [opensc]
 ssl-client-cert-file=/home/aj/.subversion/aj.p12  
 </pre><p>
 You can access the repositories:
 </p>
-<pre class="wiki" xml:space="preserve">svn co https://www.opensc.org/svn/opensc/trunk/
-svn co https://www.opensc.org/svn/opensc/branches/opensc-0.10/
-svn co https://www.opensc.org/svn/opensc/releases/opensc-0.10.0/
+<pre class="wiki" xml:space="preserve">svn co https://www.opensc-project.org/svn/opensc/trunk/
+svn co https://www.opensc-project.org/svn/opensc/branches/opensc-0.10/
+svn co https://www.opensc-project.org/svn/opensc/releases/opensc-0.10.0/
 </pre><h2>Creating distribution packages</h2>
 <p>
 To package OpenSC as tar.gz file you only need to type "make dist". However building

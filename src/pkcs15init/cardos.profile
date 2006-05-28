@@ -1,5 +1,6 @@
 #
-# PKCS15 r/w profile for Aladdin eToken
+# PKCS15 r/w profile for Siemens CardOS M4 
+# smart cards and crypto tokens (for example Aladdin eToken)
 #
 cardinfo {
     max-pin-length	= 8;
@@ -29,7 +30,7 @@ PIN user-puk {
 filesystem {
     DF MF {
         DF PKCS15-AppDF {
-	    size		= 2048;
+	    size		= 4096;
 
 	    # Prevent unauthorized updates of basic security
 	    # objects via PUT DATA OCI.
@@ -38,7 +39,11 @@ filesystem {
 	    # Bump the size of the EF(PrKDF) - with split
 	    # keys, we may need a little more room.
 	    EF PKCS15-PrKDF {
-		size		= 256;
+		size		= 384;
+	    }
+
+	    EF PKCS15-PuKDF {
+		size		= 384;
 	    }
 
 	    # This template defines files for keys, certificates etc.

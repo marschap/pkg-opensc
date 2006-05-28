@@ -103,11 +103,10 @@ make
 make install
 cp etc/opensc.conf /etc/
 </pre><h2>Microsoft Windows</h2>
-<p>
-OpenSC can be compiled on Microsoft Windows, but currently the only supported
-compile plattform is Visual Studio (tested with VC7) using makefiles.
-</p>
-<p>
+<ul><li>Download, install and use once  <a class="ext-link" title="http://msdn.microsoft.com/vstudio/express/default.aspx" href="http://msdn.microsoft.com/vstudio/express/default.aspx" shape="rect">Visual Studio Express</a>.
+</li><li>Download and install <a class="ext-link" title="http://www.microsoft.com/downloads/details.aspx?FamilyId=A55B6B43-E24F-4EA3-A93E-40C0EC4F68E5&amp;displaylang=en" href="http://www.microsoft.com/downloads/details.aspx?FamilyId=A55B6B43-E24F-4EA3-A93E-40C0EC4F68E5&amp;displaylang=en" shape="rect">Microsoft Platform SDK</a>.
+</li></ul><p>
+ 
 To compile OpenSC first unpack the opensc-a.b.c.tar.gz file using 7-Zip,
 Winzip or some compatible software. You need to have libltdl3 installed
 (runtime and development). We suggest the installer provided by the
@@ -120,8 +119,10 @@ also need to edit the file <tt>win32/Make.rules.mak</tt> and point
 to the OpenSSL location.
 </p>
 <p>
-Compiling OpenSC is down with a terminal/ "cmd.exe" window
-and entering the commands:
+You need to replace <tt>__FUNCTION__</tt> by <tt>__SCFUNCTION__</tt> in the file \opensc-a.b.b\src\include\opensc\log.h to solve a minor compiling error. If you are using Mircrosoft Visual Sudio .NET development environment, you need to copy three files from Visual Studio .NET, namely afxres.h, winrest.h and afsxres.rx, to \opensc-a.b.b\src\include sub-directory before compiling [Can someone test and verify my finding?]
+</p>
+<p>
+Compiling OpenSC is down with a Visual Studio Command Prompt window and entering the commands:
 </p>
 <pre class="wiki" xml:space="preserve">cd opensc-a.b.c
 nmake /f Makefile.mak

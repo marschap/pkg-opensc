@@ -38,7 +38,8 @@ struct sc_card_operations incrypto34_ops;
 struct sc_card_driver incrypto34_drv = {
 	"Incard Incripto34",
 	"incrypto34",
-	&incrypto34_ops
+	&incrypto34_ops,
+	NULL, 0, NULL
 };
 
 static struct sc_atr_table incrypto34_atrs[] = {
@@ -557,9 +558,9 @@ incrypto34_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	 */
 	if (ctx->debug >= 3)
 		sc_debug(ctx, "trying RSA_PURE_SIG (padded DigestInfo)\n");
-	ctx->suppress_errors++;
+	sc_ctx_suppress_errors_on(ctx);
 	r = do_compute_signature(card, data, datalen, out, outlen);
-	ctx->suppress_errors--;
+	sc_ctx_suppress_errors_off(ctx);
 	if (r >= SC_SUCCESS)
 		SC_FUNC_RETURN(ctx, 4, r);
 	if (ctx->debug >= 3)
@@ -573,9 +574,9 @@ incrypto34_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 		if (r != SC_SUCCESS)
 			SC_FUNC_RETURN(ctx, 4, r);
 	}
-	ctx->suppress_errors++;
+	sc_ctx_suppress_errors_on(ctx);
 	r = do_compute_signature(card, buf, tmp_len, out, outlen);
-	ctx->suppress_errors--;
+	sc_ctx_suppress_errors_off(ctx);
 	if (r >= SC_SUCCESS)
 		SC_FUNC_RETURN(ctx, 4, r);
 	if (ctx->debug >= 3)

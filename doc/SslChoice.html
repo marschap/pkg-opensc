@@ -28,10 +28,10 @@ We will try to discuss each.
 </p>
 <p>
 <a class="ext-link" title="http://www.openssl.org/" href="http://www.openssl.org/" shape="rect">OpenSSL</a> has an easy way to integrate smart card support. Our sister project
-<a class="ext-link" title="http://www.opensc.org/libp11/" href="http://www.opensc.org/libp11/" shape="rect">libp11</a>
+<a class="ext-link" title="http://www.opensc-project.org/libp11/" href="http://www.opensc-project.org/libp11/" shape="rect">libp11</a>
 has code to make using OpenSC PKCS<a href="/opensc/ticket/11" title="CLOSED : gcc4 build failure" shape="rect"><del>#11</del></a> module with OpenSSL quite easy and should include example code for
 using SSL with client certificate authentication using a smart card soo. Also the
-<a class="ext-link" title="http://www.opensc.org/engine_pkcs11" href="http://www.opensc.org/engine_pkcs11" shape="rect">engine_pkcs11</a> project has a so called engine so you can change
+<a class="ext-link" title="http://www.opensc-project.org/engine_pkcs11" href="http://www.opensc-project.org/engine_pkcs11" shape="rect">engine_pkcs11</a> project has a so called engine so you can change
 any code using OpenSSL to move the crypto operation from your CPU to your smart card with only a few
 small changes. Wpa_supplicant is an example of an application using OpenSSL and this engine for smart card support.
 </p>

@@ -205,7 +205,7 @@ sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
-SUBDIRS = . old 
+SUBDIRS = . 
 MAINTAINERCLEANFILES = Makefile.in $(HTML) ChangeLog
 EXTRA_DIST = README ChangeLog $(HTML) $(XML) index.html \
 		export-wiki.sh export-wiki.xsl \
@@ -528,7 +528,6 @@ uninstall-info: uninstall-info-recursive
 index.html:
 	sh $(srcdir)/export-wiki.sh $(srcdir)
 	sh $(srcdir)/generate-man.sh $(srcdir)
-	sh $(srcdir)/old/generate.sh $(srcdir)/old
 
 ChangeLog:
 	sh $(srcdir)/changelog.sh $(srcdir)

@@ -82,17 +82,18 @@ sc_card_t *card = NULL;
 
 static int list_readers(void)
 {
-	int i;
+	unsigned int i, rcount = sc_ctx_get_reader_count(ctx);
 	
-	if (ctx->reader_count == 0) {
+	if (rcount == 0) {
 		printf("No readers configured!\n");
 		return 0;
 	}
 	printf("Readers known about:\n");
 	printf("Nr.    Driver     Name\n");
-	for (i = 0; i < ctx->reader_count; i++) {
-		printf("%-7d%-11s%s\n", i, ctx->reader[i]->driver->short_name,
-		       ctx->reader[i]->name);
+	for (i = 0; i < rcount; i++) {
+		sc_reader_t *screader = sc_ctx_get_reader(ctx, i);
+		printf("%-7d%-11s%s\n", i, screader->driver->short_name,
+		       screader->name);
 	}
 	return 0;
 }
@@ -172,7 +173,7 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 		};
 		printf("ef structure: %s, ", structs[file->ef_structure]);
 	}
-	printf("size: %d\n", file->size);
+	printf("size: %lu\n", file->size);
 	for (r = 0; r < depth; r++)
 		printf("  ");
 	if (file->type == SC_FILE_TYPE_DF)
@@ -309,7 +310,7 @@ static int send_apdu(void)
 			apdu.data = sbuf;
 			apdu.datalen = apdu.lc;
 			if (len < apdu.lc) {
-				fprintf(stderr, "APDU too short (need %d bytes).\n",
+				fprintf(stderr, "APDU too short (need %lu bytes).\n",
 					apdu.lc-len);
 				return 2;
 			}
@@ -323,7 +324,7 @@ static int send_apdu(void)
 			} else
 				apdu.cse = SC_APDU_CASE_3_SHORT;
 			if (len) {
-				fprintf(stderr, "APDU too long (%d bytes extra).\n", len);
+				fprintf(stderr, "APDU too long (%lu bytes extra).\n", len);
 				return 2;
 			}
 		} else if (len == 1) {
@@ -376,6 +377,7 @@ int main(int argc, char * const argv[])
 	int do_print_name = 0;
 	int action_count = 0;
 	const char *opt_driver = NULL;
+	sc_context_param_t ctx_param;
 		
 	setbuf(stderr, NULL);
 	setbuf(stdout, NULL);
@@ -440,7 +442,12 @@ int main(int argc, char * const argv[])
 	}
 	if (action_count == 0)
 		print_usage_and_die();
-	r = sc_establish_context(&ctx, app_name);
+
+	memset(&ctx_param, 0, sizeof(ctx_param));
+	ctx_param.ver      = 0;
+	ctx_param.app_name = app_name;
+
+	r = sc_context_create(&ctx, &ctx_param);
 	if (r) {
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;

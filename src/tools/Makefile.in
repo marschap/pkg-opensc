@@ -40,7 +40,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = opensc-tool$(EXEEXT) opensc-explorer$(EXEEXT) \
-	pkcs15-tool$(EXEEXT) pkcs15-crypt$(EXEEXT) \
+	pkcs15-tool$(EXEEXT) pkcs15-crypt$(EXEEXT) piv-tool$(EXEEXT) \
 	pkcs11-tool$(EXEEXT) cardos-info$(EXEEXT) eidenv$(EXEEXT) \
 	$(am__EXEEXT_1)
 subdir = src/tools
@@ -82,6 +82,9 @@ opensc_explorer_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am_opensc_tool_OBJECTS = opensc-tool.$(OBJEXT) util.$(OBJEXT)
 opensc_tool_OBJECTS = $(am_opensc_tool_OBJECTS)
 opensc_tool_DEPENDENCIES =
+am_piv_tool_OBJECTS = piv-tool.$(OBJEXT) util.$(OBJEXT)
+piv_tool_OBJECTS = $(am_piv_tool_OBJECTS)
+piv_tool_DEPENDENCIES =
 am_pkcs11_tool_OBJECTS = pkcs11-tool.$(OBJEXT) util.$(OBJEXT)
 pkcs11_tool_OBJECTS = $(am_pkcs11_tool_OBJECTS)
 pkcs11_tool_DEPENDENCIES = ../pkcs11/libpkcs11.la \
@@ -110,13 +113,15 @@ LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 SOURCES = $(cardos_info_SOURCES) $(cryptoflex_tool_SOURCES) \
 	$(eidenv_SOURCES) $(netkey_tool_SOURCES) \
 	$(opensc_explorer_SOURCES) $(opensc_tool_SOURCES) \
-	$(pkcs11_tool_SOURCES) $(pkcs15_crypt_SOURCES) \
-	$(pkcs15_init_SOURCES) $(pkcs15_tool_SOURCES)
+	$(piv_tool_SOURCES) $(pkcs11_tool_SOURCES) \
+	$(pkcs15_crypt_SOURCES) $(pkcs15_init_SOURCES) \
+	$(pkcs15_tool_SOURCES)
 DIST_SOURCES = $(cardos_info_SOURCES) $(cryptoflex_tool_SOURCES) \
 	$(eidenv_SOURCES) $(netkey_tool_SOURCES) \
 	$(opensc_explorer_SOURCES) $(opensc_tool_SOURCES) \
-	$(pkcs11_tool_SOURCES) $(pkcs15_crypt_SOURCES) \
-	$(pkcs15_init_SOURCES) $(pkcs15_tool_SOURCES)
+	$(piv_tool_SOURCES) $(pkcs11_tool_SOURCES) \
+	$(pkcs15_crypt_SOURCES) $(pkcs15_init_SOURCES) \
+	$(pkcs15_tool_SOURCES)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
 CTAGS = ctags
@@ -269,6 +274,8 @@ AM_LDFLAGS = @LIBOPENSC@
 @HAVE_OPENSSL_TRUE@PROGRAMS_OPENSSL = cryptoflex-tool pkcs15-init netkey-tool
 opensc_tool_SOURCES = opensc-tool.c util.c
 opensc_tool_LDADD = @GETOPTSRC@
+piv_tool_SOURCES = piv-tool.c util.c
+piv_tool_LDADD = @GETOPTSRC@
 opensc_explorer_SOURCES = opensc-explorer.c util.c
 opensc_explorer_LDADD = @GETOPTSRC@ $(LIBREADLINE)
 pkcs15_tool_SOURCES = pkcs15-tool.c util.c
@@ -367,6 +374,9 @@ opensc-explorer$(EXEEXT): $(opensc_explorer_OBJECTS) $(opensc_explorer_DEPENDENC
 opensc-tool$(EXEEXT): $(opensc_tool_OBJECTS) $(opensc_tool_DEPENDENCIES) 
 	@rm -f opensc-tool$(EXEEXT)
 	$(LINK) $(opensc_tool_LDFLAGS) $(opensc_tool_OBJECTS) $(opensc_tool_LDADD) $(LIBS)
+piv-tool$(EXEEXT): $(piv_tool_OBJECTS) $(piv_tool_DEPENDENCIES) 
+	@rm -f piv-tool$(EXEEXT)
+	$(LINK) $(piv_tool_LDFLAGS) $(piv_tool_OBJECTS) $(piv_tool_LDADD) $(LIBS)
 pkcs11-tool$(EXEEXT): $(pkcs11_tool_OBJECTS) $(pkcs11_tool_DEPENDENCIES) 
 	@rm -f pkcs11-tool$(EXEEXT)
 	$(LINK) $(pkcs11_tool_LDFLAGS) $(pkcs11_tool_OBJECTS) $(pkcs11_tool_LDADD) $(LIBS)
@@ -392,6 +402,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netkey-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/opensc-explorer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/opensc-tool.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/piv-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs11-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-crypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-init.Po@am__quote@

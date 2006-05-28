@@ -10,25 +10,24 @@ To get feedback as early as possible, here's a small tutorial how to get going w
 Things you need to try it out:
 </p>
 <ul><li>get yourself a SPR532 reader from www.scmmicro.com
-</li><li>upgrade the firmware to the latest (5.05 version) using stuff from here: <a class="ext-link" title="http://martin.paljak.pri.ee/download/esteid/ccid/SCM-readers/SPR532/" href="http://martin.paljak.pri.ee/download/esteid/ccid/SCM-readers/SPR532/" shape="rect">http://martin.paljak.pri.ee/download/esteid/ccid/SCM-readers/SPR532/</a> 
-<ul><li>Note that this upgrade will make your reader's pinpad unusable under Windows if your application only supports the older and broken firmware!
-</li></ul></li><li>make sure you have libusb installed (you can get it from here: <a class="ext-link" title="http://www.opensc.org/svn/ideelabor/trunk/mp/libusb" href="http://www.opensc.org/svn/ideelabor/trunk/mp/libusb" shape="rect">http://www.opensc.org/svn/ideelabor/trunk/mp/libusb</a>)
-</li><li>install the latest pcsc-lite from SVN (or from here: <a class="ext-link" title="http://www.opensc.org/svn/ideelabor/trunk/mp/pcsc-lite" href="http://www.opensc.org/svn/ideelabor/trunk/mp/pcsc-lite" shape="rect">http://www.opensc.org/svn/ideelabor/trunk/mp/pcsc-lite</a>)
-</li><li>install the latest ccid driver from SVN (or from here: <a class="ext-link" title="http://www.opensc.org/svn/ideelabor/trunk/mp/ccid" href="http://www.opensc.org/svn/ideelabor/trunk/mp/ccid" shape="rect">http://www.opensc.org/svn/ideelabor/trunk/mp/ccid</a>)
-</li><li>install the latest opensc from SVN (or get one from here: <a class="ext-link" title="http://www.opensc.org/svn/ideelabor/trunk/mp/opensc" href="http://www.opensc.org/svn/ideelabor/trunk/mp/opensc" shape="rect">http://www.opensc.org/svn/ideelabor/trunk/mp/opensc</a>)
+</li><li>upgrade the firmware to the latest (at least 5.05) version using stuff from here: 
+</li></ul><p>
+<a class="ext-link" title="http://www.scmmicro.com/support/pcs_downloads.html?PID=70&amp;s1=6&amp;s2" href="http://www.scmmicro.com/support/pcs_downloads.html?PID=70&amp;s1=6&amp;s2" shape="rect">http://www.scmmicro.com/support/pcs_downloads.html?PID=70&amp;s1=6&amp;s2</a>
+</p>
+<ul><li><ul><li>Note that this upgrade will make your reader's pinpad unusable under Windows if your application only supports the older and broken firmware!
+</li></ul></li><li>make sure you have libusb installed (you can get it from here: <a class="ext-link" title="http://www.opensc-project.org/svn/ideelabor/trunk/mp/libusb" href="http://www.opensc-project.org/svn/ideelabor/trunk/mp/libusb" shape="rect">http://www.opensc-project.org/svn/ideelabor/trunk/mp/libusb</a>)
+</li><li>install the latest pcsc-lite from SVN (or from here: <a class="ext-link" title="http://www.opensc-project.org/svn/ideelabor/trunk/mp/pcsc-lite" href="http://www.opensc-project.org/svn/ideelabor/trunk/mp/pcsc-lite" shape="rect">http://www.opensc-project.org/svn/ideelabor/trunk/mp/pcsc-lite</a>)
+</li><li>install the latest ccid driver from SVN (or from here: <a class="ext-link" title="http://www.opensc-project.org/svn/ideelabor/trunk/mp/ccid" href="http://www.opensc-project.org/svn/ideelabor/trunk/mp/ccid" shape="rect">http://www.opensc-project.org/svn/ideelabor/trunk/mp/ccid</a>)
+</li><li>install the latest opensc from SVN (or get one from here: <a class="ext-link" title="http://www.opensc-project.org/svn/ideelabor/trunk/mp/opensc" href="http://www.opensc-project.org/svn/ideelabor/trunk/mp/opensc" shape="rect">http://www.opensc-project.org/svn/ideelabor/trunk/mp/opensc</a>)
 <ul><li>After installation, make sure you have opensc.conf in the location told by configure and make sure that enable_pinpad is set to 'true'
-</li></ul></li></ul><blockquote>
-<blockquote>
-<p>
-*
+</li></ul></li></ul><p>
+   
 Notes:
 </p>
-</blockquote>
-</blockquote>
 <ul><li>the whole topic is hairy - see discussions on muscle and opensc-devel mailinglist:
 <ul><li><a class="ext-link" title="http://archives.neohapsis.com/archives/dev/muscle/2005-q1/0199.html" href="http://archives.neohapsis.com/archives/dev/muscle/2005-q1/0199.html" shape="rect">http://archives.neohapsis.com/archives/dev/muscle/2005-q1/0199.html</a>
 </li><li><a class="ext-link" title="http://archives.neohapsis.com/archives/dev/muscle/2005-q1/0221.html" href="http://archives.neohapsis.com/archives/dev/muscle/2005-q1/0221.html" shape="rect">http://archives.neohapsis.com/archives/dev/muscle/2005-q1/0221.html</a>
-</li><li><a class="ext-link" title="http://www.opensc.org/pipermail/opensc-devel/2005-March/005709.html" href="http://www.opensc.org/pipermail/opensc-devel/2005-March/005709.html" shape="rect">http://www.opensc.org/pipermail/opensc-devel/2005-March/005709.html</a>
+</li><li><a class="ext-link" title="http://www.opensc-project.org/pipermail/opensc-devel/2005-March/005709.html" href="http://www.opensc-project.org/pipermail/opensc-devel/2005-March/005709.html" shape="rect">http://www.opensc-project.org/pipermail/opensc-devel/2005-March/005709.html</a>
 </li></ul></li></ul><p>
 What you can do:
 </p>

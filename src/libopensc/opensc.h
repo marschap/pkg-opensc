@@ -2,6 +2,7 @@
  * opensc.h: OpenSC library header file
  *
  * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ *               2005        The OpenSC project
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,8 +20,8 @@
  */
 
 /**
- * @file opensc.h
- * @brief OpenSC library core header file
+ * @file src/libopensc/opensc.h
+ * OpenSC library core header file
  */
 
 #ifndef _OPENSC_H
@@ -45,14 +46,21 @@ extern "C" {
 #endif
 
 /* Different APDU cases */
-#define SC_APDU_CASE_NONE		0
-#define SC_APDU_CASE_1                  1
-#define SC_APDU_CASE_2_SHORT            2
-#define SC_APDU_CASE_3_SHORT            3
-#define SC_APDU_CASE_4_SHORT            4
-#define SC_APDU_CASE_2_EXT              5
-#define SC_APDU_CASE_3_EXT              6
-#define SC_APDU_CASE_4_EXT              7
+#define SC_APDU_CASE_NONE		0x00
+#define SC_APDU_CASE_1			0x01
+#define SC_APDU_CASE_2_SHORT		0x02
+#define SC_APDU_CASE_3_SHORT		0x03
+#define SC_APDU_CASE_4_SHORT		0x04
+#define SC_APDU_SHORT_MASK		0x0f
+#define SC_APDU_EXT			0x10
+#define SC_APDU_CASE_2_EXT		SC_APDU_CASE_2_SHORT | SC_APDU_EXT
+#define SC_APDU_CASE_3_EXT		SC_APDU_CASE_3_SHORT | SC_APDU_EXT
+#define SC_APDU_CASE_4_EXT		SC_APDU_CASE_4_SHORT | SC_APDU_EXT
+/* the following types let OpenSC decides whether to use 
+ * short or extended APDUs */
+#define SC_APDU_CASE_2			0x22
+#define SC_APDU_CASE_3			0x23
+#define SC_APDU_CASE_4			0x24
 
 /* File types */
 #define SC_FILE_TYPE_DF			0x04
@@ -107,12 +115,6 @@ extern "C" {
 #define SC_AC_OP_WRITE			3
 /* rehab and invalidate are the same as in DF case */
 
-/* sc_*_record() flags */
-#define SC_RECORD_EF_ID_MASK		0x0001F
-#define SC_RECORD_BY_REC_ID		0x00000
-#define SC_RECORD_BY_REC_NR		0x00100
-#define SC_RECORD_CURRENT		0
-
 /* various maximum values */
 #define SC_MAX_READER_DRIVERS		6
 #define SC_MAX_READERS			16
@@ -121,6 +123,7 @@ extern "C" {
 #define SC_MAX_SLOTS			4
 #define SC_MAX_CARD_APPS		8
 #define SC_MAX_APDU_BUFFER_SIZE		258
+#define SC_MAX_EXT_APDU_BUFFER_SIZE	65538
 #define SC_MAX_PIN_SIZE			256 /* OpenPGP card has 254 max */
 #define SC_MAX_ATR_SIZE			33
 #define SC_MAX_AID_SIZE			16
@@ -182,16 +185,6 @@ extern "C" {
 #define SC_ALGORITHM_RSA_HASH_MD5	0x00000040
 #define SC_ALGORITHM_RSA_HASH_MD5_SHA1	0x00000080
 #define SC_ALGORITHM_RSA_HASH_RIPEMD160	0x00000100
-
-/* A 64-bit uint, used in sc_current_time() */
-#ifndef _WIN32
-typedef unsigned long long sc_timestamp_t;
-#define msleep(t)	usleep((t) * 1000)
-#else
-typedef unsigned __int64 sc_timestamp_t;
-#define msleep(t)	Sleep(t)
-#define sleep(t)	Sleep((t) * 1000)
-#endif
 
 /* Event masks for sc_wait_for_event() */
 #define SC_EVENT_CARD_INSERTED		0x0001
@@ -266,13 +259,8 @@ struct sc_reader_driver {
 	struct sc_reader_operations *ops;
 
 	size_t max_send_size, max_recv_size;
-	int apdu_masquerade;
 	void *dll;
 };
-#define SC_APDU_MASQUERADE_NONE		0x00
-#define SC_APDU_MASQUERADE_4AS3		0x01
-#define SC_APDU_MASQUERADE_1AS2		0x02
-#define SC_APDU_MASQUERADE_1AS2_ALWAYS	0x04
 
 /* slot flags */
 #define SC_SLOT_CARD_PRESENT	0x00000001
@@ -364,6 +352,7 @@ typedef struct sc_serial_number {
 	size_t len;
 } sc_serial_number_t;
 
+/* these flags are deprecated and shouldn't be used anymore */
 #define SC_DISCONNECT			0
 #define SC_DISCONNECT_AND_RESET		1
 #define SC_DISCONNECT_AND_UNPOWER	2
@@ -384,12 +373,9 @@ struct sc_reader_operations {
 	int (*detect_card_presence)(struct sc_reader *reader,
 				    struct sc_slot_info *slot);
 	int (*connect)(struct sc_reader *reader, struct sc_slot_info *slot);
-	int (*disconnect)(struct sc_reader *reader, struct sc_slot_info *slot,
-			  int action);
+	int (*disconnect)(struct sc_reader *reader, struct sc_slot_info *slot);
 	int (*transmit)(struct sc_reader *reader, struct sc_slot_info *slot,
-			const u8 *sendbuf, size_t sendsize,
-			u8 *recvbuf, size_t *recvsize,
-			unsigned long control);
+			sc_apdu_t *apdu);
 	int (*lock)(struct sc_reader *reader, struct sc_slot_info *slot);
 	int (*unlock)(struct sc_reader *reader, struct sc_slot_info *slot);
 	int (*set_protocol)(struct sc_reader *reader, struct sc_slot_info *slot,
@@ -408,18 +394,8 @@ struct sc_reader_operations {
 			      int *reader_index,
 			      unsigned int *event,
 			      int timeout);
+	int (*reset)(struct sc_reader *, struct sc_slot_info *);
 };
-
-/* Mutexes - this is just a dummy struct used for type
- * safety; internally we use objects defined by the
- * underlying thread model
- */
-typedef struct sc_mutex sc_mutex_t;
-
-struct sc_mutex *sc_mutex_new(void);
-void sc_mutex_lock(struct sc_mutex *p);
-void sc_mutex_unlock(struct sc_mutex *p);
-void sc_mutex_free(struct sc_mutex *p);
 
 /*
  * Card flags
@@ -465,6 +441,9 @@ void sc_mutex_free(struct sc_mutex *p);
  * instead of relying on the ACL info in the profile files. */
 #define SC_CARD_CAP_USE_FCI_AC		0x00000010
 
+/* The card supports 2048 bit RSA keys */
+#define SC_CARD_CAP_RSA_2048		0x00000020
+
 typedef struct sc_card {
 	struct sc_context *ctx;
 	struct sc_reader *reader;
@@ -499,7 +478,7 @@ typedef struct sc_card {
 
 	sc_serial_number_t serialnr;
 
-	sc_mutex_t *mutex;
+	void *mutex;
 
 	unsigned int magic;
 } sc_card_t;
@@ -544,7 +523,7 @@ struct sc_card_operations {
 	 *   <file>, if not NULL. */
 	int (*select_file)(struct sc_card *card, const struct sc_path *path,
 			   struct sc_file **file_out);
-	int (*get_response)(struct sc_card *card, sc_apdu_t *orig_apdu, size_t count);
+	int (*get_response)(struct sc_card *card, size_t *count, u8 *buf);
 	int (*get_challenge)(struct sc_card *card, u8 * buf, size_t count);
 
 	/*
@@ -630,6 +609,26 @@ typedef struct sc_card_driver {
 	void *dll;
 } sc_card_driver_t;
 
+/**
+ * @struct sc_thread_context_t
+ * Structure for the locking function to use when using libopensc
+ * in a multi-threaded application.
+ */
+typedef struct {
+	/** the version number of this structure (0 for this version) */
+	unsigned int ver;
+	/** creates a mutex object */
+	int (*create_mutex)(void **);
+	/** locks a mutex object (blocks until the lock has been acquired) */
+	int (*lock_mutex)(void *);
+	/** unlocks a mutex object  */
+	int (*unlock_mutex)(void *);
+	/** destroys a mutex object */
+	int (*destroy_mutex)(void *);
+	/** returns unique identifier for the thread (can be NULL) */
+	unsigned long (*thread_id)(void);
+} sc_thread_context_t;
+
 typedef struct sc_context {
 	scconf_context *conf;
 	scconf_block *conf_blocks[3];
@@ -649,31 +648,65 @@ typedef struct sc_context {
 	struct sc_card_driver *card_drivers[SC_MAX_CARD_DRIVERS];
 	struct sc_card_driver *forced_driver;
 
-	sc_mutex_t *mutex;
+	sc_thread_context_t	*thread_ctx;
+	void *mutex;
 
 	unsigned int magic;
 } sc_context_t;
 
-/* Base64 encoding/decoding functions */
-int sc_base64_encode(const u8 *in, size_t inlen, u8 *out, size_t outlen,
-		     size_t linelength);
-int sc_base64_decode(const char *in, u8 *out, size_t outlen);
-
-/* Returns the current time in milliseconds */
-sc_timestamp_t sc_current_time(void);
-
 /* APDU handling functions */
+
+/** Sends a APDU to the card
+ *  @param  card  sc_card_t object to which the APDU should be send
+ *  @param  apdu  sc_apdu_t object of the APDU to be send
+ *  @return SC_SUCCESS on succcess and an error code otherwise
+ */
 int sc_transmit_apdu(sc_card_t *card, sc_apdu_t *apdu);
+
 void sc_format_apdu(sc_card_t *card, sc_apdu_t *apdu, int cse, int ins,
 		    int p1, int p2);
 
+
+/********************************************************************/
+/*                  opensc context functions                        */
+/********************************************************************/
+
 /**
- * Establishes an OpenSC context
+ * Establishes an OpenSC context. Note: this function is deprecated,
+ * please use sc_context_create() instead.
  * @param ctx A pointer to a pointer that will receive the allocated context
  * @param app_name A string that identifies the application, used primarily
  *	in finding application-specific configuration data. Can be NULL.
  */
 int sc_establish_context(sc_context_t **ctx, const char *app_name);
+
+/**
+ * @struct sc_context_t initialization parameters
+ * Structure to supply additional parameters, for example
+ * mutex information, to the sc_context_t creation.
+ */
+typedef struct {
+	/** version number of this structure (0 for this version) */
+	unsigned int  ver;
+	/** name of the application (used for finding application
+	 *  dependend configuration data). If NULL the name "default"
+	 *  will be used. */
+	const char    *app_name;
+	/** flags, currently unused */
+	unsigned long flags;
+	/** mutex functions to use (optional) */
+	sc_thread_context_t *thread_ctx;
+} sc_context_param_t;
+/**
+ * Creates a new sc_context_t object.
+ * @param  ctx   pointer to a sc_context_t pointer for the newly
+ *               created sc_context_t object.
+ * @param  parm  parameters for the sc_context_t creation (see 
+ *               sc_context_param_t for a description of the supported
+ *               options). This parameter is optional and can be NULL.
+ * @return SC_SUCCESS on success and an error code otherwise.
+ */
+int sc_context_create(sc_context_t **ctx, const sc_context_param_t *parm);
 
 /**
  * Releases an established OpenSC context
@@ -697,6 +730,18 @@ sc_reader_t *sc_ctx_get_reader(sc_context_t *ctx, unsigned int i);
  */
 unsigned int sc_ctx_get_reader_count(sc_context_t *ctx);
 
+/**  
+ * Turns on error suppression 
+ * @param  ctx  OpenSC context
+ */
+void sc_ctx_suppress_errors_on(sc_context_t *ctx);
+
+/**
+ * Turns off error suppression
+ * @param  ctx  OpenSC context
+ */
+void sc_ctx_suppress_errors_off(sc_context_t *ctx);
+
 /**
  * Forces the use of a specified card driver
  * @param ctx OpenSC context
@@ -709,15 +754,16 @@ int sc_set_card_driver(sc_context_t *ctx, const char *short_name);
  * @param reader Reader structure
  * @param slot_id Slot ID to connect to
  * @param card The allocated card object will go here */
-int sc_connect_card(sc_reader_t *reader, int slot_id,
-		    sc_card_t **card);
+int sc_connect_card(sc_reader_t *reader, int slot_id, sc_card_t **card);
 /**
  * Disconnects from a card, and frees the card structure. Any locks
  * made by the application must be released before calling this function.
  * NOTE: The card is not reset nor powered down after the operation.
- * @param card The card to disconnect
+ * @param  card  The card to disconnect
+ * @param  flag  currently not used (should be set to 0)
+ * @return SC_SUCCESS on success and an error code otherwise
  */
-int sc_disconnect_card(sc_card_t *card, int action);
+int sc_disconnect_card(sc_card_t *card, int flag);
 /**
  * Returns 1 if the magic value of the card object is correct. Mostly
  * used internally by the library.
@@ -761,6 +807,14 @@ int sc_wait_for_event(sc_reader_t **readers, int *slots, size_t nslots,
                       int *reader, unsigned int *event, int timeout);
 
 /**
+ * Resets the card.
+ * NOTE: only PC/SC backend implements this function at this moment.
+ * @param card The card to reset.
+ * @retval SC_SUCCESS on success
+ */
+int sc_reset(sc_card_t *card);
+
+/**
  * Locks the card against modification from other threads.
  * After the initial call to sc_lock, the card is protected from
  * access from other processes. The function may be called several times.
@@ -777,42 +831,113 @@ int sc_lock(sc_card_t *card);
  */
 int sc_unlock(sc_card_t *card);
 
-/* ISO 7816-4 related functions */
+
+/********************************************************************/
+/*                ISO 7816-4 related functions                      */
+/********************************************************************/
 
 /**
  * Does the equivalent of ISO 7816-4 command SELECT FILE.
- * @param card The card on which to issue the command
- * @param path The path, file id or name of the desired file
- * @param file If not NULL, will receive a pointer to a new structure
- * @retval SC_SUCCESS on success
+ * @param  card  sc_card_t object on which to issue the command
+ * @param  path  The path, file id or name of the desired file
+ * @param  file  If not NULL, will receive a pointer to a new structure
+ * @return SC_SUCCESS on success and an error code otherwise
  */
 int sc_select_file(sc_card_t *card, const sc_path_t *path,
 		   sc_file_t **file);
-
-int sc_list_files(sc_card_t *card, u8 * buf, size_t buflen);
-
-/* TODO: finish writing API docs */
+/**
+ * List file ids within a DF
+ * @param  card    sc_card_t object on which to issue the command
+ * @param  buf     buffer for the read file ids (the filed ids are
+ *                 stored in the buffer as a sequence of 2 byte values)
+ * @param  buflen  length of the supplied buffer
+ * @return number of files ids read or an error code
+ */
+int sc_list_files(sc_card_t *card, u8 *buf, size_t buflen);
+/**
+ * Read data from a binary EF
+ * @param  card   sc_card_t object on which to issue the command
+ * @param  idx    index within the file with the data to read
+ * @param  buf    buffer to the read data
+ * @param  count  number of bytes to read
+ * @param  flags  flags for the READ BINARY command (currently not used)
+ * @return number of bytes read or an error code
+ */
 int sc_read_binary(sc_card_t *card, unsigned int idx, u8 * buf,
 		   size_t count, unsigned long flags);
+/**
+ * Write data to a binary EF
+ * @param  card   sc_card_t object on which to issue the command 
+ * @param  idx    index within the file for the data to be written 
+ * @param  buf    buffer with the data
+ * @param  count  number of bytes to write
+ * @param  flags  flags for the WRITE BINARY command (currently not used)
+ * @return number of bytes writen or an error code
+ */
 int sc_write_binary(sc_card_t *card, unsigned int idx, const u8 * buf,
 		    size_t count, unsigned long flags);
+/**
+ * Updates the content of a binary EF
+ * @param  card   sc_card_t object on which to issue the command
+ * @param  idx    index within the file for the data to be updated
+ * @param  buf    buffer with the new data
+ * @param  count  number of bytes to update
+ * @param  flags  flags for the UPDATE BINARY command (currently not used)
+ * @return number of bytes writen or an error code
+ */
 int sc_update_binary(sc_card_t *card, unsigned int idx, const u8 * buf,
 		     size_t count, unsigned long flags);
+
+#define SC_RECORD_EF_ID_MASK		0x0001FUL
+/** flags for record operations */
+/** use first record */
+#define SC_RECORD_BY_REC_ID		0x00000UL
+/** use the specified record number */
+#define SC_RECORD_BY_REC_NR		0x00100UL
+/** use currently selected record */
+#define SC_RECORD_CURRENT		0UL
+
 /**
  * Reads a record from the current (i.e. selected) file.
- * @param card The card on which to issue the command
- * @param rec_nr SC_READ_RECORD_CURRENT or a record number starting from 1
- * @param buf Pointer to a buffer for storing the data
- * @param count Number of bytes to read
- * @param flags Flags
- * @retval Number of bytes read or an error value
+ * @param  card    sc_card_t object on which to issue the command
+ * @param  rec_nr  SC_READ_RECORD_CURRENT or a record number starting from 1
+ * @param  buf     Pointer to a buffer for storing the data
+ * @param  count   Number of bytes to read
+ * @param  flags   flags (may contain a short file id of a file to select)
+ * @retval number of bytes read or an error value
  */
 int sc_read_record(sc_card_t *card, unsigned int rec_nr, u8 * buf,
 		   size_t count, unsigned long flags);
+/**
+ * Writes data to a record from the current (i.e. selected) file.
+ * @param  card    sc_card_t object on which to issue the command
+ * @param  rec_nr  SC_READ_RECORD_CURRENT or a record number starting from 1
+ * @param  buf     buffer with to the data to be writen
+ * @param  count   number of bytes to write
+ * @param  flags   flags (may contain a short file id of a file to select)
+ * @retval number of bytes writen or an error value
+ */
 int sc_write_record(sc_card_t *card, unsigned int rec_nr, const u8 * buf,
 		    size_t count, unsigned long flags);
+/**
+ * Appends a record to the current (i.e. selected) file.
+ * @param  card    sc_card_t object on which to issue the command
+ * @param  buf     buffer with to the data for the new record
+ * @param  count   length of the data
+ * @param  flags   flags (may contain a short file id of a file to select)
+ * @retval number of bytes writen or an error value
+ */
 int sc_append_record(sc_card_t *card, const u8 * buf, size_t count,
 		     unsigned long flags);
+/**
+ * Updates the data of a record from the current (i.e. selected) file.
+ * @param  card    sc_card_t object on which to issue the command
+ * @param  rec_nr  SC_READ_RECORD_CURRENT or a record number starting from 1
+ * @param  buf     buffer with to the new data to be writen
+ * @param  count   number of bytes to update
+ * @param  flags   flags (may contain a short file id of a file to select)
+ * @retval number of bytes writen or an error value
+ */
 int sc_update_record(sc_card_t *card, unsigned int rec_nr, const u8 * buf,
 		     size_t count, unsigned long flags);
 int sc_delete_record(sc_card_t *card, unsigned int rec_nr);
@@ -821,9 +946,19 @@ int sc_delete_record(sc_card_t *card, unsigned int rec_nr);
 int sc_get_data(sc_card_t *, unsigned int, u8 *, size_t);
 int sc_put_data(sc_card_t *, unsigned int, const u8 *, size_t);
 
+/**
+ * Gets challenge from the card (normally random data).
+ * @param  card    sc_card_t object on which to issue the command
+ * @param  rndout  buffer for the returned random challenge
+ * @param  len     length of the challenge
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
 int sc_get_challenge(sc_card_t *card, u8 * rndout, size_t len);
 
-/* ISO 7816-8 related functions */
+/********************************************************************/
+/*              ISO 7816-8 related functions                        */
+/********************************************************************/
+
 int sc_restore_security_env(sc_card_t *card, int se_num);
 int sc_set_security_env(sc_card_t *card,
 			const struct sc_security_env *env, int se_num);
@@ -843,21 +978,12 @@ int sc_reset_retry_counter(sc_card_t *card, unsigned int type,
 			   int ref, const u8 *puk, size_t puklen,
 			   const u8 *newref, size_t newlen);
 int sc_build_pin(u8 *buf, size_t buflen, struct sc_pin_cmd_pin *pin, int pad);
-/* pkcs1 padding/encoding functions */
-int sc_pkcs1_add_01_padding(const u8 *in, size_t in_len, u8 *out,
-			    size_t *out_len, size_t mod_length);
-int sc_pkcs1_strip_01_padding(const u8 *in_dat, size_t in_len, u8 *out_dat,
-			      size_t *out_len);
-int sc_pkcs1_strip_02_padding(const u8 *data, size_t len, u8 *out_dat,
-			      size_t *out_len);
-int sc_pkcs1_add_digest_info_prefix(unsigned int algorithm, const u8 *in_dat,
-		size_t in_len, u8 *out_dat, size_t *out_len);
-int sc_pkcs1_strip_digest_info_prefix(unsigned int *algorithm,
-		const u8 *in_dat, size_t in_len, u8 *out_dat, size_t *out_len);
-int sc_pkcs1_encode(sc_context_t *ctx, unsigned long flags,
-	const u8 *in, size_t in_len, u8 *out, size_t *out_len, size_t mod_len);
-int sc_strip_zero_padding(const u8 *in,size_t in_len, u8 *out, size_t *out_len);
-/* ISO 7816-9 */
+
+
+/********************************************************************/
+/*               ISO 7816-9 related functions                       */
+/********************************************************************/
+
 int sc_create_file(sc_card_t *card, sc_file_t *file);
 int sc_delete_file(sc_card_t *card, const sc_path_t *path);
 
@@ -882,15 +1008,95 @@ int sc_file_set_prop_attr(sc_file_t *file, const u8 *prop_attr,
 int sc_file_set_type_attr(sc_file_t *file, const u8 *type_attr,
 			  size_t type_attr_len);
 
+
+/********************************************************************/
+/*             sc_path_t handling functions                         */
+/********************************************************************/
+
 void sc_format_path(const char *path_in, sc_path_t *path_out);
-const char *sc_print_path(const sc_path_t *path_in);
-int sc_compare_path(const sc_path_t *, const sc_path_t *);
+/**
+ * Return string representation of the given sc_path_t object
+ * Warning: as static memory is used for the return value 
+ *          this function is not thread-safe !!!
+ * @param  path  sc_path_t object of the path to be printed
+ * @return pointer to a const buffer with the string representation
+ *         of the path
+ */
+const char *sc_print_path(const sc_path_t *path);
+/**
+ * Prints the sc_path_t object to a character buffer
+ * @param  buf     pointer to the buffer
+ * @param  buflen  size of the buffer
+ * @param  path    sc_path_t object to be printed
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
+int sc_path_print(char *buf, size_t buflen, const sc_path_t *path);
+/**
+ * Compares two sc_path_t objects 
+ * @param  patha  sc_path_t object of the first path
+ * @param  pathb  sc_path_t object of the second path
+ * @return 1 if both paths are equal and 0 otherwise
+ */
+int sc_compare_path(const sc_path_t *patha, const sc_path_t *pathb);
+/**
+ * Concatenate two sc_path_t values and store the result in
+ * d (note: d can be the same as p1 or p2).
+ * @param  d   destination sc_path_t object
+ * @param  p1  first sc_path_t object
+ * @param  p2  second sc_path_t object
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
+int sc_concatenate_path(sc_path_t *d, const sc_path_t *p1, const sc_path_t *p2);
+/**
+ * Appends a sc_path_t object to another sc_path_t object (note:
+ * this function is a wrapper for sc_concatenate_path)
+ * @param  dest  destination sc_path_t object
+ * @param  src   sc_path_t object to append
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
 int sc_append_path(sc_path_t *dest, const sc_path_t *src);
+/**
+ * Checks whether one path is a prefix of another path 
+ * @param  prefix  sc_path_t object with the prefix
+ * @param  path    sc_path_t object with the path which should start
+ *                 with the given prefix
+ * @return 1 if the parameter prefix is a prefix of path and 0 otherwise
+ */
+int sc_compare_path_prefix(const sc_path_t *prefix, const sc_path_t *path);
 int sc_append_path_id(sc_path_t *dest, const u8 *id, size_t idlen);
 int sc_append_file_id(sc_path_t *dest, unsigned int fid);
+/**
+ * Returns a const sc_path_t object for the MF
+ * @return sc_path_t object of the MF
+ */
+const sc_path_t *sc_get_mf_path(void);
+
+/********************************************************************/
+/*             miscellaneous functions                              */
+/********************************************************************/
+
 int sc_hex_to_bin(const char *in, u8 *out, size_t *outlen);
 int sc_bin_to_hex(const u8 *, size_t, char *, size_t, int separator);
+scconf_block *sc_get_conf_block(sc_context_t *ctx, const char *name1, const char *name2, int priority);
+/**
+ * Converts a given OID in ascii form to a internal sc_object_id object
+ * @param  oid  OUT sc_object_id object for the result
+ * @param  in   ascii string with the oid ("1.2.3.4.5...")
+ * @return SC_SUCCESS or an error value if an error occurred.
+ */
+int sc_format_oid(struct sc_object_id *oid, const char *in);
+/**
+ * Compares two sc_object_id objects
+ * @param  oid1  the first sc_object_id object
+ * @param  oid2  the second sc_object_id object
+ * @return 1 if the oids are equal and a non-zero value otherwise
+ */
 int sc_compare_oid(const struct sc_object_id *oid1, const struct sc_object_id *oid2);
+
+/* Base64 encoding/decoding functions */
+int sc_base64_encode(const u8 *in, size_t inlen, u8 *out, size_t outlen,
+		     size_t linelength);
+int sc_base64_decode(const char *in, u8 *out, size_t outlen);
 
 /**
  * Clears a memory buffer (note: when OpenSSL is used this is
@@ -931,7 +1137,7 @@ extern struct sc_reader_driver *sc_get_openct_driver(void);
 
 extern sc_card_driver_t *sc_get_default_driver(void);
 extern sc_card_driver_t *sc_get_emv_driver(void);
-extern sc_card_driver_t *sc_get_etoken_driver(void);
+extern sc_card_driver_t *sc_get_cardos_driver(void);
 extern sc_card_driver_t *sc_get_cryptoflex_driver(void);
 extern sc_card_driver_t *sc_get_cyberflex_driver(void);
 extern sc_card_driver_t *sc_get_gpk_driver(void);
@@ -947,6 +1153,7 @@ extern sc_card_driver_t *sc_get_oberthur_driver(void);
 extern sc_card_driver_t *sc_get_belpic_driver(void);
 extern sc_card_driver_t *sc_get_atrust_acos_driver(void);
 extern sc_card_driver_t *sc_get_incrypto34_driver(void);
+extern sc_card_driver_t *sc_get_piv_driver(void);
 
 #ifdef __cplusplus
 }

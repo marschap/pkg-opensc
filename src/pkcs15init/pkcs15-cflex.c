@@ -72,10 +72,10 @@ cflex_delete_file(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
         path.value[1] = df->id & 0xFF;
         path.len = 2;
 
-        card->ctx->suppress_errors++;
-        r = sc_delete_file(card, &path);
-        card->ctx->suppress_errors--;
-        return r;
+	sc_ctx_suppress_errors_on(card->ctx);
+	r = sc_delete_file(card, &path);
+	sc_ctx_suppress_errors_off(card->ctx);
+	return r;
 }
 
 /*
@@ -83,7 +83,7 @@ cflex_delete_file(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
  */
 static int cflex_erase_card(struct sc_profile *profile, sc_card_t *card)
 {
-	sc_file_t  *df = profile->df_info->file, *dir, *userpinfile;
+	sc_file_t  *df = profile->df_info->file, *dir, *userpinfile = NULL;
 	int             r;
 
 	/* Delete EF(DIR). This may not be very nice
@@ -108,10 +108,13 @@ static int cflex_erase_card(struct sc_profile *profile, sc_card_t *card)
 	           userpinfile->path.len) != 0) {
            	r = cflex_delete_file(profile, card, userpinfile);
 		sc_file_free(userpinfile);
+		userpinfile=NULL;
 	}
 
 
 out:	/* Forget all cached keys, the pin files on card are all gone. */
+	if (userpinfile)
+		sc_file_free(userpinfile);
 	sc_keycache_forget_key(NULL, -1, -1);
         sc_free_apps(card);
         if (r == SC_ERROR_FILE_NOT_FOUND)
@@ -448,9 +451,9 @@ cflex_create_dummy_chvs(sc_profile_t *profile, sc_card_t *card,
 			 && !memcmp(ef.value, parent.value, ef.len))
 				continue;
 
-			card->ctx->suppress_errors++;
+			sc_ctx_suppress_errors_on(card->ctx);
 			r = sc_select_file(card, &ef, NULL);
-			card->ctx->suppress_errors--;
+			sc_ctx_suppress_errors_off(card->ctx);
 		}
 
 		/* If a valid EF(CHVx) was found, we're fine */
@@ -522,9 +525,9 @@ cflex_create_pin_file(sc_profile_t *profile, sc_card_t *card,
 	path.value[path.len++] = 0;
 
 	/* See if the CHV already exists */
-        card->ctx->suppress_errors++;
-        r = sc_select_file(card, &path, NULL);
-        card->ctx->suppress_errors--;
+	sc_ctx_suppress_errors_on(card->ctx);
+	r = sc_select_file(card, &path, NULL);
+	sc_ctx_suppress_errors_off(card->ctx);
 	if (r >= 0)
 		return SC_ERROR_FILE_ALREADY_EXISTS;
 
@@ -612,9 +615,14 @@ cflex_get_keyfiles(sc_profile_t *profile, sc_card_t *card,
 	/* Get the private key file */
 	r = sc_profile_get_file_by_path(profile, &path, prkf);
 	if (r < 0) {
+		char pbuf[SC_MAX_PATH_STRING_SIZE];
+
+		r = sc_path_print(pbuf, sizeof(pbuf), &path);
+		if (r != SC_SUCCESS)
+			pbuf[0] = '\0';
+
 		sc_error(card->ctx, "Cannot find private key file info "
-				"in profile (path=%s).",
-				sc_print_path(&path));
+				"in profile (path=%s).", pbuf);
 		return r;
 	}
 

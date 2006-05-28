@@ -24,7 +24,7 @@ and decryption.
 <p>
 Smart cards can have several pins, and make the keys available to only some of those. 
 PKCS#11 interface however does not know about several pins. What OpenSC does is a trick:
-if you have more than once pin, you will see several card / slot, each with the name of that pin
+if you have more than one pin, you will see several card / slot, each with the name of that pin
 holder, and with the certificates/keys that pin can access. This feature is called virtual_slots
 and can be configured in the config file.
 </p>

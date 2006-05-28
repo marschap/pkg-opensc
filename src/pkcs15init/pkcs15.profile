@@ -36,6 +36,7 @@ option default {
 	so-auth-id	= FF;
 	so-puk-attempts	= 4;
 	so-min-puk-length = 6;
+	unusedspace-size = 128;
 	odf-size	= 256;
 	aodf-size	= 256;
 	cdf-size	= 512;
@@ -149,6 +150,12 @@ filesystem {
 
 	    EF PKCS15-TokenInfo {
 		file-id		= 5032;
+		ACL		= $unprotected;
+	    }
+
+	    EF PKCS15-UnusedSpace {
+		file-id		= 5033;
+		size		= $unusedspace-size;
 		ACL		= $unprotected;
 	    }
 

@@ -131,9 +131,6 @@
 /* default config file for libopensc */
 #undef OPENSC_CONF_PATH
 
-/* Disable logging of sensitive APDU data */
-#undef OPENSC_DONT_LOG_SENSITIVE
-
 /* etc path for libopensc */
 #undef OPENSC_ETC_PATH
 

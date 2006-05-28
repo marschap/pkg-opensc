@@ -19,6 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "internal.h"
 #include <opensc/pkcs15.h>
 #include <opensc/log.h>
 #include <opensc/cardctl.h>
@@ -250,14 +251,14 @@ static int sc_pkcs15emu_gemsafe_init(sc_pkcs15_card_t *p15card)
 		path.value[1] = i;
 		path.len = 2;	
 		path.type = SC_PATH_TYPE_FILE_ID;
-		card->ctx->suppress_errors++; /* file may not exist, and not an error */
+		sc_ctx_suppress_errors_on(card->ctx); /* file may not exist, and not an error */
 		r = sc_select_file(card, &path, NULL);
-		card->ctx->suppress_errors--;
+		sc_ctx_suppress_errors_off(card->ctx);
 		if (r < 0) 
 			continue;
-		card->ctx->suppress_errors++;
+		sc_ctx_suppress_errors_on(card->ctx);
 		r = sc_read_record(card, 1, sysrec, sizeof(sysrec), SC_RECORD_BY_REC_NR);
-		card->ctx->suppress_errors--;
+		sc_ctx_suppress_errors_off(card->ctx);
 		if (r != 7 || sysrec[0] != 0) {
 			continue;
 		}

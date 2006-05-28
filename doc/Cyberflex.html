@@ -17,5 +17,47 @@ library for Unix/Linux and Windows.
 <p>
 FIXME:Did anyone test such a card recently?
 </p>
+<hr></hr>
+<p>
+[edit Alexis Lahouze]
+</p>
+<p>
+I am trying to test a Cyberflex Access 64k card from Axalto.
+</p>
+<p>
+info from the reader:
+</p>
+<pre class="wiki" xml:space="preserve">$ opensc-tool -l
+Readers known about:
+Nr.    Driver     Name
+0      pcsc       Omnikey CardMan 4040 Socket 0 00 00
+</pre><p>
+when I try to access to th card:
+</p>
+<pre class="wiki" xml:space="preserve">$ opensc-tool -v -a -c cyberflex -f
+Connecting to card in reader Omnikey CardMan 4040 Socket 0 00 00...
+reader-pcsc.c:495:pcsc_connect: SCardControl failed: Transaction failed.
+Using card driver Schlumberger Cyberflex.
+Card ATR:
+3B 95 95 40 FF AE 01 03 00 00 ;..@......
+iso7816.c:98:iso7816_check_sw: Class not supported
+card-flex.c:546:select_file_id: Card returned error: Unsupported CLA byte in APDU
+card-flex.c:623:flex_select_file: returning with: Unsupported CLA byte in APDU
+card.c:763:sc_select_file: returning with: Unsupported CLA byte in APDU
+SELECT FILE failed: Unsupported CLA byte in APDU
+iso7816.c:98:iso7816_check_sw: Instruction code not supported or invalid
+card-flex.c:1311:flex_logout: Card returned error: Unsupported INS byte in APDU
+</pre><p>
+I tried under Windows with an USB Omnikey Cardman 3121 and Axalto specific card manager, that's all okay.
+</p>
+<p>
+But under linux, I can't acces to the card, probably due to the <a class="missing" href="/opensc/wiki/JavaApplet" shape="rect">JavaApplet?</a>.
+</p>
+<p>
+note: please correct my poor English, I'm a french one...
+</p>
+<p>
+[/edit]
+</p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

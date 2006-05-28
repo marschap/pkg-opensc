@@ -130,7 +130,7 @@ static int cosm_erase_card(struct sc_profile *profile, sc_card_t *card)
 	 * Note we need to delete if before the DF because we create
 	 * it *after* the DF. 
 	 * */
-	card->ctx->suppress_errors++;
+	sc_ctx_suppress_errors_on(card->ctx);
 	if (sc_profile_get_file(profile, "DIR", &dir) >= 0) {
 		sc_debug(card->ctx, "erase file dir %04X\n",dir->id);
 		r = cosm_delete_file(card, profile, dir);
@@ -167,7 +167,7 @@ static int cosm_erase_card(struct sc_profile *profile, sc_card_t *card)
 
 done:		
 	sc_keycache_forget_key(NULL, -1, -1);
-	card->ctx->suppress_errors++;
+	sc_ctx_suppress_errors_off(card->ctx);
 
 	if (r == SC_ERROR_FILE_NOT_FOUND)
 		r=0;
@@ -625,6 +625,7 @@ cosm_new_key(struct sc_profile *profile, sc_card_t *card,
 	struct sc_pkcs15_bignum bn[6];
 	u8 *buff;
 	int rv, ii;
+	char pbuf[SC_MAX_PATH_STRING_SIZE];
 
 	sc_debug(card->ctx, " index %i\n", idx);
 	if (key->algorithm != SC_ALGORITHM_RSA) {
@@ -638,8 +639,10 @@ cosm_new_key(struct sc_profile *profile, sc_card_t *card,
 	if (rv < 0 || !prvfile)
 		return SC_ERROR_SYNTAX_ERROR;
 	
-	sc_debug(card->ctx, " prvfile->id %i;  path=%s\n", 
-			prvfile->id, sc_print_path(&prvfile->path));
+	rv = sc_path_print(pbuf, sizeof(pbuf), &prvfile->path);
+	if (rv != SC_SUCCESS)
+		pbuf[0] = '\0';
+	sc_debug(card->ctx, " prvfile->id %i;  path=%s\n", prvfile->id, pbuf);
 
 	rsa = &key->u.rsa;
 	
