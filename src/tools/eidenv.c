@@ -138,7 +138,7 @@ static void do_esteid(sc_card_t *card)
 {
 	sc_path_t path;
 	int r, i;
-	char buff[512];
+	unsigned char buff[512];
 
 	if (stats) {
 		int key_used[4];
@@ -181,14 +181,14 @@ static void do_esteid(sc_card_t *card)
 		} 
 		buff[r] = '\0';
 		if (exec_program) {
-			char * cp;
+			unsigned char * cp;
 			cp = malloc(strlen(esteid_data[i].env_name) + 
-			strlen(buff) + 2);
+				strlen((char *) buff) + 2);
 			if (cp) { 
-				strcpy(cp,esteid_data[i].env_name);
-				strcat(cp,"=");
-				strcat(cp,buff);
-				putenv(cp);
+				strcpy((char *) cp,esteid_data[i].env_name);
+				strcat((char *) cp,"=");
+				strcat((char *) cp,(char *) buff);
+				putenv((char *) cp);
 			}
 		} else {
 			printf("%s: %s\n", esteid_data[i].name, buff);
@@ -221,7 +221,7 @@ static int read_transp(sc_card_t *card, const char *pathstring, unsigned char *b
 }
 
 /* Hex-encode the buf, 2*len+1 bytes must be reserved. E.g. {'1','2'} -> {'3','1','3','2','\0'} */
-const static char hextable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'E'};
+static const char hextable[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'E'};
 static void bintohex(char *buf, int len)
 {
 	int i;
@@ -319,7 +319,7 @@ static void do_belpic(sc_card_t *card)
 		{"municipal", SC_ASN1_UTF8STRING, 3, 0, address_data.municipality, &municipalitylen},
 		{NULL, 0, 0, 0, NULL, NULL}};
 
-	char buff[512];
+	unsigned char buff[512];
 	int r;
 
 	r = read_transp(card, "3f00df014031", buff, sizeof(buff));
@@ -375,6 +375,7 @@ out:
 int main(int argc, char **argv)
 {
 	sc_context_t *ctx = NULL;
+	sc_context_param_t ctx_param;
 	sc_reader_t *reader = NULL;
 	sc_card_t *card = NULL;
 	int r;
@@ -383,17 +384,21 @@ int main(int argc, char **argv)
 	decode_options(argc, argv);
 
 	/* connect to the card */
-	r = sc_establish_context(&ctx, "eidenv");
+	memset(&ctx_param, 0, sizeof(ctx_param));
+	ctx_param.ver      = 0;
+	ctx_param.app_name = app_name;
+
+	r = sc_context_create(&ctx, &ctx_param);
 	if (r) {
 	fprintf(stderr, "Failed to establish context: %s\n",
 		sc_strerror(r));
 		return 1;
 	}
-	if (reader_num > ctx->reader_count) {
-		fprintf(stderr, "Illegal reader number. Only %d reader(s) configured.\n", ctx->reader_count);
+	if (reader_num > (int)sc_ctx_get_reader_count(ctx)) {
+		fprintf(stderr, "Illegal reader number. Only %d reader(s) configured.\n", sc_ctx_get_reader_count(ctx));
 		return 1;
 	}
-	reader = ctx->reader[reader_num];
+	reader = sc_ctx_get_reader(ctx, (unsigned int)reader_num);
 
 	r = sc_connect_card(reader, 0, &card);
 	if (r) {

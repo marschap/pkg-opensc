@@ -36,281 +36,6 @@ int sc_check_sw(sc_card_t *card, unsigned int sw1, unsigned int sw2)
 	return card->ops->check_sw(card, sw1, sw2);
 }
 
-static int sc_check_apdu(sc_context_t *ctx, const sc_apdu_t *apdu)
-{
-	if (apdu->le > 256) {
-		sc_error(ctx, "Value of Le too big (maximum 256 bytes)\n");
-		SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-	}
-	if (apdu->lc > 255) {
-		sc_error(ctx, "Value of Lc too big (maximum 255 bytes)\n");
-		SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-	}
-	switch (apdu->cse) {
-	case SC_APDU_CASE_1:
-		if (apdu->datalen > 0) {
-			sc_error(ctx, "Case 1 APDU with data supplied\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		break;
-	case SC_APDU_CASE_2_SHORT:
-		if (apdu->datalen > 0) {
-			sc_error(ctx, "Case 2 APDU with data supplied\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		if (apdu->le == 0) {
-			sc_error(ctx, "Case 2 APDU with no response expected\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		if (apdu->resplen < apdu->le) {
-			sc_error(ctx, "Response buffer size < Le\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		break;
-	case SC_APDU_CASE_3_SHORT:
-		if (apdu->datalen == 0 || apdu->data == NULL) {
-			sc_error(ctx, "Case 3 APDU with no data supplied\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		break;
-	case SC_APDU_CASE_4_SHORT:
-		if (apdu->datalen == 0 || apdu->data == NULL) {
-			sc_error(ctx, "Case 4 APDU with no data supplied\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		if (apdu->le == 0) {
-			sc_error(ctx, "Case 4 APDU with no response expected\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		if (apdu->resplen < apdu->le) {
-			sc_error(ctx, "Le > response buffer size\n");
-			SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-		}
-		break;
-	case SC_APDU_CASE_2_EXT:
-	case SC_APDU_CASE_3_EXT:
-	case SC_APDU_CASE_4_EXT:
-		sc_error(ctx, "Invalid APDU case %d\n", apdu->cse);
-		SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
-	}
-	return 0;
-}
-
-/*
- * Handle APDU masquerading
- */
-static int
-sc_masquerade_apdu(sc_card_t *card, sc_apdu_t *apdu)
-{
-	sc_context_t	*ctx = card->reader->ctx;
-	int	masq = card->reader->driver->apdu_masquerade;
-	int	is_t0;
-
-	is_t0 = (card->slot->active_protocol == SC_PROTO_T0);
-
-	if (apdu->cse == SC_APDU_CASE_4_SHORT
-	 && is_t0 && (masq & SC_APDU_MASQUERADE_4AS3)) {
-		if (ctx->debug >= 5)
-			sc_debug(ctx, "Masquerading case 4 APDU as case 3");
-	 	apdu->cse = SC_APDU_CASE_3_SHORT;
-		return 1;
-	}
-
-	if (apdu->cse == SC_APDU_CASE_1
-	 && ((is_t0 && (masq & SC_APDU_MASQUERADE_1AS2))
-	  || ((masq & SC_APDU_MASQUERADE_1AS2_ALWAYS)))) {
-		if (ctx->debug >= 5)
-			sc_debug(ctx, "Masquerading case 1 APDU as case 2");
-	 	apdu->cse = SC_APDU_CASE_2_SHORT;
-		apdu->le = 0;
-		return 1;
-	}
-
-	return 0;
-}
-
-/** Builds the TPDU and sends it to the reader driver
- */
-static int sc_transceive(sc_card_t *card, sc_apdu_t *apdu)
-{
-	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
-	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
-	size_t sendsize, recvsize;
-	u8 *data = sbuf;
-	size_t data_bytes = apdu->lc;
-	int r;
-
-#if 0
-	if (card->ctx->debug >= 6)
-		sc_debug(card->ctx, "masq=%x, max_send=%u, max_recv=%u",
-				card->reader->driver->apdu_masquerade,
-				card->max_recv_size,
-				card->max_send_size);
-#endif
-
-	if (card->reader->ops->transmit == NULL)
-		return SC_ERROR_NOT_SUPPORTED;
-
-	/* APDU masquerading */
-	if (card->reader->driver->apdu_masquerade)
-		sc_masquerade_apdu(card, apdu);
-
-	if (data_bytes == 0)
-		data_bytes = 256;
-	*data++ = apdu->cla;
-	*data++ = apdu->ins;
-	*data++ = apdu->p1;
-	*data++ = apdu->p2;
-	switch (apdu->cse) {
-	case SC_APDU_CASE_1:
-		if (card->slot->active_protocol == SC_PROTO_T0)
-			/* T0 adds an additional 0x00 byte to the TPDU */
-			*data++ = 0x00;
-		break;
-	case SC_APDU_CASE_2_SHORT:
-		*data++ = (u8) apdu->le;
-		break;
-	case SC_APDU_CASE_2_EXT:
-		*data++ = (u8) 0;
-		*data++ = (u8) (apdu->le >> 8);
-		*data++ = (u8) (apdu->le & 0xFF);
-		break;
-	case SC_APDU_CASE_3_SHORT:
-		*data++ = (u8) apdu->lc;
-		if (apdu->datalen != data_bytes)
-			return SC_ERROR_INVALID_ARGUMENTS;
-		memcpy(data, apdu->data, data_bytes);
-		data += data_bytes;
-		break;
-	case SC_APDU_CASE_4_SHORT:
-		*data++ = (u8) apdu->lc;
-		if (apdu->datalen != data_bytes)
-			return SC_ERROR_INVALID_ARGUMENTS;
-		memcpy(data, apdu->data, data_bytes);
-		data += data_bytes;
-		if (card->slot->active_protocol != SC_PROTO_T0)
-			/* unless T0 is used add Le byte */
-			*data++ = (u8) (apdu->le & 0xff);
-		break;
-	}
-	sendsize = data - sbuf;
-#if 0
-	recvsize = apdu->resplen + 2;	/* space for the SW's */
-#else
-	/* workaround for a broken cashmouse driver, should be harmless
-	 * for other drivers -- Nils */
-	recvsize = sizeof(rbuf);
-#endif
-	if (card->ctx->debug >= 5) {
-		char buf[2048];
-
-#ifndef OPENSC_DONT_LOG_SENSITIVE
-		if (!apdu->sensitive || card->ctx->debug >= 6)
-#else
-		if (!apdu->sensitive)
-#endif
-			sc_hex_dump(card->ctx, sbuf, sendsize, buf, sizeof(buf));
-		else
-			/* sensitive information: just print the command
-			 * header and no data */
-			snprintf(buf, sizeof(buf), "%02x %02x %02x %02x [sensitive data]",
-				apdu->cla, apdu->ins, apdu->p1, apdu->p2);
-
-		sc_debug(card->ctx, "Sending %d bytes (resp. %d bytes%s):\n%s",
-			sendsize, recvsize,
-			apdu->sensitive ? ", sensitive" : "", buf);
-	}
-	r = card->reader->ops->transmit(card->reader, card->slot, sbuf,
-					sendsize, rbuf, &recvsize,
-					apdu->control);
-	if (apdu->sensitive)
-		sc_mem_clear(sbuf, sendsize);
-	SC_TEST_RET(card->ctx, r, "Unable to transmit");
-
-	assert(recvsize >= 2);
-	apdu->sw1 = (unsigned int) rbuf[recvsize-2];
-	apdu->sw2 = (unsigned int) rbuf[recvsize-1];
-	if (apdu->sensitive)
-		rbuf[recvsize-2] = rbuf[recvsize-1] = 0;
-	recvsize -= 2;
-	if (recvsize > apdu->resplen)
-		data_bytes = apdu->resplen;
-	else
-		data_bytes = apdu->resplen = recvsize;
-	if (recvsize > 0) {
-		memcpy(apdu->resp, rbuf, data_bytes);
-		if (apdu->sensitive)
-			sc_mem_clear(rbuf, recvsize);
-	}
-	return 0;
-}
-
-int sc_transmit_apdu(sc_card_t *card, sc_apdu_t *apdu)
-{
-	int r;
-	size_t orig_resplen;
-
-	assert(card != NULL && apdu != NULL);
-	SC_FUNC_CALLED(card->ctx, 4);
-	orig_resplen = apdu->resplen;
-	r = sc_check_apdu(card->ctx, apdu);
-	SC_TEST_RET(card->ctx, r, "APDU sanity check failed");
-	r = sc_lock(card);
-	SC_TEST_RET(card->ctx, r, "sc_lock() failed");
-	r = sc_transceive(card, apdu);
-	if (r != 0) {
-		sc_unlock(card);
-		SC_TEST_RET(card->ctx, r, "transceive() failed");
-	}
-	if (card->ctx->debug >= 5) {
-		char buf[2048];
-
-		buf[0] = '\0';
-		if (apdu->resplen > 0) {
-			sc_hex_dump(card->ctx, apdu->resp, apdu->resplen,
-				    buf, sizeof(buf));
-		}
-		sc_debug(card->ctx, "Received %d bytes (SW1=%02X SW2=%02X)\n%s",
-		      apdu->resplen, apdu->sw1, apdu->sw2, buf);
-	}
-	if (apdu->sw1 == 0x6C && apdu->resplen == 0) {
-		apdu->resplen = orig_resplen;
-		apdu->le = apdu->sw2;
-		/* Fix for cards (e.g. belpic) that need a delay on fast readers */
-		if (card->wait_resend_apdu != 0)
-			msleep(card->wait_resend_apdu);
-		r = sc_transceive(card, apdu);
-		if (r != 0) {
-			sc_unlock(card);
-			SC_TEST_RET(card->ctx, r, "transceive() failed");
-		}
-	}
-	if (apdu->sw1 == 0x61 && apdu->resplen == 0) {
-		size_t le;
-
-		if (orig_resplen == 0) {
-			apdu->sw1 = 0x90;	/* FIXME: should we do this? */
-			apdu->sw2 = 0;
-			sc_unlock(card);
-			return 0;
-		}
-
-		le = apdu->sw2? (size_t) apdu->sw2 : 256;
-
-		if (card->ops->get_response == NULL) {
-			sc_unlock(card);
-			SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_NOT_SUPPORTED);
-		}
-		r = card->ops->get_response(card, apdu, le);
-		if (r < 0) {
-			sc_unlock(card);
-			SC_FUNC_RETURN(card->ctx, 2, r);
-		}
-	}
-	sc_unlock(card);
-	return 0;
-}
-
 void sc_format_apdu(sc_card_t *card, sc_apdu_t *apdu,
 		    int cse, int ins, int p1, int p2)
 {
@@ -321,13 +46,14 @@ void sc_format_apdu(sc_card_t *card, sc_apdu_t *apdu,
 	apdu->ins = (u8) ins;
 	apdu->p1 = (u8) p1;
 	apdu->p2 = (u8) p2;
-
-	return;
 }
 
-static sc_card_t * sc_card_new(void)
+static sc_card_t * sc_card_new(sc_context_t *ctx)
 {
 	sc_card_t *card;
+
+	if (ctx == NULL)
+		return NULL;
 
 	card = (sc_card_t *) calloc(1, sizeof(struct sc_card));
 	if (card == NULL)
@@ -337,10 +63,17 @@ static sc_card_t * sc_card_new(void)
 		free(card);
 		return NULL;
 	}
+
+	card->ctx = ctx;
+	if (sc_mutex_create(ctx, &card->mutex) != SC_SUCCESS) {
+		free(card->ops);
+		free(card);
+		return NULL;
+	}
+
 	card->type = -1;
 	card->app_count = -1;
 	card->magic = SC_CARD_MAGIC;
-	card->mutex = sc_mutex_new();
 
 	return card;
 }
@@ -354,34 +87,40 @@ static void sc_card_free(sc_card_t *card)
 	free(card->ops);
 	if (card->algorithms != NULL)
 		free(card->algorithms);
-	sc_mutex_free(card->mutex);
+	if (card->mutex != NULL) {
+		int r = sc_mutex_destroy(card->ctx, card->mutex);
+		if (r != SC_SUCCESS)
+			sc_error(card->ctx, "unable to destroy mutex\n");
+	}
 	sc_mem_clear(card, sizeof(*card));
 	free(card);
 }
 
-int sc_connect_card(sc_reader_t *reader, int slot_id,
-		    sc_card_t **card_out)
+int sc_connect_card(sc_reader_t *reader, int slot_id, sc_card_t **card_out)
 {
 	sc_card_t *card;
-	sc_context_t *ctx = reader->ctx;
+	sc_context_t *ctx;
 	sc_slot_info_t *slot = _sc_get_slot_info(reader, slot_id);
 	struct sc_card_driver *driver;
-	int i, r = 0, idx;
+	int i, r = 0, idx, connected = 0;
 
-	assert(card_out != NULL);
+	if (card_out == NULL || reader == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	ctx = reader->ctx;
 	SC_FUNC_CALLED(ctx, 1);
 	if (reader->ops->connect == NULL)
 		SC_FUNC_RETURN(ctx, 0, SC_ERROR_NOT_SUPPORTED);
 	if (slot == NULL)
 		SC_FUNC_RETURN(ctx, 0, SC_ERROR_SLOT_NOT_FOUND);
 
-	card = sc_card_new();
+	card = sc_card_new(ctx);
 	if (card == NULL)
 		SC_FUNC_RETURN(ctx, 1, SC_ERROR_OUT_OF_MEMORY);
 	r = reader->ops->connect(reader, slot);
 	if (r)
 		goto err;
 
+	connected = 1;
 	card->reader = reader;
 	card->slot = slot;
 	card->ctx = ctx;
@@ -480,6 +219,8 @@ int sc_connect_card(sc_reader_t *reader, int slot_id,
 	sc_debug(ctx, "card info: %s, %i, 0x%X\n", card->name, card->type, card->flags);
 	SC_FUNC_RETURN(ctx, 1, 0);
 err:
+	if (connected)
+		reader->ops->disconnect(reader, slot);
 	if (card != NULL)
 		sc_card_free(card);
 	SC_FUNC_RETURN(ctx, 1, r);
@@ -499,7 +240,7 @@ int sc_disconnect_card(sc_card_t *card, int action)
 			      sc_strerror(r));
 	}
 	if (card->reader->ops->disconnect) {
-		int r = card->reader->ops->disconnect(card->reader, card->slot, action);
+		int r = card->reader->ops->disconnect(card->reader, card->slot);
 		if (r)
 			sc_error(card->ctx, "disconnect() failed: %s\n",
 			      sc_strerror(r));
@@ -508,12 +249,42 @@ int sc_disconnect_card(sc_card_t *card, int action)
 	SC_FUNC_RETURN(ctx, 1, 0);
 }
 
+int sc_reset(sc_card_t *card)
+{
+	int r, r2;
+
+	if (card == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	if (card->reader->ops->reset == NULL)
+		return SC_ERROR_NOT_SUPPORTED;
+
+	r = sc_mutex_lock(card->ctx, card->mutex);
+	if (r != SC_SUCCESS)
+		return r;
+
+	r = card->reader->ops->reset(card->reader, card->slot);
+	/* invalidate cache */
+	memset(&card->cache, 0, sizeof(card->cache));
+	card->cache_valid = 0;
+
+	r2 = sc_mutex_unlock(card->ctx, card->mutex);
+	if (r2 != SC_SUCCESS) {
+		sc_error(card->ctx, "unable to release lock\n");
+		r = r != SC_SUCCESS ? r : r2;
+	}
+
+	return r;
+}
+
 int sc_lock(sc_card_t *card)
 {
-	int r = 0;
+	int r = 0, r2 = 0;
 
-	assert(card != NULL);
-	sc_mutex_lock(card->mutex);
+	if (card == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	r = sc_mutex_lock(card->ctx, card->mutex);
+	if (r != SC_SUCCESS)
+		return r;
 	if (card->lock_count == 0) {
 		SC_FUNC_CALLED(card->ctx, 3);
 		if (card->reader->ops->lock != NULL)
@@ -523,7 +294,11 @@ int sc_lock(sc_card_t *card)
 	}
 	if (r == 0)
 		card->lock_count++;
-	sc_mutex_unlock(card->mutex);
+	r2 = sc_mutex_unlock(card->ctx, card->mutex);
+	if (r2 != SC_SUCCESS) {
+		sc_error(card->ctx, "unable to release lock\n");
+		r = r != SC_SUCCESS ? r : r2;
+	}
 	return r;
 }
 
@@ -531,18 +306,29 @@ int sc_unlock(sc_card_t *card)
 {
 	int r = 0;
 
-	assert(card != NULL);
-	sc_mutex_lock(card->mutex);
+	if (card == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	r = sc_mutex_lock(card->ctx, card->mutex);
+	if (r != SC_SUCCESS)
+		return r;
 	assert(card->lock_count >= 1);
 	if (card->lock_count == 1) {
 		SC_FUNC_CALLED(card->ctx, 3);
 		memset(&card->cache, 0, sizeof(card->cache));
 		card->cache_valid = 0;
 		if (card->ops->logout != NULL) {
-			sc_mutex_unlock(card->mutex);
+			/* XXX As this logout causes random asserts on card->lock_count >=0
+			  on card removal under firefox 1.5 */
+			r = sc_mutex_unlock(card->ctx, card->mutex);
+			if (r != SC_SUCCESS) {
+				sc_error(card->ctx, "unable to release lock\n");
+				return r;
+			}
 			sc_debug(card->ctx, "Calling card logout function\n");
 			card->ops->logout(card);
-			sc_mutex_lock(card->mutex);
+			r = sc_mutex_lock(card->ctx, card->mutex);
+			if (r != SC_SUCCESS)
+				return r;
 		}
 	}
 	/* Check again, lock count may have changed
@@ -552,7 +338,7 @@ int sc_unlock(sc_card_t *card)
 			r = card->reader->ops->unlock(card->reader, card->slot);
 	}
 	card->lock_count--;
-	sc_mutex_unlock(card->mutex);
+	r = sc_mutex_unlock(card->ctx, card->mutex);
 	return r;
 }
 
@@ -574,11 +360,15 @@ int sc_create_file(sc_card_t *card, sc_file_t *file)
 
 	assert(card != NULL);
 	if (card->ctx->debug >= 1) {
+		char pbuf[SC_MAX_PATH_STRING_SIZE];
 		const sc_path_t *in_path = &file->path;
 
+		r = sc_path_print(pbuf, sizeof(pbuf), in_path);
+		if (r != SC_SUCCESS)
+			pbuf[0] = '\0';
+
 		sc_debug(card->ctx, "called; type=%d, path=%s, size=%u\n",
-				in_path->type,
-				sc_print_path(in_path), file->size);
+				in_path->type, pbuf, file->size);
 	}
 	if (card->ops->create_file == NULL)
 		SC_FUNC_RETURN(card->ctx, 1, SC_ERROR_NOT_SUPPORTED);
@@ -592,9 +382,14 @@ int sc_delete_file(sc_card_t *card, const sc_path_t *path)
 
 	assert(card != NULL);
 	if (card->ctx->debug >= 1) {
+		char pbuf[SC_MAX_PATH_STRING_SIZE];
+
+		r = sc_path_print(pbuf, sizeof(pbuf), path);
+		if (r != SC_SUCCESS)
+			pbuf[0] = '\0';
+
 		sc_debug(card->ctx, "called; type=%d, path=%s\n",
-				path->type,
-				sc_print_path(path));
+				path->type, pbuf);
 	}
 	if (card->ops->delete_file == NULL)
 		SC_FUNC_RETURN(card->ctx, 1, SC_ERROR_NOT_SUPPORTED);
@@ -736,9 +531,14 @@ int sc_select_file(sc_card_t *card,
 
 	assert(card != NULL && in_path != NULL);
 	if (card->ctx->debug >= 1) {
+		char pbuf[SC_MAX_PATH_STRING_SIZE];
+
+		r = sc_path_print(pbuf, sizeof(pbuf), in_path);
+		if (r != SC_SUCCESS)
+			pbuf[0] = '\0';
+
 		sc_debug(card->ctx, "called; type=%d, path=%s\n",
-				in_path->type,
-				sc_print_path(in_path));
+				in_path->type, pbuf);
 	}
 	if (in_path->len > SC_MAX_PATH_SIZE)
 		SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_INVALID_ARGUMENTS);
@@ -754,7 +554,7 @@ int sc_select_file(sc_card_t *card,
 				SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_INVALID_ARGUMENTS);
 		}
 	}
-        if (card->ops->select_file == NULL)
+	if (card->ops->select_file == NULL)
 		SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_NOT_SUPPORTED);
 	r = card->ops->select_file(card, in_path, file);
 	/* Remember file path */
@@ -1123,7 +923,7 @@ int _sc_check_forced_protocol(sc_context_t *ctx, u8 *atr, size_t atr_len, unsign
 	return ok;
 }
 
-scconf_block *_get_conf_block(sc_context_t *ctx, const char *name1, const char *name2, int priority)
+scconf_block *sc_get_conf_block(sc_context_t *ctx, const char *name1, const char *name2, int priority)
 {
 	int i;
 	scconf_block *conf_block = NULL;
@@ -1132,10 +932,10 @@ scconf_block *_get_conf_block(sc_context_t *ctx, const char *name1, const char *
 		scconf_block **blocks;
 		
 		blocks = scconf_find_blocks(ctx->conf, ctx->conf_blocks[i], name1, name2);
-		if (!blocks)
-			return NULL;
-		conf_block = blocks[0];
-		free(blocks);
+		if (blocks != NULL) {
+			conf_block = blocks[0];
+			free(blocks);
+		}
 		if (conf_block != NULL && priority)
 			break;
 	}

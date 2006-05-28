@@ -286,7 +286,7 @@ static int refresh_slot_attributes(sc_reader_t *reader,
 	return 0;
 }
 
-static int ctapi_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
+static int ctapi_internal_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
 			 const u8 *sendbuf, size_t sendsize,
 			 u8 *recvbuf, size_t *recvsize,
 			 unsigned long control)
@@ -313,6 +313,55 @@ static int ctapi_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
 	*recvsize = lr;
 	
 	return 0;
+}
+
+static int ctapi_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
+	sc_apdu_t *apdu)
+{
+	size_t       ssize, rsize, rbuflen = 0;
+	u8           *sbuf = NULL, *rbuf = NULL;
+	int          r;
+
+	rsize = rbuflen = apdu->resplen + 2;
+	rbuf     = malloc(rbuflen);
+	if (rbuf == NULL) {
+		r = SC_ERROR_MEMORY_FAILURE;
+		goto out;
+	}
+	/* encode and log the APDU */
+	r = sc_apdu_get_octets(reader->ctx, apdu, &sbuf, &ssize, SC_PROTO_RAW);
+	if (r != SC_SUCCESS)
+		goto out;
+	/* log data if DEBUG is defined */
+#ifdef DEBUG
+	sc_apdu_log(reader->ctx, sbuf, ssize, 1);
+#endif
+	r = ctapi_internal_transmit(reader, slot, sbuf, ssize,
+					rbuf, &rsize, apdu->control);
+	if (r < 0) {
+		/* unable to transmit ... most likely a reader problem */
+		sc_error(reader->ctx, "unable to transmit");
+		goto out;
+	}
+	/* log data if DEBUG is defined */
+#ifdef DEBUG
+	sc_apdu_log(reader->ctx, rbuf, rsize, 0);
+#endif
+	/* set response */
+	r = sc_apdu_set_resp(reader->ctx, apdu, rbuf, rsize);
+	if (r != SC_SUCCESS)
+		return r;
+out:
+	if (sbuf != NULL) {
+		sc_mem_clear(sbuf, ssize);
+		free(sbuf);
+	}
+	if (rbuf != NULL) {
+		sc_mem_clear(rbuf, rbuflen);
+		free(rbuf);
+	}
+	
+	return r;
 }
 
 static int ctapi_detect_card_presence(sc_reader_t *reader, sc_slot_info_t *slot)
@@ -379,8 +428,7 @@ static int ctapi_connect(sc_reader_t *reader, sc_slot_info_t *slot)
 	return 0;
 }
 
-static int ctapi_disconnect(sc_reader_t *reader, sc_slot_info_t *slot,
-			   int action)
+static int ctapi_disconnect(sc_reader_t *reader, sc_slot_info_t *slot)
 {
 	return 0;
 }
@@ -411,7 +459,7 @@ static struct sc_reader_driver ctapi_drv = {
 	"CT-API module",
 	"ctapi",
 	&ctapi_ops,
-	0, 0, 0, NULL
+	0, 0, NULL
 };
 
 static struct ctapi_module * add_module(struct ctapi_global_private_data *gpriv,

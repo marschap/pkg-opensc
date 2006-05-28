@@ -36,7 +36,7 @@ unsigned int first_free_slot = 0;
 static void init_slot_info(CK_SLOT_INFO_PTR pInfo)
 {
 	strcpy_bp(pInfo->slotDescription, "Virtual slot", 64);
-	strcpy_bp(pInfo->manufacturerID, "OpenSC project (www.opensc.org)", 32);
+	strcpy_bp(pInfo->manufacturerID, "OpenSC project (www.opensc-project.org)", 32);
 	pInfo->flags = CKF_REMOVABLE_DEVICE | CKF_HW_SLOT;
 	pInfo->hardwareVersion.major = 0;
 	pInfo->hardwareVersion.minor = 0;
@@ -94,7 +94,7 @@ CK_RV card_detect(int reader)
 
 
 	/* Check if someone inserted a card */
-again:	rc = sc_detect_card_presence(context->reader[reader], 0);
+again:	rc = sc_detect_card_presence(sc_ctx_get_reader(context, reader), 0);
 	if (rc < 0) {
 		sc_debug(context, "Card detection failed for reader %d: %s\n",
 				reader, sc_strerror(rc));

@@ -4,17 +4,34 @@
           </style></head><body><div class="wikipage">
     <div id="searchable"><h1>Finnish FINEID</h1>
 <p>
-The finnish eid card should work fine.
-Of course it can only be used, but not altered.
+The FINEID cards are available to the private citizens and organisations.
+All the new personal identity cards are FINEID cards and they are applied from the police.
+(The eid certificates are also available to some banking cards and mobile SIM cards)
 </p>
 <p>
-FIXME:pin changes?
+The eid certificates are issued by the Population Register Centre (VRK).
+Naturally, one cannot alter the eid certificates and keys on the cards.
 </p>
 <p>
-FIXME:extra data?
+There are two generations of the Finnish eid cards.
+OpenSC should work fine with the eid application following the version 1.x specification that is using a PKCS<a href="/opensc/ticket/15" title="NEW : opensc 0.9.6: --with-openssl doesn't work right" shape="rect">#15*</a> file structure.
+The version 2 of the eid specification address the ISO/IEC 7816-15 file structure and somewhat different command parameters to the version 1 specification. According to the VRK, the version 2 application is implemented in the personal identity cards manufactured since 10.6.2005.
 </p>
 <p>
-FIXME:did anyone test lately?
+FIXME:did anyone test lately with version 2 cards?
+</p>
+<p>
+The eid application has two pin codes, one for the identification/encryption 
+and the other for the signing operations. Both pin codes can be changed by the owner.
+</p>
+<p>
+FIXME:pin changes in OpenSC?
+</p>
+<p>
+The FINEID cards allow storing extra data (say, home-made PKI keypairs).
+</p>
+<p>
+FIXME: save extra data with OpenSC?
 </p>
 <hr></hr>
 <h2>Unlocking a FINEID electronic identity card</h2>

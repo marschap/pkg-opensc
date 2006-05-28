@@ -28,6 +28,7 @@
 
 #include "internal.h"
 #include <stdio.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -107,6 +108,33 @@ int sc_bin_to_hex(const u8 *in, size_t in_len, char *out, size_t out_len,
 	}
 	*pos = '\0';
 	return 0;
+}
+
+int sc_format_oid(struct sc_object_id *oid, const char *in)
+{
+	int ii, ret = SC_ERROR_INVALID_ARGUMENTS;
+	const char *p;
+	char       *q;
+
+	if (oid == NULL || in == NULL)
+		return ret;
+	/* init oid */
+	for (ii=0; ii<SC_MAX_OBJECT_ID_OCTETS; ii++)
+		oid->value[ii] = -1;
+
+	p = in;
+	
+	for (ii=0; ii < SC_MAX_OBJECT_ID_OCTETS; ii++)   {
+		oid->value[ii] = strtol(p, &q, 10);
+		if (!*q)
+			break;
+		if (!(q[0] == '.' && isdigit(q[1]))) {
+			return ret;
+		}
+		p = q + 1;
+	}
+
+	return SC_SUCCESS;
 }
 
 int sc_compare_oid(const struct sc_object_id *oid1, const struct sc_object_id *oid2)
@@ -195,12 +223,7 @@ void sc_format_path(const char *str, sc_path_t *path)
 
 int sc_append_path(sc_path_t *dest, const sc_path_t *src)
 {
-	assert(dest != NULL && src != NULL);
-	if (dest->len + src->len > SC_MAX_PATH_SIZE)
-		return SC_ERROR_INVALID_ARGUMENTS;
-	memcpy(dest->value + dest->len, src->value, src->len);
-	dest->len += src->len;
-	return 0;
+	return sc_concatenate_path(dest, dest, src);
 }
 
 int sc_append_path_id(sc_path_t *dest, const u8 *id, size_t idlen)
@@ -219,24 +242,78 @@ int sc_append_file_id(sc_path_t *dest, unsigned int fid)
 	return sc_append_path_id(dest, id, 2);
 }
 
+int sc_concatenate_path(sc_path_t *d, const sc_path_t *p1, const sc_path_t *p2)
+{
+	sc_path_t tpath;
+
+	if (d == NULL || p1 == NULL || p2 == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+
+	if (p1->len + p2->len > SC_MAX_PATH_SIZE)
+		return SC_ERROR_INVALID_ARGUMENTS;
+
+	memset(&tpath, 0, sizeof(sc_path_t));
+	memcpy(tpath.value, p1->value, p1->len);
+	memcpy(tpath.value + p1->len, p2->value, p2->len);
+	tpath.len  = p1->len + p2->len;
+	tpath.type = SC_PATH_TYPE_PATH;
+
+	*d = tpath;
+
+	return SC_SUCCESS;
+}
+
 const char *sc_print_path(const sc_path_t *path)
 {
-	static char	buffer[64];
-	size_t		n, len;
+	static char	buffer[SC_MAX_PATH_STRING_SIZE];
 
-	buffer[0] = '\0';
-	if ((len = path->len) >= sizeof(buffer)/2)
-		len = sizeof(buffer)/2;
-	for (n = 0; n < len; n++)
-		sprintf(buffer + 2*n, "%02x", path->value[n]);
+	if (sc_path_print(buffer, sizeof(buffer), path) != SC_SUCCESS)
+		buffer[0] = '\0';
 
 	return buffer;
+}
+
+int sc_path_print(char *buf, size_t buflen, const sc_path_t *path)
+{
+	size_t i;
+
+	if (buf == NULL || path == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+
+	if (buflen < path->len * 2 + 1)
+		return SC_ERROR_BUFFER_TOO_SMALL;
+
+	buf[0] = '\0';
+	for (i = 0; i < path->len; i++)
+		snprintf(buf + 2 * i, buflen - 2 * i, "%02x", path->value[i]);
+
+	return SC_SUCCESS;
 }
 
 int sc_compare_path(const sc_path_t *path1, const sc_path_t *path2)
 {
 	return path1->len == path2->len
 		&& !memcmp(path1->value, path2->value, path1->len);
+}
+
+int sc_compare_path_prefix(const sc_path_t *prefix, const sc_path_t *path)
+{
+	sc_path_t tpath;
+
+	if (prefix->len > path->len)
+		return 0;
+
+	tpath      = *path;
+	tpath.len -= prefix->len;
+
+	return sc_compare_path(&tpath, prefix);
+}
+
+const sc_path_t *sc_get_mf_path(void)
+{
+	static const sc_path_t mf_path = { {0x3f, 0x00, 0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0}, 2, 0, 0, SC_PATH_TYPE_PATH};
+	return &mf_path;
 }
 
 int sc_file_add_acl_entry(sc_file_t *file, unsigned int operation,
@@ -594,4 +671,55 @@ void sc_mem_clear(void *ptr, size_t len)
 #else
 	memset(ptr, 0, len);
 #endif
+}
+
+/**************************** mutex functions ************************/
+
+int sc_mutex_create(const sc_context_t *ctx, void **mutex)
+{
+	if (ctx == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	if (ctx->thread_ctx != NULL && ctx->thread_ctx->create_mutex != NULL)
+		return ctx->thread_ctx->create_mutex(mutex);
+	else
+		return SC_SUCCESS;
+}
+
+int sc_mutex_lock(const sc_context_t *ctx, void *mutex)
+{
+	if (ctx == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	if (ctx->thread_ctx != NULL && ctx->thread_ctx->lock_mutex != NULL)
+		return ctx->thread_ctx->lock_mutex(mutex);
+	else
+		return SC_SUCCESS;
+}
+
+int sc_mutex_unlock(const sc_context_t *ctx, void *mutex)
+{
+	if (ctx == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	if (ctx->thread_ctx != NULL && ctx->thread_ctx->unlock_mutex != NULL)
+		return ctx->thread_ctx->unlock_mutex(mutex);
+	else
+		return SC_SUCCESS;
+}
+
+int sc_mutex_destroy(const sc_context_t *ctx, void *mutex)
+{
+	if (ctx == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	if (ctx->thread_ctx != NULL && ctx->thread_ctx->destroy_mutex != NULL)
+		return ctx->thread_ctx->destroy_mutex(mutex);
+	else
+		return SC_SUCCESS;
+}
+
+unsigned long sc_thread_id(const sc_context_t *ctx)
+{
+	if (ctx == NULL || ctx->thread_ctx == NULL || 
+	    ctx->thread_ctx->thread_id == NULL)
+		return 0UL;
+	else
+		return ctx->thread_ctx->thread_id();
 }

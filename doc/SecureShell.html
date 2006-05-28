@@ -5,12 +5,12 @@
     <div id="searchable"><h1>SSH Secure Shell</h1>
 <p>
 On Windows you can use putty to establish secure shell connections with smart card authentication.
-The normal putty doesn't have smart card support, but if you install the <a class="ext-link" title="http://www.opensc.org/scb/" href="http://www.opensc.org/scb/" shape="rect">smart card bundle</a>,
+The normal putty doesn't have smart card support, but if you install the <a class="ext-link" title="http://www.opensc-project.org/scb/" href="http://www.opensc-project.org/scb/" shape="rect">smart card bundle</a>,
 it contains OpenSSL, OpenSC and a version of Putty with smart card support.
 </p>
 <p>
 On Linux and Mac OS X you can use OpenSSH. OpenSSH does support smart card authentication, but only
-if the support for OpenSC is enebled during compile time. Most distributions however ship a binary
+if the support for OpenSC is enabled during compile time. Most distributions however ship a binary
 package that does not include OpenSC support. You can simply download the source code or source
 rpm package, and recompile it using "configure --with-opensc=/usr". 
 </p>
@@ -32,9 +32,9 @@ it for every connection.
 </p>
 <h2>PuttyCard</h2>
 <p>
-There is a second, independend implementation to add smart card support to putty.
+There is a second, independent implementation to add smart card support to putty.
 Read more about it <a href="PuTTYcard.html" shape="rect">here</a>, and download the files from
-<a class="ext-link" title="http://www.opensc.org/files/contrib/" href="http://www.opensc.org/files/contrib/" shape="rect">opensc.org contrib</a> directory.
+<a class="ext-link" title="http://www.opensc-project.org/files/contrib/" href="http://www.opensc-project.org/files/contrib/" shape="rect">opensc-project.org contrib</a> directory.
 </p>
 <h2>old content</h2>
 <h1>OpenSSH and OpenSC</h1>
@@ -88,6 +88,35 @@ The OpenSSH public key format is defined at
 <p>
 TODO: it would be propably nicer to have one --read-public-key parameter, and a second optional parameter
 --format with possible values der, pem, ssh1, ssh2. A patch to implement this would be very welcome.
+</p>
+<h2>Using an agent</h2>
+<p>
+Most convinient way to do frequent authentications it to use the ssh-agent store your key. To do this you have to make sure ssh-agent is running, and it is accessible from your environment. Using XWindows the best way to start the agent is to edit the /etc/X11/Xsession.options file, and add this line:
+</p>
+<pre class="wiki" xml:space="preserve">use-ssh-agent
+</pre><p>
+This will automatically start the agent when you log in, and it will shut it down upon logout.
+</p>
+<p>
+To see if the agent is accessible just type:
+</p>
+<pre class="wiki" xml:space="preserve">$ ssh-add -l
+The agent has no identities.
+</pre><p>
+If the agent is not accessible you'll get an error message. This command is also usefull to list the certificates you've already added to the agent.
+</p>
+<p>
+To add your certificate to the agent you should type
+</p>
+<pre class="wiki" xml:space="preserve">$ ssh-add -s 0
+</pre><p>
+where 0 is the number of your certificate. The agent will ask for your pin, then it will store it decrypted for later use. Now you can simply ssh to the given hosts, without the need to type the pin again.
+</p>
+<p>
+If you're accessing multiple hosts through ssh you can turn agent-forwarding on.
+</p>
+<p>
+Using ssh-agent on a unix system has some security issues. Please make yourself clear with them before using these features.
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

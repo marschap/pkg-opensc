@@ -366,10 +366,15 @@ static int starcos_select_file(sc_card_t *card,
 	SC_FUNC_CALLED(card->ctx, 1);
 
 	if (card->ctx->debug >= 4) {
+		char pbuf[SC_MAX_PATH_STRING_SIZE];
+
+		r = sc_path_print(pbuf, sizeof(pbuf), &card->cache.current_path);
+		if (r != SC_SUCCESS)
+			pbuf[0] = '\0';
+
 		sc_debug(card->ctx, "current path (%s, %s): %s (len: %u)\n",
 			(card->cache.current_path.type==SC_PATH_TYPE_DF_NAME?"aid":"path"),
-			(card->cache_valid?"valid":"invalid"),
-			sc_print_path(&card->cache.current_path),
+			(card->cache_valid?"valid":"invalid"), pbuf,
 			card->cache.current_path.len);
 	}
   
@@ -1097,9 +1102,9 @@ static int starcos_set_security_env(sc_card_t *card,
 		apdu.le      = 0;
 		/* suppress errors, as don't know whether to use 
 		 * COMPUTE SIGNATURE or INTERNAL AUTHENTICATE */
-		card->ctx->suppress_errors++;
+		sc_ctx_suppress_errors_on(card->ctx);
 		r = sc_transmit_apdu(card, &apdu);
-		card->ctx->suppress_errors--;
+		sc_ctx_suppress_errors_off(card->ctx);
 		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
 		if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
 			ex_data->fix_digestInfo = 0;
@@ -1334,9 +1339,9 @@ static int starcos_logout(sc_card_t *card)
 	apdu.datalen = 2;
 	apdu.resplen = 0;
 	
-	card->ctx->suppress_errors++;
+	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_transmit_apdu(card, &apdu);
-	card->ctx->suppress_errors--;
+	sc_ctx_suppress_errors_off(card->ctx);
 	SC_TEST_RET(card->ctx, r, "APDU re-transmit failed");
 
 	if (apdu.sw1 == 0x69 && apdu.sw2 == 0x85)

@@ -2,8 +2,8 @@ Source: opensc
 Priority: extra
 Section: utils
 Maintainer: Eric Dorland <eric@debian.org>
-Build-Depends: cdbs, debhelper (>> 4.1.0), libltdl3-dev, libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libassuan-dev (>= 0.6.4-2), libopenct1-dev, libxt-dev, flex, pkg-config
-Standards-Version: 3.6.2.1
+Build-Depends: cdbs, debhelper (>> 5), libltdl3-dev, libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libassuan-dev (>= 0.6.4-2), libopenct1-dev, libxt-dev, flex, pkg-config
+Standards-Version: 3.7.2.0
 
 Package: opensc
 Section: utils
@@ -46,6 +46,22 @@ Description: SmartCard library with support for PKCS#15 compatible smart cards
  These libraries allow programs to access data, such as
  cryptographic keys, on various PKCS#15 compatible smart cards
  and similar security tokens.
+ .
+ Supported cards include Gemplus GPK, Schlumberger Cryptoflex,
+ Finnish FINEID, Swedish eID, MioCOS and TCOS cards.
+ .
+ Card initialization can be performed by utilities in the opensc package.
+
+Package: libopensc2-dbg
+Section: devel
+Priority: extra
+Architecture: any
+Depends: libopensc2 (= ${Source-Version})
+Description: debugging symbols for libopensc2
+ This package contains the debugging symbols for the libopensc library
+ from OpenSC.org.  These libraries allow programs to access data, such
+ as cryptographic keys, on various PKCS#15 compatible smart cards and
+ similar security tokens.
  .
  Supported cards include Gemplus GPK, Schlumberger Cryptoflex,
  Finnish FINEID, Swedish eID, MioCOS and TCOS cards.

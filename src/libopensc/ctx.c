@@ -32,13 +32,6 @@
 #include <winreg.h>
 #endif
 
-/* Default value for apdu_masquerade option */
-#ifndef _WIN32
-# define DEF_APDU_MASQ		SC_APDU_MASQUERADE_NONE
-#else
-# define DEF_APDU_MASQ		SC_APDU_MASQUERADE_4AS3
-#endif
-
 int _sc_add_reader(sc_context_t *ctx, sc_reader_t *reader)
 {
 	assert(reader != NULL);
@@ -57,7 +50,9 @@ struct _sc_driver_entry {
 };
 
 static const struct _sc_driver_entry internal_card_drivers[] = {
-	{ "etoken",	(void *(*)(void)) sc_get_etoken_driver },
+	/* legacy, the old name was "etoken", so we keep that for a while */
+	{ "cardos",	(void *(*)(void)) sc_get_cardos_driver },
+	{ "etoken",	(void *(*)(void)) sc_get_cardos_driver },
 	{ "flex",	(void *(*)(void)) sc_get_cryptoflex_driver },
 	{ "cyberflex",	(void *(*)(void)) sc_get_cyberflex_driver },
 #ifdef HAVE_OPENSSL
@@ -77,6 +72,9 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 	{ "atrust-acos",(void *(*)(void))sc_get_atrust_acos_driver },
 	{ "emv",	(void *(*)(void)) sc_get_emv_driver },
 	{ "incrypto34", (void *(*)(void)) sc_get_incrypto34_driver },
+#ifdef HAVE_OPENSSL
+	{ "PIV-II",(void *) sc_get_piv_driver },
+#endif
 	/* The default driver should be last, as it handles all the
 	 * unrecognized cards. */
 	{ "default",	(void *(*)(void)) sc_get_default_driver },
@@ -258,33 +256,9 @@ static void load_reader_driver_options(sc_context_t *ctx,
 			break;
 	}
 
-	driver->apdu_masquerade = DEF_APDU_MASQ;
 	driver->max_send_size = SC_APDU_CHOP_SIZE;
 	driver->max_recv_size = SC_APDU_CHOP_SIZE;
 	if (conf_block != NULL) {
-		const scconf_list *list;
-
-		list = scconf_find_list(conf_block, "apdu_masquerade");
-		if (list)
-			driver->apdu_masquerade = 0;
-		for (; list; list = list->next) {
-			if (!strcmp(list->data, "case4as3")) {
-				driver->apdu_masquerade |= SC_APDU_MASQUERADE_4AS3;
-			} else if (!strcmp(list->data, "case1as2")) {
-				driver->apdu_masquerade |= SC_APDU_MASQUERADE_1AS2;
-			} else if (!strcmp(list->data, "case1as2_always")) {
-				driver->apdu_masquerade |= SC_APDU_MASQUERADE_1AS2_ALWAYS;
-			} else if (!strcmp(list->data, "none")) {
-				driver->apdu_masquerade = 0;
-			} else {
-				/* no match. Should something be logged? */
-				sc_error(ctx,
-					"Unexpected keyword \"%s\" in "
-					"apdu_masquerade; ignored\n",
-					list->data);
-			}
-		}
-
 		driver->max_send_size = scconf_get_int(conf_block,
 						"max_send_size",
 						SC_APDU_CHOP_SIZE);
@@ -570,7 +544,7 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 {
 	int i, r, count = 0;
 	scconf_block **blocks;
-	char *conf_path;
+	const char *conf_path = NULL;
 #ifdef _WIN32
 	char temp_path[PATH_MAX];
 	int temp_len;
@@ -578,7 +552,6 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 	HKEY hKey;
 #endif
 
-	conf_path = 0;
 	memset(ctx->conf_blocks, 0, sizeof(ctx->conf_blocks));
 #ifdef _WIN32
         rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\OpenSC",
@@ -605,8 +578,10 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
                 }
         }
 
-        if (! conf_path)
-                sc_error(ctx, "process_config_file doesn't find opensc config file. Please set the registry key.");
+	if (! conf_path) {
+		sc_debug(ctx, "process_config_file doesn't find opensc config file. Please set the registry key.");
+		return;
+	}
 
 #else
         conf_path = getenv("OPENSC_CONF");
@@ -662,25 +637,61 @@ unsigned int sc_ctx_get_reader_count(sc_context_t *ctx)
 	return (unsigned int)ctx->reader_count;
 }
 
+void sc_ctx_suppress_errors_on(sc_context_t *ctx)
+{
+	ctx->suppress_errors++;
+}
+
+void sc_ctx_suppress_errors_off(sc_context_t *ctx)
+{
+	ctx->suppress_errors--;
+}
+
 int sc_establish_context(sc_context_t **ctx_out, const char *app_name)
 {
-	const char *default_app = "default";
-	sc_context_t *ctx;
-	struct _sc_ctx_options opts;
+	sc_context_param_t ctx_param;
 
-	assert(ctx_out != NULL);
-	ctx = (sc_context_t *) calloc(1, sizeof(sc_context_t));
+	memset(&ctx_param, 0, sizeof(sc_context_param_t));
+	ctx_param.ver      = 0;
+	ctx_param.app_name = app_name;
+	return sc_context_create(ctx_out, &ctx_param);
+}
+
+int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
+{
+	sc_context_t		*ctx;
+	struct _sc_ctx_options	opts;
+	int			r;
+
+	if (ctx_out == NULL)
+		return SC_ERROR_INVALID_ARGUMENTS;
+
+	ctx = calloc(1, sizeof(sc_context_t));
 	if (ctx == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
 	memset(&opts, 0, sizeof(opts));
 	set_defaults(ctx, &opts);
-	ctx->app_name = app_name ? strdup(app_name) : strdup(default_app);
+
+	/* set the application name if set in the parameter options */
+	if (parm != NULL && parm->app_name != NULL)
+		ctx->app_name = strdup(parm->app_name);
+	else
+		ctx->app_name = strdup("default");
 	if (ctx->app_name == NULL) {
 		sc_release_context(ctx);
 		return SC_ERROR_OUT_OF_MEMORY;
 	}
+
+	/* set thread context and create mutex object (if specified) */
+	if (parm != NULL && parm->thread_ctx != NULL)
+		ctx->thread_ctx = parm->thread_ctx;
+	r = sc_mutex_create(ctx, &ctx->mutex);
+	if (r != SC_SUCCESS) {
+		sc_release_context(ctx);
+		return r;
+	}
+
 	process_config_file(ctx, &opts);
-	ctx->mutex = sc_mutex_new();
 	sc_debug(ctx, "===================================\n"); /* first thing in the log */
 	sc_debug(ctx, "opensc version: %s\n", sc_get_version());
 
@@ -695,6 +706,7 @@ int sc_establish_context(sc_context_t **ctx_out, const char *app_name)
 	load_card_drivers(ctx, &opts);
 	load_card_atrs(ctx, &opts);
 	if (opts.forced_card_driver) {
+		/* FIXME: check return value? */
 		sc_set_card_driver(ctx, opts.forced_card_driver);
 		free(opts.forced_card_driver);
 	}
@@ -732,21 +744,29 @@ int sc_release_context(sc_context_t *ctx)
 	}
 	for (i = 0; ctx->card_drivers[i]; i++) {
 		struct sc_card_driver *drv = ctx->card_drivers[i];
-		if (drv->dll)
-			lt_dlclose(drv->dll);
+
 		if (drv->atr_map)
 			_sc_free_atr(ctx, drv);
+		if (drv->dll)
+			lt_dlclose(drv->dll);
 	}
+	if (ctx->preferred_language != NULL)
+		free(ctx->preferred_language);
+	if (ctx->mutex != NULL) {
+		int r = sc_mutex_destroy(ctx, ctx->mutex);
+		if (r != SC_SUCCESS) {
+			sc_error(ctx, "unable to destroy mutex\n");
+			return r;
+		}
+	}
+	if (ctx->conf != NULL)
+		scconf_free(ctx->conf);
 	if (ctx->debug_file && ctx->debug_file != stdout)
 		fclose(ctx->debug_file);
 	if (ctx->error_file && ctx->error_file != stderr)
 		fclose(ctx->error_file);
-	if (ctx->preferred_language)
-		free(ctx->preferred_language);
-	if (ctx->conf)
-		scconf_free(ctx->conf);
-	sc_mutex_free(ctx->mutex);
-	free(ctx->app_name);
+	if (ctx->app_name != NULL)
+		free(ctx->app_name);
 	sc_mem_clear(ctx, sizeof(*ctx));
 	free(ctx);
 	return SC_SUCCESS;
@@ -756,7 +776,7 @@ int sc_set_card_driver(sc_context_t *ctx, const char *short_name)
 {
 	int i = 0, match = 0;
 
-	sc_mutex_lock(ctx->mutex);
+	sc_mutex_lock(ctx, ctx->mutex);
 	if (short_name == NULL) {
 		ctx->forced_driver = NULL;
 		match = 1;
@@ -770,7 +790,7 @@ int sc_set_card_driver(sc_context_t *ctx, const char *short_name)
 		}
 		i++;
 	}
-	sc_mutex_unlock(ctx->mutex);
+	sc_mutex_unlock(ctx, ctx->mutex);
 	if (match == 0)
 		return SC_ERROR_OBJECT_NOT_FOUND; /* FIXME: invent error */
 	return SC_SUCCESS;

@@ -333,7 +333,25 @@ struct sc_pkcs15_df {
 };
 typedef struct sc_pkcs15_df sc_pkcs15_df_t;
 
+struct sc_pkcs15_unusedspace {
+	sc_path_t path;
+	sc_pkcs15_id_t auth_id;
+
+	struct sc_pkcs15_unusedspace *next, *prev;
+};
+typedef struct sc_pkcs15_unusedspace sc_pkcs15_unusedspace_t;
+
 #define SC_PKCS15_CARD_MAGIC		0x10203040
+
+typedef struct {
+	unsigned int version;
+	unsigned int flags;
+	char *label;
+	char *serial_number;
+	char *manufacturer_id;	
+	char *last_update;
+	char *preferred_language;
+} sc_pkcs15_tokeninfo_t;
 
 typedef struct sc_pkcs15_card {
 	sc_card_t *card;
@@ -346,11 +364,13 @@ typedef struct sc_pkcs15_card {
 	struct sc_pkcs15_algorithm_info alg_info[1];
 
 	sc_file_t *file_app;
-	sc_file_t *file_tokeninfo, *file_odf;
+	sc_file_t *file_tokeninfo, *file_odf, *file_unusedspace;
 
 	struct sc_pkcs15_df *df_list;
 	struct sc_pkcs15_object *obj_list;
 	int record_lengths[SC_PKCS15_DF_TYPE_COUNT];
+	sc_pkcs15_unusedspace_t *unusedspace_list;
+	int unusedspace_read;
 
 	struct sc_pkcs15_card_opts {
 		int use_cache;
@@ -497,8 +517,11 @@ int sc_pkcs15_find_so_pin(struct sc_pkcs15_card *card,
 int sc_pkcs15_encode_dir(struct sc_context *ctx,
 			struct sc_pkcs15_card *card,
 			u8 **buf, size_t *buflen);
+int sc_pkcs15_parse_tokeninfo(sc_context_t *ctx,
+			sc_pkcs15_tokeninfo_t *ti,
+			const u8 *buf, size_t blen);
 int sc_pkcs15_encode_tokeninfo(struct sc_context *ctx,
-			struct sc_pkcs15_card *card,
+			sc_pkcs15_tokeninfo_t *ti,
 			u8 **buf, size_t *buflen);
 int sc_pkcs15_encode_odf(struct sc_context *ctx,
 			struct sc_pkcs15_card *card,
@@ -559,6 +582,16 @@ int sc_pkcs15_add_df(struct sc_pkcs15_card *p15card,
 		     const struct sc_file *file);
 void sc_pkcs15_remove_df(struct sc_pkcs15_card *p15card,
 			 struct sc_pkcs15_df *df);
+
+int sc_pkcs15_add_unusedspace(struct sc_pkcs15_card *p15card,
+		     const sc_path_t *path, const sc_pkcs15_id_t *auth_id);
+void sc_pkcs15_remove_unusedspace(struct sc_pkcs15_card *p15card,
+			 sc_pkcs15_unusedspace_t *obj);
+int sc_pkcs15_parse_unusedspace(const u8 * buf, size_t buflen,
+			struct sc_pkcs15_card *card);
+int sc_pkcs15_encode_unusedspace(sc_context_t *ctx,
+			 struct sc_pkcs15_card *p15card,
+			 u8 **buf, size_t *buflen);
 
 void sc_pkcs15_free_prkey_info(sc_pkcs15_prkey_info_t *key);
 void sc_pkcs15_free_pubkey_info(sc_pkcs15_pubkey_info_t *key);
@@ -640,33 +673,9 @@ int sc_pkcs15emu_add_rsa_pubkey(sc_pkcs15_card_t *,
 	const sc_pkcs15_object_t *, const sc_pkcs15_pubkey_info_t *);
 int sc_pkcs15emu_add_x509_cert(sc_pkcs15_card_t *p15card,
 	const sc_pkcs15_object_t *, const sc_pkcs15_cert_info_t *);
+int sc_pkcs15emu_add_data_object(sc_pkcs15_card_t *p15card,
+	const sc_pkcs15_object_t *, const sc_pkcs15_data_info_t *);
 
-#ifndef OPENSC_NO_DEPRECATED
-int sc_pkcs15emu_add_object(sc_pkcs15_card_t *p15card, int type,
-			const char *label, void *data,
-			const sc_pkcs15_id_t *auth_id, int obj_flags);
-int sc_pkcs15emu_add_pin(sc_pkcs15_card_t *p15card,
-                	const sc_pkcs15_id_t *id, const char *label,
-                	const sc_path_t *path, int ref, int type,
-                	unsigned int min_length, unsigned int max_length,
-                	int flags, int tries_left, const char pad_char,
-			int obj_flags);
-int sc_pkcs15emu_add_cert(sc_pkcs15_card_t *p15card, int type,
-        		int authority, const sc_path_t *path,
-			const sc_pkcs15_id_t *id, const char *label,
-			int obj_flags);
-int sc_pkcs15emu_add_prkey(sc_pkcs15_card_t *p15card,
-			const sc_pkcs15_id_t *id, const char *label,
-			int type, unsigned int modulus_length, int usage,
-			const sc_path_t *path, int ref,
-			const sc_pkcs15_id_t *auth_id,
-			int obj_flags);
-int sc_pkcs15emu_add_pubkey(sc_pkcs15_card_t *p15card,
-			const sc_pkcs15_id_t *id, const char *label,
-			int type, unsigned int modulus_length, int usage,
-			const sc_path_t *path, int ref,
-			const sc_pkcs15_id_t *auth_id, int obj_flags);
-#endif /* OPENSC_NO_DEPRECATED */
 #ifdef __cplusplus
 }
 #endif

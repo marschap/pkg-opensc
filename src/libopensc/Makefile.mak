@@ -11,8 +11,9 @@ HEADERS			= \
 HEADERSDIR		= $(TOPDIR)\src\include\opensc
 
 OBJECTS			= \
-	sc.obj ctx.obj ui.obj log.obj errors.obj portability.obj \
+	sc.obj ctx.obj ui.obj log.obj errors.obj \
 	asn1.obj base64.obj sec.obj card.obj iso7816.obj dir.obj padding.obj \
+	apdu.obj \
 	\
 	pkcs15.obj pkcs15-cert.obj pkcs15-data.obj pkcs15-pin.obj \
 	pkcs15-prkey.obj pkcs15-pubkey.obj pkcs15-sec.obj \
@@ -23,15 +24,15 @@ OBJECTS			= \
 	ctbcs.obj reader-ctapi.obj reader-pcsc.obj \
 	\
 	card-setcos.obj card-miocos.obj card-flex.obj card-gpk.obj \
-	card-etoken.obj card-tcos.obj card-emv.obj card-default.obj \
+	card-cardos.obj card-tcos.obj card-emv.obj card-default.obj \
 	card-mcrd.obj card-starcos.obj card-openpgp.obj card-jcop.obj \
 	card-oberthur.obj card-belpic.obj card-atrust-acos.obj \
-	card-incrypto34.obj \
+	card-incrypto34.obj card-piv.obj\
 	\
 	pkcs15-openpgp.obj pkcs15-infocamere.obj pkcs15-starcert.obj \
 	pkcs15-tcos.obj pkcs15-esteid.obj pkcs15-postecert.obj \
 	pkcs15-gemsafe.obj pkcs15-actalis.obj pkcs15-atrust-acos.obj \
-	pkcs15-tccardos.obj \
+	pkcs15-tccardos.obj pkcs15-piv.obj\
 	\
 	$(TOPDIR)\win32\version.res
 

@@ -36,9 +36,11 @@ enum {
 	/* Cards without registered type, yet */
 	SC_CARD_TYPE_TEST_BASE = 500,
 
-	/* etoken driver */
-	SC_CARD_TYPE_ETOKEN_BASE = 1000,
-	SC_CARD_TYPE_ETOKEN_GENERIC,
+	/* cardos driver */
+	SC_CARD_TYPE_CARDOS_BASE = 1000,
+	SC_CARD_TYPE_CARDOS_GENERIC,
+	SC_CARD_TYPE_CARDOS_M4_2,
+	SC_CARD_TYPE_CARDOS_M4_3,
 
 	/* flex/cyberflex drivers */
 	SC_CARD_TYPE_FLEX_BASE = 2000,
@@ -74,6 +76,7 @@ enum {
 	SC_CARD_TYPE_SETCOS_PKI,
 	SC_CARD_TYPE_SETCOS_FINEID,
 	SC_CARD_TYPE_SETCOS_FINEID_V2,
+	SC_CARD_TYPE_SETCOS_NIDEL,
 	SC_CARD_TYPE_SETCOS_44 = 6100,
 
 	/* starcos driver */
@@ -106,7 +109,11 @@ enum {
 
 	/* incrypto34 driver */
 	SC_CARD_TYPE_INCRYPTO34_BASE = 13000,
-	SC_CARD_TYPE_INCRYPTO34_GENERIC
+	SC_CARD_TYPE_INCRYPTO34_GENERIC,
+
+	/* PIV-II type cards */
+	SC_CARD_TYPE_PIV_II_BASE = 14000,
+	SC_CARD_TYPE_PIV_II_GENERIC
 };
 
 #ifdef __cplusplus

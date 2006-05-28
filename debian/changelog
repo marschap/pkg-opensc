@@ -1,12 +1,29 @@
-opensc (0.10.1-2) unstable; urgency=low
+opensc (0.11.0-1) unstable; urgency=low
 
-  * debian/control: Fix stray 2 in the description. Thanks Ludovic
-    Rousseau. (Closes: #354744)
+  * New upstream release. (Closes: #366313)
+  * debian/control: 
+    - Fix stray 2 in the description. Thanks Ludovic Rousseau. 
+      (Closes: #354744)
+    - Standards-Version to 3.7.2.0.
+    - Add libopensc2-dbg package.
+    - Upgrade debhelper dependency to >> 5, for more sane -dbg package 
+      handling.
   * debian/watch: Add watch file.
   * man/pkcs15-tool.1: Patch from Daniel Kahn Gillmor to add --unblock-pin
     documentation to the man page. (Closes: #350634)
+  * debian/rules: Strip into the -dbg package.
+  * debian/compat: Use debhelper level 5.
+  * debian/openct.install: 
+    - There isn't anything in /usr/sbin anymore.
+    - Install new tools and their manpages. 
+    - No more section 7 manpages. 
+  * debian/libopensc2.shlibs: Add dependency on latest version.
+  * debian/libopensc2.install: Don't try to install non-existant .profile
+    files in /etc.
+  * debian/mozilla-opensc.install, debian/mozilla-opensc.links: Fix path
+    to signer.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sun, 28 May 2006 18:28:03 -0400
 
 opensc (0.10.1-1) unstable; urgency=low
 

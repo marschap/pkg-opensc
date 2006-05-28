@@ -73,20 +73,20 @@ am__DEPENDENCIES_1 =
 libopensc_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1)
-am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo \
-	portability.lo asn1.lo base64.lo sec.lo card.lo iso7816.lo \
-	dir.lo padding.lo pkcs15.lo pkcs15-cert.lo pkcs15-data.lo \
-	pkcs15-pin.lo pkcs15-prkey.lo pkcs15-pubkey.lo pkcs15-sec.lo \
-	pkcs15-wrap.lo pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo \
-	emv.lo ctbcs.lo reader-ctapi.lo reader-pcsc.lo \
-	reader-openct.lo card-setcos.lo card-miocos.lo card-flex.lo \
-	card-gpk.lo card-etoken.lo card-tcos.lo card-emv.lo \
-	card-default.lo card-mcrd.lo card-starcos.lo card-openpgp.lo \
-	card-jcop.lo card-oberthur.lo card-belpic.lo \
-	card-atrust-acos.lo card-incrypto34.lo pkcs15-openpgp.lo \
-	pkcs15-infocamere.lo pkcs15-starcert.lo pkcs15-tcos.lo \
-	pkcs15-esteid.lo pkcs15-postecert.lo pkcs15-gemsafe.lo \
-	pkcs15-actalis.lo pkcs15-atrust-acos.lo pkcs15-tccardos.lo
+am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo asn1.lo \
+	base64.lo sec.lo card.lo iso7816.lo dir.lo padding.lo apdu.lo \
+	pkcs15.lo pkcs15-cert.lo pkcs15-data.lo pkcs15-pin.lo \
+	pkcs15-prkey.lo pkcs15-pubkey.lo pkcs15-sec.lo pkcs15-wrap.lo \
+	pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo emv.lo ctbcs.lo \
+	reader-ctapi.lo reader-pcsc.lo reader-openct.lo card-setcos.lo \
+	card-miocos.lo card-flex.lo card-gpk.lo card-cardos.lo \
+	card-tcos.lo card-emv.lo card-default.lo card-mcrd.lo \
+	card-starcos.lo card-openpgp.lo card-jcop.lo card-oberthur.lo \
+	card-belpic.lo card-atrust-acos.lo card-incrypto34.lo \
+	card-piv.lo pkcs15-openpgp.lo pkcs15-infocamere.lo \
+	pkcs15-starcert.lo pkcs15-tcos.lo pkcs15-esteid.lo \
+	pkcs15-postecert.lo pkcs15-gemsafe.lo pkcs15-actalis.lo \
+	pkcs15-atrust-acos.lo pkcs15-tccardos.lo pkcs15-piv.lo
 libopensc_la_OBJECTS = $(am_libopensc_la_OBJECTS)
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
@@ -258,8 +258,8 @@ AM_LDFLAGS =
 bin_SCRIPTS = opensc-config
 lib_LTLIBRARIES = libopensc.la
 libopensc_la_SOURCES = \
-	sc.c ctx.c ui.c log.c errors.c portability.c \
-	asn1.c base64.c sec.c card.c iso7816.c dir.c padding.c \
+	sc.c ctx.c ui.c log.c errors.c \
+	asn1.c base64.c sec.c card.c iso7816.c dir.c padding.c apdu.c \
 	\
 	pkcs15.c pkcs15-cert.c pkcs15-data.c pkcs15-pin.c \
 	pkcs15-prkey.c pkcs15-pubkey.c pkcs15-sec.c \
@@ -270,14 +270,14 @@ libopensc_la_SOURCES = \
 	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
 	\
 	card-setcos.c card-miocos.c card-flex.c card-gpk.c \
-	card-etoken.c card-tcos.c card-emv.c card-default.c \
+	card-cardos.c card-tcos.c card-emv.c card-default.c \
 	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
 	card-oberthur.c card-belpic.c card-atrust-acos.c \
-	card-incrypto34.c \
+	card-incrypto34.c card-piv.c \
 	\
 	pkcs15-openpgp.c pkcs15-infocamere.c pkcs15-starcert.c \
 	pkcs15-tcos.c pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafe.c \
-	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c
+	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c
 
 libopensc_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@
 libopensc_la_LIBADD = @LIBSCCONF@ $(OPENSSL_LIBS) $(OPENCT_LIBS) $(PCSC_LIBS) $(LTLIBLTDL)
@@ -385,13 +385,14 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apdu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asn1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/base64.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-atrust-acos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-belpic.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-cardos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-default.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-emv.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-etoken.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-flex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-gpk.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-incrypto34.Plo@am__quote@
@@ -400,6 +401,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-miocos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-oberthur.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-openpgp.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-piv.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-setcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-starcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-tcos.Plo@am__quote@
@@ -423,6 +425,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-infocamere.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-openpgp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-pin.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-piv.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-postecert.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-prkey.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-pubkey.Plo@am__quote@
@@ -433,7 +436,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-tcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-wrap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/portability.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reader-ctapi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reader-openct.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reader-pcsc.Plo@am__quote@

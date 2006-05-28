@@ -1,7 +1,7 @@
 /*
  * pkcs15-tccardos.c: PKCS#15 profile for TC CardOS M4 cards
  *
- * Copyright (C) 2005  nils.larsch@cybertrust.com 
+ * Copyright (C) 2005  Nils Larsch <nils@larsch.net> 
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -18,6 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "internal.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -35,6 +36,9 @@
 #define TC_CARDOS_LOCALPIN	0x2000
 #define TC_CARDOS_GLOBALPIN	0x3000
 #define TC_CARDOS_PIN_MASK	0x3000
+
+int sc_pkcs15emu_tccardos_init_ex(sc_pkcs15_card_t *p15card,
+				  sc_pkcs15emu_opt_t *opts);
 
 static int read_file(struct sc_card *card, const char *file, u8 *buf,
 	size_t *len)
@@ -113,7 +117,7 @@ static int create_cert_obj(sc_pkcs15_card_t *p15card, int fileId)
 }
 
 static int create_pkey_obj(sc_pkcs15_card_t *p15card, int cert, int key_descr,
-	u8 keyId, u8 pinId)
+	unsigned int keyId, unsigned int pinId)
 {
 	sc_pkcs15_object_t     p15obj;
 	sc_pkcs15_prkey_info_t pinfo;
@@ -126,7 +130,7 @@ static int create_pkey_obj(sc_pkcs15_card_t *p15card, int cert, int key_descr,
 	pinfo.id.value[1] = cert & 0xff;
 	pinfo.id.len = 2;
 	pinfo.native   = 1;
-	pinfo.key_reference  = keyId;
+	pinfo.key_reference  = (u8)keyId;
 	pinfo.modulus_length = 1024; /* XXX */
 	pinfo.access_flags = SC_PKCS15_PRKEY_ACCESS_NEVEREXTRACTABLE;
 	pinfo.usage    = 0;
@@ -146,7 +150,7 @@ static int create_pkey_obj(sc_pkcs15_card_t *p15card, int cert, int key_descr,
 	/* the common object attributes */
 	sprintf(p15obj.label, "SK.CH.%s", get_service(cert));
 	if (pinId && (key_descr & TC_CARDOS_PIN_MASK)) {
-		p15obj.auth_id.value[0] = pinId;
+		p15obj.auth_id.value[0] = (u8)pinId;
 		p15obj.auth_id.len      = 1;
 	}
 	p15obj.flags = SC_PKCS15_CO_FLAG_PRIVATE;
@@ -157,7 +161,7 @@ static int create_pkey_obj(sc_pkcs15_card_t *p15card, int cert, int key_descr,
 }
 	
 static int create_pin_obj(sc_pkcs15_card_t *p15card, int cert,
-	int key_descr, u8 pinId)
+	int key_descr, unsigned int pinId)
 {
 	sc_pkcs15_object_t   p15obj;
 	sc_pkcs15_pin_info_t ainfo;
@@ -166,9 +170,9 @@ static int create_pin_obj(sc_pkcs15_card_t *p15card, int cert,
 	memset(&p15obj, 0, sizeof(p15obj));
 	memset(&ainfo,  0, sizeof(ainfo));
 	/* the authentication object attributes */
-	ainfo.auth_id.value[0] = pinId;
+	ainfo.auth_id.value[0] = (u8)pinId;
 	ainfo.auth_id.len   = 1;
-	ainfo.reference = pinId;
+	ainfo.reference = (u8)pinId;
 	ainfo.flags = SC_PKCS15_PIN_FLAG_EXCHANGE_REF_DATA;
 	if ((key_descr & TC_CARDOS_PIN_MASK) == TC_CARDOS_LOCALPIN)
 		ainfo.flags |= SC_PKCS15_PIN_FLAG_LOCAL;

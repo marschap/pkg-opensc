@@ -22,6 +22,7 @@
 #include "asn1.h"
 #include <assert.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const struct sc_card_error iso7816_errors[] = {
@@ -109,6 +110,11 @@ static int iso7816_read_binary(sc_card_t *card,
 	sc_apdu_t apdu;
 	u8 recvbuf[SC_MAX_APDU_BUFFER_SIZE];
 	int r;
+
+	if (idx > 0x7fff) {
+		sc_error(card->ctx, "invalid EF offset: 0x%X > 0x7FFF", idx);
+		return SC_ERROR_OFFSET_TOO_LARGE;
+	}
 
 	assert(count <= card->max_recv_size);
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xB0,
@@ -239,6 +245,12 @@ static int iso7816_write_binary(sc_card_t *card,
 	int r;
 
 	assert(count <= card->max_send_size);
+
+	if (idx > 0x7fff) {
+		sc_error(card->ctx, "invalid EF offset: 0x%X > 0x7FFF", idx);
+		return SC_ERROR_OFFSET_TOO_LARGE;
+	}
+
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xD0,
 		       (idx >> 8) & 0x7F, idx & 0xFF);
 	apdu.lc = count;
@@ -260,6 +272,12 @@ static int iso7816_update_binary(sc_card_t *card,
 	int r;
 
 	assert(count <= card->max_send_size);
+
+	if (idx > 0x7fff) {
+		sc_error(card->ctx, "invalid EF offset: 0x%X > 0x7FFF", idx);
+		return SC_ERROR_OFFSET_TOO_LARGE;
+	}
+
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xD6,
 		       (idx >> 8) & 0x7F, idx & 0xFF);
 	apdu.lc = count;
@@ -566,30 +584,35 @@ static int iso7816_create_file(sc_card_t *card, sc_file_t *file)
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 }
 
-static int iso7816_get_response(sc_card_t *card, sc_apdu_t *orig_apdu, size_t count)
+static int iso7816_get_response(sc_card_t *card, size_t *count, u8 *buf)
 {
 	sc_apdu_t apdu;
 	int r;
 
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xC0, 0x00, 0x00);
-	apdu.le = count;
-	apdu.resplen = count;
-	apdu.resp = orig_apdu->resp;
+	apdu.le      = *count;
+	apdu.resplen = *count;
+	apdu.resp    = buf;
+	/* don't call GET RESPONSE recursively */
+	apdu.flags  |= SC_APDU_FLAGS_NO_GET_RESP;
 
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
 	if (apdu.resplen == 0)
 		SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2));
 
-	if (apdu.resplen != count) {
-		SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_WRONG_LENGTH);
-	}
+	*count = apdu.resplen;
 
-	orig_apdu->resplen = apdu.resplen;
-	orig_apdu->sw1 = 0x90;
-	orig_apdu->sw2 = 0x00;
+	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00)
+		r = 0;					/* no more data to read */
+	else if (apdu.sw1 == 0x61)
+		r = apdu.sw2 == 0 ? 256 : apdu.sw2;	/* more data to read    */
+	else if (apdu.sw1 == 0x62 && apdu.sw2 == 0x82)
+		r = 0; /* Le not reached but file/record ended */
+	else
+		r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 
-	SC_FUNC_RETURN(card->ctx, 3, apdu.resplen);
+	return r;
 }
 
 static int iso7816_delete_file(sc_card_t *card, const sc_path_t *path)
@@ -758,39 +781,42 @@ static int iso7816_decipher(sc_card_t *card,
 			    const u8 * crgram, size_t crgram_len,
 			    u8 * out, size_t outlen)
 {
-	int r;
+	int       r;
 	sc_apdu_t apdu;
-	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
-	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8        *sbuf = NULL;
 
 	assert(card != NULL && crgram != NULL && out != NULL);
 	SC_FUNC_CALLED(card->ctx, 2);
-	if (crgram_len > 255)
-		SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_INVALID_ARGUMENTS);
+
+	sbuf = (u8 *)malloc(crgram_len + 1);
+	if (sbuf == NULL)
+		return SC_ERROR_MEMORY_FAILURE;
 
 	/* INS: 0x2A  PERFORM SECURITY OPERATION
 	 * P1:  0x80  Resp: Plain value
 	 * P2:  0x86  Cmd: Padding indicator byte followed by cryptogram */
-	sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT, 0x2A, 0x80, 0x86);
-	apdu.resp = rbuf;
-	apdu.resplen = sizeof(rbuf); /* FIXME */
-	apdu.le = 256;	/* set le to 256 == 0x00 == everything available */
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_4, 0x2A, 0x80, 0x86);
+	apdu.resp    = out;
+	apdu.resplen = outlen;
+	/* if less than 256 bytes are expected than set Le to 0x00
+	 * to tell the card the we want everything available (note: we
+	 * always have Le <= crgram_len) */
+	apdu.le      = (outlen >= 256 && crgram_len < 256) ? 256 : outlen;
 	apdu.sensitive = 1;
 	
 	sbuf[0] = 0; /* padding indicator byte, 0x00 = No further indication */
 	memcpy(sbuf + 1, crgram, crgram_len);
 	apdu.data = sbuf;
-	apdu.lc = crgram_len + 1;
+	apdu.lc   = crgram_len + 1;
 	apdu.datalen = crgram_len + 1;
 	r = sc_transmit_apdu(card, &apdu);
+	sc_mem_clear(sbuf, crgram_len + 1);
+	free(sbuf);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
-	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
-		size_t len = apdu.resplen > outlen ? outlen : apdu.resplen;
-
-		memcpy(out, apdu.resp, len);
-		SC_FUNC_RETURN(card->ctx, 2, len);
-	}
-	SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2));
+	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00)
+		SC_FUNC_RETURN(card->ctx, 2, apdu.resplen)
+	else
+		SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2))
 }
 
 static int iso7816_build_pin_apdu(sc_card_t *card, sc_apdu_t *apdu,

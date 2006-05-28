@@ -63,7 +63,7 @@ However, there is also a need to know which files contain what, or where the
 keys, PINs, .. can be found.
 </p>
 <p>
-For crypto cards, PCKS15 adresses this need by defining some files that contain
+For crypto cards, PKCS15 adresses this need by defining some files that contain
 info on where to find keys, certificates, PINs, and other data. For example,
 there is a PrKDF (Private Key Directory File) that contains the EFs or ID of
 the private keys, what those keys can be used for, by which PINs they are
@@ -188,6 +188,13 @@ The --reader or -r can be given with any command. By default the first reader
 is used. Do "opensc-tool -l" to see the list of available readers.
 </p>
 <p>
+The typical order of the commands is:
+</p>
+<ul><li>erase (-E) the card if needed
+</li><li>create (-C) the PKCS15 files
+</li><li>add a user PIN (unless you did a '-C' with the 'onepin' profile option)
+</li><li>add a key + cert (-S) or generate a key (-G) + a add a cert (-W)
+</li></ul><p>
 To see the results of what you did, you can do one of the following:
 </p>
 <pre class="wiki" xml:space="preserve">   pkcs15-tool --list-pins --list-public-keys -k -c -C
@@ -339,9 +346,35 @@ your SO PIN and/or PIN; if you don't want to be prompted, add them to the
 command line with --so-pin &lt;SOPIN&gt; and/or --pin &lt;PIN&gt;.
 </li></ul><h2>Add data</h2>
 <pre class="wiki" xml:space="preserve">      pkcs15-init -W &lt;datafile&gt; {-i &lt;ID&gt;} {-l &lt;label&gt;}
+
 </pre><ul><li>The datafile is stored "as is" onto the card.
 </li><li>Specify the ID of the data with -i, or accept the default ID.
 </li><li>Specify the label (name) of the data with -l, or accept the default label.
+</li><li>Depending on your card and profile option, you will be prompted to provide
+your SO PIN and/or PIN; if you don't want to be prompted, add them to the
+command line with --so-pin &lt;SOPIN&gt; and/or --pin &lt;PIN&gt;.
+</li></ul><h2>Update a certificate</h2>
+<pre class="wiki" xml:space="preserve">      pkcs15-init -U &lt;certfile&gt; -f &lt;format&gt; -i &lt;ID&gt; {-a &lt;pinid&gt;}
+</pre><ul><li>Specify path to the cert file with -U, default format = PEM
+</li><li>Specify the cert format (DER or PEM) with -f
+</li><li>Specify the ID of the cert with -i.
+</li><li>Specify the ID of the PIN needed to update the cert file (and if needed
+to delete it and create and write a new one) with -a.
+</li><li>Depending on your card and profile option, you will be prompted to provide
+your SO PIN and/or PIN; if you don't want to be prompted, add them to the
+command line with --so-pin &lt;SOPIN&gt; and/or --pin &lt;PIN&gt;.
+</li><li><strong>NOTE</strong>: if the new cert is bigger then the old one, the tool will try to delete
+the old cert file and create a new one. This won't work for most card
+(probably SetCOS 4.4.1 is the only one where it works..)
+</li></ul><h2>Change attributes (currently only the label)</h2>
+<pre class="wiki" xml:space="preserve">      pkcs15-init -A &lt;type&gt; -i &lt;ID&gt; -l &lt;label&gt; {-a &lt;pinid&gt;}
+</pre><p>
+This allows you to modify the label of a certain PKCS15 object.
+</p>
+<ul><li>The type of the object should be one of the following: privkey, pubkey, cert, data.
+</li><li>Specify the ID of the object with -i.
+</li><li>Specify the new label with -l.
+</li><li>Specify the ID of the PIN needed to update the corresponding PKCS15 file with -a.
 </li><li>Depending on your card and profile option, you will be prompted to provide
 your SO PIN and/or PIN; if you don't want to be prompted, add them to the
 command line with --so-pin &lt;SOPIN&gt; and/or --pin &lt;PIN&gt;.
@@ -366,7 +399,7 @@ or pkcs11-tool.
 <p>
 You can use the OpenSC pkcs11 library to generate a key pair in Mozilla or
 Netscape, and let the browser generate a certificate request that is sent
-to an on-line CA to issue and send you a certificate that is then added to the
+to an on-line CA to issue and send your a certificate that is then added to the
 card.
 </p>
 <p>

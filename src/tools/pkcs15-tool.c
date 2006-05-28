@@ -28,7 +28,7 @@ typedef unsigned __int32 uint32_t;
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
 #else
-#warning no uint32_t type available, please contact opensc-devel@opensc.org
+#warning no uint32_t type available, please contact opensc-devel@opensc-project.org
 #endif
 #endif
 #include <openssl/bn.h>
@@ -148,7 +148,7 @@ static int list_certificates(void)
 {
 	int r, i;
 	struct sc_pkcs15_object *objs[32];
-	
+
 	r = sc_pkcs15_get_objects(p15card, SC_PKCS15_TYPE_CERT_X509, objs, 32);
 	if (r < 0) {
 		fprintf(stderr, "Certificate enumeration failed: %s\n", sc_strerror(r));
@@ -216,7 +216,7 @@ list_data_object(const char *kind, const u8*data, size_t data_len)
 {
 	size_t i;
 	
-	printf("%s (%i bytes): <", kind, data_len);
+	printf("%s (%lu bytes): <", kind, data_len);
 	for (i = 0; i < data_len; i++)
 		printf(" %02X", data[i]);
 	printf(" >\n");
@@ -239,13 +239,13 @@ print_data_object(const char *kind, const u8*data, size_t data_len)
 			}
 		for (i=0; i < data_len; i++)
 			fprintf(outf, "%c", data[i]);
-		printf("Dumping (%i bytes) to file <%s>: <", data_len, opt_outfile);
+		printf("Dumping (%lu bytes) to file <%s>: <", data_len, opt_outfile);
 		for (i=0; i < data_len; i++)
 			printf(" %02X", data[i]);
 		printf(" >\n");
 		fclose(outf);
 	} else {
-		printf("%s (%i bytes): <", kind, data_len);
+		printf("%s (%lu bytes): <", kind, data_len);
 		for (i=0; i < data_len; i++)
 			printf(" %02X", data[i]);
 		printf(" >\n");
@@ -303,7 +303,7 @@ static int read_data_object(void)
 	}
 	count = r;
 
-	r = parse_application_id(&oid, opt_data);
+	r = sc_format_oid(&oid, opt_data);
 	if (r == SC_SUCCESS) {
 		while (oid.value[oid_len] >= 0) oid_len++;
 	}
@@ -325,6 +325,8 @@ static int read_data_object(void)
 		r = sc_pkcs15_read_data_object(p15card, cinfo, &data_object);
 		if (r) {
 			fprintf(stderr, "Data object read failed: %s\n", sc_strerror(r));
+			if (r == SC_ERROR_FILE_NOT_FOUND)
+				continue; /* DEE emulation may say there is a file */
 			return 1;
 		}
 		r = print_data_object("Data Object", data_object->data, data_object->data_len);
@@ -369,6 +371,8 @@ static int list_data_objects(void)
 		r = sc_pkcs15_read_data_object(p15card, cinfo, &data_object);
 		if (r) {
 			fprintf(stderr, "Data object read failed: %s\n", sc_strerror(r));
+			if (r == SC_ERROR_FILE_NOT_FOUND)
+				 continue; /* DEE emulation may say there is a file */
 			return 1;
 		}
 		r = list_data_object("Data Object", data_object->data, data_object->data_len);
@@ -407,7 +411,7 @@ static void print_prkey_info(const struct sc_pkcs15_object *obj)
 			printf(", %s", access_flags[i]);   
 		}
 	printf("\n");
-	printf("\tModLength   : %d\n", prkey->modulus_length);
+	printf("\tModLength   : %lu\n", prkey->modulus_length);
 	printf("\tKey ref     : %d\n", prkey->key_reference);
 	printf("\tNative      : %s\n", prkey->native ? "yes" : "no");
 	printf("\tPath        : %s\n", sc_print_path(&prkey->path));
@@ -465,7 +469,7 @@ static void print_pubkey_info(const struct sc_pkcs15_object *obj)
 			printf(", %s", access_flags[i]);   
 		}
 	printf("\n");
-	printf("\tModLength   : %d\n", pubkey->modulus_length);
+	printf("\tModLength   : %lu\n", pubkey->modulus_length);
 	printf("\tKey ref     : %d\n", pubkey->key_reference);
 	printf("\tNative      : %s\n", pubkey->native ? "yes" : "no");
 	printf("\tPath        : %s\n", sc_print_path(&pubkey->path));
@@ -480,7 +484,7 @@ static int list_public_keys(void)
 	
 	r = sc_pkcs15_get_objects(p15card, SC_PKCS15_TYPE_PUBKEY_RSA, objs, 32);
 	if (r < 0) {
-		fprintf(stderr, "Private key enumeration failed: %s\n", sc_strerror(r));
+		fprintf(stderr, "Public key enumeration failed: %s\n", sc_strerror(r));
 		return 1;
 	}
 	if (verbose)
@@ -630,8 +634,8 @@ static int read_ssh_key(void)
 	/* key_to_blob */
 
 	if (pubkey->algorithm == SC_ALGORITHM_RSA) {
-		char buf[2048];
-		char *uu;
+		unsigned char buf[2048];
+		unsigned char *uu;
 		uint32_t len;
 		uint32_t n;
 
@@ -640,7 +644,7 @@ static int read_ssh_key(void)
 		buf[2]=0;
 		buf[3]=7;
 
-		len = sprintf(buf+4,"ssh-rsa");
+		len = sprintf((char *) buf+4,"ssh-rsa");
 		len+=4;
 
 		if (sizeof(buf)-len < 4+pubkey->u.rsa.exponent.len)
@@ -682,8 +686,8 @@ static int read_ssh_key(void)
 	}
 
 	if (pubkey->algorithm == SC_ALGORITHM_DSA) {
-		char buf[2048];
-		char *uu;
+		unsigned char buf[2048];
+		unsigned char *uu;
 		uint32_t len;
 		uint32_t n;
 
@@ -692,7 +696,7 @@ static int read_ssh_key(void)
 		buf[2]=0;
 		buf[3]=7;
 
-		len = sprintf(buf+4,"ssh-dss");
+		len = sprintf((char *) buf+4,"ssh-dss");
 		len+=4;
 
 		if (sizeof(buf)-len < 5+pubkey->u.dsa.p.len)
@@ -878,7 +882,7 @@ static void print_pin_info(const struct sc_pkcs15_object *obj)
 			printf(", %s", pin_flags[i]);
 		}
 	printf("\n");
-	printf("\tLength    : min_len:%d, max_len:%d, stored_len:%d\n",
+	printf("\tLength    : min_len:%lu, max_len:%lu, stored_len:%lu\n",
 				pin->min_length, pin->max_length, pin->stored_length);
 	printf("\tPad char  : 0x%02X\n", pin->pad_char);
 	printf("\tReference : %d\n", pin->reference);
@@ -895,7 +899,7 @@ static int list_pins(void)
 	
 	r = sc_pkcs15_get_objects(p15card, SC_PKCS15_TYPE_AUTH_PIN, objs, 32);
 	if (r < 0) {
-		fprintf(stderr, "Private key enumeration failed: %s\n", sc_strerror(r));
+		fprintf(stderr, "PIN enumeration failed: %s\n", sc_strerror(r));
 		return 1;
 	}
 	if (verbose)
@@ -918,16 +922,7 @@ static int dump()
 	};
 
 	int i, count = 0;
-	printf("Looking for a PKCS#15 compatible Smart Card... ");
-	fflush(stdout);
 	sc_lock(card);
-	i = sc_pkcs15_bind(card, &p15card);
-
-	if (i) {
-		fprintf(stderr, "failed: %s\n", sc_strerror(i));
-		return 1;
-	}
-	printf("found.\n\n");
 
 	printf("PKCS#15 Card [%s]:\n", p15card->label);
 	printf("\tVersion        : %d\n", p15card->version);
@@ -1145,10 +1140,20 @@ static int learn_card(void)
 		read_and_cache_file(&df->path);
 	printf("Caching %d certificate(s)...\n", cert_count);
 	for (i = 0; i < cert_count; i++) {
+		sc_path_t tpath;
 		struct sc_pkcs15_cert_info *cinfo = (struct sc_pkcs15_cert_info *) certs[i]->data;
 		
 		printf("[%s]\n", certs[i]->label);
-		read_and_cache_file(&cinfo->path);
+
+		tpath = cinfo->path;
+		if (tpath.type == SC_PATH_TYPE_FILE_ID) {
+			/* prepend application DF path in case of a file id */
+			r = sc_concatenate_path(&tpath, &p15card->file_app->path, &tpath);
+			if (r != SC_SUCCESS)
+				return r;
+		}
+
+		read_and_cache_file(&tpath);
 	}
 
 	return 0;
@@ -1173,6 +1178,7 @@ int main(int argc, char * const argv[])
 	int do_unblock_pin = 0;
 	int do_learn_card = 0;
 	int action_count = 0;
+	sc_context_param_t ctx_param;
 
 	while (1) {
 		c = getopt_long(argc, argv, "r:cuko:va:LR:CwD", options, &long_optind);
@@ -1270,7 +1276,12 @@ int main(int argc, char * const argv[])
 	}
 	if (action_count == 0)
 		print_usage_and_die();
-	r = sc_establish_context(&ctx, app_name);
+
+	memset(&ctx_param, 0, sizeof(ctx_param));
+	ctx_param.ver      = 0;
+	ctx_param.app_name = app_name;
+
+	r = sc_context_create(&ctx, &ctx_param);
 	if (r) {
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
@@ -1378,13 +1389,13 @@ end:
  */
 #include "opensc/asn1.h"
 static const struct sc_asn1_entry	c_asn1_pem_key_items[] = {
-	{ "algorithm",	SC_ASN1_ALGORITHM_ID, SC_ASN1_CONS|ASN1_SEQUENCE, },
-	{ "key",	SC_ASN1_BIT_STRING_NI, ASN1_BIT_STRING },
-	{ NULL }
+	{ "algorithm",	SC_ASN1_ALGORITHM_ID, SC_ASN1_CONS| SC_ASN1_TAG_SEQUENCE, 0, NULL, NULL},
+	{ "key",	SC_ASN1_BIT_STRING_NI, SC_ASN1_TAG_BIT_STRING, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 static const struct sc_asn1_entry	c_asn1_pem_key[] = {
-	{ "publicKey",	SC_ASN1_STRUCT, SC_ASN1_CONS|ASN1_SEQUENCE, },
-	{ NULL }
+	{ "publicKey",	SC_ASN1_STRUCT, SC_ASN1_CONS | SC_ASN1_TAG_SEQUENCE, 0, NULL, NULL},
+	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
 static int

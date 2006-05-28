@@ -21,7 +21,7 @@ OPENSSL_LIB = C:\openssl\out32dll\libeay32.lib
 PKCS15_INIT = pkcs15-init.exe
 !ENDIF
 
-COPTS = /Zi /MD /nologo /DHAVE_CONFIG_H /I$(TOPDIR)\src\include /I$(TOPDIR)\src\include\opensc $(OPENSSL_INCL_DIR) $(LIBLTDL_INCL) /D_WIN32_WINNT=0x0400 $(OPENSSL_DEF)
+COPTS = /D_CRT_SECURE_NO_DEPRECATE /Zi /MD /nologo /DHAVE_CONFIG_H /I$(TOPDIR)\src\include /I$(TOPDIR)\src\include\opensc $(OPENSSL_INCL_DIR) $(LIBLTDL_INCL) /D_WIN32_WINNT=0x0400 $(OPENSSL_DEF)
 LINKFLAGS = /DEBUG /NOLOGO /INCREMENTAL:NO /MACHINE:IX86
 
 
@@ -37,5 +37,4 @@ install-headers-dir:
 	cl $(COPTS) /c $<
 
 clean::
-	del /Q *.obj *.dll *.exe
-
+	del /Q *.obj *.dll *.exe *.pdb

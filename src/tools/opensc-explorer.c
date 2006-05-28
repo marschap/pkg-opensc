@@ -175,7 +175,7 @@ static void print_file(const sc_file_t *file)
 		break;
 	}
 	printf("\t%4s", st);
-	printf(" %5d", file->size);
+	printf(" %5lu", file->size);
 	if (file->namelen) {
 		printf("\tName: ");
 		print_binary(stdout, file->name, file->namelen);
@@ -314,7 +314,9 @@ static int read_and_print_record_file(sc_file_t *file)
 	int rec, r;
 
 	for (rec = 1; ; rec++) {
+		ctx->suppress_errors++;
 		r = sc_read_record(card, rec, buf, sizeof(buf), SC_RECORD_BY_REC_NR);
+		ctx->suppress_errors--;
 		if (r == SC_ERROR_RECORD_NOT_FOUND)
 			return 0;
 		if (r < 0) {
@@ -416,7 +418,7 @@ static int do_info(int argc, char **argv)
 			printf("%02X", path.value[i]);
 		}
 	}
-	printf("\n%-15s%d bytes\n", "File size:", file->size);
+	printf("\n%-15s%lu bytes\n", "File size:", file->size);
 
 	if (file->type == SC_FILE_TYPE_DF) {
 		const char *ops[] = {
@@ -441,7 +443,7 @@ static int do_info(int argc, char **argv)
 			"Linear variable TLV", "Cyclic, SIMPLE-TLV",
 		};
 		const char *ops[] = {
-			"READ", "UPDATE", "WRITE", "ERASE", "REHABILITATE",
+			"READ", "UPDATE", "DELETE", "WRITE", "REHABILITATE",
 			"INVALIDATE", "LIST_FILES", "CRYPTO",
 		};
 		printf("%-15s%s\n", "EF structure:", structs[file->ef_structure]);
@@ -941,7 +943,7 @@ static int do_update_binary(int argc, char **argv)
 	in_str = argv[2];
 	printf("in: %i; %s\n", offs, in_str);
 	if (*in_str=='\"')   {
-		in_len = strlen(in_str)-2 > sizeof(buf) ? sizeof(buf) : strlen(in_str)-2;
+		in_len = strlen(in_str)-2 >= sizeof(buf) ? sizeof(buf)-1 : strlen(in_str)-2;
 		strncpy((char *) buf, in_str+1, in_len);
 	} else {
 		in_len = hex2binary(buf, sizeof(buf), in_str);
@@ -1514,6 +1516,7 @@ int main(int argc, char * const argv[])
 	char *line;
 	int cargc;
 	char *cargv[20];
+	sc_context_param_t ctx_param;
 
 	printf("OpenSC Explorer version %s\n", sc_get_version());
 
@@ -1539,7 +1542,11 @@ int main(int argc, char * const argv[])
 		}
 	}
 
-	r = sc_establish_context(&ctx, app_name);
+	memset(&ctx_param, 0, sizeof(ctx_param));
+	ctx_param.ver      = 0;
+	ctx_param.app_name = app_name;
+
+	r = sc_context_create(&ctx, &ctx_param);
 	if (r) {
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;

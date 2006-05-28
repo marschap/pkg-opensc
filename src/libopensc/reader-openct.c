@@ -41,11 +41,9 @@ static int openct_reader_detect_card_presence(sc_reader_t *reader,
 static int openct_reader_connect(sc_reader_t *reader,
 			sc_slot_info_t *slot);
 static int openct_reader_disconnect(sc_reader_t *reader,
-			sc_slot_info_t *slot, int action);
+			sc_slot_info_t *slot);
 static int openct_reader_transmit(sc_reader_t *reader,
-			sc_slot_info_t *slot,
-			const u8 *sendbuf, size_t sendsize,
-			u8 *recvbuf, size_t *recvsize, unsigned long control);
+			sc_slot_info_t *slot, sc_apdu_t *apdu);
 static int openct_reader_perform_verify(sc_reader_t *reader,
 			sc_slot_info_t *slot,
 			struct sc_pin_cmd_data *info);
@@ -60,7 +58,8 @@ static struct sc_reader_operations openct_ops;
 static struct sc_reader_driver openct_reader_driver = {
 	"OpenCT reader",
 	"openct",
-	&openct_ops
+	&openct_ops,
+	0, 0, NULL
 };
 
 /* private data structures */
@@ -91,7 +90,7 @@ openct_reader_init(sc_context_t *ctx, void **priv_data)
 
 	max=OPENCT_MAX_READERS; 
 
-        conf_block = _get_conf_block(ctx, "reader_driver", "openct", 1);
+        conf_block = sc_get_conf_block(ctx, "reader_driver", "openct", 1);
 	if (conf_block) {
 		max = scconf_get_int(conf_block, "readers", OPENCT_MAX_READERS);
 	}
@@ -274,7 +273,7 @@ openct_reader_reconnect(sc_reader_t *reader,
 
 int
 openct_reader_disconnect(sc_reader_t *reader,
-			sc_slot_info_t *slot, int action)
+			sc_slot_info_t *slot)
 {
 	struct driver_data *data = (struct driver_data *) reader->drv_data;
 
@@ -285,8 +284,8 @@ openct_reader_disconnect(sc_reader_t *reader,
 	return SC_NO_ERROR;
 }
 
-int
-openct_reader_transmit(sc_reader_t *reader,
+static int
+openct_reader_internal_transmit(sc_reader_t *reader,
 		sc_slot_info_t *slot,
 		const u8 *sendbuf, size_t sendsize,
 		u8 *recvbuf, size_t *recvsize, unsigned long control)
@@ -313,6 +312,54 @@ openct_reader_transmit(sc_reader_t *reader,
 
 	return openct_error(reader, rc);
 }
+
+static int openct_reader_transmit(sc_reader_t *reader, sc_slot_info_t *slot,
+	sc_apdu_t *apdu)
+{
+	size_t       ssize, rsize, rbuflen = 0;
+	u8           *sbuf = NULL, *rbuf = NULL;
+	int          r;
+
+	rsize = rbuflen = apdu->resplen + 2;
+	rbuf     = malloc(rbuflen);
+	if (rbuf == NULL) {
+		r = SC_ERROR_MEMORY_FAILURE;
+		goto out;
+	}
+	/* encode and log the APDU */
+	r = sc_apdu_get_octets(reader->ctx, apdu, &sbuf, &ssize, SC_PROTO_RAW);
+	if (r != SC_SUCCESS)
+		goto out;
+	/* log data if DEBUG is defined */
+#ifdef DEBUG
+	sc_apdu_log(reader->ctx, sbuf, ssize, 1);
+#endif
+	r = openct_reader_internal_transmit(reader, slot, sbuf, ssize,
+				rbuf, &rsize, apdu->control);
+	if (r < 0) {
+		/* unable to transmit ... most likely a reader problem */
+		sc_error(reader->ctx, "unable to transmit");
+		goto out;
+	}
+	/* log data if DEBUG is defined */
+#ifdef DEBUG
+	sc_apdu_log(reader->ctx, rbuf, rsize, 0);
+#endif
+	/* set response */
+	r = sc_apdu_set_resp(reader->ctx, apdu, rbuf, rsize);
+out:
+	if (sbuf != NULL) {
+		sc_mem_clear(sbuf, ssize);
+		free(sbuf);
+	}
+	if (rbuf != NULL) {
+		sc_mem_clear(rbuf, rbuflen);
+		free(rbuf);
+	}
+	
+	return r;
+}
+
 
 int
 openct_reader_perform_verify(sc_reader_t *reader,
