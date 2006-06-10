@@ -1,89 +1,242 @@
-2006-05-01 09:19  aj
+2006-05-30 20:58  aj
 
-	* releases/opensc-0.11.0/NEWS: document changes since 0.10.0-rc2.
+	* releases/opensc-0.11.1/NEWS,
+	  releases/opensc-0.11.1/configure.in: create release opensc
+	  0.11.1.
 
-2006-04-26 11:42  aj
+2006-05-23 12:03  aj
 
-	* releases/opensc-0.11.0/configure.in: create release candidate 2.
+	* releases/opensc-0.11.1/configure.in: create release candidate 3.
+	* releases/opensc-0.11.1/src/tools/Makefile.mak,
+	  releases/opensc-0.11.1/win32/Make.rules.mak: fix windows build
+	  of cryptoflex-tool and netkey-tool.
+
+2006-05-20 16:07  aj
+
+	* releases/opensc-0.11.1/configure.in: create release candidate 2.
+
+2006-05-20 16:06  aj
+
+	* releases/opensc-0.11.1/src/libopensc/pkcs15-piv.c,
+	  releases/opensc-0.11.1/src/pkcs11/framework-pkcs15.c: make
+	  objects on piv card public.
+
+2006-05-20 16:04  aj
+
+	* releases/opensc-0.11.1/src/pkcs11/misc.c: rever prior change as
+	  it breaks the regression tests.
+
+2006-05-12 20:03  aj
+
+	* releases/opensc-0.11.1/src/libopensc/pkcs15-piv.c: Douglas E.
+	  Engert: removes the private bit on the pubkey. Without this
+	  change the openssl req with engine can not be used to generate a
+	  certificate request, as it will not be able to find the public
+	  key that should have been saved by the piv-tool when the private
+	  key was generated on the card.
+
+2006-05-12 20:01  aj
+
+	* releases/opensc-0.11.1/src/libopensc/card-mcrd.c,
+	  releases/opensc-0.11.1/src/pkcs11/framework-pkcs15.c: compile
+	  fixes for win32.
+
+2006-05-10 06:17  aj
+
+	* releases/opensc-0.11.1/NEWS: document changes so far.
+
+2006-05-10 06:14  aj
+
+	* releases/opensc-0.11.1/configure.in: release candidate 1.
+
+2006-05-10 06:13  aj
+
+	* releases/opensc-0.11.1: create release candidate for 0.11.1.
+
+2006-05-09 21:35  nils
+
+	* trunk/src/pkcs11/framework-pkcs15.c: improve buffer length check
+
+2006-05-09 19:39  aj
+
+	* trunk/src/include/winconfig.h, trunk/win32/version.rc: oops, we
+	  forgot to update the version. fix that for opensc 0.11.1.
+
+2006-05-05 10:35  nils
+
+	* trunk/src/pkcs11/misc.c: set the default for lock_login to false
+	  (as documented in opensc.conf)
+
+2006-05-05 10:10  nils
+
+	* trunk/src/libopensc/card-openpgp.c: if the card doesn't support
+	  a logout functionality it's not an error
+
+2006-05-05 10:06  nils
+
+	* trunk/src/libopensc/card-openpgp.c: bugfix: Le must be <= buffer
+	  size
+
+2006-05-04 06:50  aj
+
+	* trunk/src/libopensc/pkcs15-piv.c: piv fixes by Douglas E.
+	  Engert. This patch will allow a flag in the opensc.conf file to
+	  be set to only expose the PIV authentication certificate and
+	  matching keys.
+
+2006-05-03 07:16  nils
+
+	* trunk/src/libopensc/card-starcos.c: use correct ef attribute in
+	  switch statement; thanks to Chaskiel M Grundman
+	  <cg2v@andrew.cmu.edu>
+
+2006-05-01 10:27  aj
+
+	* trunk/src/libopensc/pkcs15-gemsafe.c: close memory leaks.
+
+2006-05-01 10:26  aj
+
+	* trunk/src/libopensc/card-oberthur.c: close some memory leaks.
+
+2006-05-01 10:23  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: make sure result is
+	  null-terminated.
+
+2006-05-01 10:22  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: at least partialy close
+	  memory leak.
+
+2006-05-01 10:21  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: check df before dereferencing
+	  it.
+
+2006-05-01 10:20  aj
+
+	* trunk/src/pkcs11/framework-pkcs15.c: free(data) (allocated by
+	  sc_pkcs15_read_data_object, no reference kept anywhere).
+
+2006-05-01 10:17  aj
+
+	* trunk/src/tools/eidenv.c: if exec() fails, exit with return code
+	  1.
+
+2006-05-01 10:16  aj
+
+	* trunk/src/tools/pkcs15-init.c: initialize with NULL, so the
+	  later check for NULL will work.
+
+2006-05-01 10:12  aj
+
+	* trunk/NEWS, trunk/etc/opensc.conf.in,
+	  trunk/src/libopensc/card-mcrd.c, trunk/src/libopensc/cards.h:
+	  add support for d-trust cards.
+
+2006-05-01 10:10  aj
+
+	* trunk/src/libopensc/apdu.c: revert bogus change.
+
+2006-05-01 10:07  aj
+
+	* trunk/src/scconf/test-conf.c: bogus change, no segfault here.
+
+2006-05-01 10:06  aj
+
+	* trunk/src/libopensc/log.c: revert bogus patch.
+
+2006-05-01 10:02  aj
+
+	* trunk/NEWS, trunk/src/common/main.c, trunk/src/libopensc/apdu.c,
+	  trunk/src/libopensc/card-flex.c, trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/ui.c, trunk/src/pkcs11/pkcs11-display.c,
+	  trunk/src/pkcs15init/pkcs15-cardos.c, trunk/src/tests/print.c,
+	  trunk/src/tools/netkey-tool.c,
+	  trunk/src/tools/opensc-explorer.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/piv-tool.c,
+	  trunk/src/tools/pkcs11-tool.c, trunk/src/tools/pkcs15-crypt.c,
+	  trunk/src/tools/pkcs15-tool.c: fix printf size_t problem with
+	  "%lu" and (unsigned long) cast.
+
+2006-05-01 09:20  aj
+
+	* trunk/NEWS: Document changes since 0.10.0-rc2
+
+2006-04-29 22:10  pk_opensc
+
+	* trunk/src/libopensc/pkcs15-tcos.c: TCOS-Emulation, support for
+	  Uni-Giessen card
+
+2006-04-27 20:44  ludovic.rousseau
+
+	* trunk/src/libopensc/reader-ctapi.c,
+	  trunk/src/libopensc/reader-pcsc.c: fix a memory leak that occurs
+	  when the APDU exchange fails
+
+2006-04-26 11:54  aj
+
+	* trunk/configure.in: trunk will contain work done after 0.11.0
+	  release
 
 2006-04-26 11:41  aj
 
-	* releases/opensc-0.11.0/src/pkcs11/openssl.c,
-	  releases/opensc-0.11.0/src/pkcs11/pkcs11-display.c,
-	  releases/opensc-0.11.0/src/pkcs11/sc-pkcs11.h,
-	  releases/opensc-0.11.0/src/tests/print.c,
-	  releases/opensc-0.11.0/src/tools/eidenv.c,
-	  releases/opensc-0.11.0/src/tools/netkey-tool.c,
-	  releases/opensc-0.11.0/src/tools/opensc-explorer.c,
-	  releases/opensc-0.11.0/src/tools/opensc-tool.c,
-	  releases/opensc-0.11.0/src/tools/piv-tool.c,
-	  releases/opensc-0.11.0/src/tools/pkcs11-tool.c,
-	  releases/opensc-0.11.0/src/tools/pkcs15-crypt.c,
-	  releases/opensc-0.11.0/src/tools/pkcs15-tool.c: fix signed and
-	  size_t warnings.
+	* trunk/src/pkcs11/openssl.c, trunk/src/pkcs11/pkcs11-display.c,
+	  trunk/src/pkcs11/sc-pkcs11.h, trunk/src/tests/print.c,
+	  trunk/src/tools/eidenv.c, trunk/src/tools/netkey-tool.c,
+	  trunk/src/tools/opensc-explorer.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/piv-tool.c,
+	  trunk/src/tools/pkcs11-tool.c, trunk/src/tools/pkcs15-crypt.c,
+	  trunk/src/tools/pkcs15-tool.c: fix signed and size_t warnings.
 
 2006-04-26 10:08  aj
 
-	* releases/opensc-0.11.0/src/libopensc/log.c: make sure buffer is
-	  0 terminated.
+	* trunk/src/libopensc/log.c: make sure buffer is 0 terminated.
 
 2006-04-26 10:07  aj
 
-	* releases/opensc-0.11.0/src/libopensc/apdu.c: fix a memory leak.
-	  don't access buffer beyond length.
+	* trunk/src/libopensc/apdu.c: fix a memory leak. don't access
+	  buffer beyond length.
 
 2006-04-26 10:05  aj
 
-	* releases/opensc-0.11.0/src/libopensc/card-oberthur.c: maybe it
-	  would be good to check the return value?
-	* releases/opensc-0.11.0/src/libopensc/ctx.c: maybe it would be
-	  good to check the return value?
+	* trunk/src/libopensc/card-oberthur.c: maybe it would be good to
+	  check the return value?
+	* trunk/src/libopensc/ctx.c: maybe it would be good to check he
+	  return value?
 
 2006-04-26 10:04  aj
 
-	* releases/opensc-0.11.0/src/libopensc/card-piv.c: fix double free
-	  and segfault.
+	* trunk/src/libopensc/card-piv.c: fix double free and segfault.
 
 2006-04-26 10:02  aj
 
-	* releases/opensc-0.11.0/src/libopensc/reader-openct.c: fix memory
-	  leak.
+	* trunk/src/libopensc/reader-openct.c: fix memory leak.
 
 2006-04-26 10:01  aj
 
-	* releases/opensc-0.11.0/src/libopensc/asn1.c: remove dead code.
-	* releases/opensc-0.11.0/src/pkcs15init/pkcs15-cflex.c,
-	  releases/opensc-0.11.0/src/pkcs15init/pkcs15-gpk.c: close memory
-	  leaks.
+	* trunk/src/libopensc/asn1.c: remove dead code.
+	* trunk/src/pkcs15init/pkcs15-cflex.c,
+	  trunk/src/pkcs15init/pkcs15-gpk.c: close memory leaks.
 
 2006-04-26 10:00  aj
 
-	* releases/opensc-0.11.0/src/pkcs11/framework-pkcs15.c: not sure
-	  it is a good idea to ignore the return value.
+	* trunk/src/pkcs11/framework-pkcs15.c: not sure it is a good idea
+	  to ignore the return value.
 
 2006-04-26 09:59  aj
 
-	* releases/opensc-0.11.0/src/scconf/test-conf.c: no idea how to
-	  fix, at least document it.
+	* trunk/src/scconf/test-conf.c: no idea how to fix, at least
+	  document it.
 
 2006-04-26 09:58  aj
 
-	* releases/opensc-0.11.0/src/tools/opensc-explorer.c: fix off by
-	  one bug.
+	* trunk/src/tools/opensc-explorer.c: fix off by one bug.
 
-2006-04-24 18:42  aj
+2006-04-24 18:41  aj
 
-	* releases/opensc-0.11.0/src/libopensc/card-tcos.c,
-	  releases/opensc-0.11.0/src/libopensc/pkcs15-tcos.c: tcos updates
-	  by Peter Koch.
-
-2006-04-21 06:38  aj
-
-	* releases/opensc-0.11.0/configure.in: create release candidate 1.
-
-2006-04-21 06:37  aj
-
-	* releases/opensc-0.11.0: branch for 0.11.0 release.
+	* trunk/src/libopensc/card-tcos.c,
+	  trunk/src/libopensc/pkcs15-tcos.c: tcos updates by Peter Koch.
 
 2006-04-18 15:15  aj
 

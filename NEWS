@@ -6,6 +6,13 @@ http://www.opensc-project.org/opensc/wiki/WhatsNew
 Also see the svn changelog using svn command
 or doc/ChangeLog.
 
+New in 0.11.1; 2006-05-30; Andreas Jellinghaus
+* Fix version variable in win32 build files
+* Update for piv pkcs#15 emulation
+* Improved TCOS driver for Uni Giesen Card
+* Handle size_t printf with "%lu" and (unsigned long) cast
+* Add support for d-trust cards / improve micardo 2.1 driver
+
 New in 0.11.0; 2006-05-01; Andreas Jellinghaus
 * compile fixes/improvements for windows
 * document pkcs15-tool --unblock-pin option

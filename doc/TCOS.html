@@ -16,15 +16,19 @@ If OpenSC would fully support TCOS, one could erase the preformatted card and in
 The good news are: With the help of an emulation layer OpenSC can use cards that are almost PKCS#15 compatible. For the above mentioned cards such an emulation layer exists. The emulation cannot store certificates, keys or pins on the card, but you can use whatever is visible through the emulation layer. 
 </p>
 <p>
-If you know of other TCOS based cards and are willing to help, please post information on the mailing list. You might also send <tt>opensc-tool -f</tt> output to <a class="ext-link" title="mail:pk_opensc@web.de" href="mail:pk_opensc@web.de" shape="rect">me</a>, maybe I can extend the emulation such that it works with your card as well.
+If you know of other TCOS based cards and are willing to help, please post information on the mailing list. You might also send <tt>opensc-tool -f</tt> output to <a class="ext-link" title="mail:pk@opensc-project.org" href="mail:pk@opensc-project.org" shape="rect">me</a>, maybe I can extend the emulation such that it works with your card as well.
+</p>
+<p>
+Telesec GmbH will offer the next generation of TCOS cards in late 2006. As of this writing (May 2006) the author was not able to get his hands on a prototype. If you do - let <a class="ext-link" title="mail:pk@opensc-project.org" href="mail:pk@opensc-project.org" shape="rect">me</a> know. These new TCOS-cards will fullfill all requirements from the german HPC-specification (Health Profession Card) and as such will have lots of new features.
 </p>
 <h2>NetKey E4 filesystem layout</h2>
 <p>
-NetKey E4 cards contain different directories with different applications. Only one of these (i.e. directory DF01) is made visible through the NetKey emulation layer. This directory contains 3 private keys, 3 public keys, 3 read only certificates, 6 empty certificate files, 2 local PINs and one signature-counter.
+NetKey E4 cards contain different applications (i.e. directories). Only one of these (application NKS, directory DF01) is made visible through the NetKey emulation layer. This directory contains 3 private keys, 3 public keys, 3 read only certificates, 6 empty certificate files, 2 local PINs and one signature-counter.
+There are other applications on NetKey-cards, for example one that can be used to create SigG (german signature law) conformning digital signatures. This application is not supported right now. Please ask for it on the mailing list.  
 </p>
 <pre class="wiki" xml:space="preserve">  pkcs15-tool -c
 </pre><p>
-will list all certificates. It will not list the empty certificate files. Here's the output for a new NetKey E4 card:
+will list all certificates. It will not list empty certificate files. Here's the output for a new NetKey E4 card:
 </p>
 <pre class="wiki" xml:space="preserve">$ pkcs15-tool -c
 X.509 Certificate [Telesec Signatur Zertifikat]
@@ -45,7 +49,7 @@ X.509 Certificate [Telesec Verschlüsselungs Zertifikat]
         Path     : DF01C200
         ID       : 03
 </pre><p>
-The read-only certificates are signed by a certificate of german Telekom AG and all have the same CN. Here's some output that shows one of them:
+The read-only certificates are signed by a certificate of german Telekom AG and all have the same CN (<a class="missing" href="/opensc/wiki/NetKey" shape="rect">NetKey?</a> serial number). Here's output that shows one of them:
 </p>
 <pre class="wiki" xml:space="preserve">$ pkcs15-tool -r 01 | openssl x509 -noout -text -certopt no_pubkey,no_sigdump
 Certificate:
@@ -101,10 +105,13 @@ One more hint: Your global PUK was set to an 8-digit random number at production
 </p>
 <h2>SignTrust layout</h2>
 <p>
-SignTrust cards contain three directories. Each of them contain one certificate, one private key and one pin.
+SignTrust cards contain three applications (i.e. directories). Each of them contain one certificate, one private key and one pin.
 </p>
 <p>
-All Keys can be used for decryption- and signature operations. As with all TCOS cards one could store additional certificates on a SignTrust card. But since there are no empty files on the card (as with NetKey cards) the emulations layer does not support this.
+The signature-key is restricted such that it can create signatures only, the other keys can be used for decryption- and signature operations. There are no empty certificate files on a SignTrust card (as with NetKey cards) so you cannot store your own certificates pn a SignTrust card.
+</p>
+<p>
+The certificate from the signature-application can ba used to create SigG (german signature law) conforming digital signatures. Neither the CA-certificate nor the Root-Certificate is stored on the card but you can download them <a class="ext-link" title="http://www.deutschepost.de/dpag?tab=1&amp;skin=hi&amp;check=yes&amp;lang=de_DE&amp;xmlFile=372" href="http://www.deutschepost.de/dpag?tab=1&amp;skin=hi&amp;check=yes&amp;lang=de_DE&amp;xmlFile=372" shape="rect">here</a>. The certificates from the authentication and encryption application are signed by a selfsigned Root-certificate from Deutsche Post. 
 </p>
 <h2>Kobil Smartkey layout</h2>
 <p>

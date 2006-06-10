@@ -1803,9 +1803,12 @@ static CK_RV pkcs15_prkey_get_attribute(struct sc_pkcs11_session *session,
 	case CKA_SENSITIVE:
 	case CKA_ALWAYS_SENSITIVE:
 	case CKA_NEVER_EXTRACTABLE:
-	case CKA_PRIVATE:
 		check_attribute_buffer(attr, sizeof(CK_BBOOL));
 		*(CK_BBOOL*)attr->pValue = TRUE;
+		break;
+	case CKA_PRIVATE:
+		check_attribute_buffer(attr, sizeof(CK_BBOOL));
+		*(CK_BBOOL*)attr->pValue = (prkey->prv_p15obj->flags & SC_PKCS15_CO_FLAG_PRIVATE) != 0;
 		break;
 	case CKA_MODIFIABLE:
 	case CKA_EXTRACTABLE:
@@ -2345,6 +2348,7 @@ static CK_RV pkcs15_dobj_get_attribute(struct sc_pkcs11_session *session,
 			sc_debug(context, "data_len %i\n", data->data_len);
 			check_attribute_buffer(attr, data->data_len);
 			memcpy(attr->pValue, data->data, data->data_len);
+			free(data);
 		}
 		break;
 	default:
@@ -2475,9 +2479,16 @@ asn1_sequence_wrapper(const u8 *data, size_t len, CK_ATTRIBUTE_PTR attr)
 	u8		*dest;
 	unsigned int	n;
 	size_t		len2;
+	size_t		lenb = 1;
 
 	len2 = len;
-	check_attribute_buffer(attr, len + 1 + sizeof(len));
+	/* calculate the number of bytes needed for the length */
+	if (len > 127) {
+		unsigned int i;
+		for (i = 0; (len & (0xff << i)) != 0 && (0xff << i) != 0; i++)
+			lenb++;
+	}
+	check_attribute_buffer(attr, 1 + lenb + len);
 
 	dest = (u8 *) attr->pValue;
 	*dest++ = 0x30;	/* SEQUENCE tag */

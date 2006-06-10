@@ -1,5 +1,5 @@
 /*
- * $Id: test-conf.c 2896 2006-04-26 09:59:36Z aj $
+ * $Id: test-conf.c 2925 2006-05-01 10:07:53Z aj $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 
 	scconf_list_add(&foo_list, "value3");
 
-	/* FIXME: this will segfault as foo_item is NULL */
+	/* this will not segfault as type SCCONF_ITEM_TYPE_COMMENT is used */
 	scconf_item_add(conf, foo_block, foo_item, SCCONF_ITEM_TYPE_COMMENT, NULL, "# comment1");
 	scconf_item_add(conf, foo_block, foo_item, SCCONF_ITEM_TYPE_VALUE, "list1", foo_list);
 	foo_block = NULL;
