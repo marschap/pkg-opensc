@@ -512,14 +512,14 @@ sc_pkcs15init_rmdir(sc_card_t *card, struct sc_profile *profile,
 	int		r = 0, nfids;
 	char            pbuf[SC_MAX_PATH_STRING_SIZE];
 
+	if (df == NULL)
+		return SC_ERROR_INTERNAL;
 	r = sc_path_print(pbuf, sizeof(pbuf), &df->path);
 	if (r != SC_SUCCESS)
 		pbuf[0] = '\0';
 
 	sc_debug(card->ctx, "sc_pkcs15init_rmdir(%s)\n", pbuf);
 
-	if (df == NULL)
-		return SC_ERROR_INTERNAL;
 	if (df->type == SC_FILE_TYPE_DF) {
 		r = sc_pkcs15init_authenticate(profile, card, df,
 				SC_AC_OP_LIST_FILES);
@@ -758,10 +758,14 @@ sc_pkcs15init_add_app(sc_card_t *card, struct sc_profile *profile,
 				SC_PKCS15_AODF, NULL);
 	}
 
-	if (r >= 0)
+	if (r >= 0) {
 		r = sc_pkcs15init_update_dir(p15spec, profile, app);
-	if (r >= 0)
-		r = sc_pkcs15init_update_tokeninfo(p15spec, profile);
+		if (r >= 0)
+			r = sc_pkcs15init_update_tokeninfo(p15spec, profile);
+		/* FIXME: what to do if sc_pkcs15init_update_dir failed? */
+	} else {
+		free(app); /* unused */
+	}
 
 	sc_ctx_suppress_errors_on(card->ctx);
 	sc_pkcs15init_write_info(card, profile, pin_obj);
@@ -2679,7 +2683,7 @@ sc_pkcs15init_new_object(int type, const char *label, sc_pkcs15_id_t *auth_id, v
 	}
 
 	if (label)
-		strncpy(object->label, label, sizeof(object->label));
+		strncpy(object->label, label, sizeof(object->label)-1);
 	if (auth_id)
 		object->auth_id = *auth_id;
 

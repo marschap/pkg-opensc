@@ -614,8 +614,8 @@ pgp_compute_signature(sc_card_t *card, const u8 *data,
 	apdu.lc = data_len;
 	apdu.data = data;
 	apdu.datalen = data_len;
-	apdu.le = 256;
-	apdu.resp = out;
+	apdu.le      = outlen;
+	apdu.resp    = out;
 	apdu.resplen = outlen;
 
 	r = sc_transmit_apdu(card, &apdu);
@@ -689,7 +689,7 @@ pgp_decipher(sc_card_t *card, const u8 *in, size_t inlen,
 static int
 pgp_logout(sc_card_t *card)
 {
-	sc_error(card->ctx, "OpenPGP card: logout not supported\n");
+	sc_debug(card->ctx, "OpenPGP card: logout not supported\n");
 	return SC_ERROR_NOT_SUPPORTED;
 }
 
