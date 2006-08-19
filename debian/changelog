@@ -2,8 +2,9 @@ opensc (0.11.1-2) unstable; urgency=low
 
   * debian/libopensc2.links: Link /usr/lib/opensc/opensc-pkcs11.so to
     /usr/lib/opensc-pkcs11.so to help with upgrades. (Closes: #363443)
+  * etc/opensc.conf.in: Fix small typo, thanks Clemens Orthacker.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 19 Aug 2006 13:25:31 -0400
 
 opensc (0.11.1-1) unstable; urgency=low
 
