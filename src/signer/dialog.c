@@ -3,7 +3,7 @@
 #include <stdarg.h>
 
 #ifndef PIN_ENTRY
-#define PIN_ENTRY "/usr/local/bin/gpinentry"
+#define PIN_ENTRY "/usr/bin/pinentry"
 #endif
 
 struct entry_parm_s {

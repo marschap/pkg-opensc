@@ -72,6 +72,7 @@ Package: mozilla-opensc
 Section: web
 Architecture: any
 Depends: ${shlibs:Depends}
+Recommends: pinentry-gtk2 | pinentry-x11
 Replaces: libopensc-openssl (<< 0.9.4-6)
 Description: Mozilla plugin for authentication using OpenSC
  A plugin for mozilla that allows S/MIME and SSL authentication using
