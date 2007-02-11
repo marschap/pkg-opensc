@@ -319,7 +319,7 @@ app opensc-pkcs11 {
 		# has done a C_Logout or C_Finalize. In the case of
 		# Netscape or Mozilla, this does not happen until
 		# you exit the browser.
-		# Default: false
+		# Default: true
 		# lock_login = true;
 
 		# Normally, the pkcs11 module will not cache PINs
