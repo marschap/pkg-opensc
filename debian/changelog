@@ -1,4 +1,4 @@
-opensc (0.11.1-3) unstable; urgency=low
+opensc (0.11.1-3) unstable; urgency=high
 
   * src/signer/dialog.c, debian/control: Fix path to pinentry and
     recommend pinentry for mozilla-opensc. Thanks Antti S. Lankila for the
@@ -10,7 +10,7 @@ opensc (0.11.1-3) unstable; urgency=low
   * etc/opensc.conf.in: Document that lock_login is actually true by
     default. Thanks Antti-Juhani Kaijanaho. (Closes: #410024)
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 10 Feb 2007 23:27:03 -0500
 
 opensc (0.11.1-2) unstable; urgency=low
 
