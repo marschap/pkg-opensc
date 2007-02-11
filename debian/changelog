@@ -3,6 +3,10 @@ opensc (0.11.1-3) unstable; urgency=low
   * src/signer/dialog.c, debian/control: Fix path to pinentry and
     recommend pinentry for mozilla-opensc. Thanks Antti S. Lankila for the
     suggestion. (Closes: #392241)
+  * opensc.docs: Install new and improved html docs. (Closes: #399838)
+  * mozilla-opensc.links: Install links for iceweasel and iceape rather
+    than firefox and mozilla. Considering who I am I should have picked up
+    on this sooner. (Closes: #409946)
 
  --
 

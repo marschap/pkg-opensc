@@ -1,2 +1,3 @@
-doc/html/tools.html
+doc/*.html
+doc/*.css
 
