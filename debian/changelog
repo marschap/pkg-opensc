@@ -1,8 +1,8 @@
 opensc (0.11.2-1) unstable; urgency=low
 
-  * New upstream release.
+  * New upstream release. (Closes: #413470, #410195, #419680)
 
- -- Eric Dorland <eric@debian.org>  Thu, 17 May 2007 00:13:43 -0400
+ -- Eric Dorland <eric@debian.org>  Thu, 17 May 2007 00:44:04 -0400
 
 opensc (0.11.1-3) unstable; urgency=high
 
