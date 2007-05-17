@@ -1,0 +1,229 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>PivTool - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><h2 id="Name">Name</h2>
+<p>
+piv-tool perform some very primitive card administration operation on <a class="wiki" href="/opensc/wiki/UnitedStatesPIV" shape="rect">PIV cards</a>. 
+ 
+</p>
+<h2 id="Description">Description</h2>
+<p>
+piv-tool can be used to do some very primitive card administration operations on PIV cards. 
+Card administration operations may vary from vendor to vendor. This tool is meant for testing 
+during development and is by no means complete. 
+</p>
+<p>
+Before an administrative card operation can be preformed, authentication of the piv-tool to the 
+card may be needed. After the card is personalized, addition command my be needed to complete the 
+personalization. See your vendor's instructions for more details, including the difference between 
+Mutual authentication and External authentication. 
+ 
+piv-tool is similar to opensc-tool but takes some additional parameters for use with the PIV cards.
+    
+See <a class="ext-link" href="http://csrc.nist.gov/publications/nistpubs/800-73-1/sp800-73-1v7-April20-2006.pdf" shape="rect"><span class="icon">NIST 800-73-1</span></a>  
+Table 12 for definitions of &lt;ref&gt; and &lt;alg&gt; and section 7.2.4 for the difference between 
+Mutual and External Authentication.
+</p>
+<h2 id="Synopsis">Synopsis</h2>
+<p>
+piv-tool [options]
+</p>
+<h2 id="Options">Options</h2>
+<p>
+--serial   
+</p>
+<blockquote>
+<p>
+(as of 0.11.1 the serial number is not implemented.) 
+</p>
+</blockquote>
+<p>
+--name 
+</p>
+<blockquote>
+<p>
+Print name of card. <tt>PIV-II</tt>
+</p>
+</blockquote>
+<p>
+--admin, -A &lt;{M|A}&gt;:&lt;ref&gt;:&lt;alg&gt; -
+</p>
+<blockquote>
+<p>
+Authenticate using reference and algorithm.
+</p>
+</blockquote>
+<p>
+ 
+</p>
+<blockquote>
+<p>
+The environment variable PIV_EXT_AUTH_KEY must point to a file with the key. 
+The file format is NN:NN:NN:...:NN where a 3des key would have 24 NN pairs.  
+Oberthur cards use "-A A:9B:03", GemAlto cards use "-A M:9B:03" Both use 3des keys. 
+</p>
+</blockquote>
+<p>
+--usepin, -P 
+</p>
+<blockquote>
+<p>
+authenticate with pin (only early beta cards used this option.)
+</p>
+</blockquote>
+<p>
+--genkey, -G &lt;ref&gt;:&lt;alg&gt; 
+</p>
+<blockquote>
+<p>
+Generate a key pair for &lt;ref&gt; with algorithm &lt;alg&gt; 
+and write public key to --out &lt;file&gt;.
+</p>
+</blockquote>
+<p>
+--cert, -C &lt;ref&gt;  
+</p>
+<blockquote>
+<p>
+read cert from --in &lt;file&gt; and write the cert to the card. 
+</p>
+</blockquote>
+<p>
+--req, -R 
+</p>
+<blockquote>
+<p>
+(not yet implemented. see examples below.)
+</p>
+</blockquote>
+<p>
+--out, -o &lt;file&gt; 
+</p>
+<blockquote>
+<p>
+file name to use for any output type operation. 
+</p>
+</blockquote>
+<p>
+--in, -i &lt;file&gt; 
+</p>
+<blockquote>
+<p>
+file name for input operation.
+</p>
+</blockquote>
+<p>
+--send-apdu, -s &lt;arg&gt; 
+</p>
+<blockquote>
+<p>
+send an APDU after doing any -A operation. APDU is 
+in the form AA:BB:CC:DD...
+</p>
+</blockquote>
+<p>
+--reader, -r &lt;arg&gt; 
+</p>
+<blockquote>
+<p>
+Use the given reader number. The default is 0, the first reader in the system.
+</p>
+</blockquote>
+<p>
+--card-driver, -c &lt;arg&gt; 
+</p>
+<blockquote>
+<p>
+Use the given card driver. The default is auto-detected
+</p>
+</blockquote>
+<p>
+--wait, -w  
+</p>
+<blockquote>
+<p>
+wait for card to be inserted
+</p>
+</blockquote>
+<p>
+--verbose, -v 
+</p>
+<blockquote>
+<p>
+several times for more debugging output.
+</p>
+</blockquote>
+<h2 id="Examples">Examples</h2>
+<p>
+In the following examples $CARD is used by your scripts to
+identify the specific card.   
+</p>
+<h3 id="Generateakeypair">Generate a key pair</h3>
+<p>
+The card can have 4 different keys and matching certificates.
+These correspond to &lt;ref&gt; 9A, 9B, 9C and 9D. With pkcs#11
+these correspond with ID: 1, 2, 3, 4.   
+We will create the key for the "X.509 Certificate for PIV Authentication" 
+which matchs the key reference of 9A using a RSA 1024 bit key, and pkcs#11 ID 1.
+  
+</p>
+<pre class="wiki" xml:space="preserve"> PIV_EXT_AUTH_KEY=card/external.3des.key.$CARD
+ export PIV_EXT_AUTH_KEY
+ piv-tool -A A:9B:03 -G 9A:06 -o card/pubkey.1.$CARD
+</pre><h3 id="Clearacertificateonthecard">Clear a certificate on the card</h3>
+<p>
+There is no delete object command. Therefore write an object with a tag
+of zero, using External Authenticate to the card using authentication:
+</p>
+<pre class="wiki" xml:space="preserve"> piv-tool -A A:9B:03 -s 00:DB:3F:FF:09:5C:03:5F:C1:05:53:00:00:00
+</pre><p>
+(This needs to done if there is already a certificate on the card, otherwise
+a generate cert request may use the public key from the old certificate,
+rather the the one just generated.) 
+</p>
+<h3 id="Generateacertificaterequest">Generate a certificate request</h3>
+<p>
+Using OpenSSL, with the engine make sure the environment variable PIV_9A06_KEY
+is set pointing at the file created by the generate key pair operation. 
+</p>
+<pre class="wiki" xml:space="preserve"> PIV_9A06_KEY=card/pubkey.1.$CARD
+ export PIV_9A06_KEY
+ openssl &lt;&lt; EOT
+ engine dynamic -vvvv -pre SO_PATH:/usr/lib/engines/engine_pkcs11.so \
+      -pre ID:pkcs11 -pre NO_VCHECK:1 \
+      -pre LIST_ADD:1 -pre LOAD  \
+      -pre MODULE_PATH:/usr/lib/opensc-pkcs11.so
+ version
+ req $SSLEAY_CONFIG -engine pkcs11 -md5 -new  \
+     -key slot_0-id_1 -keyform engine -out card/newreq.1.$CARD.pem -text
+ EOT
+</pre><p>
+(Note back slashes added for readability.)
+</p>
+<p>
+When using the engine the environment variable PIV_9A06_KEY points at the
+public key being used in the request, even if the &lt;ref&gt; and &lt;alg&gt; are not 9A 
+and 06. The pkcs#11 ID is defined in <tt>-key slot_0-id_&lt;N&gt;</tt>  where
+&lt;N&gt; = 1,2,3,4. 
+(TODO: change name to not include 9A06)  
+</p>
+<h3 id="Signingtherequest">Signing the request</h3>
+<p>
+This step is independent of OpenSC and depends on your CA. For example, the 
+certificate request file could be pasted into your CA's web page. When signed,
+save the certificate as  card/cert.1.$CARD.pem for the next step.
+</p>
+<h3 id="LoadaCertificate">Load a Certificate</h3>
+<pre class="wiki" xml:space="preserve"> PIV_EXT_AUTH_KEY=card/external.3des.key.$CARD
+ export PIV_EXT_AUTH_KEY
+
+ piv-tool -A A:9B:03 -C 9A -i card/cert.1.$CARD.pem
+</pre><p>
+ 
+</p>
+<p>
+ 
+</p>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

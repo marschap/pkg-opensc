@@ -4,7 +4,7 @@
  * Copyright (C) 2004  Martin Paljak <martin@paljak.pri.ee>
  * Copyright (C) 2004  Priit Randla <priit.randla@eyp.ee>
  * Copyright (C) 2003  Marie Fischer <marie@vtl.ee> 
- * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  * Copyright (C) 2002  g10 Code GmbH
  *
  * This library is free software; you can redistribute it and/or
@@ -33,9 +33,6 @@
 static struct sc_atr_table mcrd_atrs[] = {
 	{"3B:FF:94:00:FF:80:B1:FE:45:1F:03:00:68:D2:76:00:00:28:FF:05:1E:31:80:00:90:00:23", NULL,
 	  "Micardo 2.1/German BMI/D-Trust", SC_CARD_TYPE_MCRD_GENERIC, 0, NULL},
-	{"3B:FE:94:00:FF:80:B1:FA:45:1F:03:45:73:74:45:49:44:20:76:65:72:20:31:2E:30:43", NULL, "EstEID (cold)", SC_CARD_TYPE_MCRD_ESTEID, 0, NULL},
-	{"3B:6E:00:FF:45:73:74:45:49:44:20:76:65:72:20:31:2E:30", NULL,
-	 "EstEID (warm)", SC_CARD_TYPE_MCRD_ESTEID, 0, NULL},
 	{"3b:6f:00:ff:00:68:d2:76:00:00:28:ff:05:1e:31:80:00:90:00", NULL,
 	  "D-Trust", SC_CARD_TYPE_MCRD_DTRUST, 0, NULL},
 	{"3b:ff:11:00:ff:80:b1:fe:45:1f:03:00:68:d2:76:00:00:28:ff:05:1e:31:80:00:90:00:a6", NULL,
@@ -244,9 +241,29 @@ static int mcrd_set_decipher_key_ref(sc_card_t * card, int key_reference)
 	SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
 
+static int is_esteid_atr(u8 *atr, size_t atr_len) {
+	const char *str = "EstEID ver 1.0";
+	unsigned int i;
+	
+	if (atr_len<14)
+		return 0;
+
+	for (i = 0; i<atr_len-14+1; i++) {
+		if (!memcmp(atr++, str, 14))
+			return 1;
+	}
+	return 0;
+}
+
 static int mcrd_match_card(sc_card_t * card)
 {
 	int i;
+
+	if (is_esteid_atr(card->atr, card->atr_len)) {
+		sc_debug(card->ctx, "Found EstEID ver 1.0 card!");
+		card->type = SC_CARD_TYPE_MCRD_ESTEID;
+		return 1;
+	}
 
 	i = _sc_match_atr(card, mcrd_atrs, &card->type);
 	if (i < 0)
@@ -258,6 +275,7 @@ static int mcrd_init(sc_card_t * card)
 {
 	unsigned long flags;
 	struct mcrd_priv_data *priv;
+	sc_path_t tmppath;
 
 	priv = (struct mcrd_priv_data *)calloc(1, sizeof *priv);
 	if (!priv)
@@ -277,6 +295,12 @@ static int mcrd_init(sc_card_t * card)
 
 	priv->curpath[0] = MFID;
 	priv->curpathlen = 1;
+
+	sc_format_path ("3f00", &tmppath);
+	tmppath.type = SC_PATH_TYPE_PATH;
+	sc_select_file (card, &tmppath, NULL);
+	                
+	
 	/* The special file loading thing doesn't work for EstEID */
 	if (card->type != SC_CARD_TYPE_MCRD_ESTEID)
 		load_special_files(card);
@@ -1034,13 +1058,13 @@ static int mcrd_restore_se(sc_card_t * card, int se_num)
 
 int select_key_df(sc_card_t * card)
 {
-	int r, i;
+	int r;
+	size_t i = 0;
 	char tmpstr[16] = "";
 	char currpathpart[10];
 	sc_path_t tmppath;
 	struct mcrd_priv_data *priv = DRVDATA(card);
 	memset(tmpstr, 0, 16);
-	i = 0;
 
 	while (i < priv->curpathlen - 1) {
 		sprintf(currpathpart, "%04x", (unsigned short)priv->curpath[i]);

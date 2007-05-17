@@ -2,10 +2,10 @@
 <title>SecureShell - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>SSH Secure Shell</h1>
+    <div id="searchable"><h1 id="SSHSecureShell">SSH Secure Shell</h1>
 <p>
 On Windows you can use putty to establish secure shell connections with smart card authentication.
-The normal putty doesn't have smart card support, but if you install the <a class="ext-link" title="http://www.opensc-project.org/scb/" href="http://www.opensc-project.org/scb/" shape="rect">smart card bundle</a>,
+The normal putty doesn't have smart card support, but if you install the <a href="http://www.opensc-project.org/scb/" shape="rect">smart card bundle</a>,
 it contains OpenSSL, OpenSC and a version of Putty with smart card support.
 </p>
 <p>
@@ -16,7 +16,7 @@ rpm package, and recompile it using "configure --with-opensc=/usr".
 </p>
 <p>
 Note that OpenSSH has a small issue: the "ssh" command does not ask for the smart card pin.
-This is known to the OpenSSH developers as <a class="ext-link" title="http://bugzilla.mindrot.org/show_bug.cgi?id=608" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect">bug 608</a>.
+This is known to the OpenSSH developers as <a class="ext-link" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect"><span class="icon">bug 608</span></a>.
 OpenSC includes a patch to fix OpenSSH in src/openssh/ask-for-pin.diff, we suggest to patch
 openssh source code with this file before compiling OpenSSH.
 </p>
@@ -30,14 +30,14 @@ If your openssh is compiled with smart card support, it will instead use the sma
 Users of the ssh-agent can use "ssh-add -s 0" to send the pin to your agent, so you don't need to enter
 it for every connection.
 </p>
-<h2>PuttyCard</h2>
+<h2 id="PuttyCard">PuttyCard</h2>
 <p>
-There is a second, independent implementation to add smart card support to putty.
-Read more about it <a href="PuTTYcard.html" shape="rect">here</a>, and download the files from
-<a class="ext-link" title="http://www.opensc-project.org/files/contrib/" href="http://www.opensc-project.org/files/contrib/" shape="rect">opensc-project.org contrib</a> directory.
+<a class="wiki" href="/opensc/wiki/PuTTYcard" shape="rect">PuTTYcard</a> is a second, independent implementation to add smart card support to putty.
+Read more about it <a class="wiki" href="/opensc/wiki/PuTTYcard" shape="rect">here</a>, and download the files from
+<a href="http://www.opensc-project.org/files/contrib/" shape="rect">opensc-project.org contrib</a> directory.
 </p>
-<h2>old content</h2>
-<h1>OpenSSH and OpenSC</h1>
+<h2 id="oldcontent">old content</h2>
+<h1 id="OpenSSHandOpenSC">OpenSSH and OpenSC</h1>
 <p>
 OpenSSH contains support for opensc, if it was compiled with "--with-opensc".
 Unfortunately the openssh version included in most distributions is not compiled
@@ -56,9 +56,9 @@ with smart cards. Ssh-add will ask for a pin, and thus ssh plus ssh-agent will w
 adds code so that ssh will ask for the smartcard pin, too. This patch was not accepted upstream so
 far, the openssh development team has a concept for a rewrite towards a cleaner solution, but this
 is still pending. So for now the patch is our best option.
-Seel also: <a class="ext-link" title="http://bugzilla.mindrot.org/show_bug.cgi?id=608" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect">OpenSSH bug 608</a>
+Seel also: <a class="ext-link" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect"><span class="icon">OpenSSH bug 608</span></a>
 </p>
-<h2>Using OpenSSH with a smartcard</h2>
+<h2 id="UsingOpenSSHwithasmartcard">Using OpenSSH with a smartcard</h2>
 <pre class="wiki" xml:space="preserve">ssh -I 0 root@somehost
 </pre><p>
 will use the smart card in reader 0 and private authentication keys on the card to authenticate as root on host somehost.
@@ -83,13 +83,13 @@ the default reader is 0 and the default id is 45, so typically you don't need th
 </p>
 <p>
 The OpenSSH public key format is defined at
-[<a class="ext-link" title="http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt" href="http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt" shape="rect">http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt</a>]
+<a class="ext-link" href="http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt" shape="rect"><span class="icon">http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt</span></a>
 </p>
 <p>
 TODO: it would be propably nicer to have one --read-public-key parameter, and a second optional parameter
 --format with possible values der, pem, ssh1, ssh2. A patch to implement this would be very welcome.
 </p>
-<h2>Using an agent</h2>
+<h2 id="Usinganagent">Using an agent</h2>
 <p>
 Most convinient way to do frequent authentications it to use the ssh-agent store your key. To do this you have to make sure ssh-agent is running, and it is accessible from your environment. Using XWindows the best way to start the agent is to edit the /etc/X11/Xsession.options file, and add this line:
 </p>

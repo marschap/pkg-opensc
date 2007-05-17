@@ -6,7 +6,8 @@ MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = Makefile.mak libopensc.pc.in libpkcs15init.pc.in libscconf.pc.in 
 
-INCLUDES = $(CPPFLAGS) $(OPENSSL_CFLAGS) $(OPENCT_CFLAGS) $(PCSC_CFLAGS)
+INCLUDES = $(CPPFLAGS) $(OPENSSL_CFLAGS) $(OPENCT_CFLAGS) $(PCSC_CFLAGS) \
+	-I$(top_srcdir)/src/common
 AM_LDFLAGS = 
 
 bin_SCRIPTS = opensc-config
@@ -20,7 +21,7 @@ libopensc_la_SOURCES = \
 	pkcs15-prkey.c pkcs15-pubkey.c pkcs15-sec.c \
 	pkcs15-wrap.c pkcs15-algo.c pkcs15-cache.c pkcs15-syn.c \
 	\
-	emv.c \
+	emv.c muscle.c muscle-filesystem.c \
 	\
 	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
 	\
@@ -28,20 +29,21 @@ libopensc_la_SOURCES = \
 	card-cardos.c card-tcos.c card-emv.c card-default.c \
 	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
 	card-oberthur.c card-belpic.c card-atrust-acos.c \
-	card-incrypto34.c card-piv.c \
+	card-incrypto34.c card-piv.c card-muscle.c card-acos5.c \
 	\
 	pkcs15-openpgp.c pkcs15-infocamere.c pkcs15-starcert.c \
 	pkcs15-tcos.c pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafe.c \
-	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c
+	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c \
+	compression.c p15card-helper.c
 libopensc_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@
 libopensc_la_LIBADD = @LIBSCCONF@ $(OPENSSL_LIBS) $(OPENCT_LIBS) $(PCSC_LIBS) $(LTLIBLTDL)
 
 include_HEADERS = \
 	opensc.h pkcs15.h emv.h \
 	cardctl.h asn1.h log.h ui.h \
-	errors.h types.h
+	errors.h types.h compression.h
 
-noinst_HEADERS = cards.h ctbcs.h internal.h esteid.h
+noinst_HEADERS = cards.h ctbcs.h internal.h esteid.h muscle.h muscle-filesystem.h part10.h p15card-helper.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libopensc.pc libpkcs15init.pc libscconf.pc

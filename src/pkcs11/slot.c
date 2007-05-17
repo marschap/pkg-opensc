@@ -1,7 +1,7 @@
 /*
  * slot.c: smart card and slot related management functions
  *
- * Copyright (C) 2002  Timo Ter‰s <timo.teras@iki.fi>
+ * Copyright (C) 2002  Timo Ter√§s <timo.teras@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -36,7 +36,7 @@ unsigned int first_free_slot = 0;
 static void init_slot_info(CK_SLOT_INFO_PTR pInfo)
 {
 	strcpy_bp(pInfo->slotDescription, "Virtual slot", 64);
-	strcpy_bp(pInfo->manufacturerID, "OpenSC project (www.opensc-project.org)", 32);
+	strcpy_bp(pInfo->manufacturerID, "OpenSC (www.opensc-project.org)", 32);
 	pInfo->flags = CKF_REMOVABLE_DEVICE | CKF_HW_SLOT;
 	pInfo->hardwareVersion.major = 0;
 	pInfo->hardwareVersion.minor = 0;

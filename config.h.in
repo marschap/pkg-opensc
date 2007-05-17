@@ -1,8 +1,5 @@
 /* config.h.in.  Generated from configure.in by autoheader.  */
 
-/* Enable debug messages. */
-#undef DEBUG
-
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
 
@@ -15,10 +12,10 @@
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
 
-/* Define if you have the <getopt.h> header file. */
+/* Define to 1 if you have the <getopt.h> header file. */
 #undef HAVE_GETOPT_H
 
-/* Define if you have the `getopt_long' function. */
+/* Define to 1 if you have the `getopt_long' function. */
 #undef HAVE_GETOPT_LONG
 
 /* Define to 1 if you have the `getpass' function. */
@@ -97,6 +94,9 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the `strlcpy' function. */
+#undef HAVE_STRLCPY
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
@@ -111,9 +111,6 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
-
-/* Define to 1 if you have the <utmp.h> header file. */
-#undef HAVE_UTMP_H
 
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
@@ -191,7 +188,7 @@
 #undef inline
 #endif
 
-/* Define to `unsigned' if <sys/types.h> does not define. */
+/* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
 
 /* Define to `int' if <sys/types.h> doesn't define. */

@@ -1,7 +1,7 @@
 /*
  * pkcs15-cert.c: PKCS #15 certificate functions
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -218,6 +218,9 @@ int sc_pkcs15_decode_cdf_entry(struct sc_pkcs15_card *p15card,
 	if (r == SC_ERROR_ASN1_END_OF_CONTENTS)
 		return r;
 	SC_TEST_RET(ctx, r, "ASN.1 decoding failed");
+	r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
+	if (r < 0)
+		return r;
 	obj->type = SC_PKCS15_TYPE_CERT_X509;
 	obj->data = malloc(sizeof(info));
 	if (obj->data == NULL)

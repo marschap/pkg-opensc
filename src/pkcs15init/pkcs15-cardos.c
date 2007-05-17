@@ -385,7 +385,7 @@ cardos_store_pin(sc_profile_t *profile, sc_card_t *card,
 {
 	struct sc_cardctl_cardos_obj_info args;
 	unsigned char	buffer[256];
-	unsigned char	pinpadded[16];
+	unsigned char	pinpadded[256];
 	struct tlv	tlv;
 	unsigned int	attempts, minlen, maxlen;
 	int		r;
@@ -624,7 +624,8 @@ static int cardos_put_key(sc_profile_t *profile, sc_card_t *card,
 	if (pin_id < 0)
 		pin_id = 0;
 
-	if (key_info->modulus_length > 1024 && card->type == SC_CARD_TYPE_CARDOS_M4_2) {
+	if (key_info->modulus_length > 1024 && (card->type == SC_CARD_TYPE_CARDOS_M4_2 ||
+	    card->type == SC_CARD_TYPE_CARDOS_M4_3)) {
 		r = cardos_store_key_component(card, algorithm, key_id, pin_id, 0,
 			key->p.data, key->p.len, 0, 0);
 		if (r != SC_SUCCESS)

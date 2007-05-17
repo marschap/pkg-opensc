@@ -1,7 +1,7 @@
 /*
  * internal.h: Internal definitions for libopensc
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *               2005        The OpenSC project
  *
  * This library is free software; you can redistribute it and/or
@@ -74,6 +74,31 @@ struct sc_slot_info *_sc_get_slot_info(struct sc_reader *reader, int slot_id);
 int _sc_add_atr(struct sc_context *ctx, struct sc_card_driver *driver, struct sc_atr_table *src);
 int _sc_free_atr(struct sc_context *ctx, struct sc_card_driver *driver);
 
+/**
+ * Convert an unsigned long into 4 bytes in big endian order
+ * @param  buf   the byte array for the result, should be 4 bytes long
+ * @param  x     the value to be converted
+ */
+void ulong2bebytes(u8 *buf, unsigned long x);
+/**
+ * Convert an unsigned long into 2 bytes in big endian order
+ * @param  buf   the byte array for the result, should be 2 bytes long
+ * @param  x     the value to be converted
+ */
+void ushort2bebytes(u8 *buf, unsigned short x);
+/**
+ * Convert 4 bytes in big endian order into an unsigned long
+ * @param  buf   the byte array of 4 bytes
+ * @return       the converted value
+ */
+unsigned long bebytes2ulong(const u8 *buf);
+/**
+ * Convert 2 bytes in big endian order into an unsigned short
+ * @param  buf   the byte array of 2 bytes
+ * @return       the converted value
+ */
+unsigned short bebytes2ushort(const u8 *buf);
+
 /* Returns an scconf_block entry with matching ATR/ATRmask to the ATR specified,
  * NULL otherwise. Additionally, if card driver is not specified, search through
  * all card drivers user configured ATRs. */
@@ -98,19 +123,38 @@ int sc_asn1_read_tag(const u8 ** buf, size_t buflen, unsigned int *cla_out,
 /*                 pkcs1 padding/encoding functions                 */
 /********************************************************************/
 
-int sc_pkcs1_add_01_padding(const u8 *in, size_t in_len, u8 *out,
-			    size_t *out_len, size_t mod_length);
 int sc_pkcs1_strip_01_padding(const u8 *in_dat, size_t in_len, u8 *out_dat,
 			      size_t *out_len);
 int sc_pkcs1_strip_02_padding(const u8 *data, size_t len, u8 *out_dat,
 			      size_t *out_len);
-int sc_pkcs1_add_digest_info_prefix(unsigned int algorithm, const u8 *in_dat,
-		size_t in_len, u8 *out_dat, size_t *out_len);
 int sc_pkcs1_strip_digest_info_prefix(unsigned int *algorithm,
 		const u8 *in_dat, size_t in_len, u8 *out_dat, size_t *out_len);
+
+/**
+ * PKCS1 encodes the given data.
+ * @param  ctx     IN  sc_context_t object
+ * @param  flags   IN  the algorithm to use
+ * @param  in      IN  input buffer
+ * @param  inlen   IN  length of the input
+ * @param  out     OUT output buffer (in == out is allowed) 
+ * @param  outlen  OUT length of the output buffer
+ * @param  modlen  IN  length of the modulus in bytes
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
 int sc_pkcs1_encode(sc_context_t *ctx, unsigned long flags,
-	const u8 *in, size_t in_len, u8 *out, size_t *out_len, size_t mod_len);
-int sc_strip_zero_padding(const u8 *in,size_t in_len, u8 *out, size_t *out_len);
+	const u8 *in, size_t inlen, u8 *out, size_t *outlen, size_t modlen);
+/**
+ * Get the necessary padding and sec. env. flags.
+ * @param  ctx     IN  sc_contex_t object
+ * @param  iflags  IN  the desired algorithms flags
+ * @param  caps    IN  the card / key capabilities
+ * @param  pflags  OUT the padding flags to use
+ * @param  salg    OUT the security env. algorithm flag to use
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
+int sc_get_encoding_flags(sc_context_t *ctx,
+	unsigned long iflags, unsigned long caps,
+	unsigned long *pflags, unsigned long *salg);
 
 /********************************************************************/
 /*             mutex functions                                      */

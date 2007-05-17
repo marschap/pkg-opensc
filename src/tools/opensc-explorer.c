@@ -1,7 +1,7 @@
 /*
  * opensc-explorer.c: A shell for accessing smart cards with libopensc
  *
- * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -72,6 +72,8 @@ static u8 oid_rmd160[15] = /* RIPE MD-160 OID is 1.3.36.3.2.1 */
   0x02, 0x01, 0x05, 0x00, 0x04, 0x14 };
 #endif
 
+static size_t hex2binary(u8 *out, size_t outlen, const char *in);
+
 struct command {
 	const char *	name;
 	int		(*func)(int, char **);
@@ -119,29 +121,37 @@ static void check_ret(int r, int op, const char *err, const sc_file_t *file)
 
 static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
 {
-	int buf[2];
-	u8 cbuf[2];
-	
-	if (strlen(arg) != 4) {
-		printf("Wrong ID length.\n");
-		return -1;
-	}
-	if (sscanf(arg, "%02X%02X", &buf[0], &buf[1]) != 2) {
-		printf("Invalid ID.\n");
-		return -1;
-	}
-	cbuf[0] = buf[0];
-	cbuf[1] = buf[1];
-	if ((cbuf[0] == 0x3F && cbuf[1] == 0x00) || is_id) {
-		path->len = 2;
-		memcpy(path->value, cbuf, 2);
-		if (is_id)
-			path->type = SC_PATH_TYPE_FILE_ID;
-		else
-			path->type = SC_PATH_TYPE_PATH;
+	if (strncasecmp(arg, "aid:", strlen("aid:")) == 0) {
+		/* DF aid */
+		const char *p = arg + strlen("aid:");
+		path->len  = hex2binary(path->value, sizeof(path->value), p);
+		path->type = SC_PATH_TYPE_DF_NAME;
 	} else {
-		*path = current_path;
-		sc_append_path_id(path, cbuf, 2);
+		/* file id */
+		int buf[2];
+		u8 cbuf[2];
+	
+		if (strlen(arg) != 4) {
+			printf("Wrong ID length.\n");
+			return -1;
+		}
+		if (sscanf(arg, "%02X%02X", &buf[0], &buf[1]) != 2) {
+			printf("Invalid ID.\n");
+			return -1;
+		}
+		cbuf[0] = buf[0];
+		cbuf[1] = buf[1];
+		if ((cbuf[0] == 0x3F && cbuf[1] == 0x00) || is_id) {
+			path->len = 2;
+			memcpy(path->value, cbuf, 2);
+			if (is_id)
+				path->type = SC_PATH_TYPE_FILE_ID;
+			else
+				path->type = SC_PATH_TYPE_PATH;
+		} else {
+			*path = current_path;
+			sc_append_path_id(path, cbuf, 2);
+		}
 	}
 
 	return 0;	
@@ -175,7 +185,7 @@ static void print_file(const sc_file_t *file)
 		break;
 	}
 	printf("\t%4s", st);
-	printf(" %5lu", file->size);
+	printf(" %5lu", (unsigned long)file->size);
 	if (file->namelen) {
 		printf("\tName: ");
 		print_binary(stdout, file->name, file->namelen);
@@ -202,8 +212,16 @@ static int do_ls(int argc, char **argv)
 		sc_path_t path;
 		sc_file_t *file = NULL;
 
-		path = current_path;
-		sc_append_path_id(&path, cur, 2);
+		if (current_path.type != SC_PATH_TYPE_DF_NAME) {
+			path = current_path;
+			sc_append_path_id(&path, cur, 2);
+		} else {
+			if (sc_path_set(&path, SC_PATH_TYPE_FILE_ID, cur, 2, 0, 0) != SC_SUCCESS) {
+				printf("unable to set path.\n");
+				die(1);
+			}
+		}
+			
 		r = sc_select_file(card, &path, &file);
 		if (r) {
 			check_ret(r, SC_AC_OP_SELECT, "unable to select file", current_file);
@@ -275,7 +293,7 @@ static int do_cd(int argc, char **argv)
 
 	return 0;
 usage:
-	puts("Usage: cd <file_id>");
+	puts("Usage: cd <file_id>|aid:<DF name>");
 	return -1;
 }
 
@@ -342,7 +360,7 @@ static int do_cat(int argc, char **argv)
 		file = current_file;
 		not_current = 0;
 	} else {
-		if (arg_to_path(argv[0], &path, 0) != 0) 
+		if (arg_to_path(argv[0], &path, 1) != 0) 
 			goto usage;
 
 		r = sc_select_file(card, &path, &file);
@@ -423,7 +441,7 @@ static int do_info(int argc, char **argv)
 	if (file->type == SC_FILE_TYPE_DF) {
 		const char *ops[] = {
 			"SELECT", "LOCK", "DELETE", "CREATE", "REHABILITATE",
-			"INVALIDATE", "LIST FILES"
+			"INVALIDATE", "LIST FILES", "CRYPTO", "DELETE SELF"
 		};
 		if (file->namelen) {
 			printf("%-15s", "DF name:");
@@ -1580,7 +1598,7 @@ int main(int argc, char * const argv[])
 
 		sprintf(prompt, "OpenSC [");
 		for (i = 0; i < current_path.len; i++) {
-			if ((i & 1) == 0 && i)
+			if ((i & 1) == 0 && i && current_path.type != SC_PATH_TYPE_DF_NAME)
 				sprintf(prompt+strlen(prompt), "/");
 			sprintf(prompt+strlen(prompt), "%02X",
 			        current_path.value[i]);

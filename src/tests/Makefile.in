@@ -55,27 +55,27 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 PROGRAMS = $(noinst_PROGRAMS)
-am__objects_1 = sc-test.$(OBJEXT)
+am__objects_1 = sc-test.$(OBJEXT) my_getopt.$(OBJEXT)
 am__objects_2 =
 am_base64_OBJECTS = base64.$(OBJEXT) $(am__objects_1) $(am__objects_2)
 base64_OBJECTS = $(am_base64_OBJECTS)
-base64_DEPENDENCIES =
+base64_LDADD = $(LDADD)
 am_lottery_OBJECTS = lottery.$(OBJEXT) $(am__objects_1) \
 	$(am__objects_2)
 lottery_OBJECTS = $(am_lottery_OBJECTS)
-lottery_DEPENDENCIES =
+lottery_LDADD = $(LDADD)
 am_p15dump_OBJECTS = p15dump.$(OBJEXT) print.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2)
 p15dump_OBJECTS = $(am_p15dump_OBJECTS)
-p15dump_DEPENDENCIES =
+p15dump_LDADD = $(LDADD)
 am_pintest_OBJECTS = pintest.$(OBJEXT) print.$(OBJEXT) \
 	$(am__objects_1) $(am__objects_2)
 pintest_OBJECTS = $(am_pintest_OBJECTS)
-pintest_DEPENDENCIES =
+pintest_LDADD = $(LDADD)
 am_prngtest_OBJECTS = prngtest.$(OBJEXT) $(am__objects_1) \
 	$(am__objects_2)
 prngtest_OBJECTS = $(am_prngtest_OBJECTS)
-prngtest_DEPENDENCIES =
+prngtest_LDADD = $(LDADD)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -106,8 +106,6 @@ AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
 AR = @AR@
-ASSUAN_CFLAGS = @ASSUAN_CFLAGS@
-ASSUAN_LIBS = @ASSUAN_LIBS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -132,7 +130,7 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
-GETOPTSRC = @GETOPTSRC@
+GREP = @GREP@
 HAVE_ASSUAN_FALSE = @HAVE_ASSUAN_FALSE@
 HAVE_ASSUAN_TRUE = @HAVE_ASSUAN_TRUE@
 HAVE_OPENCT_FALSE = @HAVE_OPENCT_FALSE@
@@ -197,13 +195,9 @@ SHELL = @SHELL@
 STRIP = @STRIP@
 TEST_MINUS_S_SH = @TEST_MINUS_S_SH@
 VERSION = @VERSION@
-ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_F77 = @ac_ct_F77@
-ac_ct_RANLIB = @ac_ct_RANLIB@
-ac_ct_STRIP = @ac_ct_STRIP@
-ac_pt_PKG_CONFIG = @ac_pt_PKG_CONFIG@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
@@ -220,24 +214,31 @@ build_cpu = @build_cpu@
 build_os = @build_os@
 build_vendor = @build_vendor@
 datadir = @datadir@
+datarootdir = @datarootdir@
+docdir = @docdir@
+dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
 host_os = @host_os@
 host_vendor = @host_vendor@
+htmldir = @htmldir@
 includedir = @includedir@
 infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
+localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
+pdfdir = @pdfdir@
 pkgdata = @pkgdata@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
+psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
@@ -246,18 +247,14 @@ MAINTAINERCLEANFILES = Makefile.in
 SUBDIRS = . regression
 EXTRA_DIST = Makefile.mak
 AM_LDFLAGS = @LIBOPENSC@ $(LTLIBLTDL)
-SRC = sc-test.c
+AM_CFLAGS = -I$(top_srcdir)/src/common
+SRC = sc-test.c $(top_srcdir)/src/common/my_getopt.c
 INC = sc-test.h
 base64_SOURCES = base64.c $(SRC) $(INC)
-base64_LDADD = @GETOPTSRC@
 lottery_SOURCES = lottery.c $(SRC) $(INC)
-lottery_LDADD = @GETOPTSRC@
 p15dump_SOURCES = p15dump.c print.c $(SRC) $(INC)
-p15dump_LDADD = @GETOPTSRC@
 pintest_SOURCES = pintest.c print.c $(SRC) $(INC)
-pintest_LDADD = @GETOPTSRC@
 prngtest_SOURCES = prngtest.c $(SRC) $(INC)
-prngtest_LDADD = @GETOPTSRC@
 all: all-recursive
 
 .SUFFIXES:
@@ -322,6 +319,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/base64.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/lottery.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/my_getopt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/p15dump.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pintest.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/print.Po@am__quote@
@@ -348,6 +346,20 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
+my_getopt.o: $(top_srcdir)/src/common/my_getopt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT my_getopt.o -MD -MP -MF "$(DEPDIR)/my_getopt.Tpo" -c -o my_getopt.o `test -f '$(top_srcdir)/src/common/my_getopt.c' || echo '$(srcdir)/'`$(top_srcdir)/src/common/my_getopt.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/my_getopt.Tpo" "$(DEPDIR)/my_getopt.Po"; else rm -f "$(DEPDIR)/my_getopt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/src/common/my_getopt.c' object='my_getopt.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o my_getopt.o `test -f '$(top_srcdir)/src/common/my_getopt.c' || echo '$(srcdir)/'`$(top_srcdir)/src/common/my_getopt.c
+
+my_getopt.obj: $(top_srcdir)/src/common/my_getopt.c
+@am__fastdepCC_TRUE@	if $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT my_getopt.obj -MD -MP -MF "$(DEPDIR)/my_getopt.Tpo" -c -o my_getopt.obj `if test -f '$(top_srcdir)/src/common/my_getopt.c'; then $(CYGPATH_W) '$(top_srcdir)/src/common/my_getopt.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/common/my_getopt.c'; fi`; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/my_getopt.Tpo" "$(DEPDIR)/my_getopt.Po"; else rm -f "$(DEPDIR)/my_getopt.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/src/common/my_getopt.c' object='my_getopt.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o my_getopt.obj `if test -f '$(top_srcdir)/src/common/my_getopt.c'; then $(CYGPATH_W) '$(top_srcdir)/src/common/my_getopt.c'; else $(CYGPATH_W) '$(srcdir)/$(top_srcdir)/src/common/my_getopt.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

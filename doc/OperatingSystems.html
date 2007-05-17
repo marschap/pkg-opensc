@@ -2,73 +2,75 @@
 <title>OperatingSystems - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Operating Systems</h1>
+    <div id="searchable"><h1 id="OperatingSystems">Operating Systems</h1>
 <p>
-If you haven't already, please first read the <a href="OverView.html" shape="rect">OverView</a> document and then come back here.
+If you haven't already, please first read the <a class="wiki" href="/opensc/wiki/OverView" shape="rect">OverView</a> document and then come back here.
 </p>
-<h2>Linux</h2>
+<h2 id="Linux">Linux</h2>
 <ul><li>Most people can use the packages provided by your distribution (in the core or in the contrib section). Below is a list.
-You probably want to install <a class="ext-link" title="http://www.openssl.org/" href="http://www.openssl.org/" shape="rect">OpenSSL</a>, <a class="ext-link" title="http://www.opensc-project.org/openct/" href="http://www.opensc-project.org/openct/" shape="rect">OpenCT</a>, <a class="ext-link" title="http://www.opensc-project.org/opensc/" href="http://www.opensc-project.org/opensc/" shape="rect">OpenSC</a>, <a class="ext-link" title="http://www.opensc-project.org/libp11/" href="http://www.opensc-project.org/libp11/" shape="rect">libp11</a>, <a class="ext-link" title="http://www.opensc-project.org/enigne_pkcs11" href="http://www.opensc-project.org/enigne_pkcs11" shape="rect">engine_pkcs11</a> and maybe <a class="ext-link" title="http://www.opensc-project.org/pam_p11" href="http://www.opensc-project.org/pam_p11" shape="rect">pam_p11</a> or <a class="ext-link" title="http://www.opensc-project.org/pam_pkcs11/" href="http://www.opensc-project.org/pam_pkcs11/" shape="rect">pam_pkcs11</a> for authentication
-(or <a class="ext-link" title="http://pcsclite.alioth.debian.org/" href="http://pcsclite.alioth.debian.org/" shape="rect">PCSC-Lite</a> and some driver for it instead of OpenCT).
+You probably want to install <a class="ext-link" href="http://www.openssl.org/" shape="rect"><span class="icon">OpenSSL</span></a>, <a href="http://www.opensc-project.org/openct/" shape="rect">OpenCT</a>, <a href="http://www.opensc-project.org/opensc/" shape="rect">OpenSC</a>, <a href="http://www.opensc-project.org/libp11/" shape="rect">libp11</a>, <a href="http://www.opensc-project.org/enigne_pkcs11" shape="rect">engine_pkcs11</a> and maybe <a href="http://www.opensc-project.org/pam_p11" shape="rect">pam_p11</a> or <a href="http://www.opensc-project.org/pam_pkcs11/" shape="rect">pam_pkcs11</a> for authentication
+(or <a class="ext-link" href="http://pcsclite.alioth.debian.org/" shape="rect"><span class="icon">PCSC-Lite</span></a> and some driver for it instead of OpenCT).
 </li></ul><ul><li>If you want to compile OpenSC, you need to install either OpenCT or PCSC-Lite first, to use those drivers/middleware.
 Install both the runtime and the development package. Also it is highly suggested to install OpenSSL (including development)
 as some smart card drivers require it. If you want to use the signer applet in mozilla, you also need libassuan from the
-gnupg (like always, both runtime and development packages). See <a href="QuickStart.html" shape="rect">QuickStart</a> for configure options and testing if OpenSC works.
-</li></ul><ul><li>Developers can work on tar.gz files, like the latest release, or the nightly snapshots provided on <a class="ext-link" title="http://www.opensc-project.org/files/opensc/snapshots/" href="http://www.opensc-project.org/files/opensc/snapshots/" shape="rect">http://www.opensc-project.org/files/opensc/snapshots/</a>
-</li><li>Developers can also check out the current source code using subversion. See <a class="missing" href="/opensc/wiki/SubversionReposity" shape="rect">SubversionReposity?</a> for details. You will need autoconf,
+gnupg (like always, both runtime and development packages). See <a class="wiki" href="/opensc/wiki/QuickStart" shape="rect">QuickStart</a> for configure options and testing if OpenSC works.
+</li></ul><ul><li>Developers can work on tar.gz files, like the latest release, or the nightly snapshots provided on <a href="http://www.opensc-project.org/files/opensc/snapshots/" shape="rect">http://www.opensc-project.org/files/opensc/snapshots/</a>
+</li><li>Developers can also check out the current source code using subversion. See <a class="missing wiki" href="/opensc/wiki/SubversionReposity" rel="nofollow" shape="rect">SubversionReposity?</a> for details. You will need autoconf,
 automake and libtool at least. "make dist" uses wget to download the wiki and xsltproc to create html files and man pages, and svn
-to create the <a class="missing" href="/opensc/wiki/ChangeLog" shape="rect">ChangeLog?</a>.
-</li></ul><h2>Mac OS X</h2>
-<ul><li>Mac OS X installer is <a class="ext-link" title="http://www.opensc-project.org/sca" href="http://www.opensc-project.org/sca" shape="rect">available</a> for 10.4.4 and later.
-</li></ul><h2>Windows</h2>
+to create the <a class="missing wiki" href="/opensc/wiki/ChangeLog" rel="nofollow" shape="rect">ChangeLog?</a>.
+</li></ul><h2 id="MacOSX">Mac OS X</h2>
+<ul><li>Mac OS X installer is <a href="http://www.opensc-project.org/sca" shape="rect">available</a> for 10.4.4 and later.
+</li></ul><h2 id="Windows">Windows</h2>
 <p>
  
 </p>
 <ul><li>Windows NT, 2000 and XP contains the windows smart card middleware. For older versions you can download it from
 Microsoft.com (FIXME: Name, download link, ...)
-</li></ul><ul><li>You might be best off with out installer package containing OpenSSL, OpenSC, Libp11, Engine_pkcs11 and Putty.
-The latest version is available on at the <a class="ext-link" title="http://www.opensc-project.org/scb/" href="http://www.opensc-project.org/scb/" shape="rect">smart card bundle</a> project page.
+</li></ul><ul><li>You might be best off with our installer package containing OpenSSL, OpenSC, Libp11, Engine_pkcs11 and Putty.
+The latest version is available on at the <a href="http://www.opensc-project.org/scb/" shape="rect">smart card bundle</a> project page.
 </li></ul><ul><li>Note that applications like Outlook or Internet Explorer as well as many other Windows native application
 use the so called Crypto API. If you combine OpenSC with a Crypto Service Provide those applications can
-use Smart Cards  without any change. More details on the <a href="WindowsCSP.html" shape="rect">WindowsCSP</a> page.
-</li></ul><h2>OpenSC distributed</h2>
+use Smart Cards  without any change. More details on the <a class="wiki" href="/opensc/wiki/WindowsCSP" shape="rect">WindowsCSP</a> page.
+</li></ul><h2 id="OpenSCdistributed">OpenSC distributed</h2>
 <p>
 Here is a survey of linux distributions and the versions of OpenSC they include
 </p>
 <table class="wiki">
-<tr><td rowspan="1" colspan="1"> Debian woody (old stable) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://packages.debian.org/opensc" href="http://packages.debian.org/opensc" shape="rect">does not</a> contain OpenSC packages 
-</td></tr><tr><td rowspan="1" colspan="1"> Debian sarge (stable) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://packages.debian.org/stable/utils/opensc" href="http://packages.debian.org/stable/utils/opensc" shape="rect">OpenSC 0.9.6 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Debian sid (development) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://packages.debian.org/unstable/utils/opensc" href="http://packages.debian.org/unstable/utils/opensc" shape="rect">OpenSC 0.10.1-1 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Ubuntu 5.10 (Breezy - in Universe) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://packages.ubuntu.com/breezy/utils/opensc" href="http://packages.ubuntu.com/breezy/utils/opensc" shape="rect">OpenSC 0.9.6-1 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Ubuntu 6.4 (Dapper - in Universe) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://packages.ubuntu.com/dapper/utils/opensc" href="http://packages.ubuntu.com/dapper/utils/opensc" shape="rect">OpenSC 0.10.1-1 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Fedora Core 3 (Fedora Extras) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://download.fedora.redhat.com/pub/fedora/linux/extras/3/" href="http://download.fedora.redhat.com/pub/fedora/linux/extras/3/" shape="rect">OpenSC 0.9.6 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Fedora Core 4 (Fedora Extras) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://download.fedora.redhat.com/pub/fedora/linux/extras/4/" href="http://download.fedora.redhat.com/pub/fedora/linux/extras/4/" shape="rect">OpenSC 0.9.6 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Fedora Core 5/devel (Fedora Extras) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://download.fedora.redhat.com/pub/fedora/linux/extras/development/" href="http://download.fedora.redhat.com/pub/fedora/linux/extras/development/" shape="rect">OpenSC 0.10.0 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Gentoo Portage </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://www.gentoo.org/cgi-bin/viewcvs.cgi/dev-libs/opensc/?root=gentoo-x86" href="http://www.gentoo.org/cgi-bin/viewcvs.cgi/dev-libs/opensc/?root=gentoo-x86" shape="rect">OpenSC 0.10.1 in dev-libs/opensc</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Mandrake </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/contrib-SPECS/opensc/" href="http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/contrib-SPECS/opensc/" shape="rect">OpenSC 0.8.1 in contrib</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Novell/SUSE LINUX Enterprise Server 9 for x86 </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://www.novell.com/products/linuxpackages/enterpriseserver/i386/opensc.html" href="http://www.novell.com/products/linuxpackages/enterpriseserver/i386/opensc.html" shape="rect">OpenSC 0.8.0 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> OpenPKG </td><td rowspan="1" colspan="1"> <a class="ext-link" title="ftp://ftp.openpkg.org/current/SRC/" href="ftp://ftp.openpkg.org/current/SRC/" shape="rect">not included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse 10.0  </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://ftp.opensuse.org/pub/opensuse/distribution/SL-10.0-OSS/inst-source/suse/src/" href="http://ftp.opensuse.org/pub/opensuse/distribution/SL-10.0-OSS/inst-source/suse/src/" shape="rect">OpenSC 0.9.6 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse 10.1 </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://ftp.opensuse.org/pub/opensuse/distribution/SL-10.1-OSS/inst-source/suse/src/" href="http://ftp.opensuse.org/pub/opensuse/distribution/SL-10.1-OSS/inst-source/suse/src/" shape="rect">(unrelease, guess:) OpenSC 0.9.6 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse 10.2 </td><td rowspan="1" colspan="1"> <a class="ext-link" title="ftp://ftp.suse.com/pub/people/sbrabec/gnucash2" href="ftp://ftp.suse.com/pub/people/sbrabec/gnucash2" shape="rect">(updated packages for OpenSuse 10.1/2, OpenSC 0.11.0</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse (devel) </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://ftp.opensuse.org/pub/opensuse/distribution/SL-OSS-factory/inst-source/suse/src/" href="http://ftp.opensuse.org/pub/opensuse/distribution/SL-OSS-factory/inst-source/suse/src/" shape="rect">OpenSC 0.9.6 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Rock Linux </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://www.rocklinux.net/packages/opensc.html" href="http://www.rocklinux.net/packages/opensc.html" shape="rect">OpenSC 0.9.4 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Suse 9.3 </td><td rowspan="1" colspan="1"> <a class="ext-link" title="ftp://ftp.suse.com/pub/suse/i386/9.3/suse/i586/" href="ftp://ftp.suse.com/pub/suse/i386/9.3/suse/i586/" shape="rect">OpenSC 0.9.4 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Suse 9.2 </td><td rowspan="1" colspan="1"> <a class="ext-link" title="ftp://ftp.suse.com/pub/suse/i386/9.2/suse/i586/" href="ftp://ftp.suse.com/pub/suse/i386/9.2/suse/i586/" shape="rect">OpenSC 0.8.1 included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> Suse 9.1 </td><td rowspan="1" colspan="1"> <a class="ext-link" title="ftp://ftp.suse.com/pub/suse/i386/9.1/suse/i586/" href="ftp://ftp.suse.com/pub/suse/i386/9.1/suse/i586/" shape="rect">OpenSC 0.8.0 included</a> 
+<tr><td rowspan="1" colspan="1"> Ubuntu 6.10 (edgy) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://packages.ubuntu.com/edgy/utils/opensc" shape="rect"><span class="icon">OpenSC 0.11.1-1 included</span></a> in universe 
+</td></tr><tr><td rowspan="1" colspan="1"> Ubuntu 6.04 (dapper) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://packages.ubuntu.com/dapper/utils/opensc" shape="rect"><span class="icon">OpenSC 0.10.1-1 included</span></a> in universe 
+</td></tr><tr><td rowspan="1" colspan="1"> Ubuntu 5.10 (breezy) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://packages.ubuntu.com/breezy/utils/opensc" shape="rect"><span class="icon">OpenSC 0.9.6-1 included</span></a> in universe 
+</td></tr><tr><td rowspan="1" colspan="1"> Debian woody (old stable) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://packages.debian.org/opensc" shape="rect"><span class="icon">does not</span></a> contain OpenSC packages 
+</td></tr><tr><td rowspan="1" colspan="1"> Debian sarge (stable) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://packages.debian.org/stable/utils/opensc" shape="rect"><span class="icon">OpenSC 0.9.6 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Debian sid (development) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://packages.debian.org/unstable/utils/opensc" shape="rect"><span class="icon">OpenSC 0.11.1-2 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Fedora Core 6 (Fedora Extras) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://download.fedora.redhat.com/pub/fedora/linux/extras/6/" shape="rect"><span class="icon">OpenSC 0.11.1 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Fedora Core 5 (Fedora Extras) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://download.fedora.redhat.com/pub/fedora/linux/extras/5/" shape="rect"><span class="icon">OpenSC 0.11.1 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Fedora Core 4 (Fedora Extras) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://download.fedora.redhat.com/pub/fedora/linux/extras/4/" shape="rect"><span class="icon">OpenSC 0.9.6 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Fedora Core 3 (Fedora Extras) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://download.fedora.redhat.com/pub/fedora/linux/extras/3/" shape="rect"><span class="icon">OpenSC 0.9.6 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Gentoo Portage </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://www.gentoo.org/cgi-bin/viewcvs.cgi/dev-libs/opensc/?root=gentoo-x86" shape="rect"><span class="icon">OpenSC 0.10.1 in dev-libs/opensc</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Mandrake </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://cvs.mandrakesoft.com/cgi-bin/cvsweb.cgi/contrib-SPECS/opensc/" shape="rect"><span class="icon">OpenSC 0.8.1 in contrib</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Novell/SUSE LINUX Enterprise Server 9 for x86 </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://www.novell.com/products/linuxpackages/enterpriseserver/i386/opensc.html" shape="rect"><span class="icon">OpenSC 0.8.0 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> OpenPKG </td><td rowspan="1" colspan="1"> <a class="ext-link" href="ftp://ftp.openpkg.org/current/SRC/" shape="rect"><span class="icon">not included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse 10.0  </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://ftp.opensuse.org/pub/opensuse/distribution/SL-10.0-OSS/inst-source/suse/src/" shape="rect"><span class="icon">OpenSC 0.9.6 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse 10.1 </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://ftp.opensuse.org/pub/opensuse/distribution/SL-10.1-OSS/inst-source/suse/src/" shape="rect"><span class="icon">(unrelease, guess:) OpenSC 0.9.6 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse 10.2 </td><td rowspan="1" colspan="1"> <a class="ext-link" href="ftp://ftp.suse.com/pub/people/sbrabec/gnucash2" shape="rect"><span class="icon">(updated packages for OpenSuse 10.1/2, OpenSC 0.11.0</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> OpenSuse (devel) </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://ftp.opensuse.org/pub/opensuse/distribution/SL-OSS-factory/inst-source/suse/src/" shape="rect"><span class="icon">OpenSC 0.9.6 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Rock Linux </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://www.rocklinux.net/packages/opensc.html" shape="rect"><span class="icon">OpenSC 0.9.4 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Suse 9.3 </td><td rowspan="1" colspan="1"> <a class="ext-link" href="ftp://ftp.suse.com/pub/suse/i386/9.3/suse/i586/" shape="rect"><span class="icon">OpenSC 0.9.4 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Suse 9.2 </td><td rowspan="1" colspan="1"> <a class="ext-link" href="ftp://ftp.suse.com/pub/suse/i386/9.2/suse/i586/" shape="rect"><span class="icon">OpenSC 0.8.1 included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> Suse 9.1 </td><td rowspan="1" colspan="1"> <a class="ext-link" href="ftp://ftp.suse.com/pub/suse/i386/9.1/suse/i586/" shape="rect"><span class="icon">OpenSC 0.8.0 included</span></a> 
 </td></tr></table>
 <p>
-<a class="ext-link" title="http://atrpms.net/name/opensc/" href="http://atrpms.net/name/opensc/" shape="rect">ATrpms</a> lists some RPM based distributions.
+<a class="ext-link" href="http://atrpms.net/name/opensc/" shape="rect"><span class="icon">ATrpms</span></a> lists some RPM based distributions.
 </p>
 <p>
 Other operating systems:
 </p>
 <table class="wiki">
-<tr><td rowspan="1" colspan="1"> NetBSD </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://pkgsrc.se/wip/opensc/" href="http://pkgsrc.se/wip/opensc/" shape="rect">included</a> in <a class="ext-link" title="http://pkgsrc-wip.sourceforge.net/" href="http://pkgsrc-wip.sourceforge.net/" shape="rect">pkgsrc-wip</a> for testing 
-</td></tr><tr><td rowspan="1" colspan="1"> FreeBSD </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://www.freebsd.org/cgi/cvsweb.cgi/ports/security/opensc/" href="http://www.freebsd.org/cgi/cvsweb.cgi/ports/security/opensc/" shape="rect">OpenSC 0.9.4 included</a> 
+<tr><td rowspan="1" colspan="1"> NetBSD </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://pkgsrc.se/wip/opensc/" shape="rect"><span class="icon">included</span></a> in <a class="ext-link" href="http://pkgsrc-wip.sourceforge.net/" shape="rect"><span class="icon">pkgsrc-wip</span></a> for testing 
+</td></tr><tr><td rowspan="1" colspan="1"> FreeBSD </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://www.freebsd.org/cgi/cvsweb.cgi/ports/security/opensc/" shape="rect"><span class="icon">OpenSC 0.9.4 included</span></a> 
 </td></tr><tr><td rowspan="1" colspan="1"> OpenBSD </td><td rowspan="1" colspan="1"> not included 
-</td></tr><tr><td rowspan="1" colspan="1"> fink / Mac OS X </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://fink.sourceforge.net/pdb/list.php" href="http://fink.sourceforge.net/pdb/list.php" shape="rect">not included</a> 
-</td></tr><tr><td rowspan="1" colspan="1"> DragonFlyBSD </td><td rowspan="1" colspan="1"> <a class="ext-link" title="http://pkgsrc.se/wip/opensc/" href="http://pkgsrc.se/wip/opensc/" shape="rect">included</a> in <a class="ext-link" title="http://pkgsrc-wip.sourceforge.net/" href="http://pkgsrc-wip.sourceforge.net/" shape="rect">pkgsrc-wip</a> for testing  
+</td></tr><tr><td rowspan="1" colspan="1"> fink / Mac OS X </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://fink.sourceforge.net/pdb/list.php" shape="rect"><span class="icon">not included</span></a> 
+</td></tr><tr><td rowspan="1" colspan="1"> DragonFlyBSD </td><td rowspan="1" colspan="1"> <a class="ext-link" href="http://pkgsrc.se/wip/opensc/" shape="rect"><span class="icon">included</span></a> in <a class="ext-link" href="http://pkgsrc-wip.sourceforge.net/" shape="rect"><span class="icon">pkgsrc-wip</span></a> for testing  
 </td></tr></table>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

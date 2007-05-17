@@ -4,7 +4,7 @@
 # NOTE: All key-value pairs must be terminated by a semicolon.
 
 # Default values for any application
-# These can be overrided by an application
+# These can be overridden by an application
 # specific configuration block.
 app default {
 	# Amount of debug info to print
@@ -60,17 +60,18 @@ app default {
 
 	# Define parameters specific to your readers.
 	# The following section shows definitions for PC/SC readers,
-	# but the same set of variables are applicatable to ctapi and
+	# but the same set of variables are applicable to ctapi and
 	# openct readers, simply by using "reader_driver ctapi" and
 	# "reader_driver openct", respectively.
 	reader_driver pcsc {
 		# This sets the maximum send and receive sizes.
-		# Some IFD handlers do not properly handle APDUs with
-		# large lc or le bytes.
+		# Some reader drivers have limitations, so you need
+		# to set these values. For usb devices check the
+		# properties with lsusb -vv for dwMaxIFSD
 		#
-		max_send_size = 252;
-		max_recv_size = 252;
-		#
+		#max_send_size = 252;
+		#max_recv_size = 252;
+		
 		# Connect to reader in exclusive mode.
 		# Default: false
 		# connect_exclusive = true;
@@ -81,7 +82,7 @@ app default {
 		#
 		# Reset the card after each transaction.
 		# Default: false
-		# transcaction_reset = true;
+		# transaction_reset = true;
 		#
 		# Enable pinpad if detected (PC/SC v2.0.2 Part 10)
 		# Default: false
@@ -92,6 +93,14 @@ app default {
 	reader_driver openct {
 		# virtual readers to allocate. default:5
 		readers = 5;
+
+		# This sets the maximum send and receive sizes.
+		# Some reader drivers have limitations, so you need
+		# to set these values. For usb devices check the
+		# properties with lsusb -vv for dwMaxIFSD
+		#
+		#max_send_size = 252;
+		#max_recv_size = 252;
 	};
 
 	# What card drivers to load at start-up
@@ -144,6 +153,7 @@ app default {
 	#  oberthur         Oberthur AuthentIC.v2/CosmopolIC.v4
 	#  belpic           Belpic cards
 	#  emv              EMV compatible cards
+	#  piv              U.S. NIST 800-73-1 PIV
 
 	# Generic format: card_atr <hex encoded ATR (case-sensitive!)>
 
@@ -219,12 +229,12 @@ app default {
 	# card_atr 3B:7D:96:00:00:80:31:80:65:B0:83:11:00:AC:83:00:90:00 {
 		# name = "PIV-II";
 	 	# driver = "piv";
-		# pkcs15emu = "PIV-II";
 	# }
 
-	# Estonian ID card and Micardo driver currently play together with T=0 only.
-	# In theory only the 'cold' ATR should be specified, as T=0 will be the preferred
-	# protocol once you boot it up with T=0, but be paranoid.
+	# Estonian ID card and Micardo driver currently play together with T=0
+	# only. In theory only the 'cold' ATR should be specified, as T=0 will
+	# be the preferred protocol once you boot it up with T=0, but be
+	# paranoid.
 	card_atr 3b:6e:00:ff:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
 		force_protocol = t0;
 	}
@@ -269,13 +279,13 @@ app default {
 		# Default: yes
 		# enable_builtin_emulation = yes;
 		# list of the builtin pkcs15 emulators to test
-		builtin_emulators = esteid, openpgp, tcos, starcert, infocamere, postecert, actalis, atrust-acos, gemsafe, tccardos;
+		builtin_emulators = esteid, openpgp, tcos, starcert, infocamere, postecert, actalis, atrust-acos, gemsafe, tccardos, PIV-II;
 
 		# additional settings per driver
 		#
-		# For pkcs15 emulators loaded from an external shared library/DLL,
-		# you need to specify the path name of the module and customize
-		# the card_atr example above correctly.
+		# For pkcs15 emulators loaded from an external shared
+		# library/DLL, you need to specify the path name of the module
+		# and customize the card_atr example above correctly.
 		#
 		# emulate custom {
 			# The location of the driver library
@@ -287,7 +297,7 @@ app default {
 # Parameters for the OpenSC PKCS11 module
 app opensc-pkcs11 {
 	pkcs11 {
-		# Maxmimum number of slots per smart card.
+		# Maximum number of slots per smart card.
 		# If the card has fewer keys than defined here,
 		# the remaining number of slots will be empty.
 		#
@@ -331,10 +341,10 @@ app opensc-pkcs11 {
 		# In this case, you can turn on PIN caching by setting
 		# cache_pins = true
 		#
-		# Default: false
-		# cache_pins = true;
+		# Default: true
+		# cache_pins = false;
 
-		# Set this value to false if you want to enfore on-card
+		# Set this value to false if you want to enforce on-card
 		# keypair generation
 		#
 		# Default: true

@@ -1,7 +1,7 @@
 /*
  * asn1.h: ASN.1 header file
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -148,6 +148,7 @@ void sc_asn1_clear_algorithm_id(struct sc_algorithm_id *);
 #define SC_ASN1_PKCS15_ID		257
 #define SC_ASN1_PKCS15_OBJECT		258
 #define SC_ASN1_ALGORITHM_ID		259
+#define SC_ASN1_SE_INFO			260
 
 /* use callback function */
 #define SC_ASN1_CALLBACK		384

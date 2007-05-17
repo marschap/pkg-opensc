@@ -1,7 +1,7 @@
 /*
  * pkcs15-prkey.c: PKCS #15 private key functions
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -153,6 +153,9 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 		sc_error(ctx, "Neither RSA or DSA key in PrKDF entry.\n");
 		SC_FUNC_RETURN(ctx, 0, SC_ERROR_INVALID_ASN1_OBJECT);
 	}
+	r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
+	if (r < 0)
+		return r;
 	obj->data = malloc(sizeof(info));
 	if (obj->data == NULL)
 		SC_FUNC_RETURN(ctx, 0, SC_ERROR_OUT_OF_MEMORY);

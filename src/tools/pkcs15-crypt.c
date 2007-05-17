@@ -1,7 +1,7 @@
 /*
  * pkcs15-crypt.c: Tool for cryptography operations with smart cards
  *
- * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -46,6 +46,10 @@ int opt_crypt_flags = 0;
 
 enum {
 	OPT_SHA1 = 	0x100,
+	OPT_SHA256,
+	OPT_SHA384,
+	OPT_SHA512,
+	OPT_SHA224,
 	OPT_MD5,
 	OPT_PKCS1,
 };
@@ -59,6 +63,10 @@ const struct option options[] = {
 	{ "output",		1, 0,		'o' },
 	{ "raw",		0, 0,		'R' },
 	{ "sha-1",		0, 0,		OPT_SHA1 },
+	{ "sha-256",		0, 0,		OPT_SHA256 },
+	{ "sha-384",		0, 0,		OPT_SHA384 },
+	{ "sha-512",		0, 0,		OPT_SHA512 },
+	{ "sha-224",		0, 0,		OPT_SHA224 },
 	{ "md5",		0, 0,		OPT_MD5 },
 	{ "pkcs1",		0, 0,		OPT_PKCS1 },
 	{ "pin",		1, 0,		'p' },
@@ -76,9 +84,13 @@ const char *option_help[] = {
 	"Outputs to file <arg>",
 	"Outputs raw 8 bit data",
 	"Input file is a SHA-1 hash",
+	"Input file is a SHA-256 hash",
+	"Input file is a SHA-384 hash",
+	"Input file is a SHA-512 hash",
+	"Input file is a SHA-224 hash",
 	"Input file is a MD5 hash",
 	"Use PKCS #1 v1.5 padding",
-	"Uses password (PIN) <arg>",
+	"Uses password (PIN) <arg> (use - for reading PIN from STDIN)",
 	"Wait for card insertion",
 	"Verbose operation. Use several times to enable debug output.",
 };
@@ -87,14 +99,34 @@ sc_context_t *ctx = NULL;
 sc_card_t *card = NULL;
 struct sc_pkcs15_card *p15card = NULL;
 
+char *readpin_stdin()
+{
+	char buf[128];
+	char *p;
+
+	p = fgets(buf, sizeof(buf), stdin);
+	if (p != NULL) {
+		p = strchr(buf, '\n');
+		if (p != NULL)
+			*p = '\0';
+		return strdup(buf);
+	}
+	return NULL;
+}
+
 static char * get_pin(struct sc_pkcs15_object *obj)
 {
 	char buf[80];
 	char *pincode;
 	struct sc_pkcs15_pin_info *pinfo = (struct sc_pkcs15_pin_info *) obj->data;
 	
-	if (opt_pincode != NULL)
-		return strdup(opt_pincode);
+	if (opt_pincode != NULL) {
+		if (strcmp(opt_pincode, "-") == 0)
+			return readpin_stdin();
+		else
+			return strdup(opt_pincode);
+	}
+	
 	sprintf(buf, "Enter PIN [%s]: ", obj->label);
 	while (1) {
 		pincode = getpass(buf);
@@ -489,6 +521,18 @@ int main(int argc, char * const argv[])
 			break;
 		case OPT_SHA1:
 			opt_crypt_flags |= SC_ALGORITHM_RSA_HASH_SHA1;
+			break;
+		case OPT_SHA256:
+			opt_crypt_flags |= SC_ALGORITHM_RSA_HASH_SHA256;
+			break;
+		case OPT_SHA384:
+			opt_crypt_flags |= SC_ALGORITHM_RSA_HASH_SHA384;
+			break;
+		case OPT_SHA512:
+			opt_crypt_flags |= SC_ALGORITHM_RSA_HASH_SHA512;
+			break;
+		case OPT_SHA224:
+			opt_crypt_flags |= SC_ALGORITHM_RSA_HASH_SHA224;
 			break;
 		case OPT_MD5:
 			opt_crypt_flags |= SC_ALGORITHM_RSA_HASH_MD5;

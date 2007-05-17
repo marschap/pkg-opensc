@@ -1,3 +1,9 @@
+opensc (0.11.2-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Eric Dorland <eric@debian.org>  Thu, 17 May 2007 00:13:43 -0400
+
 opensc (0.11.1-3) unstable; urgency=high
 
   * src/signer/dialog.c, debian/control: Fix path to pinentry and

@@ -2,18 +2,18 @@
 <title>MacOsX - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Using OpenSC on Mac OS X</h1>
+    <div id="searchable"><h1 id="UsingOpenSConMacOSX">Using OpenSC on Mac OS X</h1>
 <p>
 First you need Mac OS X Version 10.4 or later. Older version are supposed to not work well,
 but if you try and have success, please report here.
 I report!
 it worked for me under 10.3.9 G4 1,2Ghz, and i can use my mpmanF50 again. Thanks.
-reach me  nicolasb at gmaildotcom. French tutorial here : <a class="ext-link" title="http://nicolasbizard.free.fr/blog" href="http://nicolasbizard.free.fr/blog" shape="rect">http://nicolasbizard.free.fr/blog</a>
+reach me  nicolasb at gmaildotcom. French tutorial here : <a class="ext-link" href="http://nicolasbizard.free.fr/blog" shape="rect"><span class="icon">http://nicolasbizard.free.fr/blog</span></a>
 </p>
 <p>
 Then you need a driver for your smart card reader. Hier is an examle for Axalto e-gate tokens:
-* Download and install libusb. <a class="ext-link" title="http://libusb.sourceforge.net/" href="http://libusb.sourceforge.net/" shape="rect">http://libusb.sourceforge.net/</a>
-* Download ifd-egate from <a class="ext-link" title="http://www.luusa.org/~wbx/sc/ifd-egate-0.05-patched.tar.gz" href="http://www.luusa.org/~wbx/sc/ifd-egate-0.05-patched.tar.gz" shape="rect">http://www.luusa.org/~wbx/sc/ifd-egate-0.05-patched.tar.gz</a>
+* Download and install libusb. <a class="ext-link" href="http://libusb.sourceforge.net/" shape="rect"><span class="icon">http://libusb.sourceforge.net/</span></a>
+* Download ifd-egate from <a class="ext-link" href="http://www.luusa.org/~wbx/sc/ifd-egate-0.05-patched.tar.gz" shape="rect"><span class="icon">http://www.luusa.org/~wbx/sc/ifd-egate-0.05-patched.tar.gz</span></a>
 </p>
 <p>
 To install libusb, you need to extract the files, configure it, make, make install:
@@ -50,7 +50,7 @@ cd  opensc-0.9.6
 make
 make install
 cd ..
-</pre><h2>SSH with smartcard support</h2>
+</pre><h2 id="SSHwithsmartcardsupport">SSH with smartcard support</h2>
 <p>
 Mac OS X does include openssh, but unfortunatly compiled without smartcard support.
 Here is how you can recompile openssh with it:

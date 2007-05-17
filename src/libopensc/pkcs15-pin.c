@@ -1,7 +1,7 @@
 /*
  * pkcs15-pin.c: PKCS #15 PIN functions
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -141,6 +141,8 @@ int sc_pkcs15_encode_aodf_entry(sc_context_t *ctx,
 	sc_format_asn1_entry(asn1_pin_attr + 1, &pin->type, NULL, 1);
 	sc_format_asn1_entry(asn1_pin_attr + 2, &pin->min_length, NULL, 1);
 	sc_format_asn1_entry(asn1_pin_attr + 3, &pin->stored_length, NULL, 1);
+	if (pin->max_length > 0)
+		sc_format_asn1_entry(asn1_pin_attr + 4, &pin->max_length, NULL, 1);
 	if (pin->reference >= 0)
 		sc_format_asn1_entry(asn1_pin_attr + 5, &pin->reference, NULL, 1);
 	/* FIXME: check if pad_char present */

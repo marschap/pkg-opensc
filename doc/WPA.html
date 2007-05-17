@@ -2,14 +2,14 @@
 <title>WPA - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Wireless authentication</h1>
+    <div id="searchable"><h1 id="Wirelessauthentication">Wireless authentication</h1>
 <p>
 Wireless network used to be protected by the WEP standard, but WEP turned out to be insecure and thus useless.
 These days wireless networks are usualy protected using WPA - Wi-Fi Protected Access.
 </p>
 <p>
 Unfortunatly WPA is available in several flavors and versions, see
-the <a class="ext-link" title="http://www.wi-fi.org/OpenSection/protected_access.asp" href="http://www.wi-fi.org/OpenSection/protected_access.asp" shape="rect">Wi-Fi Alliance website</a> for details.
+the <a class="ext-link" href="http://www.wi-fi.org/OpenSection/protected_access.asp" shape="rect"><span class="icon">Wi-Fi Alliance website</span></a> for details.
 </p>
 <p>
 If your wireless network is set up to ask for authentication using client certificates,
@@ -20,10 +20,10 @@ For windows the windows build in WPA client should work well, if you have a CSP 
 This is untested, please report your results.
 </p>
 <p>
-For linux you can use the <a class="ext-link" title="http://hostap.epitest.fi/wpa_supplicant/" href="http://hostap.epitest.fi/wpa_supplicant/" shape="rect">WPA Supplicant</a> or <a class="ext-link" title="http://www.open1x.org/" href="http://www.open1x.org/" shape="rect">Xsupplicant</a> with OpenSC.
-The support for smart cards is implemented in both via the <a class="ext-link" title="http://www.opensc-project.org/engine_pkcs11/" href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">PKCS#11 Engine for OpenSSL</a>.
+For linux you can use the <a class="ext-link" href="http://hostap.epitest.fi/wpa_supplicant/" shape="rect"><span class="icon">WPA Supplicant</span></a> or <a class="ext-link" href="http://www.open1x.org/" shape="rect"><span class="icon">Xsupplicant</span></a> with OpenSC.
+The support for smart cards is implemented in both via the <a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">PKCS#11 Engine for OpenSSL</a>.
 </p>
-<h2>WPA Supplicant</h2>
+<h2 id="WPASupplicant">WPA Supplicant</h2>
 <p>
 To use WPA Suppplicant with smart card authentication you need to compile it with smart card support. Your config file should include this line:
 </p>
@@ -39,7 +39,7 @@ Also you need to edit wpa_supplicant.conf like this:
 pkcs11_engine_path=/usr/lib/engine/engine_pkcs11.so
 # configure the path to the pkcs11 module required by the pkcs11 engine
 pkcs11_module_path=/usr/lib/engine/opensc-pkcs11.so
-</pre><h2>X Supplicant</h2>
+</pre><h2 id="XSupplicant">X Supplicant</h2>
 <p>
 It looks like xsupplicant is always compiled with smart card support.
 </p>
