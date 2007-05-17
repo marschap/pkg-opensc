@@ -2,7 +2,7 @@
 <title>CompilingInstalling - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Compiling and Installing OpenSC</h1>
+    <div id="searchable"><h1 id="CompilingandInstallingOpenSC">Compiling and Installing OpenSC</h1>
 <p>
 This page has all the details on compiling and installing OpenSC.
 First some general instructions for Linux (and all unix operating
@@ -52,7 +52,7 @@ typical locations, you need to tell pkg-config where to find the
 variable, for exmaple:
 </p>
 <pre class="wiki" xml:space="preserve">export PKG_CONFIG_PATH=/usr/lib/pkgconfig:/usr/local/lib/pkgconfig:/opt/mystuff/liv/pkgconfig
-</pre><h2>Typical Installation</h2>
+</pre><h2 id="TypicalInstallation">Typical Installation</h2>
 <p>
 But most users use whatever their linux distributions or other operating
 systems provide, and thus don't need any of this. We suggest to install
@@ -66,12 +66,21 @@ cd opensc-a.b.c
 make
 make install
 cp etc/opensc.conf /etc/
-</pre><h3>PC/SC-Lite</h3>
+</pre><h3 id="OpenCT">OpenCT</h3>
+<p>
+By default configure script tries to locate openct automatically,
+this can be disabled by --disable-openct option.
+</p>
+<h3 id="PCSC-Lite">PC/SC-Lite</h3>
 <p>
 Most distributions will include pcsc-lite version 1.2.0.
 However if you want to use pinpad readers, at least those
 that support the new PC/SC v2 Part 10 standard for pinpad
 readers, then you need to have pcsc-lite 1.2.9-beta8 or later.
+</p>
+<p>
+By default configure script tries to locate pcsc-lite automatically,
+this can be disabled by --disable-pcsc-lite option.
 </p>
 <p>
 The configure script will tell you about this:
@@ -85,7 +94,7 @@ In this example pcsc-lite was found, but only an older version without
 support for the new PCSC v2 part 10 standard. This is fine, except
 for suport of modern pinpad readers.
 </p>
-<h2>Mac OS X</h2>
+<h2 id="MacOSX">Mac OS X</h2>
 <p>
 Apple did not include pkg-config in Mac OS X, changed the pcsc-lite
 header files and includes a version of pcsc-lite that does not
@@ -102,29 +111,64 @@ cd opensc-a.b.c
 make
 make install
 cp etc/opensc.conf /etc/
-</pre><h2>Microsoft Windows</h2>
-<ul><li>Download, install and use once  <a class="ext-link" title="http://msdn.microsoft.com/vstudio/express/default.aspx" href="http://msdn.microsoft.com/vstudio/express/default.aspx" shape="rect">Visual Studio Express</a>.
-</li><li>Download and install <a class="ext-link" title="http://www.microsoft.com/downloads/details.aspx?FamilyId=A55B6B43-E24F-4EA3-A93E-40C0EC4F68E5&amp;displaylang=en" href="http://www.microsoft.com/downloads/details.aspx?FamilyId=A55B6B43-E24F-4EA3-A93E-40C0EC4F68E5&amp;displaylang=en" shape="rect">Microsoft Platform SDK</a>.
+</pre><h2 id="MicrosoftWindows">Microsoft Windows</h2>
+<p>
+if you have Visual Studio .NET installed already you need not download either of these.
+</p>
+<ul><li>Download, install and use once  <a class="ext-link" href="http://msdn.microsoft.com/vstudio/express/default.aspx" shape="rect"><span class="icon">Visual Studio Express</span></a>.
+</li><li>Download and install <a class="ext-link" href="http://www.microsoft.com/downloads/details.aspx?FamilyId=A55B6B43-E24F-4EA3-A93E-40C0EC4F68E5&amp;displaylang=en" shape="rect"><span class="icon">Microsoft Platform SDK</span></a>.
+</li><li>Download and install <a class="ext-link" href="ftp://ftp.activestate.com/ActivePerl/Windows/5.8/ActivePerl-5.8.8.819-MSWin32-x86-267479.msi" shape="rect"><span class="icon">Active State Perl</span></a> 
+</li><li>Download and install (runtime and development) <a class="ext-link" href="http://gnuwin32.sourceforge.net/packages/libtool.htm" shape="rect"><span class="icon">LibTool libltdl3</span></a>
 </li></ul><p>
  
-To compile OpenSC first unpack the opensc-a.b.c.tar.gz file using 7-Zip,
-Winzip or some compatible software. You need to have libltdl3 installed
-(runtime and development). We suggest the installer provided by the
-GnuWin32 project. You need to edit the file <tt>win32/Make.rules.mak</tt>
-and point to the location where you installed LIBLTDL.
+To compile OpenSC:
 </p>
 <p>
-We recommend to compile OpenSC with OpenSSL support. To do that, you
-also need to edit the file <tt>win32/Make.rules.mak</tt> and point
-to the OpenSSL location.
+1) Unpack the opensc-a.b.c.tar.gz
 </p>
 <p>
-You need to replace <tt>__FUNCTION__</tt> by <tt>__SCFUNCTION__</tt> in the file \opensc-a.b.b\src\include\opensc\log.h to solve a minor compiling error. If you are using Mircrosoft Visual Sudio .NET development environment, you need to copy three files from Visual Studio .NET, namely afxres.h, winrest.h and afsxres.rx, to \opensc-a.b.b\src\include sub-directory before compiling [Can someone test and verify my finding?]
+2) You need to edit the file <tt>win32/Make.rules.mak</tt>
+- Point the variable LIBLTDL_INCL =  %LIBLTDL_HOME%\include
+- Point the variable LIBLTDL_LIB = %LIBLTDL_HOME%\lib\libltdl.lib
+Where LIBLTDL_HOME is where you installed <a class="missing wiki" href="/opensc/wiki/LibTool" rel="nofollow" shape="rect">LibTool?</a>.
 </p>
 <p>
-Compiling OpenSC is down with a Visual Studio Command Prompt window and entering the commands:
+3) Set the variable OPENSSL_DEF = /DHAVE_OPENSSL  -- if you wish to use OpenSSL (suggested) you can get it <a class="ext-link" href="http://www.openssl.org/" shape="rect"><span class="icon">here</span></a>
+- if you opted yes to use OpenSSL
+</p>
+<p>
+-- Set OPENSSL_INCL_DIR=/I%OPENSSL_HOME\include\
+</p>
+<p>
+-- Set OPENSSL_LIB=%OPENSSL_HOME\lib\VC\libeay32MD.lib
+</p>
+<p>
+-- Set PROGRAMS_OPENSSL=pkcs15-init.exe cryptoflex-tool.exe netkey-tool.exe
+</p>
+<p>
+- Alternatively, if your compiler seems to think that the above variables are actually input file arguments, you can comment them out and install them as environment variables. If someone knows why this might happen, please clear up this point.
+</p>
+<p>
+4) In some versions of Visual Studio .NET you MAY have to make a change to \opensc-a.b.b\src\include\opensc\log.h to solve a minor compiling error. You need to replace <tt>__FUNCTION__</tt> by <tt>__SCFUNCTION__</tt>. In 7.1 (.NET 2003) this was <strong>NOT</strong> necessary
+</p>
+<p>
+5) Unconfirmed is if you are using Mircrosoft Visual Sudio .NET development environment, you need to copy three files from Visual Studio .NET, namely afxres.h, winres.h and afsxres.rx, to \opensc-a.b.b\src\include sub-directory before compiling. This is unverified but being left incase you have wierd issues
+</p>
+<p>
+6) Compiling OpenSC is done with 
+</p>
+<p>
+- The Visual Studio Command Prompt or 
+</p>
+<p>
+-- Alternatively with the regular command prompt (cmd). But, you <strong>MUST</strong> runs vcvars32.bat. This should already be in your path. If not, check your Platform SDK or .NET bin directory
 </p>
 <pre class="wiki" xml:space="preserve">cd opensc-a.b.c
 nmake /f Makefile.mak
-</pre></div>
+</pre><p>
+Configuration instructions for building inside of the IDE directly are coming.
+</p>
+<hr></hr>
+<hr></hr>
+</div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

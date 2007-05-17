@@ -2,12 +2,38 @@
 <title>OpenPgp - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><p>
-OpenPGP 1.0 cards work fine with OpenSC.
-</p>
-<h1>Links</h1>
+    <div id="searchable"><h1 id="AboutOpenPGPCard">About OpenPGP Card</h1>
 <p>
-<a class="ext-link" title="http://www.g10code.de/p-card.html" href="http://www.g10code.de/p-card.html" shape="rect">http://www.g10code.de/p-card.html</a>
+OpenPGP 1.0 cards should work fine with OpenSC.
+</p>
+<p>
+However right now the openpgp card can only be modified with gnupg.
+So you need to use gnupg to use it / create keys / store keys etc.
+</p>
+<p>
+In theory opensc has an emulation that can be used so we can
+use those keys on the card, too, but in practice I haven't heard
+of anyone using it successfully for a long time. If you find time
+to test, please report back, both success or failure, so we can
+have a look.
+</p>
+<p>
+Also I'm not sure how good the other applications will work with that card.
+nearly every app (except gnupg) expects some x.509 certificate on the
+card and I have no idea if those can be created and/or stored with gnupg
+on the card. But I think they can - at linuxtag I saw diagrams at the bsi
+booth that indicate gnupg can do both pgp and smime so I guess it can
+handle it.
+</p>
+<p>
+Latest information indicates the card cannot store X.509 certificates.
+Thus most applications will not be able to use it. Also remember the
+card is limited to a maximum of three RSA keys, and the keys are limited
+to 1024 bit size. 
+</p>
+<h1 id="Links">Links</h1>
+<p>
+<a class="ext-link" href="http://www.g10code.de/p-card.html" shape="rect"><span class="icon">http://www.g10code.de/p-card.html</span></a>
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

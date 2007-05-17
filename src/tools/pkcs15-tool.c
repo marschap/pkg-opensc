@@ -1,7 +1,7 @@
 /*
  * pkcs15-tool.c: Tool for poking with PKCS #15 smart cards
  *
- * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -324,16 +324,22 @@ static int read_data_object(void)
 			
 		if (verbose)
 			printf("Reading data object with label '%s'\n", opt_data);
-		r = sc_pkcs15_read_data_object(p15card, cinfo, &data_object);
-		if (r) {
-			fprintf(stderr, "Data object read failed: %s\n", sc_strerror(r));
-			if (r == SC_ERROR_FILE_NOT_FOUND)
-				continue; /* DEE emulation may say there is a file */
+		r = authenticate(objs[i]);
+		if (r >= 0) {
+			r = sc_pkcs15_read_data_object(p15card, cinfo, &data_object);
+			if (r) {
+				fprintf(stderr, "Data object read failed: %s\n", sc_strerror(r));
+				if (r == SC_ERROR_FILE_NOT_FOUND)
+					continue; /* DEE emulation may say there is a file */
+				return 1;
+			}
+			r = print_data_object("Data Object", data_object->data, data_object->data_len);
+			sc_pkcs15_free_data_object(data_object);
+			return r;
+		} else {
+			fprintf(stderr, "Authentication error: %s\n", sc_strerror(r));
 			return 1;
 		}
-		r = print_data_object("Data Object", data_object->data, data_object->data_len);
-		sc_pkcs15_free_data_object(data_object);
-		return r;
 	}
 	fprintf(stderr, "Data object with label '%s' not found.\n", opt_data);
 	return 2;
@@ -353,7 +359,6 @@ static int list_data_objects(void)
 	for (i = 0; i < count; i++) {
 		int idx;
 		struct sc_pkcs15_data_info *cinfo = (struct sc_pkcs15_data_info *) objs[i]->data;
-		struct sc_pkcs15_data *data_object;
 
 		printf("Reading data object <%i>\n", i);
 		printf("applicationName: %s\n", cinfo->app_label);
@@ -369,16 +374,20 @@ static int list_data_objects(void)
 			printf("\n");
 		} else
 			printf("NONE\n");
-		printf("Path :           %s\n", sc_print_path(&cinfo->path));
-		r = sc_pkcs15_read_data_object(p15card, cinfo, &data_object);
-		if (r) {
-			fprintf(stderr, "Data object read failed: %s\n", sc_strerror(r));
-			if (r == SC_ERROR_FILE_NOT_FOUND)
-				 continue; /* DEE emulation may say there is a file */
-			return 1;
+		printf("Path:            %s\n", sc_print_path(&cinfo->path));
+		printf("Auth ID:         %s\n", sc_pkcs15_print_id(&objs[i]->auth_id));
+		if (objs[i]->auth_id.len == 0) {
+			struct sc_pkcs15_data *data_object;
+			r = sc_pkcs15_read_data_object(p15card, cinfo, &data_object);
+			if (r) {
+				fprintf(stderr, "Data object read failed: %s\n", sc_strerror(r));
+				if (r == SC_ERROR_FILE_NOT_FOUND)
+					 continue; /* DEE emulation may say there is a file */
+				return 1;
+			}
+			r = list_data_object("Data Object", data_object->data, data_object->data_len);
+			sc_pkcs15_free_data_object(data_object);
 		}
-		r = list_data_object("Data Object", data_object->data, data_object->data_len);
-		sc_pkcs15_free_data_object(data_object);
 	}
 	return 0;
 }
@@ -413,7 +422,7 @@ static void print_prkey_info(const struct sc_pkcs15_object *obj)
 			printf(", %s", access_flags[i]);   
 		}
 	printf("\n");
-	printf("\tModLength   : %lu\n", prkey->modulus_length);
+	printf("\tModLength   : %lu\n", (unsigned long)prkey->modulus_length);
 	printf("\tKey ref     : %d\n", prkey->key_reference);
 	printf("\tNative      : %s\n", prkey->native ? "yes" : "no");
 	printf("\tPath        : %s\n", sc_print_path(&prkey->path));
@@ -471,7 +480,7 @@ static void print_pubkey_info(const struct sc_pkcs15_object *obj)
 			printf(", %s", access_flags[i]);   
 		}
 	printf("\n");
-	printf("\tModLength   : %lu\n", pubkey->modulus_length);
+	printf("\tModLength   : %lu\n", (unsigned long)pubkey->modulus_length);
 	printf("\tKey ref     : %d\n", pubkey->key_reference);
 	printf("\tNative      : %s\n", pubkey->native ? "yes" : "no");
 	printf("\tPath        : %s\n", sc_print_path(&pubkey->path));
@@ -854,7 +863,10 @@ authenticate(sc_pkcs15_object_t *obj)
 		return r;
 
 	pin_info = (sc_pkcs15_pin_info_t *) pin_obj->data;
-	pin = get_pin("Please enter PIN", pin_obj);
+	if (opt_pin != NULL)
+		pin = opt_pin;
+	else
+		pin = get_pin("Please enter PIN", pin_obj);
 
 	return sc_pkcs15_verify_pin(p15card, pin_info,
 			pin, pin? strlen((char *) pin) : 0);
@@ -885,10 +897,14 @@ static void print_pin_info(const struct sc_pkcs15_object *obj)
 		}
 	printf("\n");
 	printf("\tLength    : min_len:%lu, max_len:%lu, stored_len:%lu\n",
-				pin->min_length, pin->max_length, pin->stored_length);
+		(unsigned long)pin->min_length, (unsigned long)pin->max_length,
+		(unsigned long)pin->stored_length);
 	printf("\tPad char  : 0x%02X\n", pin->pad_char);
 	printf("\tReference : %d\n", pin->reference);
-	printf("\tType      : %s\n", pin_types[pin->type]);
+	if (pin->type >= 0 && pin->type < sizeof(pin_types)/sizeof(pin_types[0]))
+		printf("\tType      : %s\n", pin_types[pin->type]);
+	else
+		printf("\tType      : [encoding %d]\n", pin->type);
 	printf("\tPath      : %s\n", sc_print_path(&pin->path));
 	if (pin->tries_left >= 0)
 		printf("\tTries left: %d\n", pin->tries_left);

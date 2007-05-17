@@ -2,15 +2,28 @@
 <title>Emv - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>EMV cards support</h1>
+    <div id="searchable"><h1 id="EMVcardssupport">EMV cards support</h1>
 <p>
 This driver might be outdated and not working any more.
 In theory it should support EMV cards, in practice there
 hasn't been any feedback on EMV cards in years.
 </p>
-<h2>Links</h2>
 <p>
-<a class="ext-link" title="http://www.emvco.com/" href="http://www.emvco.com/" shape="rect">http://www.emvco.com/</a>
+Pehaps this means 'not supported': 
+</p>
+<pre class="wiki" xml:space="preserve">$ pcsc_scan
+3B 2A 00 80 65 A2 01 02 01 31 72 D6 43
+3B 2A 00 80 65 A2 01 .. .. .. 72 D6 43
+        Gemplus MPCOS EMV 4 Byte sectors
+
+$ opensc-tool  --serial
+sc_card_ctl(*, SC_CARDCTL_GET_SERIALNR, *) failed
+
+$ opensc-tool  --serial -c emv
+sc_card_ctl(*, SC_CARDCTL_GET_SERIALNR, *) failed
+</pre><h2 id="Links">Links</h2>
+<p>
+<a class="ext-link" href="http://www.emvco.com/" shape="rect"><span class="icon">http://www.emvco.com/</span></a>
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

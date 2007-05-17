@@ -1,7 +1,7 @@
 /*
  * card-flex.c: Support for Schlumberger cards
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -37,12 +37,32 @@ static struct sc_atr_table flex_atrs[] = {
 	{ "3B:85:40:20:68:01:01:05:01", NULL, "Cryptoflex 8K", SC_CARD_TYPE_FLEX_CRYPTO, 0, NULL },
 	/* 16k */
 	{ "3B:95:94:40:FF:63:01:01:02:01", NULL, "Cryptoflex 16K", SC_CARD_TYPE_FLEX_CRYPTO, SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
+	/* "16K+SS1" alias Cryptoflex 16 card with Standard Softmask V1 */
+	/* (taken from Cryptoflex Card Programmers Guide 4.5 Page xviii) */
+	/* last two bytes can be ignored - version of the softmask */
+	{ "3B:95:15:40:FF:63:01:01:02:01", "FF:FF:FF:FF:FF:FF:FF:FF:00:00",
+		"Cryptoflex 16K", SC_CARD_TYPE_FLEX_CRYPTO,
+		SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
 	/* 32K v4 */
-	{ "3B:95:18:40:FF:64:02:01:01:02", NULL, "Cryptoflex 32K v4", SC_CARD_TYPE_FLEX_CRYPTO, SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
+	/* "32K+SS1" alias Cryptoflex 32 card with Standard Softmask V1 */
+	/* (taken from Cryptoflex Card Programmers Guide 4.5 Page xviii) */
+	/* last two bytes can be ignored - version of the softmask */
+	{ "3B:95:18:40:FF:64:02:01:01:02","FF:FF:FF:FF:FF:FF:FF:FF:00:00",
+		"Cryptoflex 32K v4", SC_CARD_TYPE_FLEX_CRYPTO,
+		SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
+	/* "32K+e-gate" alias Cryptoflex e-gate 32K card */
+	/* (taken from Cryptoflex Card Programmers Guide 4.5 Page xviii) */
+	/* last two bytes can be ignored - version of the softmask */
+	{ "3B:95:18:40:FF:62:01:01:00:00", "FF:FF:FF:FF:FF:FF:FF:FF:00:00",
+		"Cryptoflex e-gate 32K", SC_CARD_TYPE_FLEX_CRYPTO,
+		SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
 	/* 32K e-gate */
 	{ "3B:95:18:40:FF:62:01:02:01:04", NULL, "Cryptoflex 32K e-gate", SC_CARD_TYPE_FLEX_CRYPTO, SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
 	/* 32K e-gate v4 */
 	{ "3B:95:18:40:FF:62:04:01:01:05", NULL, "Cryptoflex 32K e-gate v4", SC_CARD_TYPE_FLEX_CRYPTO, SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
+
+	/* new cryptoflex 32k card - atr looks very similiar to old 8k card */
+	{ "3b:95:15:40:ff:68:01:02:45:47", NULL, "Cryptoflex 32K", SC_CARD_TYPE_FLEX_CRYPTO, SC_CARD_FLAG_ONBOARD_KEY_GEN, NULL },
 
 	{ "3B:E2:00:00:40:20:49:06", NULL, "Cryptoflex", SC_CARD_TYPE_FLEX_CRYPTO, 0, NULL },
 	/* + full DES option */
@@ -345,7 +365,7 @@ cyberflex_process_file_attrs(sc_card_t *card, sc_file_t *file,
 	const u8 *p = buf + 2;
 	const u8 *pos;
 	u8 b1, b2;
-	int left, is_mf = 0;
+	int is_mf = 0;
 
 	if (buflen < 14)
 		return -1;
@@ -394,9 +414,9 @@ cyberflex_process_file_attrs(sc_card_t *card, sc_file_t *file,
 		file->status = SC_FILE_STATUS_ACTIVATED;
 	else
 		file->status = SC_FILE_STATUS_INVALIDATED;
-	left = *p++;
+	p++;
 	if (0 == is_mf) {
-		*p++;
+		p++;
 		switch (*p) {
 		case  0x00:
 			file->ef_structure = SC_FILE_EF_TRANSPARENT;

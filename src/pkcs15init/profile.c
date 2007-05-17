@@ -41,6 +41,7 @@
 #include <opensc/log.h>
 #include "pkcs15-init.h"
 #include "profile.h"
+#include "strlcpy.h"
 
 #define DEF_PRKEY_RSA_ACCESS	0x1D
 #define DEF_PRKEY_DSA_ACCESS	0x12
@@ -94,6 +95,7 @@ static struct map		fileOpNames[] = {
 	{ "SELECT",	SC_AC_OP_SELECT	},
 	{ "LOCK",	SC_AC_OP_LOCK	},
 	{ "DELETE",	SC_AC_OP_DELETE	},
+	{ "DELETE_SELF",SC_AC_OP_DELETE_SELF },
 	{ "CREATE",	SC_AC_OP_CREATE	},
 	{ "REHABILITATE",SC_AC_OP_REHABILITATE	},
 	{ "INVALIDATE",	SC_AC_OP_INVALIDATE	},
@@ -1182,7 +1184,7 @@ do_acl(struct state *cur, int argc, char **argv)
 	while (argc--) {
 		unsigned int	op, method, id;
 
-		strncpy(oper, *argv++, sizeof(oper)-1);
+		strlcpy(oper, *argv++, sizeof(oper));
 		if ((what = strchr(oper, '=')) == NULL)
 			goto bad;
 		*what++ = '\0';
@@ -1753,8 +1755,7 @@ get_authid(struct state *cur, const char *value,
 	}
 
 	n = strcspn(value, "0123456789");
-	strncpy(temp, value, n);
-	temp[n] = '\0';
+	strlcpy(temp, value, (sizeof(temp) > n) ? n + 1 : sizeof(temp));
 
 	if (map_str2int(cur, temp, type, aclNames))
 		return 1;

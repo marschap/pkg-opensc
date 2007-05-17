@@ -77,16 +77,18 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo asn1.lo \
 	base64.lo sec.lo card.lo iso7816.lo dir.lo padding.lo apdu.lo \
 	pkcs15.lo pkcs15-cert.lo pkcs15-data.lo pkcs15-pin.lo \
 	pkcs15-prkey.lo pkcs15-pubkey.lo pkcs15-sec.lo pkcs15-wrap.lo \
-	pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo emv.lo ctbcs.lo \
-	reader-ctapi.lo reader-pcsc.lo reader-openct.lo card-setcos.lo \
-	card-miocos.lo card-flex.lo card-gpk.lo card-cardos.lo \
-	card-tcos.lo card-emv.lo card-default.lo card-mcrd.lo \
-	card-starcos.lo card-openpgp.lo card-jcop.lo card-oberthur.lo \
-	card-belpic.lo card-atrust-acos.lo card-incrypto34.lo \
-	card-piv.lo pkcs15-openpgp.lo pkcs15-infocamere.lo \
-	pkcs15-starcert.lo pkcs15-tcos.lo pkcs15-esteid.lo \
-	pkcs15-postecert.lo pkcs15-gemsafe.lo pkcs15-actalis.lo \
-	pkcs15-atrust-acos.lo pkcs15-tccardos.lo pkcs15-piv.lo
+	pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo emv.lo muscle.lo \
+	muscle-filesystem.lo ctbcs.lo reader-ctapi.lo reader-pcsc.lo \
+	reader-openct.lo card-setcos.lo card-miocos.lo card-flex.lo \
+	card-gpk.lo card-cardos.lo card-tcos.lo card-emv.lo \
+	card-default.lo card-mcrd.lo card-starcos.lo card-openpgp.lo \
+	card-jcop.lo card-oberthur.lo card-belpic.lo \
+	card-atrust-acos.lo card-incrypto34.lo card-piv.lo \
+	card-muscle.lo card-acos5.lo pkcs15-openpgp.lo \
+	pkcs15-infocamere.lo pkcs15-starcert.lo pkcs15-tcos.lo \
+	pkcs15-esteid.lo pkcs15-postecert.lo pkcs15-gemsafe.lo \
+	pkcs15-actalis.lo pkcs15-atrust-acos.lo pkcs15-tccardos.lo \
+	pkcs15-piv.lo compression.lo p15card-helper.lo
 libopensc_la_OBJECTS = $(am_libopensc_la_OBJECTS)
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
@@ -115,8 +117,6 @@ AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
 AR = @AR@
-ASSUAN_CFLAGS = @ASSUAN_CFLAGS@
-ASSUAN_LIBS = @ASSUAN_LIBS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -141,7 +141,7 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
-GETOPTSRC = @GETOPTSRC@
+GREP = @GREP@
 HAVE_ASSUAN_FALSE = @HAVE_ASSUAN_FALSE@
 HAVE_ASSUAN_TRUE = @HAVE_ASSUAN_TRUE@
 HAVE_OPENCT_FALSE = @HAVE_OPENCT_FALSE@
@@ -206,13 +206,9 @@ SHELL = @SHELL@
 STRIP = @STRIP@
 TEST_MINUS_S_SH = @TEST_MINUS_S_SH@
 VERSION = @VERSION@
-ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_F77 = @ac_ct_F77@
-ac_ct_RANLIB = @ac_ct_RANLIB@
-ac_ct_STRIP = @ac_ct_STRIP@
-ac_pt_PKG_CONFIG = @ac_pt_PKG_CONFIG@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
@@ -229,31 +225,40 @@ build_cpu = @build_cpu@
 build_os = @build_os@
 build_vendor = @build_vendor@
 datadir = @datadir@
+datarootdir = @datarootdir@
+docdir = @docdir@
+dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
 host_os = @host_os@
 host_vendor = @host_vendor@
+htmldir = @htmldir@
 includedir = @includedir@/opensc
 infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
+localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
+pdfdir = @pdfdir@
 pkgdata = @pkgdata@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
+psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = Makefile.mak libopensc.pc.in libpkcs15init.pc.in libscconf.pc.in 
-INCLUDES = $(CPPFLAGS) $(OPENSSL_CFLAGS) $(OPENCT_CFLAGS) $(PCSC_CFLAGS)
+INCLUDES = $(CPPFLAGS) $(OPENSSL_CFLAGS) $(OPENCT_CFLAGS) $(PCSC_CFLAGS) \
+	-I$(top_srcdir)/src/common
+
 AM_LDFLAGS = 
 bin_SCRIPTS = opensc-config
 lib_LTLIBRARIES = libopensc.la
@@ -265,7 +270,7 @@ libopensc_la_SOURCES = \
 	pkcs15-prkey.c pkcs15-pubkey.c pkcs15-sec.c \
 	pkcs15-wrap.c pkcs15-algo.c pkcs15-cache.c pkcs15-syn.c \
 	\
-	emv.c \
+	emv.c muscle.c muscle-filesystem.c \
 	\
 	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
 	\
@@ -273,20 +278,21 @@ libopensc_la_SOURCES = \
 	card-cardos.c card-tcos.c card-emv.c card-default.c \
 	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
 	card-oberthur.c card-belpic.c card-atrust-acos.c \
-	card-incrypto34.c card-piv.c \
+	card-incrypto34.c card-piv.c card-muscle.c card-acos5.c \
 	\
 	pkcs15-openpgp.c pkcs15-infocamere.c pkcs15-starcert.c \
 	pkcs15-tcos.c pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafe.c \
-	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c
+	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c \
+	compression.c p15card-helper.c
 
 libopensc_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@
 libopensc_la_LIBADD = @LIBSCCONF@ $(OPENSSL_LIBS) $(OPENCT_LIBS) $(PCSC_LIBS) $(LTLIBLTDL)
 include_HEADERS = \
 	opensc.h pkcs15.h emv.h \
 	cardctl.h asn1.h log.h ui.h \
-	errors.h types.h
+	errors.h types.h compression.h
 
-noinst_HEADERS = cards.h ctbcs.h internal.h esteid.h
+noinst_HEADERS = cards.h ctbcs.h internal.h esteid.h muscle.h muscle-filesystem.h part10.h p15card-helper.h
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libopensc.pc libpkcs15init.pc libscconf.pc
 all: all-am
@@ -388,6 +394,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/apdu.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asn1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/base64.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-acos5.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-atrust-acos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-belpic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-cardos.Plo@am__quote@
@@ -399,6 +406,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-jcop.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-mcrd.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-miocos.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-muscle.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-oberthur.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-openpgp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-piv.Plo@am__quote@
@@ -406,6 +414,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-starcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-tcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/compression.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctbcs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dir.Plo@am__quote@
@@ -413,6 +422,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/errors.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iso7816.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/muscle-filesystem.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/muscle.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/p15card-helper.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/padding.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-actalis.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-algo.Plo@am__quote@

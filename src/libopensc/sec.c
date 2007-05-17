@@ -1,7 +1,7 @@
 /*
  * sec.c: Cryptography and security (ISO7816-8) functions
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -96,12 +96,9 @@ int sc_verify(sc_card_t *card, unsigned int type, int ref,
 
 int sc_logout(sc_card_t *card)
 {
-	int r;
 	if (card->ops->logout == NULL)
-		/* Or should we return SC_ERROR_NOT_SUPPORTED? */
-		SC_FUNC_RETURN(card->ctx, 2, SC_NO_ERROR);
-	r = card->ops->logout(card);
-        SC_FUNC_RETURN(card->ctx, 2, r);
+		return SC_ERROR_NOT_SUPPORTED;
+	return card->ops->logout(card);
 }
 
 int sc_change_reference_data(sc_card_t *card, unsigned int type,

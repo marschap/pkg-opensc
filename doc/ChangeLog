@@ -1,57 +1,1121 @@
-2006-05-30 20:58  aj
+2007-05-04 07:12  aj
 
-	* releases/opensc-0.11.1/NEWS,
-	  releases/opensc-0.11.1/configure.in: create release opensc
-	  0.11.1.
+	* releases/opensc-0.11.2/doc/export-wiki.sh: fix wiki to html
+	  extraction.
 
-2006-05-23 12:03  aj
+2007-05-04 06:18  aj
 
-	* releases/opensc-0.11.1/configure.in: create release candidate 3.
-	* releases/opensc-0.11.1/src/tools/Makefile.mak,
-	  releases/opensc-0.11.1/win32/Make.rules.mak: fix windows build
-	  of cryptoflex-tool and netkey-tool.
+	* releases/opensc-0.11.2/NEWS: add date for 0.11.2
 
-2006-05-20 16:07  aj
+2007-05-04 06:17  aj
 
-	* releases/opensc-0.11.1/configure.in: create release candidate 2.
+	* releases/opensc-0.11.2/configure.in: release as 0.11.2 with no
+	  other changes
+
+2007-04-24 07:59  aj
+
+	* releases/opensc-0.11.2/NEWS,
+	  releases/opensc-0.11.2/configure.in: update NEWS with latest
+	  changes. spin another release candidate.
+
+2007-04-24 07:54  aj
+
+	* releases/opensc-0.11.2/etc/opensc.conf.in,
+	  releases/opensc-0.11.2/src/pkcs11/misc.c: enable pin caching by
+	  default.
+
+2007-04-24 07:52  aj
+
+	* releases/opensc-0.11.2/src/libopensc/ctx.c,
+	  releases/opensc-0.11.2/src/libopensc/opensc.h: use 255/256 bytes
+	  as max_send/recv_size by default.
+
+2007-04-23 19:24  nils
+
+	* releases/opensc-0.11.2/src/pkcs15init/pkcs15-cardos.c: increase
+	  size of pin buffer
+
+2007-04-23 19:19  nils
+
+	* releases/opensc-0.11.2/src/tools/pkcs15-tool.c: authenticate if
+	  data object is protected
+
+2007-04-15 17:26  nils
+
+	* releases/opensc-0.11.2/src/libopensc/card-openpgp.c: request at
+	  most for 256 bytes
+
+2007-04-01 17:05  nils
+
+	* releases/opensc-0.11.2/src/pkcs11/pkcs11-global.c: bugfix: don't
+	  use the size of a void pointer, thanks to Carl Przybylek
+	  <crprzyby@gmail.com>
+
+2007-03-18 17:56  aj
+
+	* releases/opensc-0.11.2/src/tools/piv-tool.c: fix --serial option.
+
+2007-03-16 21:14  aj
+
+	* branches/opensc-0.11.2, releases/opensc-0.11.2: its a release,
+	  not a branch. oops.
+
+2007-03-16 20:44  aj
+
+	* branches/opensc-0.11.2/configure.in: a final release candidate.
+
+2007-03-16 20:43  aj
+
+	* branches/opensc-0.11.2: create new opensc release.
+
+2007-03-16 20:42  aj
+
+	* trunk/NEWS: document changes in this release.
+
+2007-03-15 07:59  ludovic.rousseau
+
+	* trunk/doc/api/card/sc_format_apdu.xml,
+	  trunk/doc/api/card/sc_get_data.xml,
+	  trunk/doc/api/card/sc_put_data.xml,
+	  trunk/doc/api/file/sc_append_record.xml,
+	  trunk/doc/api/file/sc_delete_record.xml,
+	  trunk/doc/api/file/sc_read_binary.xml,
+	  trunk/doc/api/file/sc_read_record.xml,
+	  trunk/doc/api/file/sc_update_binary.xml,
+	  trunk/doc/api/file/sc_update_record.xml,
+	  trunk/doc/api/file/sc_write_binary.xml,
+	  trunk/doc/api/file/sc_write_record.xml,
+	  trunk/doc/api/init/sc_establish_context.xml: remove <link
+	  linkend="foo">Foo</link> that can't be solved and generates
+	  Error: no ID for constraint linkend: foo
+
+2007-03-14 18:26  aj
+
+	* trunk/src/libopensc/Makefile.am: add missing header file to
+	  noinst_HEADERS.
+
+2007-03-13 23:10  aj
+
+	* trunk/src/libopensc/card-acos5.c, trunk/src/libopensc/cards.h:
+	  Ian Young: use proper card type for acos5.
+
+2007-03-13 20:59  aj
+
+	* trunk/src/tools/Makefile.am: Douglas E. Engert: piv-tool needs
+	  openssl, so compile only if it is present.
+
+2007-03-13 20:57  aj
+
+	* trunk/src/libopensc/compression.c,
+	  trunk/src/libopensc/p15card-helper.c: Patch by Douglas E.
+	  Engert: use c style comments and different header files (for mac
+	  os X?).
+
+2007-03-13 13:38  aj
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/card-acos5.c, trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/opensc.h: Add acos5 driver by Ian Young.
+
+2007-03-12 20:17  aj
+
+	* trunk/src/libopensc/opensc.h: test new chop size (256 bytes by
+	  default).
+
+2007-03-12 20:15  aj
+
+	* trunk/etc/opensc.conf.in, trunk/src/libopensc/card-piv.c,
+	  trunk/src/libopensc/compression.c,
+	  trunk/src/libopensc/compression.h,
+	  trunk/src/libopensc/p15card-helper.c,
+	  trunk/src/libopensc/p15card-helper.h,
+	  trunk/src/libopensc/pkcs15-piv.c, trunk/src/pkcs11/Makefile.mak:
+	  changes by Douglas E. Engert: change the do_decompress* to
+	  sc_decompress* and the initialize_* to sc_pkcs15emu_initialize_*
+	  in the new code.
+
+2007-03-10 10:46  aj
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/card-piv.c,
+	  trunk/src/libopensc/compression.c,
+	  trunk/src/libopensc/compression.h,
+	  trunk/src/libopensc/p15card-helper.c,
+	  trunk/src/libopensc/p15card-helper.h,
+	  trunk/src/libopensc/pkcs15-piv.c, trunk/src/tools/piv-tool.c,
+	  trunk/win32/Make.rules.mak: full piv update by Thomas harning
+	  Jr. and David E. Engert, adding compression etc. Also enables
+	  opensc to be compiled with and without zlib support.
+
+2007-03-07 21:26  aj
+
+	* trunk/etc/opensc.conf.in: don't set max send/recv size per
+	  defaults. document how to find out if there is an issue.
+
+2007-03-07 12:39  vtarasov
+
+	* trunk/src/libopensc/card-oberthur.c: after Douglas Engert's
+	  remarks on the coding style
+
+2007-03-07 09:38  vtarasov
+
+	* trunk/src/libopensc/card-oberthur.c: some ACLs was forgotten; i
+	  compute_signature() le should not be more then 256
+
+2007-03-05 17:30  vtarasov
+
+	* trunk/src/pkcs15init/oberthur.profile: change inappropriate
+	  oberthur profile
+
+2007-03-03 20:24  ludovic.rousseau
+
+	* trunk/src/libopensc/card-incrypto34.c: update Giuseppe Amato
+	  email at his request (he is no more working for ST Incard srl)
+
+2007-02-09 11:08  martin
+
+	* trunk/src/tests/regression/Makefile.am: Include files from [3113]
+
+2007-02-06 14:29  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: comment out static and unused
+	  functions (sc_pkcs15init_read_unusedspace,
+	  sc_pkcs15init_update_unusedspace, merge_paths,
+	  sc_pkcs15init_add_unusedspace and
+	  sc_pkcs15init_remove_unusedspace)
+
+2007-02-06 14:20  ludovic.rousseau
+
+	* trunk/src/libopensc/card-oberthur.c: correct 3 warning: unused
+	  variable 'entry'
+
+2007-02-06 14:17  ludovic.rousseau
+
+	* trunk/src/libopensc/reader-pcsc.c: use SCARD_SCOPE_USER instead
+	  of the pcsc-lite specific SCARD_SCOPE_GLOBAL
+
+2007-02-02 22:15  nils
+
+	* trunk/src/libopensc/card-cardos.c,
+	  trunk/src/libopensc/card-incrypto34.c,
+	  trunk/src/libopensc/internal.h, trunk/src/libopensc/opensc.h,
+	  trunk/src/libopensc/padding.c, trunk/src/libopensc/pkcs15-sec.c,
+	  trunk/src/pkcs11/framework-pkcs15.c, trunk/src/pkcs11/openssl.c,
+	  trunk/src/pkcs11/pkcs11-display.c, trunk/src/pkcs11/pkcs11.h,
+	  trunk/src/tools/pkcs11-tool.c, trunk/src/tools/pkcs15-crypt.c:
+	  implement support for SHA2 (still experimental)
+
+2007-01-20 12:46  nils
+
+	* trunk/src/libopensc/opensc.h, trunk/src/libopensc/sc.c,
+	  trunk/src/libopensc/types.h, trunk/src/pkcs15init/profile.c,
+	  trunk/src/tools/opensc-explorer.c: use const, add yet another ACL
+
+2007-01-19 21:10  nils
+
+	* trunk/src/tests/regression/crypt0005,
+	  trunk/src/tests/regression/crypt0006,
+	  trunk/src/tests/regression/functions: conditionally check 2048
+	  bit rsa key ops
+
+2007-01-19 21:08  nils
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: check key size, set so-pin ref
+
+2007-01-15 20:32  nils
+
+	* trunk/src/tools/opensc-tool.c: increase pointer
+
+2007-01-09 21:16  nils
+
+	* trunk/src/tests/regression/test.p12: undo last change:
+	  converting a binary file to utf-8 isn't really a good idea ;-)
+
+2007-01-09 19:41  nils
+
+	* trunk/src/libopensc/apdu.c: improve get_response logic: try to
+	  read at least as much bytes as indicated in the 0x61xx response.
+
+2007-01-09 07:22  aj
+
+	* trunk/src/libopensc/card.c: improve atr masking code - also mask
+	  atr to match. and add more debugging messages.
+
+2007-01-08 21:10  nils
+
+	* trunk/src/libopensc/card-oberthur.c: remove unnecessary assertion
+
+2007-01-08 20:19  nils
+
+	* trunk/src/libopensc/card-piv.c: use EVP API for DES encryption
+
+2007-01-08 17:04  nils
+
+	* trunk/src/libopensc/card-oberthur.c: use EVP api for DES
+	  encryption
+
+2007-01-07 23:40  martin
+
+	* trunk/src/libopensc/card-mcrd.c: off by 1
+
+2007-01-06 16:35  martin
+
+	* trunk/src/libopensc/card-muscle.c, trunk/src/libopensc/muscle.c:
+	  Stop MS visual studio 2005 complaints.
+
+2007-01-06 13:23  nils
+
+	* trunk/src/libopensc/card-gpk.c: use EVP api
+
+2007-01-05 16:36  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: Properly set the defaults for
+	  pcsc reader options even if no configuration file is
+	  found/available
+
+2007-01-05 16:25  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: * Add a few debug lines *
+	  Remove the locked status from the reader no matter what
+	  SCardEndTransaction thinks - either the card was removed or
+	  broken pcsc allowed to reset the card while in a transaction
+	  (pcsc-lite before Oct. 2006)
+
+2007-01-05 16:20  martin
+
+	* trunk/src/libopensc/pkcs15-syn.c, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/pkcs15.h: Allow to specify at compile time
+	  that a card will work only via pkcs15 emulation. This way no
+	  matter what is configured in the config file
+	  (try_emulation_first option) the card is usable via pkcs15 tools.
+
+2007-01-05 16:13  martin
+
+	* trunk/src/libopensc/card-mcrd.c: Match EstEID based on ATR
+	  contents rather than the full ATR itself.
+
+2007-01-03 11:44  vtarasov
+
+	* trunk/src/libopensc/card-oberthur.c: change encoding
+
+2007-01-02 10:06  vtarasov
+
+	* trunk/src/libopensc/cardctl.h: prepare Oberthur card support for
+	  secure messaging
+	* trunk/src/libopensc/card-oberthur.c,
+	  trunk/src/pkcs15init/oberthur.profile,
+	  trunk/src/pkcs15init/pkcs15-oberthur.c: prepare Oberthur card
+	  support for secure messaging
+
+2007-01-02 10:04  vtarasov
+
+	* trunk/src/libopensc/iso7816.c, trunk/src/libopensc/types.h:
+	  introduce SC_PATH_TYPE_FROM_CURRENT and SC_PATH_TYPE_PARENT path
+	  types
+
+2006-12-29 09:44  aj
+
+	* trunk/src/libopensc/apdu.c: only the first apdu (command) tells
+	  us how many bytes we need to get. we need to keep this value and
+	  call get_response as often as needed to get them part by part.
+
+2006-12-22 12:43  nils
+
+	* trunk/src/libopensc/pkcs15-pin.c: encode max pin length as well
+
+2006-12-19 22:11  aj
+
+	* trunk/src/tools/pkcs11-tool.c: kill warnings.
+
+2006-12-19 21:35  aj
+
+	* trunk/src/tools/cardos-info.c,
+	  trunk/src/tools/cryptoflex-tool.c,
+	  trunk/src/tools/opensc-explorer.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/piv-tool.c,
+	  trunk/src/tools/pkcs15-crypt.c, trunk/src/tools/pkcs15-tool.c:
+	  convert to utf-8.
+
+2006-12-19 21:34  aj
+
+	* trunk/src/signer/testprog.c: replace with an ascii test string.
+	* trunk/src/pkcs15init/pkcs15-cflex.c,
+	  trunk/src/pkcs15init/pkcs15-miocos.c,
+	  trunk/src/pkcs15init/pkcs15-oberthur.c: convert to utf-8.
+
+2006-12-19 21:33  aj
+
+	* trunk/src/tests/lottery.c, trunk/src/tests/p15dump.c,
+	  trunk/src/tests/pintest.c, trunk/src/tests/print.c,
+	  trunk/src/tests/prngtest.c, trunk/src/tests/regression/test.p12,
+	  trunk/src/tests/sc-test.c: convert to utf-8.
+	* trunk/src/pkcs11/framework-pkcs15.c,
+	  trunk/src/pkcs11/framework-pkcs15init.c,
+	  trunk/src/pkcs11/misc.c, trunk/src/pkcs11/pkcs11-global.c,
+	  trunk/src/pkcs11/pkcs11-object.c,
+	  trunk/src/pkcs11/pkcs11-session.c, trunk/src/pkcs11/sc-pkcs11.h,
+	  trunk/src/pkcs11/slot.c: convert to utf-8.
+
+2006-12-19 21:32  aj
+
+	* trunk/src/libopensc/card-atrust-acos.c,
+	  trunk/src/libopensc/card-cardos.c,
+	  trunk/src/libopensc/card-default.c,
+	  trunk/src/libopensc/card-emv.c, trunk/src/libopensc/card-flex.c,
+	  trunk/src/libopensc/card-incrypto34.c,
+	  trunk/src/libopensc/card-mcrd.c,
+	  trunk/src/libopensc/card-miocos.c,
+	  trunk/src/libopensc/card-oberthur.c,
+	  trunk/src/libopensc/card-piv.c,
+	  trunk/src/libopensc/card-setcos.c,
+	  trunk/src/libopensc/card-starcos.c,
+	  trunk/src/libopensc/card-tcos.c, trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/ctx.c: convert to utf-8.
+
+2006-12-19 21:31  aj
+
+	* trunk/src/libopensc/asn1.c, trunk/src/libopensc/asn1.h,
+	  trunk/src/libopensc/base64.c, trunk/src/libopensc/dir.c,
+	  trunk/src/libopensc/emv.c, trunk/src/libopensc/emv.h,
+	  trunk/src/libopensc/errors.c, trunk/src/libopensc/errors.h,
+	  trunk/src/libopensc/internal.h, trunk/src/libopensc/iso7816.c,
+	  trunk/src/libopensc/log.c, trunk/src/libopensc/log.h,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/padding.c,
+	  trunk/src/libopensc/pkcs15-cache.c,
+	  trunk/src/libopensc/pkcs15-cert.c,
+	  trunk/src/libopensc/pkcs15-pin.c,
+	  trunk/src/libopensc/pkcs15-prkey.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15-sec.c, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/pkcs15.h,
+	  trunk/src/libopensc/reader-ctapi.c,
+	  trunk/src/libopensc/reader-pcsc.c, trunk/src/libopensc/sc.c,
+	  trunk/src/libopensc/sec.c, trunk/src/libopensc/types.h: convert
+	  to utf-8.
+
+2006-12-19 21:28  aj
+
+	* trunk/NEWS: convert to utf-8
+	* trunk/aclocal/pkg.m4: convert to ascii.
+
+2006-12-19 20:48  aj
+
+	* trunk/src/common/getopt.txt: convert to unix style line ending.
+
+2006-12-18 21:58  aj
+
+	* trunk/src/libopensc/card-muscle.c,
+	  trunk/src/libopensc/muscle-filesystem.h,
+	  trunk/src/libopensc/muscle.c, trunk/src/libopensc/muscle.h:
+	  update to latest muscle code.
+
+2006-12-18 21:34  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: apcos driver is not yet
+	  commited.
+
+2006-12-18 11:23  nils
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pad only if necessary
+
+2006-12-18 11:22  nils
+
+	* trunk/src/pkcs15init/pkcs15-init.h: remove comment
+	* trunk/src/libopensc/iso7816.c: use net size if available
+
+2006-12-18 07:42  aj
+
+	* trunk/src/pkcs11/pkcs11.h, trunk/src/pkcs11/sc-pkcs11.h: update
+	  to latest pkcs11.h version.
+
+2006-12-10 13:33  nils
+
+	* trunk/src/pkcs11/pkcs11.h: make it work with my compiler, add
+	  missing parenthesis
+
+2006-12-10 07:57  aj
+
+	* trunk/src/pkcs11/pkcs11.h: update to latest pkcs11.h from Marcus.
+
+2006-12-09 15:46  aj
+
+	* trunk/configure.in: Alon Bar-Lev: enables disabling the linkage
+	  of pcsc-lite and openct, even if they are installed on system.
+	  It adds --disable-openct and --disable-pcsc-lite options. Also a
+	  minor correction for pkg-config (adds PKG_PROG_PKG_CONFIG).
+
+2006-12-09 15:41  aj
+
+	* trunk/src/pkcs11/pkcs11.h: pkcs11.h with updates from Alon.
+
+2006-12-08 14:56  jps
+
+	* trunk/src/libopensc/card-setcos.c, trunk/src/libopensc/cards.h:
+	  Initial support for SetCOSXpresso (GemXpresso R4 with EID 2.x
+	  applet)
+
+2006-12-07 10:53  aj
+
+	* trunk/src/libopensc/muscle-filesystem.c,
+	  trunk/src/libopensc/muscle-filesystem.h,
+	  trunk/src/libopensc/muscle.c: define these constants where used
+	  to kill warnings.
+
+2006-12-07 10:35  aj
+
+	* trunk/src/libopensc/card-muscle.c: Thomas Harning: patch to fix
+	  the MuscleCard driver to work in the case of forced drivers.
+	  drv_data is used as a flag so that muscle_init knows if the
+	  applet has been selected during initialization.
+
+2006-11-30 08:14  aj
+
+	* trunk/src/libopensc/card-muscle.c,
+	  trunk/src/libopensc/muscle-filesystem.c,
+	  trunk/src/libopensc/muscle-filesystem.h,
+	  trunk/src/libopensc/muscle.c, trunk/src/libopensc/muscle.h:
+	  update the MuscleCard driver for OpenSC to use an msc_id struct
+	  rather than int/bytes and messing around with byte-swapping for
+	  that. (by Thomas Harning)
+
+2006-11-30 08:11  aj
+
+	* trunk/configure.in, trunk/src/include/opensc/Makefile.am,
+	  trunk/src/include/opensc/rsaref, trunk/src/pkcs11/Makefile.am,
+	  trunk/src/pkcs11/Makefile.mak, trunk/src/pkcs11/libpkcs11.c,
+	  trunk/src/pkcs11/pkcs11-display.c,
+	  trunk/src/pkcs11/pkcs11-spy.c, trunk/src/pkcs11/pkcs11.h,
+	  trunk/src/pkcs11/rsaref, trunk/src/pkcs11/sc-pkcs11.h: replace
+	  rsa pkcs#11 header files with rewrite.
+
+2006-11-28 15:54  ludovic.rousseau
+
+	* trunk/configure.in: remove now useless (see revision 3062)
+	  --enable-debug option
+
+2006-11-28 11:54  martin
+
+	* trunk/src/libopensc/card.c: Have equal number of sc_lock and
+	  sc_unlock loglines to aid debugging locking.
+
+2006-11-28 11:53  martin
+
+	* trunk/configure.in: Remove unused headers
+
+2006-11-23 22:40  nils
+
+	* trunk/src/libopensc/reader-ctapi.c,
+	  trunk/src/libopensc/reader-openct.c,
+	  trunk/src/libopensc/reader-pcsc.c: enable APDU logging again
+
+2006-11-22 19:27  nils
+
+	* trunk/src/libopensc/card-flex.c: remove unused variable, cleanup
+
+2006-11-21 22:10  nils
+
+	* trunk/src/libopensc/iso7816.c: try to read at most max_recv_size
+	  bytes in GET RESPONSE
+
+2006-11-18 00:05  pk
+
+	* trunk/src/libopensc/pkcs15-tcos.c: Support for DATEV smartcard
+	  classic
+
+2006-11-17 11:50  aj
+
+	* trunk/src/signer/dialog.c: size_t is 64bit on 64bit plattforms,
+	  thus use %ld and convert to unsigned long.
+
+2006-11-12 21:01  nils
+
+	* trunk/src/libopensc/iso7816.c: 
+
+2006-11-11 11:47  nils
+
+	* trunk/src/libopensc/sc.c: fix typo
+
+2006-11-11 11:46  nils
+
+	* trunk/src/libopensc/iso7816.c: remove useless code
+
+2006-11-11 11:09  nils
+
+	* trunk/src/libopensc/sc.c: check types before concatenating paths
+
+2006-11-10 23:07  nils
+
+	* trunk/src/libopensc/pkcs15-gemsafe.c: update; patch supploed by
+	  Douglas E. Engert <deengert@anl.gov>
+
+2006-11-09 21:26  nils
+
+	* trunk/src/tools/opensc-explorer.c: fix typo
+
+2006-11-09 16:05  martin
+
+	* trunk/doc/tools/pkcs15-tool.xml: Fixes #17
+
+2006-11-06 11:15  vtarasov
+
+	* trunk/src/libopensc/card-cardos.c,
+	  trunk/src/libopensc/card-piv.c, trunk/src/libopensc/iso7816.c,
+	  trunk/src/libopensc/log.h, trunk/src/libopensc/muscle.c: Use do
+	  {...} while(0) construction for SC_TEST_RET, SC_FUNC_RETURN and
+	  SC_FUNC_CALLED defines
+
+2006-11-02 13:58  nils
+
+	* trunk/src/libopensc/pkcs15-sec.c: set path type; patch supplied
+	  by Thomas Irlet <iksiloev@gmail.com>
+
+2006-11-02 09:19  vtarasov
+
+	* trunk/src/pkcs15init/keycache.c: When forgetting PIN set to
+	  'null' the corresponding named_pin's entry
+
+2006-11-02 06:55  aj
+
+	* trunk/src/libopensc/card-muscle.c: Thomas Harning: sc_list_files
+	  doesn't return the length of the applicable buffer, but instead
+	  the # of files. Fixed.
+
+2006-10-31 17:29  pk
+
+	* trunk/src/libopensc/pkcs15-tcos.c: Netkey E4 emulation
+
+2006-10-30 18:51  nils
+
+	* trunk/src/libopensc/asn1.c, trunk/src/libopensc/asn1.h,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/pkcs15.h, trunk/src/libopensc/sc.c,
+	  trunk/src/tools/opensc-explorer.c: add support to parse the
+	  seInfo TokenInfo entry, improve aid support in opensc-explorer
+
+2006-10-30 11:54  martin
+
+	* trunk/doc/tools/opensc-explorer.xml: Remove invalid
+	  documentation, addresses #95
+
+2006-10-30 07:37  ludovic.rousseau
+
+	* trunk/src/libopensc/ctx.c: use the OPENSC_DEBUG environment
+	  variable to overwite the configuration variable debug in
+	  opensc.conf
+
+2006-10-09 15:09  martin
+
+	* trunk/src/libopensc/card-mcrd.c: New EstEID v1.5 card ATR
+
+2006-10-04 07:00  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15.c: c_asn1_toki[]: the serialNumber
+	  field is not mandatory in ISO 7816-15 see
+	  http://www.opensc-project.org/pipermail/opensc-devel/2006-October/009025.html
+
+2006-10-02 17:26  nils
+
+	* trunk/src/pkcs11/pkcs11-global.c: make the decision which
+	  locking functions to use more explicit; patch supplied by Martin
+
+2006-10-02 16:49  nils
+
+	* trunk/src/libopensc/pkcs15.c: restore backward compatibility:
+	  try READ BINARY in case of a unknown file type
+
+2006-10-02 13:46  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15.c: c_asn1_ddo[]: the oid field of the
+	  DDO is not mandatory in ISO 7816-15 See
+	  http://www.opensc-project.org/pipermail/opensc-devel/2006-October/009022.html
+
+2006-10-02 10:39  nils
+
+	* trunk/doc/tools/pkcs15-crypt.xml: update doc
+
+2006-10-02 10:34  nils
+
+	* trunk/src/tools/pkcs15-crypt.c: add the possibility to read the
+	  pin from stdin
+
+2006-10-01 20:52  nils
+
+	* trunk/src/libopensc/card-mcrd.c,
+	  trunk/src/libopensc/reader-pcsc.c: fix warnings
+
+2006-10-01 20:39  nils
+
+	* trunk/src/libopensc/iso7816.c: fix warning
+
+2006-09-27 22:10  nils
+
+	* trunk/src/pkcs11/framework-pkcs15.c: set
+	  CKF_USER_PIN_INITIALIZED only if we really have a pin object
+
+2006-09-27 12:02  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15.c: sc_pkcs15_make_absolute_path(): a
+	  0 length path stays a 0 length pat
+
+2006-09-27 12:01  ludovic.rousseau
+
+	* trunk/src/libopensc/iso7816.c: iso7816_process_fci(): dump the
+	  filename in Hex + ASCII instead of just ASCII in the debug log
+
+2006-09-26 18:17  nils
+
+	* trunk/src/libopensc/card-oberthur.c: fix apdu
+
+2006-09-26 18:01  nils
+
+	* trunk/src/tools/opensc-tool.c: check if the ef type is in range;
+	  thanks to Thomas Irlet
+
+2006-09-26 10:55  henryk
+
+	* trunk/src/libopensc/pkcs15-cert.c,
+	  trunk/src/libopensc/pkcs15-data.c,
+	  trunk/src/libopensc/pkcs15-prkey.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h: Make
+	  absolute paths from all paths read from the PKCS#15 directories
+	  by prepending the DF(PKCS#15) path if necessary. Fixes
+	  compatibility with Siemens HiPath SIcurity formatted cards which
+	  use relative paths.
+
+2006-09-26 10:43  henryk
+
+	* trunk/src/libopensc/pkcs15.c: Fix handling for SIMPLE-TLV
+	  records with a three-byte length
+
+2006-09-26 10:36  henryk
+
+	* trunk/src/libopensc/pkcs15.c: opensc-siemens.diff Adds support
+	  for record-oriented files in linear variable, simple-tlv format.
+	  TODO: Add support for all the other file formats, too.
+
+2006-09-26 10:31  henryk
+
+	* trunk/src/libopensc/pkcs15.c: Make do { ... } while (...); into
+	  while (...) { ... };. Fixes behaviour with empty files.
+
+2006-09-24 14:05  nils
+
+	* trunk/src/libopensc/pkcs15.c: implement workaround for the
+	  Taiwanese id card
+
+2006-09-24 12:50  nils
+
+	* trunk/src/libopensc/sc.c: keep index and count parameters
+
+2006-09-22 14:34  nils
+
+	* trunk/src/libopensc/card-starcos.c: add starcos spk 2.4 ATR
+
+2006-09-22 14:18  nils
+
+	* trunk/src/libopensc/card-starcos.c: bugfix
+
+2006-09-20 13:33  aj
+
+	* trunk/src/scconf/Makefile.mak: scconf needs strlcpy too.
+
+2006-09-20 12:32  aj
+
+	* trunk/src/libopensc/Makefile.mak: ntohl is in ws2_32.lib / dll.
+
+2006-09-20 12:10  aj
+
+	* trunk/src/libopensc/Makefile.am: don't forget part10.h (only
+	  used on windows I think).
+
+2006-09-18 05:30  nils
+
+	* trunk/src/tools/pkcs11-tool.c: add option to write data objects;
+	  patch supplied by Cornelius Kölbel
+	  <cornelius.koelbel@lsexperts.de> et. al.
+
+2006-09-17 18:34  nils
+
+	* trunk/src/libopensc/reader-pcsc.c: remove check for T0 as it
+	  seems to work for T1 as well
+
+2006-09-14 12:56  ludovic.rousseau
+
+	* trunk/doc/tools/opensc-config.xml,
+	  trunk/doc/tools/pkcs11-tool.xml: use <option></option> for
+	  command arguments
+
+2006-09-14 12:46  ludovic.rousseau
+
+	* trunk/doc/tools/pkcs11-tool.xml: using --pin with set --login
+
+2006-09-14 09:17  ludovic.rousseau
+
+	* trunk/doc/tools/pkcs11-tool.xml: explicit that --module is to
+	  load a "PKCS#11 module (or library)" not just a module
+
+2006-09-14 08:55  ludovic.rousseau
+
+	* trunk/src/pkcs11/pkcs11-global.c: C_GetInfo(): use "OpenSC
+	  (www.opensc-project.org)" instead of "OpenSC Project
+	  (www.opensc-project.org)" for the manufacturerID to avoid a
+	  truncation at 32 characters
+
+2006-09-04 20:01  martin
+
+	* trunk/src/libopensc/card-mcrd.c: Make sure every new opensc
+	  instance sees the card from the sight starting point.
+
+2006-09-03 15:58  martin
+
+	* trunk/src/libopensc/pkcs15-esteid.c: Update for [2836] chganges.
+
+2006-08-27 18:25  aj
+
+	* trunk/src/pkcs11/slot.c: shorten string, fixing #98.
+
+2006-08-19 08:44  nils
+
+	* trunk/etc/opensc.conf.in: fix typo
+
+2006-08-16 16:36  martin
+
+	* trunk/src/libopensc/part10.h, trunk/src/libopensc/reader-pcsc.c:
+	  * Fix endianness for PCSCv2 part 10 IOCTLs * Add support for
+	  start/finish style IOCTLs * Add support for the same pinpad
+	  functionality on windows Some code from Robert Konklewski and
+	  Ludovic Rousseau
+
+2006-08-13 21:20  aj
+
+	* trunk/src/pkcs11/pkcs11-spy.c: Douglas E. Engert: Change
+	  PKCS11-Spy so it looks in HKEY_LOCAL_MACHINE, before
+	  HKEY_LOCAL_USER. This should not cause any problems, as the
+	  HKEY_LOCAL_MACHINE, "Software\PKCS11-Spy" would not normally be
+	  set, accept while the sysadmin of the machine as trying to debug
+	  a login type problem.
+
+2006-08-03 21:05  nils
+
+	* trunk/src/libopensc/Makefile.mak, trunk/src/pkcs11/Makefile.mak,
+	  trunk/src/pkcs15init/Makefile.mak, trunk/src/tests/Makefile.mak,
+	  trunk/src/tools/Makefile.mak: build fixes for win; patch
+	  supplied by Douglas E. Engert <deengert@anl.gov>
+
+2006-08-02 19:43  nils
+
+	* trunk/src/tools/opensc-explorer.c, trunk/src/tools/piv-tool.c,
+	  trunk/src/tools/pkcs15-tool.c: fix warnings
+
+2006-08-02 19:31  nils
+
+	* trunk/src/common/Makefile.mak, trunk/src/include/winconfig.h,
+	  trunk/src/libopensc/pkcs15-piv.c, trunk/src/pkcs11/Makefile.mak,
+	  trunk/src/tools/eidenv.c, trunk/src/tools/netkey-tool.c,
+	  trunk/src/tools/util.h, trunk/win32/Make.rules.mak: win build
+	  fixes; patch supplied by Douglas E. Engert <deengert@anl.gov>
+
+2006-08-01 18:49  nils
+
+	* trunk/src/libopensc/sc.c: fix sc_compare_path_prefix(); patch
+	  supplied by Henryk Plötz <henryk@ploetzli.ch>
+
+2006-07-23 08:02  nils
+
+	* trunk/src/tools/pkcs15-tool.c: check the value of the pin type
+	  before accessing the array; patch supplied by Henryk Plötz
+	  <henryk@ploetzli.ch>
+
+2006-07-18 20:37  nils
+
+	* trunk/etc/opensc.conf.in: spelling fixes by ville.skytta@iki.fi
+
+2006-07-14 08:18  nils
+
+	* trunk/src/pkcs15init/profile.c: bugfix: copy the first n
+	  characters (if possible)
+
+2006-07-13 21:01  nils
+
+	* trunk/src/pkcs15init/pkcs15-cardos.c: cardos v4.3b support
+
+2006-07-13 20:40  nils
+
+	* trunk/src/libopensc/sc.c: don't accept invalid OIDs
+
+2006-07-13 20:37  nils
+
+	* trunk/src/libopensc/card-cardos.c: cardos v4.3
+
+2006-07-13 20:35  nils
+
+	* trunk/src/libopensc/pkcs15.c: bugfixes ...
+
+2006-07-13 19:59  nils
+
+	* trunk/src/libopensc/pkcs15.c: initialize pointer
+
+2006-07-12 08:12  ludovic.rousseau
+
+	* trunk/src/libopensc/card-belpic.c,
+	  trunk/src/libopensc/pkcs15-actalis.c,
+	  trunk/src/libopensc/pkcs15-atrust-acos.c,
+	  trunk/src/libopensc/pkcs15-esteid.c,
+	  trunk/src/libopensc/pkcs15-gemsafe.c,
+	  trunk/src/libopensc/pkcs15-infocamere.c,
+	  trunk/src/libopensc/pkcs15-openpgp.c,
+	  trunk/src/libopensc/pkcs15-piv.c,
+	  trunk/src/libopensc/pkcs15-postecert.c,
+	  trunk/src/libopensc/pkcs15-starcert.c,
+	  trunk/src/libopensc/pkcs15-tcos.c,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/profile.c, trunk/src/scconf/parse.c,
+	  trunk/src/tools/cryptoflex-tool.c,
+	  trunk/src/tools/pkcs15-init.c: - use strlcpy() instead of
+	  strncpy() to always have a terminating NUL-byte - use
+	  sizeof(field) instead of SC_PKCS15_MAX_LABEL_SIZE-1 or
+	  equivalent as the 3rd argument of strlcpy()
+
+2006-07-12 08:09  ludovic.rousseau
+
+	* trunk/src/scconf/Makefile.am: add
+	  $(top_srcdir)/src/common/strlcpy.c to libscconf_la_SOURCES since
+	  src/scconf/parse.c now uses strlcpy(). Note that, since
+	  libopensc uses libscconf, strlcpy() will be available from any
+	  program linked with libopensc
+
+2006-07-12 08:06  ludovic.rousseau
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/pkcs15init/Makefile.am: add -I$(top_srcdir)/src/common
+	  so that strlcpy.h is found
+
+2006-07-12 08:05  ludovic.rousseau
+
+	* trunk/src/common/Makefile.am, trunk/src/common/README.strlcpy,
+	  trunk/src/common/strlcpy.3, trunk/src/common/strlcpy.c,
+	  trunk/src/common/strlcpy.h: add strlcpy.{c,h} from
+	  ftp://ftp.openbsd.org/pub/OpenBSD/src/lib/libc/string/
+
+2006-07-12 07:43  ludovic.rousseau
+
+	* trunk/configure.in, trunk/src/common/Makefile.am,
+	  trunk/src/common/getopt.h, trunk/src/common/my_getopt.c,
+	  trunk/src/common/my_getopt.h, trunk/src/tests/Makefile.am,
+	  trunk/src/tests/sc-test.c, trunk/src/tools/Makefile.am: - remove
+	  src/common/getopt.h since it collide with /usr/include/getopt.h
+	  - replace @GETOPTSRC@ by $(top_srcdir)/src/common/my_getopt.c in
+	  Makefile.am files - change the detection of getopt_long in
+	  configure.in since GETOPTSRC is not used anymore. my_getopt.c is
+	  now always compiled and used but provides getopt_long() only if
+	  HAVE_GETOPT_H is NOT defined (ie. if getopt_long() is not
+	  provided by the system) - src/common/my_getopt.c: the code is
+	  within #ifndef HAVE_GETOPT_H - move the useful lines of
+	  src/common/getopt.h in src/common/my_getopt.h
+
+2006-07-12 07:32  ludovic.rousseau
+
+	* trunk/src/common/Makefile.am, trunk/src/common/README,
+	  trunk/src/common/README.my_getopt: rename README in
+	  README.my_getopt
+
+2006-07-12 06:41  ludovic.rousseau
+
+	* trunk/configure.in, trunk/src/signer/Makefile.am: use
+	  LIBASSUAN_* instead of ASSUAN_* so the assuan library is
+	  correctly found and we avoid "undefined symbol: assuan_strerror
+	  (.libs/opensc-signer.so)", etc
+
+2006-07-11 22:25  nils
+
+	* trunk/src/libopensc/asn1.c: bugfix: return error if OID is
+	  invalid
+
+2006-07-11 21:43  nils
+
+	* trunk/src/libopensc/card-cardos.c: fix typo
+
+2006-07-08 12:31  nils
+
+	* trunk/src/libopensc/card-cardos.c: changes for cardos 4.3b
+
+2006-07-05 19:45  aj
+
+	* trunk/src/libopensc/pkcs15.c: replace static buffer with
+	  dynamically allocated buffer. patch by Tomasz Lemiech to fix a
+	  problem with setec cards.
+
+2006-07-05 19:36  aj
+
+	* trunk/src/libopensc/pkcs15.c: Tomasz Lemiech wrote: I found that
+	  struct c_asn1_odf[] in pkcs15.c does not define secretKeys
+	  object (as specified in PKCS#15 v. 1.1 standard, par. 6.2). I
+	  consider this to be an omission. My Setec card contains objects
+	  of this type and all PKCS#15 operations fail with "Unable to
+	  parse ODF". Attached patch fixes this issue.
+
+2006-06-27 21:54  aj
+
+	* trunk/src/libopensc/card-flex.c: add new atr reported by Sven
+	  Loeschner as Cryptoflex 32k Card.
+
+2006-06-27 17:56  sth
+
+	* trunk/src/libopensc/internal.h: Added doxygen comments
+
+2006-06-27 17:49  sth
+
+	* trunk/src/libopensc/card-muscle.c,
+	  trunk/src/libopensc/internal.h, trunk/src/libopensc/muscle.c,
+	  trunk/src/libopensc/sc.c: Endian-independent way to convert
+	  numbers to a byte array + vice versa
+
+2006-06-26 21:03  aj
+
+	* trunk/src/libopensc/ctx.c: check for environment variable first
+	  on windows, too.
+
+2006-06-23 16:09  nils
+
+	* trunk/src/libopensc/card-oberthur.c: fix apdu types and response
+	  buffer length
+
+2006-06-21 20:05  nils
+
+	* trunk/src/pkcs11/misc.c: bring implementation in accordance with
+	  the docu in opensc.conf
+
+2006-06-19 23:04  aj
+
+	* trunk/src/libopensc/card-flex.c: the cryptoflex manual states
+	  the last two bytes of the atr are some software version so we
+	  can ignore them. use the atr mask to do that.
+
+2006-06-19 19:01  nils
+
+	* trunk/src/libopensc/opensc.h: fix docu
+
+2006-06-18 20:52  sth
+
+	* trunk/src/libopensc/muscle.c: The applet returns unexpected
+	  values when entering a wrong PIN; this is a work-around by
+	  Thomas Harning
+
+2006-06-17 15:07  nils
+
+	* trunk/src/libopensc/muscle-filesystem.c,
+	  trunk/src/libopensc/muscle.c: fix warnings
+
+2006-06-17 12:24  nils
+
+	* trunk/src/libopensc/card-belpic.c,
+	  trunk/src/libopensc/card-cardos.c,
+	  trunk/src/libopensc/card-jcop.c,
+	  trunk/src/libopensc/card-muscle.c,
+	  trunk/src/libopensc/card-openpgp.c,
+	  trunk/src/libopensc/card-piv.c,
+	  trunk/src/libopensc/card-setcos.c, trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/cards.h, trunk/src/libopensc/iso7816.c,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/sec.c: remove
+	  iso logout function, remove dummy logout functions and remove
+	  logout call from sc_unlock()
+
+2006-06-16 20:47  nils
+
+	* trunk/src/libopensc/muscle-filesystem.c: fix warning
+
+2006-06-08 08:12  aj
+
+	* trunk/src/pkcs15init/Makefile.am: Fix makefile: add muscle files.
+
+2006-06-07 08:33  sth
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/card-muscle.c, trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/cardctl.h, trunk/src/libopensc/cards.h,
+	  trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/muscle-filesystem.c,
+	  trunk/src/libopensc/muscle-filesystem.h,
+	  trunk/src/libopensc/muscle.c, trunk/src/libopensc/muscle.h,
+	  trunk/src/libopensc/opensc.h, trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/pkcs15init/muscle.profile,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-muscle.c: Added support for
+	  MuscleCard applet. Thanks to Thomas Harning, David Corcoran of
+	  Identity Alliance
+
+2006-06-06 06:00  aj
+
+	* trunk/src/libopensc/card-cardos.c: add new card reported to work
+	  by Christian Koegler. Thanks Christian!
+
+2006-05-30 20:59  aj
+
+	* trunk/NEWS: commit NEWS update.
+
+2006-05-23 20:53  aj
+
+	* trunk/src/pkcs11/framework-pkcs15.c: sprintf bad. maybe even
+	  potential exploitable? bug found by ville skytta using pscan.
+
+2006-05-23 12:55  aj
+
+	* trunk/src/tools/Makefile.mak: fix compiling netkey-tool on win32.
+
+2006-05-23 09:09  aj
+
+	* trunk/src/tools/Makefile.mak, trunk/win32/Make.rules.mak: try to
+	  fix windows compile (include netkey-tool and cryptoflex-tool).
 
 2006-05-20 16:06  aj
 
-	* releases/opensc-0.11.1/src/libopensc/pkcs15-piv.c,
-	  releases/opensc-0.11.1/src/pkcs11/framework-pkcs15.c: make
-	  objects on piv card public.
+	* trunk/src/libopensc/pkcs15-piv.c,
+	  trunk/src/pkcs11/framework-pkcs15.c: make objects on piv card
+	  public.
 
-2006-05-20 16:04  aj
+2006-05-20 16:05  aj
 
-	* releases/opensc-0.11.1/src/pkcs11/misc.c: rever prior change as
-	  it breaks the regression tests.
+	* trunk/src/pkcs11/misc.c: revert prior change as it breaks the
+	  regression tests.
+
+2006-05-17 09:07  ludovic.rousseau
+
+	* trunk/src/libopensc/reader-pcsc.c: pcsc_connect(): use an
+	  explicit debug message if the reader supports PIN
+	  verification/modification but that feature is not enabled in
+	  opensc.conf (enable_pinpad = true)
+
+2006-05-15 18:48  nils
+
+	* trunk/src/pkcs11/framework-pkcs15.c: check for existing public
+	  key before creating one from the certificate; patch supplied by
+	  Albert Solana <asb@c3po.es>
 
 2006-05-12 20:03  aj
 
-	* releases/opensc-0.11.1/src/libopensc/pkcs15-piv.c: Douglas E.
-	  Engert: removes the private bit on the pubkey. Without this
-	  change the openssl req with engine can not be used to generate a
-	  certificate request, as it will not be able to find the public
-	  key that should have been saved by the piv-tool when the private
-	  key was generated on the card.
+	* trunk/src/libopensc/pkcs15-piv.c: Douglas E. Engert: removes the
+	  private bit on the pubkey. Without this change the openssl req
+	  with engine can not be used to generate a certificate request,
+	  as it will not be able to find the public key that should have
+	  been saved by the piv-tool when the private key was generated on
+	  the card.
 
 2006-05-12 20:01  aj
 
-	* releases/opensc-0.11.1/src/libopensc/card-mcrd.c,
-	  releases/opensc-0.11.1/src/pkcs11/framework-pkcs15.c: compile
-	  fixes for win32.
+	* trunk/src/libopensc/card-mcrd.c,
+	  trunk/src/pkcs11/framework-pkcs15.c: compile fixes for win32.
 
-2006-05-10 06:17  aj
+2006-05-10 06:18  aj
 
-	* releases/opensc-0.11.1/NEWS: document changes so far.
+	* trunk/NEWS: document changes so far.
 
 2006-05-10 06:14  aj
 
-	* releases/opensc-0.11.1/configure.in: release candidate 1.
-
-2006-05-10 06:13  aj
-
-	* releases/opensc-0.11.1: create release candidate for 0.11.1.
+	* trunk/configure.in: trunk is now used for changed past 0.11.1.
 
 2006-05-09 21:35  nils
 

@@ -1,7 +1,7 @@
 /*
  * types.h: OpenSC general types
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -38,6 +38,8 @@ struct sc_object_id {
 #define SC_PATH_TYPE_PATH	2
 #define SC_PATH_TYPE_PATH_PROT	3	/* path of a file containing
 					   EnveleopedData objects */
+#define SC_PATH_TYPE_FROM_CURRENT   4
+#define SC_PATH_TYPE_PARENT   5
 
 #define SC_MAX_PATH_SIZE		16
 #define SC_MAX_PATH_STRING_SIZE		(SC_MAX_PATH_SIZE * 2 + 1)
@@ -63,7 +65,7 @@ typedef struct sc_acl_entry {
 	struct sc_acl_entry *next;
 } sc_acl_entry_t;
 
-#define SC_MAX_AC_OPS			8
+#define SC_MAX_AC_OPS			9
 
 typedef struct sc_file {
 	struct sc_path path;

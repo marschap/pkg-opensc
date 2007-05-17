@@ -66,7 +66,8 @@ am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(includedir)"
 libLTLIBRARIES_INSTALL = $(INSTALL)
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libscconf_la_LIBADD =
-am_libscconf_la_OBJECTS = scconf.lo parse.lo write.lo sclex.lo
+am_libscconf_la_OBJECTS = scconf.lo parse.lo write.lo sclex.lo \
+	strlcpy.lo
 libscconf_la_OBJECTS = $(am_libscconf_la_OBJECTS)
 PROGRAMS = $(noinst_PROGRAMS)
 am_test_conf_OBJECTS = test-conf.$(OBJEXT)
@@ -95,8 +96,6 @@ AMDEP_FALSE = @AMDEP_FALSE@
 AMDEP_TRUE = @AMDEP_TRUE@
 AMTAR = @AMTAR@
 AR = @AR@
-ASSUAN_CFLAGS = @ASSUAN_CFLAGS@
-ASSUAN_LIBS = @ASSUAN_LIBS@
 AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
@@ -121,7 +120,7 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
-GETOPTSRC = @GETOPTSRC@
+GREP = @GREP@
 HAVE_ASSUAN_FALSE = @HAVE_ASSUAN_FALSE@
 HAVE_ASSUAN_TRUE = @HAVE_ASSUAN_TRUE@
 HAVE_OPENCT_FALSE = @HAVE_OPENCT_FALSE@
@@ -186,13 +185,9 @@ SHELL = @SHELL@
 STRIP = @STRIP@
 TEST_MINUS_S_SH = @TEST_MINUS_S_SH@
 VERSION = @VERSION@
-ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_F77 = @ac_ct_F77@
-ac_ct_RANLIB = @ac_ct_RANLIB@
-ac_ct_STRIP = @ac_ct_STRIP@
-ac_pt_PKG_CONFIG = @ac_pt_PKG_CONFIG@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
 am__fastdepCC_TRUE = @am__fastdepCC_TRUE@
 am__fastdepCXX_FALSE = @am__fastdepCXX_FALSE@
@@ -209,35 +204,43 @@ build_cpu = @build_cpu@
 build_os = @build_os@
 build_vendor = @build_vendor@
 datadir = @datadir@
+datarootdir = @datarootdir@
+docdir = @docdir@
+dvidir = @dvidir@
 exec_prefix = @exec_prefix@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
 host_os = @host_os@
 host_vendor = @host_vendor@
+htmldir = @htmldir@
 includedir = @includedir@/opensc
 infodir = @infodir@
 install_sh = @install_sh@
 libdir = @libdir@
 libexecdir = @libexecdir@
+localedir = @localedir@
 localstatedir = @localstatedir@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
+pdfdir = @pdfdir@
 pkgdata = @pkgdata@
 prefix = @prefix@
 program_transform_name = @program_transform_name@
+psdir = @psdir@
 sbindir = @sbindir@
 sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
+AM_CFLAGS = -I$(top_srcdir)/src/common
 MAINTAINERCLEANFILES = Makefile.in
 DISTCLEANFILES = lex-parse.c
 EXTRA_DIST = Makefile.mak README.scconf lex-parse.l
 include_HEADERS = scconf.h
 noinst_HEADERS = internal.h
 lib_LTLIBRARIES = libscconf.la
-libscconf_la_SOURCES = scconf.c parse.c write.c sclex.c
+libscconf_la_SOURCES = scconf.c parse.c write.c sclex.c $(top_srcdir)/src/common/strlcpy.c
 libscconf_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@
 test_conf_SOURCES = test-conf.c
 test_conf_LDADD = libscconf.la
@@ -323,6 +326,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/parse.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/scconf.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sclex.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/strlcpy.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/test-conf.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/write.Plo@am__quote@
 
@@ -346,6 +350,13 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
+
+strlcpy.lo: $(top_srcdir)/src/common/strlcpy.c
+@am__fastdepCC_TRUE@	if $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT strlcpy.lo -MD -MP -MF "$(DEPDIR)/strlcpy.Tpo" -c -o strlcpy.lo `test -f '$(top_srcdir)/src/common/strlcpy.c' || echo '$(srcdir)/'`$(top_srcdir)/src/common/strlcpy.c; \
+@am__fastdepCC_TRUE@	then mv -f "$(DEPDIR)/strlcpy.Tpo" "$(DEPDIR)/strlcpy.Plo"; else rm -f "$(DEPDIR)/strlcpy.Tpo"; exit 1; fi
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$(top_srcdir)/src/common/strlcpy.c' object='strlcpy.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o strlcpy.lo `test -f '$(top_srcdir)/src/common/strlcpy.c' || echo '$(srcdir)/'`$(top_srcdir)/src/common/strlcpy.c
 
 mostlyclean-libtool:
 	-rm -f *.lo

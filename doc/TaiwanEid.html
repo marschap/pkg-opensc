@@ -2,17 +2,17 @@
 <title>TaiwanEid - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Taiwan</h1>
+    <div id="searchable"><h1 id="Taiwan">Taiwan</h1>
 <p>
-<a class="ext-link" title="http://www.gi-de.com/portal/page?_pageid=44,91483&amp;_dad=portal&amp;_schema=PORTAL" href="http://www.gi-de.com/portal/page?_pageid=44,91483&amp;_dad=portal&amp;_schema=PORTAL" shape="rect">Giesecke &amp; Devrient</a> tells us Taiwan is using <a href="StarSign.html" shape="rect">StarSign</a> based tokens for a nation-wide PKI project. As <a href="StarSign.html" shape="rect">StarSign</a> is afaik a PKCS15 compliant 
-profile it should be supported in OpenSC. However due to a bug in an older version of the <a href="StarSign.html" shape="rect">StarSign</a> software 
+<a class="ext-link" href="http://www.gi-de.com/portal/page?_pageid=44,91483&amp;_dad=portal&amp;_schema=PORTAL" shape="rect"><span class="icon">Giesecke &amp; Devrient</span></a> tells us Taiwan is using <a class="wiki" href="/opensc/wiki/StarSign" shape="rect">StarSign</a> based tokens for a nation-wide PKI project. As <a class="wiki" href="/opensc/wiki/StarSign" shape="rect">StarSign</a> is afaik a PKCS15 compliant 
+profile it should be supported in OpenSC. However due to a bug in an older version of the <a class="wiki" href="/opensc/wiki/StarSign" shape="rect">StarSign</a> software 
 used for at least for some tokens the profile on these tokens are not PKCS15 compliant and hence these
 smartcards are currently not supported in OpenSC.
 </p>
 <p>
 To implement a workaround for these tokens shouldn't be too difficult, however due to a lack of test tokens
 it hasn't been implemented yet. If you have one of these tokens and are interested in OpenSC support for it
-please send a mail to opensc-devel@lists.opensc-project.org .
+please send a mail to opensc-devel@lists.opensc-project.org. The related ticket is <a class="assigned ticket" href="/opensc/ticket/30" title="pkcs11 of opensc not yet supporting Taiwan's Citizen Digital IC card due  ... (assigned)" shape="rect">#30</a>
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

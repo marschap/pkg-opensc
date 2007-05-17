@@ -1,7 +1,7 @@
 /*
  * sc.c: General functions
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -110,14 +110,38 @@ int sc_bin_to_hex(const u8 *in, size_t in_len, char *out, size_t out_len,
 	return 0;
 }
 
+void ulong2bebytes(u8 *buf, unsigned long x)
+{
+    buf[3] = (u8) (x & 0xff);
+    buf[2] = (u8) ((x >> 8) & 0xff);
+    buf[1] = (u8) ((x >> 16) & 0xff);
+    buf[0] = (u8) ((x >> 24) & 0xff);
+}
+
+void ushort2bebytes(u8 *buf, unsigned short x)
+{
+    buf[1] = (u8) (x & 0xff);
+    buf[0] = (u8) ((x >> 8) & 0xff);
+}
+
+unsigned long bebytes2ulong(const u8 *buf)
+{
+    return (unsigned long) (buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]);
+}
+
+unsigned short bebytes2ushort(const u8 *buf)
+{
+    return (unsigned short) (buf[0] << 24 | buf[1] << 16);
+}
+
 int sc_format_oid(struct sc_object_id *oid, const char *in)
 {
-	int ii, ret = SC_ERROR_INVALID_ARGUMENTS;
+	int        ii;
 	const char *p;
 	char       *q;
 
 	if (oid == NULL || in == NULL)
-		return ret;
+		return SC_ERROR_INVALID_ARGUMENTS;
 	/* init oid */
 	for (ii=0; ii<SC_MAX_OBJECT_ID_OCTETS; ii++)
 		oid->value[ii] = -1;
@@ -129,10 +153,14 @@ int sc_format_oid(struct sc_object_id *oid, const char *in)
 		if (!*q)
 			break;
 		if (!(q[0] == '.' && isdigit(q[1]))) {
-			return ret;
+			return SC_ERROR_INVALID_ARGUMENTS;
 		}
 		p = q + 1;
 	}
+
+	if (ii == 1)
+		/* reject too short OIDs */
+		return SC_ERROR_INVALID_ARGUMENTS;
 
 	return SC_SUCCESS;
 }
@@ -204,6 +232,20 @@ int sc_wait_for_event(sc_reader_t *readers[], int slot_id[], size_t nslots,
 	SC_FUNC_RETURN(ctx, 1, r);
 }
 
+int sc_path_set(sc_path_t *path, int type, const u8 *id, size_t id_len, 
+	int idx, int count)
+{
+	if (path == NULL || id == NULL || id_len == 0 || id_len > SC_MAX_PATH_SIZE)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	memcpy(path->value, id, id_len);
+	path->len   = id_len;
+	path->type  = type;
+	path->index = idx;
+	path->count = count;
+	
+	return SC_SUCCESS;
+}
+
 void sc_format_path(const char *str, sc_path_t *path)
 {
 	int type = SC_PATH_TYPE_PATH;
@@ -249,6 +291,10 @@ int sc_concatenate_path(sc_path_t *d, const sc_path_t *p1, const sc_path_t *p2)
 	if (d == NULL || p1 == NULL || p2 == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
+	if (p1->type == SC_PATH_TYPE_DF_NAME || p2->type == SC_PATH_TYPE_DF_NAME)
+		/* we do not support concatenation of AIDs at the moment */
+		return SC_ERROR_NOT_SUPPORTED;
+
 	if (p1->len + p2->len > SC_MAX_PATH_SIZE)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
@@ -257,6 +303,11 @@ int sc_concatenate_path(sc_path_t *d, const sc_path_t *p1, const sc_path_t *p2)
 	memcpy(tpath.value + p1->len, p2->value, p2->len);
 	tpath.len  = p1->len + p2->len;
 	tpath.type = SC_PATH_TYPE_PATH;
+	/* use 'index' and 'count' entry of the second path object */
+	tpath.index = p2->index;
+	tpath.count = p2->count;
+	/* the result is currently always as path */
+	tpath.type  = SC_PATH_TYPE_PATH;
 
 	*d = tpath;
 
@@ -303,8 +354,8 @@ int sc_compare_path_prefix(const sc_path_t *prefix, const sc_path_t *path)
 	if (prefix->len > path->len)
 		return 0;
 
-	tpath      = *path;
-	tpath.len -= prefix->len;
+	tpath     = *path;
+	tpath.len = prefix->len;
 
 	return sc_compare_path(&tpath, prefix);
 }

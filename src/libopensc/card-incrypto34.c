@@ -2,9 +2,9 @@
  * card-incrypto34.c: Support for Incard Incrypto34 based cards and tokens
  * 	(for example Italian CNS)
  *
- * Copyright (C) 2005  ST Incard srl, Giuseppe Amato <giuseppe dot amato at st dot com>
+ * Copyright (C) 2005  ST Incard srl, Giuseppe Amato <giuseppe dot amato at st dot com>, <midori3@gmail.com>
  * Copyright (C) 2002  Andreas Jellinghaus <aj@dungeon.inka.de>
- * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -568,11 +568,16 @@ incrypto34_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	/* remove padding: first try pkcs1 bt01 padding */
 	r = sc_pkcs1_strip_01_padding(data, datalen, buf, &tmp_len);
 	if (r != SC_SUCCESS) {
-		/* no pkcs1 bt01 padding => let's try zero padding */
+		const u8 *p = data;
+		/* no pkcs1 bt01 padding => let's try zero padding.
+		 * This can only work if the data tbs doesn't have a
+		 * leading 0 byte. */
 		tmp_len = buf_len;
-		r = sc_strip_zero_padding(data, datalen, buf, &tmp_len);
-		if (r != SC_SUCCESS)
-			SC_FUNC_RETURN(ctx, 4, r);
+		while (*p == 0 && tmp_len != 0) {
+			++p;
+			--tmp_len;
+		}
+		memcpy(buf, p, tmp_len);
 	}
 	sc_ctx_suppress_errors_on(ctx);
 	r = do_compute_signature(card, buf, tmp_len, out, outlen);

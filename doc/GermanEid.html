@@ -2,41 +2,60 @@
 <title>GermanEid - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>German ID Cards</h1>
+    <div id="searchable"><h1 id="GermanIDCards">German ID Cards</h1>
 <p>
 Germany has several laws for smart cards, and most ID cards conforming to those laws are using the TCOS 2.0X card operating
-system. 
+system. One exception is the D-Trust card which is Micardo based.
 </p>
 <p>
-Both a TeleSec and a SignTrust card were successfully tested with OpenSC 0.10.0-beta.
-Pkcs11-tool will fail on the signature only key, because it tries to
-do raw rsa for signing and the key does not support that. Applications
-should be fine, unless they try raw rsa padding with signature keys.
+Both a TeleSec and a SignTrust card were successfully tested with OpenSC 0.10.0.
+Pkcs11-tool will fail on the signature only key, because it tries differnt kinds of
+rsa-operations and the signature key can do rsa-signatures only.
+Most applications work fine, unless they try raw rsa padding with signature keys.
 </p>
 <p>
-You can find more information about TCOS cards <a href="TCOS.html" shape="rect">here</a>.
+You can find more information about TCOS cards <a class="wiki" href="/opensc/wiki/TCOS" shape="rect">here</a>.
 </p>
 <p>
 Support for D-Trust cards is in OpenSC 0.11.1 and later.
 </p>
 <p>
-Datev has also a Trustcenter in Germany, but we don't know what cards they use, as they only hand out cards to tax accountants etc
-(Steuerberater). <a class="ext-link" title="http://www.heise.de/newsticker/meldung/72957" href="http://www.heise.de/newsticker/meldung/72957" shape="rect">Heise</a> reports Datev will close their Trustcenter and hand over that
+Datev has a Trustcenter in Germany too. Their cards used to be TCOS-based (at least in 2006).
+<a class="ext-link" href="http://www.heise.de/newsticker/meldung/72957" shape="rect"><span class="icon">Heise</span></a> reports Datev will close their Trustcenter and hand over that
 business to Deutsche Post / SignTrust.
 </p>
-<h1>German eHBA, eGK</h1>
 <p>
-It is planned that in 2006 all german physicians and apothecaries will be equipped with a smartcard, the so called eHBA (elektronischer Heilberufeausweis). After that all german citizens that are a member of a public health insurance company (gesetzliche Krankenkasse) will get a similar card, the so called eGK (elektronische Gesundheitskarte). This means that virtually every german citizen will have a smartcard soon.
+Sparkassenverlag is another trust center in germany. They offer "qualifizierte Signaturkarten"
+without being an "akkreditierter ZKA". If you know about the legal implications this might have - let us know!
+A first test showed that OpenSC does not support the S-Trust card of Sparkassenverlag. I don't even
+know what card operation system is used.
 </p>
 <p>
-I don't have enough informations about these cards to make OpenSC support them. If you do have any such information, please let us know or add a link to the list below:
+Signature cards with a key length of 1024bit conform to the german signature law only until the end of 2007
+(<a class="ext-link" href="http://www.bundesnetzagentur.de/media/archive/5951.pdf" shape="rect"><span class="icon">http://www.bundesnetzagentur.de/media/archive/5951.pdf</span></a>). This forces german trust centers to either
+use 2048bit cards or use 1024bit cards with certificates that expire by the end of 2007.
+TCOS 2.0 has support for 1024bit keys only so TCOS based signature cards must use TCOS 3.0 soon.
+D-Trust has already changed their cards and now uses CardOS 4.3 instead of Micardo.
+</p>
+<h1 id="GermaneHBAeGK">German eHBA, eGK</h1>
+<p>
+<a href="http://www.opensc-project.org/opensc/attachment/wiki/GermanEid/HPC-Image.gif?format=raw" shape="rect">http://www.opensc-project.org/opensc/attachment/wiki/GermanEid/HPC-Image.gif?format=raw</a>
+</p>
+<p>
+Sometime in the future all german physicians and apothecaries will be equipped with a smartcard, the so called eHBA (elektronischer Heilberufeausweis). After that all german citizens that are a member of a public health insurance company (gesetzliche Krankenkasse) will get a similar card, the so called eGK (elektronische Gesundheitskarte). This means that virtually every german citizen will have a smartcard soon.
+</p>
+<p>
+We do have test cards and they are StarCos 3.0 based. So in order to support these kind of eHBA we do need a StarCos 3.0 driver first.
+If you have information about eHBAs, please let us know or add a link to the list below:
 </p>
 <p>
 Information about the future german eHBA / eGK:
 </p>
-<ul><li><a class="ext-link" title="http://www.gesundheitskarte-sh.de" href="http://www.gesundheitskarte-sh.de" shape="rect">Informations about the "elektronische Gesundheitskarte Schleswig-Holstein"</a>
-</li><li><a class="ext-link" title="http://www.heilberufeausweis.de" href="http://www.heilberufeausweis.de" shape="rect">Informations about the "Heilberufeausweis"</a>
-</li><li><a class="ext-link" title="http://www.zahnaerzte-online.de/download/051011_HPC_V2.09.pdf" href="http://www.zahnaerzte-online.de/download/051011_HPC_V2.09.pdf" shape="rect">Specification of German Health Professional Card Version 2.09</a>
-</li><li><a class="ext-link" title="http://www.dimdi.de/dynamic/de/ehealth/karte/technik/loesungsarchitektur/ergebnisse/index.htm#spezloes" href="http://www.dimdi.de/dynamic/de/ehealth/karte/technik/loesungsarchitektur/ergebnisse/index.htm#spezloes" shape="rect">Download Page for Specifications of the German Gesundheitskarte</a>
+<ul><li><a class="ext-link" href="http://www.gesundheitskarte-sh.de" shape="rect"><span class="icon">Informations about the "elektronische Gesundheitskarte Schleswig-Holstein"</span></a>
+</li><li><a class="ext-link" href="http://www.heilberufeausweis.de" shape="rect"><span class="icon">Informations about the "Heilberufeausweis"</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/060221a_HPC_P1_COS_V2_1_0.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.0 Part1: Commands, Algorithms and Functions of the COS Platform</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/060221b_HPC_P2_HPC_V2_1_0.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.0 Part2: HPC Applications and Functions</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/060221c_HPC_P3_SMC_V2_1_0.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.0 Part3: SMC Applications and Functions</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/usecases.pdf" shape="rect"><span class="icon">HPC Use-Cases</span></a>
 </li></ul></div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

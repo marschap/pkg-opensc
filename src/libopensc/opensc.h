@@ -1,7 +1,7 @@
 /*
  * opensc.h: OpenSC library header file
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *               2005        The OpenSC project
  *
  * This library is free software; you can redistribute it and/or
@@ -103,6 +103,7 @@ extern "C" {
 #define SC_AC_OP_INVALIDATE		5
 #define SC_AC_OP_LIST_FILES		6
 #define SC_AC_OP_CRYPTO			7
+#define SC_AC_OP_DELETE_SELF		8
 /* If you add more OPs here, make sure you increase
  * SC_MAX_AC_OPS in types.h */
 
@@ -127,9 +128,11 @@ extern "C" {
 #define SC_MAX_PIN_SIZE			256 /* OpenPGP card has 254 max */
 #define SC_MAX_ATR_SIZE			33
 #define SC_MAX_AID_SIZE			16
-/* Beware: the following needs to be a multiple of 4
- * or else sc_update_binary will not work on GPK */
-#define SC_APDU_CHOP_SIZE		248
+
+/* default max_send_size/max_recv_size */
+/* GPK rounds down to a multiple of 4, other driver have their own limits */
+#define SC_DEFAULT_MAX_SEND_SIZE	255
+#define SC_DEFAULT_MAX_RECV_SIZE	256
 
 #define SC_AC_KEY_REF_NONE	0xFFFFFFFF
 
@@ -180,11 +183,15 @@ extern "C" {
 /* If the card is willing to produce a cryptogram with the following
  * hash values, set these flags accordingly. */
 #define SC_ALGORITHM_RSA_HASH_NONE	0x00000010
-#define SC_ALGORITHM_RSA_HASHES		0x000001E0
 #define SC_ALGORITHM_RSA_HASH_SHA1	0x00000020
 #define SC_ALGORITHM_RSA_HASH_MD5	0x00000040
 #define SC_ALGORITHM_RSA_HASH_MD5_SHA1	0x00000080
 #define SC_ALGORITHM_RSA_HASH_RIPEMD160	0x00000100
+#define SC_ALGORITHM_RSA_HASH_SHA256	0x00000200
+#define SC_ALGORITHM_RSA_HASH_SHA384	0x00000400
+#define SC_ALGORITHM_RSA_HASH_SHA512	0x00000800
+#define SC_ALGORITHM_RSA_HASH_SHA224	0x00001000
+#define SC_ALGORITHM_RSA_HASHES		0x00001FE0
 
 /* Event masks for sc_wait_for_event() */
 #define SC_EVENT_CARD_INSERTED		0x0001
@@ -315,7 +322,7 @@ typedef struct sc_reader {
 
 #define SC_PIN_ENCODING_ASCII	0
 #define SC_PIN_ENCODING_BCD	1
-#define SC_PIN_ENCODING_GLP	2 /* Global Platform - Card Specification – v 2.0.1 */
+#define SC_PIN_ENCODING_GLP	2 /* Global Platform - Card Specification v2.0.1 */
 
 struct sc_pin_cmd_pin {
 	const char *prompt;	/* Prompt to display */
@@ -815,18 +822,14 @@ int sc_wait_for_event(sc_reader_t **readers, int *slots, size_t nslots,
 int sc_reset(sc_card_t *card);
 
 /**
- * Locks the card against modification from other threads.
- * After the initial call to sc_lock, the card is protected from
- * access from other processes. The function may be called several times.
- * @param card The card to lock
+ * Tries acquire the reader lock.
+ * @param  card  The card to lock
  * @retval SC_SUCCESS on success
  */
 int sc_lock(sc_card_t *card);
 /**
- * Unlocks a previously locked card. After the lock count drops to zero,
- * the card is again placed in shared mode, where other processes
- * may access or lock it.
- * @param card The card to unlock
+ * Unlocks a previously acquired reader lock.
+ * @param  card  The card to unlock
  * @retval SC_SUCCESS on success
  */
 int sc_unlock(sc_card_t *card);
@@ -968,6 +971,14 @@ int sc_compute_signature(sc_card_t *card, const u8 * data,
 			 size_t data_len, u8 * out, size_t outlen);
 int sc_verify(sc_card_t *card, unsigned int type, int ref, const u8 *buf,
 	      size_t buflen, int *tries_left);
+/**
+ * Resets the security status of the card (i.e. withdraw all granted
+ * access rights). Note: not all card operating systems support a logout
+ * command and in this case SC_ERROR_NOT_SUPPORTED is returned.
+ * @param  card  sc_card_t object
+ * @return SC_SUCCESS on success, SC_ERROR_NOT_SUPPORTED if the card
+ *         doesn't support a logout command and an error code otherwise
+ */
 int sc_logout(sc_card_t *card);
 int sc_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *, int *tries_left);
 int sc_change_reference_data(sc_card_t *card, unsigned int type,
@@ -1012,6 +1023,19 @@ int sc_file_set_type_attr(sc_file_t *file, const u8 *type_attr,
 /********************************************************************/
 /*             sc_path_t handling functions                         */
 /********************************************************************/
+
+/**
+ * Sets the content of a sc_path_t object.
+ * @param  path    sc_path_t object to set
+ * @param  type    type of path
+ * @param  id      value of the path 
+ * @param  id_len  length of the path value 
+ * @param  index   index within the file
+ * @param  count   number of bytes
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
+int sc_path_set(sc_path_t *path, int type, const u8 *id, size_t id_len,
+	int index, int count);
 
 void sc_format_path(const char *path_in, sc_path_t *path_out);
 /**
@@ -1154,6 +1178,8 @@ extern sc_card_driver_t *sc_get_belpic_driver(void);
 extern sc_card_driver_t *sc_get_atrust_acos_driver(void);
 extern sc_card_driver_t *sc_get_incrypto34_driver(void);
 extern sc_card_driver_t *sc_get_piv_driver(void);
+extern sc_card_driver_t *sc_get_muscle_driver(void);
+extern sc_card_driver_t *sc_get_acos5_driver(void);
 
 #ifdef __cplusplus
 }

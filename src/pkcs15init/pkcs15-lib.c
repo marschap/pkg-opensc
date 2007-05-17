@@ -61,6 +61,7 @@
 #include "pkcs15-init.h"
 #include <opensc/cardctl.h>
 #include <opensc/log.h>
+#include "strlcpy.h"
 
 #define OPENSC_INFO_FILEPATH		"3F0050154946"
 #define OPENSC_INFO_FILEID		0x4946
@@ -110,6 +111,8 @@ static int	do_select_parent(struct sc_profile *, sc_card_t *,
 			sc_file_t *, sc_file_t **);
 static int	sc_pkcs15init_create_pin(sc_pkcs15_card_t *, sc_profile_t *,
 			sc_pkcs15_object_t *, struct sc_pkcs15init_pinargs *);
+static int	check_key_size(sc_card_t *card, unsigned int alg,
+			unsigned int bits);
 static int	check_key_compatibility(struct sc_pkcs15_card *,
 			struct sc_pkcs15_prkey *, unsigned int,
 			unsigned int, unsigned int);
@@ -131,6 +134,7 @@ static int	sc_pkcs15init_read_info(sc_card_t *card, sc_profile_t *);
 static int	sc_pkcs15init_parse_info(sc_card_t *, const u8 *, size_t, sc_profile_t *);
 static int	sc_pkcs15init_write_info(sc_card_t *card, sc_profile_t *,
 			sc_pkcs15_object_t *pin_obj);
+#if 0
 static int	sc_pkcs15init_read_unusedspace(sc_pkcs15_card_t *);
 static int sc_pkcs15init_update_unusedspace(sc_pkcs15_card_t *, sc_profile_t *);
 static sc_pkcs15_unusedspace_t *merge_paths(sc_pkcs15_unusedspace_t *, const sc_path_t *);
@@ -138,6 +142,7 @@ static int sc_pkcs15init_add_unusedspace(sc_pkcs15_card_t *,
 			sc_profile_t *, const sc_path_t *, const sc_pkcs15_id_t *);
 static int sc_pkcs15init_remove_unusedspace(sc_pkcs15_card_t *,
 			sc_profile_t *, const sc_path_t *);
+#endif
 
 
 static struct profile_operations {
@@ -155,6 +160,7 @@ static struct profile_operations {
 	{ "oberthur", (void *) sc_pkcs15init_get_oberthur_ops },
 	{ "setcos", (void *) sc_pkcs15init_get_setcos_ops },
 	{ "incrypto34", (void *) sc_pkcs15init_get_incrypto34_ops },
+	{ "muscle", (void*) sc_pkcs15init_get_muscle_ops },
 	{ NULL, NULL },
 };
 
@@ -196,8 +202,7 @@ get_profile_from_config(sc_card_t *card, char *buffer, size_t size)
 
 		tmp = scconf_get_str(blk, "profile", NULL);
 		if (tmp != NULL) {
-			strncpy(buffer, tmp, size);
-			buffer[size-1] = '\0';
+			strlcpy(buffer, tmp, size);
 			return 1;
 		}
 	}
@@ -339,8 +344,7 @@ sc_pkcs15init_bind(sc_card_t *card, const char *name,
 	if (!get_profile_from_config(card, card_profile, sizeof(card_profile)))
 		strcpy(card_profile, driver);
 	if (profile_option != NULL) {
-		strncpy(card_profile, profile_option, sizeof(card_profile));
-		card_profile[sizeof(card_profile) - 1] = '\0';
+		strlcpy(card_profile, profile_option, sizeof(card_profile));
 	}
 
 	if ((r = sc_profile_load(profile, profile->name)) < 0
@@ -393,6 +397,18 @@ sc_pkcs15init_set_lifecycle(sc_card_t *card, int lcycle)
 int
 sc_pkcs15init_erase_card(sc_card_t *card, struct sc_profile *profile)
 {
+	/* Make sure we set the SO PIN reference in the key cache */
+	if (sc_keycache_find_named_pin(NULL, SC_PKCS15INIT_SO_PIN) == -1) {
+		struct sc_pkcs15_card *p15card = NULL;
+
+		sc_ctx_suppress_errors_on(card->ctx);
+		if (sc_pkcs15_bind(card, &p15card) >= 0) {
+			/* result of set_so_pin_from_card ignored */
+			set_so_pin_from_card(p15card, profile);
+			profile->p15_data = p15card;
+		}
+		sc_ctx_suppress_errors_off(card->ctx);
+	}
 	if (profile->ops->erase_card == NULL)
 		return SC_ERROR_NOT_SUPPORTED;
 	return profile->ops->erase_card(profile, card);
@@ -773,6 +789,7 @@ sc_pkcs15init_add_app(sc_card_t *card, struct sc_profile *profile,
 	return r;
 }
 
+#if 0
 /* Read the EF(UnusedSpace) file */
 static int sc_pkcs15init_read_unusedspace(sc_pkcs15_card_t *p15card)
 {
@@ -934,6 +951,7 @@ static int sc_pkcs15init_remove_unusedspace(sc_pkcs15_card_t *p15card,
 
 	return sc_pkcs15init_update_unusedspace(p15card, profile);
 }
+#endif
 
 /*
  * Store a PIN/PUK pair
@@ -1223,7 +1241,7 @@ sc_pkcs15init_init_prkdf(sc_pkcs15_card_t *p15card,
 			free(key_info); key_info = NULL;
 			free(object); object = *res_obj;
 
-			strncpy(object->label, label, sizeof(object->label));
+			strlcpy(object->label, label, sizeof(object->label));
 			return 0;
 		}
 	}
@@ -1281,6 +1299,11 @@ sc_pkcs15init_generate_key(struct sc_pkcs15_card *p15card,
 	struct sc_pkcs15_object *object;
 	struct sc_pkcs15_prkey_info *key_info;
 	int		r;
+
+	/* check supported key size */
+	r = check_key_size(p15card->card, keygen_args->prkey_args.key.algorithm, keybits);
+	if (r != SC_SUCCESS)
+		return r;
 
 	/* For now, we support just RSA key pair generation */
 	if (!check_key_compatibility(p15card, &keygen_args->prkey_args.key,
@@ -1619,7 +1642,7 @@ sc_pkcs15init_store_public_key(struct sc_pkcs15_card *p15card,
 		sc_pkcs15_free_object(object);
 		object = *res_obj;
 
-		strncpy(object->label, label, sizeof(object->label));
+		strlcpy(object->label, label, sizeof(object->label));
 	} else {
 		key_info->id = keyargs->id;
 		*res_obj = object;
@@ -1809,8 +1832,8 @@ sc_pkcs15init_store_data_object(struct sc_pkcs15_card *p15card,
 		return SC_ERROR_OUT_OF_MEMORY;
 	data_object_info = (sc_pkcs15_data_info_t *) object->data;
 	if (label != NULL) {
-		strncpy(data_object_info->app_label, label,
-			sizeof(data_object_info->app_label) - 1);
+		strlcpy(data_object_info->app_label, label,
+			sizeof(data_object_info->app_label));
 	}
 	data_object_info->app_oid = args->app_oid;
 
@@ -1949,6 +1972,26 @@ sc_pkcs15init_keybits(sc_pkcs15_bignum_t *bn)
 	for (mask = 0x80; !(bn->data[0] & mask); mask >>= 1)
 		bits--;
 	return bits;
+}
+
+/*
+ * Check if the key size is supported.
+ */
+static int check_key_size(sc_card_t *card, unsigned int alg,
+	unsigned int bits)
+{
+	int i;
+
+	for (i = 0; i < card->algorithm_count; i++) {
+		sc_algorithm_info_t *info = &card->algorithms[i];
+
+		if (info->algorithm != alg)
+			continue;
+		if (info->key_length != bits)
+			continue;
+		return SC_SUCCESS;
+	}
+	return SC_ERROR_NOT_SUPPORTED;
 }
 
 /*
@@ -2272,7 +2315,7 @@ select_object_path(sc_pkcs15_card_t *p15card, sc_profile_t *profile,
 	/* For cards with a pin-domain profile, we need
 	 * to put the key below the DF of the specified PIN */
 	memset(path, 0, sizeof(*path));
-	if (obj->auth_id.len) {
+	if (obj->auth_id.len && profile->pin_domains != 0) {
 		r = sc_pkcs15init_get_pin_path(p15card, &obj->auth_id, path);
 		if (r < 0)
 			return r;
@@ -2683,7 +2726,7 @@ sc_pkcs15init_new_object(int type, const char *label, sc_pkcs15_id_t *auth_id, v
 	}
 
 	if (label)
-		strncpy(object->label, label, sizeof(object->label)-1);
+		strlcpy(object->label, label, sizeof(object->label));
 	if (auth_id)
 		object->auth_id = *auth_id;
 
@@ -3025,7 +3068,7 @@ do_get_and_verify_secret(sc_profile_t *pro, sc_card_t *card,
 	sc_keycache_put_key(path, type, reference, pinbuf, *pinsize);
 
 	/* If it's a PIN, pad it out */
-found:	if (type == SC_AC_CHV) {
+found:	if (type == SC_AC_CHV && pin_info.flags & SC_PKCS15_PIN_FLAG_NEEDS_PADDING) {
 		int left = pro->pin_maxlen - *pinsize;
 
 		if (left > 0) {

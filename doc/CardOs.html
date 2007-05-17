@@ -2,12 +2,15 @@
 <title>CardOs - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Siemens CardOS M4</h1>
+    <div id="searchable"><h1 id="SiemensCardOSM4">Siemens CardOS M4</h1>
 <p>
 Siemens CardOS M4 smart card should work fine with OpenSC.
 </p>
 <p>
-Currently only the Aladdin eToken PRO is tested often (a usb crypto dongle that contains a card with this operating system). It works fine, so all other smart cards with the same card operating system should work fine, too.
+Supported smart cards are the <a class="wiki" href="/opensc/wiki/AladdinEtokenPro" shape="rect">Aladdin eToken PRO</a> and the <a class="wiki" href="/opensc/wiki/CryptoIdentityItsec" shape="rect">Eutron ITSEC-I</a> USB tokens.
+</p>
+<p>
+Currently only the <a class="wiki" href="/opensc/wiki/AladdinEtokenPro" shape="rect">Aladdin eToken PRO</a> is tested often (a usb crypto dongle that contains a card with this operating system). It works fine, so all other smart cards with the same card operating system should work fine, too.
 </p>
 <p>
 Siemens CardOS M4 does not allow a key to be used for signing and decryption. OpenSC has a workaround for this restriction, you can generate or store a private key with the "--split-key" flag which will store the key twice, with different usage options, but hide this detail.
@@ -16,7 +19,7 @@ Siemens CardOS M4 does not allow a key to be used for signing and decryption. Op
 Some documentation is available from Aladdin for their eToken PRO, but for an in-depth documentation you need the Siemens card manual, which requires signing an NDA.
 </p>
 <p>
-It can be bought e.g. at www.cryptshop.com.
+It can be bought e.g. at www.cryptoshop.com.
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

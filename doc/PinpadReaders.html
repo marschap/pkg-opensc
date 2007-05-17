@@ -2,7 +2,7 @@
 <title>PinpadReaders - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Pinpad Readers</h1>
+    <div id="searchable"><h1 id="PinpadReaders">Pinpad Readers</h1>
 <p>
 Pinpad support with OpenCT is still under development. If you want to test it you'll have to use development snapshots of OpenSC and will most probably run into difficulties and/or outright bugs. 
 Reporting those bugs on the mailinglist may be a good way to get them fixed.
@@ -11,10 +11,10 @@ Reporting those bugs on the mailinglist may be a good way to get them fixed.
 Currently Win32 and Unix versions follow quite different approaches, mainly due to availability of different drivers.
 </p>
 <p>
-The Unix approach using CCID compliant readers is discribed in the <a href="CardReaders/SPR532.html" shape="rect">CardReaders/SPR532</a> document, I'll have a word about <a href="CardReaders/CTAPI.html" shape="rect">CT-API Readers</a> which are common on Win32 (if you have one on a Unix system please tell me!).
+The Unix approach using CCID compliant readers is discribed in the <a class="wiki" href="/opensc/wiki/CardReaders/SPR532" shape="rect">CardReaders/SPR532</a> document, I'll have a word about <a class="wiki" href="/opensc/wiki/CardReaders/CTAPI" shape="rect">CT-API Readers</a> which are common on Win32 (if you have one on a Unix system please tell me!).
 (martin: The 'ccid' in the spec is misleading - every ifdhandler can be changed to implement the teletrust spec - it uses a control block similar to CCID pin block but is <i>not</i> pure ccid up to the lowest levels of the driver. And: the latest spr532 drivers for windows should follow the same spec and thus it <i>should</i> work on windows. it is more tied to pcsc than it is tied to pure ccid)
 </p>
-<h2>Known and tested pinpad readers</h2>
+<h2 id="Knownandtestedpinpadreaders">Known and tested pinpad readers</h2>
 <p>
 Please feel free to add your hardware and experiences here.
 </p>
@@ -26,18 +26,18 @@ Class 3 readers have pinpad and a display.
 </p>
 <table class="wiki">
 <tr><td rowspan="1" colspan="1"> <strong>Reader</strong> </td><td rowspan="1" colspan="1"> <strong>OS</strong> </td><td rowspan="1" colspan="1"> <strong>Type</strong> </td><td rowspan="1" colspan="1"> <strong>CT-API library</strong> </td><td rowspan="1" colspan="1"> <strong>Comments </strong> 
-</td></tr><tr><td rowspan="1" colspan="1"> SCM STR 391 "CashMouse" </td><td rowspan="1" colspan="1"> Win32 </td><td rowspan="1" colspan="1"> Class 3 USB </td><td rowspan="1" colspan="1"> CTRSRW32.dll </td><td rowspan="1" colspan="1"> Works fine with Win32, no Unix support planned 
+</td></tr><tr><td rowspan="1" colspan="1"> SCM STR 391 "<a class="missing wiki" href="/opensc/wiki/CashMouse" rel="nofollow" shape="rect">CashMouse?</a>" </td><td rowspan="1" colspan="1"> Win32 </td><td rowspan="1" colspan="1"> Class 3 USB </td><td rowspan="1" colspan="1"> CTRSRW32.dll </td><td rowspan="1" colspan="1"> Works fine with Win32, no Unix support planned 
 </td></tr><tr><td rowspan="1" colspan="1"> Cherry G83-6700 Smartboard </td><td rowspan="1" colspan="1"> Win32 </td><td rowspan="1" colspan="1"> Class 2 PS/2 </td><td rowspan="1" colspan="1"> CTMGR.DLL </td><td rowspan="1" colspan="1"> A keyboard integrated reader which uses the keyboard for pin entry. Buggy CT-API driver, I got it working but not without patching OpenCT. No known Unix support 
 </td></tr><tr><td rowspan="1" colspan="1"> Reiner SCT cyberJack pinpad </td><td rowspan="1" colspan="1"> Win32 </td><td rowspan="1" colspan="1"> Class 2 USB </td><td rowspan="1" colspan="1"> CTRSCT32.DLL </td><td rowspan="1" colspan="1"> According to the manufacturer's website it should also run on Linux, but I haven't managed it. 
 </td></tr><tr><td rowspan="1" colspan="1"> Reiner SCT cyberJack keyboard </td><td rowspan="1" colspan="1"> Win32 </td><td rowspan="1" colspan="1"> Class 2 PS/2 </td><td rowspan="1" colspan="1"> CTRSCT32.DLL </td><td rowspan="1" colspan="1"> A cheap class 2 solution. It uses the keyboard for pin entry. No known Unix support. 
-</td></tr><tr><td rowspan="1" colspan="1"> SCM SPR 332, 532 "Chipdrive Pinpad" </td><td rowspan="1" colspan="1"> Win32 &amp; Linux </td><td rowspan="1" colspan="1"> Class 2 USB </td><td rowspan="1" colspan="1"> CTPCSC32.dll </td><td rowspan="1" colspan="1"> A widely used CCID compliant reader. I also got it working on Linux following Martin's CardReaders/SPR532 suggestions 
+</td></tr><tr><td rowspan="1" colspan="1"> SCM SPR 332, 532 "Chipdrive Pinpad" </td><td rowspan="1" colspan="1"> Win32 &amp; Linux </td><td rowspan="1" colspan="1"> Class 2 USB </td><td rowspan="1" colspan="1"> CTPCSC32.dll </td><td rowspan="1" colspan="1"> A widely used CCID compliant reader. I also got it working on Linux following Martin's <a class="missing wiki" href="/opensc/wiki/CardReaders" rel="nofollow" shape="rect">CardReaders?</a>/SPR532 suggestions 
 </td></tr><tr><td rowspan="1" colspan="1"> Xiring XiPass </td><td rowspan="1" colspan="1"> Win32 </td><td rowspan="1" colspan="1"> Class 3 PS/2 </td><td rowspan="1" colspan="1"> PC/SC only </td><td rowspan="1" colspan="1"> Works well with Win32, pinpad entry works with EstEID CSP, no official Unix support, still there is an openct driver for it. 
 </td></tr><tr><td rowspan="1" colspan="1"> Reiner SCT cyberjack pinpad</td><td rowspan="1" colspan="1"> Mac OS X</td><td rowspan="1" colspan="1">Class 2 USB</td><td rowspan="1" colspan="1">with pcscd</td><td rowspan="1" colspan="1">If you start the pcscd per hand it works well with the Drivers provided by Reiner SCT. I haven't managed to entry the pin with the Reader's keyboard
 </td></tr></table>
 <p>
 Kobil and OmniKey also offer pinpad readers, if someone could test one of those with OpenSC feedback would be appreceated. 
 </p>
-<h2>Testing Pinpad</h2>
+<h2 id="TestingPinpad">Testing Pinpad</h2>
 <p>
 In opensc source you will find src/tools/pintest tool. It allows you to test if your card+reader combination
 support pinpad. FIXME: add more details.

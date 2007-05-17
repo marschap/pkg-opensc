@@ -1,7 +1,7 @@
 /*
  * pkcs15.h: OpenSC PKCS#15 header file
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -344,6 +344,13 @@ typedef struct sc_pkcs15_unusedspace sc_pkcs15_unusedspace_t;
 #define SC_PKCS15_CARD_MAGIC		0x10203040
 
 typedef struct {
+	int			se;
+	struct sc_object_id	owner;
+	u8			aid[SC_MAX_AID_SIZE];
+	size_t			aid_len;
+} sc_pkcs15_sec_env_info_t;
+
+typedef struct {
 	unsigned int version;
 	unsigned int flags;
 	char *label;
@@ -351,6 +358,8 @@ typedef struct {
 	char *manufacturer_id;	
 	char *last_update;
 	char *preferred_language;
+	sc_pkcs15_sec_env_info_t **seInfo;
+	size_t num_seInfo;
 } sc_pkcs15_tokeninfo_t;
 
 typedef struct sc_pkcs15_card {
@@ -375,6 +384,9 @@ typedef struct sc_pkcs15_card {
 	struct sc_pkcs15_card_opts {
 		int use_cache;
 	} opts;
+
+	sc_pkcs15_sec_env_info_t **seInfo;
+	size_t num_seInfo;
 
 	unsigned int magic;
 
@@ -632,6 +644,8 @@ void sc_pkcs15_format_id(const char *id_in, struct sc_pkcs15_id *id_out);
 int sc_pkcs15_hex_string_to_id(const char *in, struct sc_pkcs15_id *out);
 void sc_der_copy(sc_pkcs15_der_t *, const sc_pkcs15_der_t *);
 void sc_der_clear(sc_pkcs15_der_t *);
+/* Prepend 'parent' to 'child' in case 'child' is a relative path */
+int sc_pkcs15_make_absolute_path(const sc_path_t *parent, sc_path_t *child);
 
 /* New object search API.
  * More complex, but also more powerful.
@@ -661,6 +675,7 @@ typedef struct sc_pkcs15emu_opt {
 #define SC_PKCS15EMU_FLAGS_NO_CHECK	0x00000001
 
 extern int sc_pkcs15_bind_synthetic(sc_pkcs15_card_t *);
+extern int sc_pkcs15_is_emulation_only(sc_card_t *);
 
 int sc_pkcs15emu_object_add(sc_pkcs15_card_t *p15card, unsigned int type,
 			const sc_pkcs15_object_t *obj, const void *data);

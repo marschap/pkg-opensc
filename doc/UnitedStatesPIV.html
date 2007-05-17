@@ -1,0 +1,87 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>UnitedStatesPIV - OpenSC - Trac</title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div class="wikipage">
+    <div id="searchable"><p>
+The <a class="ext-link" href="http://www.nist.gov/" shape="rect"><span class="icon">National Institute of Standards and Technology</span></a>, U.S. Department of Commerce has defined a 
+smart card application. Although not a "national ID card", it is expected to be used widely in the 
+U.S.federal government and its contractors. Cards with this application are commonly referred to as PIV cards. 
+</p>
+<p>
+<a class="ext-link" href="http://csrc.nist.gov/publications/nistpubs/800-73-1/sp800-73-1v7-April20-2006.pdf" shape="rect"><span class="icon">NIST 800-73-1</span></a> and related 
+documents define PIV. Part 3 of 800-73-1 defines the ADPU commands accepted 
+by the PIV application on the card. The standard does not define all the commands needed to
+administer a card, leaving this up to the card vendors and card administration software vendors.
+</p>
+<p>
+The non-administrative commands are standardized, and so any vendor's card with the PIV application
+should inter operate with any vendor's client software. The 
+<a href="http://www.opensc-project.org/doc/opensc/html/tools.html#pkcs11-tool" shape="rect">pkcs11-tool</a> can be used
+to read the objects on the card and to change the user PIN.   
+</p>
+<p>
+The <a class="wiki" href="/opensc/wiki/PivTool" shape="rect">piv-tool</a> is provided to allow for some card administration in testing, such as generating
+a key pair, and loading a certificate or other object on the card. You may need more information
+from your card vendor.       
+</p>
+<p>
+The PIV is not a PKCS#15 type card, but rather an object based application. OpenSC provides 
+a PKCS#15 emulator to access the four certificates and keys, along with the data objects. 
+Thus for example the "X.509 Certificate for PIV Authentication" can be used with PKCS#11 for
+login or web access.
+</p>
+<p>
+OpenSC does not currently search arbitrary cards for an application, so you will need to add
+the ATR of specific vendor's cards to the opensc.conf.
+The ATR of your card can be read using the <a href="http://www.opensc-project.org/doc/opensc/html/tools.html#opensc-tool" shape="rect">opensc-tool</a>.
+</p>
+<p>
+Sample changes needed in the opensc.conf file to use some GemAalto and Oberthur PIV cards:
+</p>
+<pre class="wiki" xml:space="preserve">...
+    reader_driver xxxxx {
+...
+        max_send_size = 256;
+        max_recv_size = 256;
+...
+    }
+...
+    card_atr 3B:7D:96:00:00:80:31:80:65:B0:83:11:11:AC:83:00:90:00 {
+            # GemAlto
+            name = "PIV-II";
+            driver = "piv";
+        }
+    card_atr 3b:db:96:00:81:b1:fe:45:1f:03:80:f9:a0:00:00:03:08:00:00:10:00:18 {
+            #    Oberthur 
+            name = "PIV-II";
+            driver = "piv";
+        }
+...
+    framework pkcs15 {
+...
+        emulate PIV-II {
+        }
+...
+    }
+...
+</pre><h1 id="Links">Links</h1>
+<h2 id="PIVOverview">PIV Overview</h2>
+<blockquote>
+<p>
+<a class="ext-link" href="http://csrc.ncsl.nist.gov/piv-program/" shape="rect"><span class="icon">http://csrc.ncsl.nist.gov/piv-program/</span></a>  
+</p>
+</blockquote>
+<h2 id="PIVCardEdgeSpecificationswithADPUs">PIV Card Edge Specifications with ADPUs</h2>
+<blockquote>
+<p>
+<a class="ext-link" href="http://csrc.nist.gov/publications/nistpubs/800-73-1/sp800-73-1v7-April20-2006.pdf" shape="rect"><span class="icon">http://csrc.nist.gov/publications/nistpubs/800-73-1/sp800-73-1v7-April20-2006.pdf</span></a>
+</p>
+</blockquote>
+<h2 id="PIVApprovedCardsReadersMiddlewareetc">PIV Approved Cards, Readers, Middleware etc</h2>
+<blockquote>
+<p>
+<a class="ext-link" href="http://fips201ep.cio.gov/apl.php" shape="rect"><span class="icon">http://fips201ep.cio.gov/apl.php</span></a>
+</p>
+</blockquote>
+</div>
+   </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

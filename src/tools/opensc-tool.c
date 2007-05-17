@@ -1,7 +1,7 @@
 /*
  * opensc-tool.c: Tool for accessing smart cards with libopensc
  *
- * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -171,7 +171,10 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 			"unknown", "transpnt", "linrfix", "linrfix(TLV)",
 			"linvar", "linvar(TLV)", "lincyc", "lincyc(TLV)"
 		};
-		printf("ef structure: %s, ", structs[file->ef_structure]);
+		int ef_type = file->ef_structure;
+		if (ef_type < 0 || ef_type > 7)
+			ef_type = 0;	/* invalid or unknow ef type */
+		printf("ef structure: %s, ", structs[ef_type]);
 	}
 	printf("size: %lu\n", (unsigned long) file->size);
 	for (r = 0; r < depth; r++)
@@ -315,6 +318,7 @@ static int send_apdu(void)
 				return 2;
 			}
 			len -= apdu.lc;
+			p   += apdu.lc;
 			if (len) {
 				apdu.le = *p++;
 				if (apdu.le == 0)

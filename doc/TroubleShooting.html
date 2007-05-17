@@ -2,20 +2,20 @@
 <title>TroubleShooting - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Debugging OpenSC</h1>
+    <div id="searchable"><h1 id="DebuggingOpenSC">Debugging OpenSC</h1>
 <pre class="wiki" xml:space="preserve">opensc-tool -l
 </pre><p>
 will give you a list of readers opensc has found. If your reader isn't listed, you have
-a problem with that reader. For OpenCT see [<a class="ext-link" title="http://www.opensc-project.org/openct/wiki/TroubleShooting" href="http://www.opensc-project.org/openct/wiki/TroubleShooting" shape="rect">http://www.opensc-project.org/openct/wiki/TroubleShooting</a>] for details.
+a problem with that reader. For OpenCT see <a href="http://www.opensc-project.org/openct/wiki/TroubleShooting" shape="rect">http://www.opensc-project.org/openct/wiki/TroubleShooting</a> for details.
 For PCSC/Lite see it's documentation (FIXME: a link would be nice). For CT-API readers, edit the
 opensc.conf and make sure the reader is properly configured. If it still doesn't help, increase
 debugging to level 5 or higher in opensc.conf, run "opensc-tool -l" again and send a debug log
-to the mailing list (see <a class="missing" href="/opensc/wiki/ContactInfo" shape="rect">ContactInfo?</a> for details).
+to the mailing list (see <a class="missing wiki" href="/opensc/wiki/ContactInfo" rel="nofollow" shape="rect">ContactInfo?</a> for details).
 </p>
 <p>
 FIXME: more help for debugging opensc.
 </p>
-<h2>Unsupported INS byte in APDU</h2>
+<h2 id="UnsupportedINSbyteinAPDU">Unsupported INS byte in APDU</h2>
 <p>
 This is a common error message. The best translation is:
 </p>
@@ -51,7 +51,7 @@ Replace "gpk" with the card driver of your card and "00:11:22" with the atr
 printed by "opensc-tool --atr". WARNING: this can damage your card and render
 it useless (in case the driver is not compatible with your card). So don't do
 this, unless you are absolutely sure of what you are doing. If you are not
-sure, please contact the OpenSC Team (see <a href="MailingLists.html" shape="rect">MailingLists</a> for details).
+sure, please contact the OpenSC Team (see <a class="wiki" href="/opensc/wiki/MailingLists" shape="rect">MailingLists</a> for details).
 </p>
 <p>
 Also note: more and more drivers have internal flags, for example for subtypes

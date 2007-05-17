@@ -4,7 +4,7 @@
  *
  * Copyright (c) 2005  Nils Larsch <nils@larsch.net>
  * Copyright (C) 2002  Andreas Jellinghaus <aj@dungeon.inka.de>
- * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,12 +28,6 @@
 
 #include <opensc/asn1.h>
 
-/* andreas says: hm, my card only works for small payloads */
-/* comment by okir: one of the examples in the developer guide
- * also talks about copying data in chunks of 128.
- * Either coincidence, or a known problem. */
-#define CARDOS_MAX_PAYLOAD	120
-
 static const struct sc_card_operations *iso_ops = NULL;
 
 struct sc_card_operations cardos_ops;
@@ -48,13 +42,15 @@ static struct sc_atr_table cardos_atrs[] = {
 	/* 4.0 */
 	{ "3b:e2:00:ff:c1:10:31:fe:55:c8:02:9c", NULL, NULL, SC_CARD_TYPE_CARDOS_GENERIC, 0, NULL },
 	/* 4.01 */
-	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:03:15", NULL, NULL, SC_CARD_TYPE_CARDOS_GENERIC, 0, NULL },
+	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:03:15", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_01, 0, NULL },
 	/* 4.01a */
-	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:04:12", NULL, NULL, SC_CARD_TYPE_CARDOS_GENERIC, 0, NULL },
+	{ "3b:f2:98:00:ff:c1:10:31:fe:55:c8:04:12", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_01, 0, NULL },
 	/* M4.2 */
 	{ "3b:f2:18:00:ff:c1:0a:31:fe:55:c8:06:8a", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_2, 0, NULL },
+	{ "3b:f2:18:00:ff:c1:0a:31:fe:55:c8:06:75", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_2, 0, NULL },
 	/* M4.3 */
-	{ "3b:f2:18:00:02:c1:0a:31:fe;55:c8:07:76", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_3, 0, NULL },
+	{ "3b:f2:18:00:02:c1:0a:31:fe:55:c8:07:76", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_3, 0, NULL },
+	{ "3b:f2:18:00:02:c1:0a:31:fe:58:c8:08:74", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_3, 0, NULL },
 	/* Italian eID card, postecert */
 	{ "3b:e9:00:ff:c1:10:31:fe:55:00:64:05:00:c8:02:31:80:00:47", NULL, NULL, SC_CARD_TYPE_CARDOS_GENERIC, 0, NULL },
 	/* Italian eID card, infocamere */
@@ -139,6 +135,9 @@ static int cardos_init(sc_card_t *card)
 			return r;
 		if (r == 1)
 			card->caps |= SC_CARD_CAP_RSA_2048;
+		card->caps |= SC_CARD_CAP_APDU_EXT;
+	} else if (card->type == SC_CARD_TYPE_CARDOS_M4_3) {
+		card->caps |= SC_CARD_CAP_RSA_2048;
 		card->caps |= SC_CARD_CAP_APDU_EXT;
 	}
 
@@ -607,12 +606,14 @@ static int cardos_create_file(sc_card_t *card, sc_file_t *file)
 
 	SC_FUNC_CALLED(card->ctx, 1);
 
-	if (card->type == SC_CARD_TYPE_CARDOS_GENERIC) {
+	if (card->type == SC_CARD_TYPE_CARDOS_GENERIC ||
+	    card->type == SC_CARD_TYPE_CARDOS_M4_01) {
 		r = cardos_set_file_attributes(card, file);
 		if (r != SC_SUCCESS)
 			return r;
 		return iso_ops->create_file(card, file);
-	} else if (card->type == SC_CARD_TYPE_CARDOS_M4_2) {
+	} else if (card->type == SC_CARD_TYPE_CARDOS_M4_2 ||
+	           card->type == SC_CARD_TYPE_CARDOS_M4_3) {
 		u8        sbuf[SC_MAX_APDU_BUFFER_SIZE];
 		size_t    len = sizeof(sbuf);
 		sc_apdu_t apdu;
@@ -741,9 +742,9 @@ do_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
 
 	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00)
-		SC_FUNC_RETURN(card->ctx, 4, apdu.resplen)
+		SC_FUNC_RETURN(card->ctx, 4, apdu.resplen);
 	else
-		SC_FUNC_RETURN(card->ctx, 4, sc_check_sw(card, apdu.sw1, apdu.sw2))
+		SC_FUNC_RETURN(card->ctx, 4, sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
 
 static int
@@ -782,11 +783,16 @@ cardos_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	/* remove padding: first try pkcs1 bt01 padding */
 	r = sc_pkcs1_strip_01_padding(data, datalen, buf, &tmp_len);
 	if (r != SC_SUCCESS) {
-		/* no pkcs1 bt01 padding => let's try zero padding */
+		const u8 *p = data;
+		/* no pkcs1 bt01 padding => let's try zero padding
+		 * This can only work if the data tbs doesn't have a
+		 * leading 0 byte.  */
 		tmp_len = buf_len;
-		r = sc_strip_zero_padding(data, datalen, buf, &tmp_len);
-		if (r != SC_SUCCESS)
-			SC_FUNC_RETURN(ctx, 4, r);
+		while (*p == 0 && tmp_len != 0) {
+			++p;
+			--tmp_len;
+		}
+		memcpy(buf, p, tmp_len);
 	}
 	sc_ctx_suppress_errors_on(ctx);
 	r = do_compute_signature(card, buf, tmp_len, out, outlen);
@@ -1045,7 +1051,8 @@ cardos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
 
 static int cardos_logout(sc_card_t *card)
 {
-	if (card->type == SC_CARD_TYPE_CARDOS_M4_2) {
+	if (card->type == SC_CARD_TYPE_CARDOS_M4_01 ||
+	    card->type == SC_CARD_TYPE_CARDOS_M4_2) {
 		sc_apdu_t apdu;
 		int       r;
 		sc_path_t path;
@@ -1063,7 +1070,7 @@ static int cardos_logout(sc_card_t *card)
 
 		return sc_check_sw(card, apdu.sw1, apdu.sw2);
 	} else
-		return iso_ops->logout(card);
+		return SC_ERROR_NOT_SUPPORTED;
 }
 
 

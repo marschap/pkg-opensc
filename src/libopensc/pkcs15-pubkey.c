@@ -1,7 +1,7 @@
 /*
  * pkcs15-pubkey.c: PKCS #15 public key functions
  *
- * Copyright (C) 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -135,6 +135,9 @@ int sc_pkcs15_decode_pukdf_entry(struct sc_pkcs15_card *p15card,
 	} else {
 		obj->type = SC_PKCS15_TYPE_PUBKEY_DSA;
 	}
+	r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
+	if (r < 0)
+		return r;
 	obj->data = malloc(sizeof(info));
 	if (obj->data == NULL)
 		SC_FUNC_RETURN(ctx, 0, SC_ERROR_OUT_OF_MEMORY);

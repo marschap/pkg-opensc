@@ -1,7 +1,7 @@
 /*
  * framework-pkcs15.c: PKCS#15 framework and related objects
  *
- * Copyright (C) 2002  Timo Ter‰s <timo.teras@iki.fi>
+ * Copyright (C) 2002  Timo Ter√§s <timo.teras@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -254,6 +254,41 @@ __pkcs15_release_object(struct pkcs15_any_object *obj)
 	return 0;
 }
 
+static int public_key_created(struct pkcs15_fw_data *fw_data,
+			      const unsigned int num_objects,
+			      const u8 *id, 
+			      const size_t size_id,
+			      struct pkcs15_any_object **obj2)
+{
+	int found = 0;
+	int ii=0;
+
+	while(ii<num_objects && !found) {
+		if (!fw_data->objects[ii]->p15_object) {
+			ii++;
+			continue;
+		}
+		if ((fw_data->objects[ii]->p15_object->type != SC_PKCS15_TYPE_PUBKEY) && 
+		    (fw_data->objects[ii]->p15_object->type != SC_PKCS15_TYPE_PUBKEY_RSA) &&
+		    (fw_data->objects[ii]->p15_object->type != SC_PKCS15_TYPE_PUBKEY_DSA)) {
+			ii++;
+			continue;
+		}
+		/* XXX this is somewhat dirty as this assumes that the first 
+		 * member of the is the pkcs15 id */
+		if (memcmp(fw_data->objects[ii]->p15_object->data, id, size_id) == 0) {
+			*obj2 = (struct pkcs15_any_object *) fw_data->objects[ii];
+			found=1;
+		} else
+			ii++;
+	}
+  
+	if (found)
+		return SC_SUCCESS;
+	else 
+		return SC_ERROR_OBJECT_NOT_FOUND;      
+}
+
 static int
 __pkcs15_create_cert_object(struct pkcs15_fw_data *fw_data,
 	struct sc_pkcs15_object *cert, struct pkcs15_any_object **cert_object)
@@ -283,12 +318,15 @@ __pkcs15_create_cert_object(struct pkcs15_fw_data *fw_data,
 	object->cert_data = p15_cert;
 
 	/* Corresponding public key */
-	rv = __pkcs15_create_object(fw_data, (struct pkcs15_any_object **) &obj2,
-					NULL, &pkcs15_pubkey_ops,
-					sizeof(struct pkcs15_pubkey_object));
+	rv = public_key_created(fw_data, fw_data->num_objects, p15_info->id.value, p15_info->id.len, (struct pkcs15_any_object **) &obj2);
+	
+	if (rv != SC_SUCCESS)
+	  rv = __pkcs15_create_object(fw_data, (struct pkcs15_any_object **) &obj2,
+				      NULL, &pkcs15_pubkey_ops,
+				      sizeof(struct pkcs15_pubkey_object));
 	if (rv < 0)
-		return rv;
-
+	  return rv;	
+	
 	if (p15_cert) {
 		obj2->pub_data = &p15_cert->key;
 		obj2->pub_data = (sc_pkcs15_pubkey_t *)calloc(1, sizeof(sc_pkcs15_pubkey_t));
@@ -604,8 +642,9 @@ static void pkcs15_init_slot(struct sc_pkcs15_card *card,
 	char tmp[64];
 
 	pkcs15_init_token_info(card, &slot->token_info);
-	slot->token_info.flags |= CKF_USER_PIN_INITIALIZED
-				| CKF_TOKEN_INITIALIZED;
+	slot->token_info.flags |= CKF_TOKEN_INITIALIZED;
+	if (auth != NULL)
+		slot->token_info.flags |= CKF_USER_PIN_INITIALIZED;
 	if (card->card->slot->capabilities & SC_SLOT_CAP_PIN_PAD) {
 		slot->token_info.flags |= CKF_PROTECTED_AUTHENTICATION_PATH;
 		sc_pkcs11_conf.cache_pins = 0;
@@ -626,7 +665,7 @@ static void pkcs15_init_slot(struct sc_pkcs15_card *card,
 		}
 		slot->token_info.flags |= CKF_LOGIN_REQUIRED;
 	} else
-		sprintf(tmp, card->label);
+		snprintf(tmp, sizeof(tmp), "%s", card->label);
 	strcpy_bp(slot->token_info.label, tmp, 32);
 
 	if (pin_info && pin_info->magic == SC_PKCS15_PIN_MAGIC) {
@@ -1907,6 +1946,15 @@ static CK_RV pkcs15_prkey_sign(struct sc_pkcs11_session *ses, void *obj,
 		break;
 	case CKM_SHA1_RSA_PKCS:
 		flags = SC_ALGORITHM_RSA_PAD_PKCS1 | SC_ALGORITHM_RSA_HASH_SHA1;
+		break;
+	case CKM_SHA256_RSA_PKCS:
+		flags = SC_ALGORITHM_RSA_PAD_PKCS1 | SC_ALGORITHM_RSA_HASH_SHA256;
+		break;
+	case CKM_SHA384_RSA_PKCS:
+		flags = SC_ALGORITHM_RSA_PAD_PKCS1 | SC_ALGORITHM_RSA_HASH_SHA384;
+		break;
+	case CKM_SHA512_RSA_PKCS:
+		flags = SC_ALGORITHM_RSA_PAD_PKCS1 | SC_ALGORITHM_RSA_HASH_SHA512;
 		break;
 	case CKM_RIPEMD160_RSA_PKCS:
 		flags = SC_ALGORITHM_RSA_PAD_PKCS1 | SC_ALGORITHM_RSA_HASH_RIPEMD160;

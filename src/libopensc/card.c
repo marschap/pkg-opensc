@@ -1,7 +1,7 @@
 /*
  * card.c: General smart card functions
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -188,6 +188,8 @@ int sc_connect_card(sc_reader_t *reader, int slot_id, sc_card_t **card_out)
 				sc_debug(ctx, "trying driver: %s\n", drv->short_name);
 			if (ops == NULL || ops->match_card == NULL)
 				continue;
+			/* Needed if match_card() needs to talk with the card (e.g. card-muscle) */
+			*card->ops = *ops;
 			if (ops->match_card(card) != 1)
 				continue;
 			if (ctx->debug >= 3)
@@ -280,13 +282,14 @@ int sc_lock(sc_card_t *card)
 {
 	int r = 0, r2 = 0;
 
+	SC_FUNC_CALLED(card->ctx, 3);
+	
 	if (card == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
 	r = sc_mutex_lock(card->ctx, card->mutex);
 	if (r != SC_SUCCESS)
 		return r;
 	if (card->lock_count == 0) {
-		SC_FUNC_CALLED(card->ctx, 3);
 		if (card->reader->ops->lock != NULL)
 			r = card->reader->ops->lock(card->reader, card->slot);
 		if (r == 0)
@@ -304,7 +307,9 @@ int sc_lock(sc_card_t *card)
 
 int sc_unlock(sc_card_t *card)
 {
-	int r = 0;
+	int r, r2;
+
+	SC_FUNC_CALLED(card->ctx, 3);
 
 	if (card == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
@@ -312,33 +317,19 @@ int sc_unlock(sc_card_t *card)
 	if (r != SC_SUCCESS)
 		return r;
 	assert(card->lock_count >= 1);
-	if (card->lock_count == 1) {
-		SC_FUNC_CALLED(card->ctx, 3);
+	if (--card->lock_count == 0) {
+		/* invalidate cache */
 		memset(&card->cache, 0, sizeof(card->cache));
 		card->cache_valid = 0;
-		if (card->ops->logout != NULL) {
-			/* XXX As this logout causes random asserts on card->lock_count >=0
-			  on card removal under firefox 1.5 */
-			r = sc_mutex_unlock(card->ctx, card->mutex);
-			if (r != SC_SUCCESS) {
-				sc_error(card->ctx, "unable to release lock\n");
-				return r;
-			}
-			sc_debug(card->ctx, "Calling card logout function\n");
-			card->ops->logout(card);
-			r = sc_mutex_lock(card->ctx, card->mutex);
-			if (r != SC_SUCCESS)
-				return r;
-		}
-	}
-	/* Check again, lock count may have changed
-	 * while we were in logout() */
-	if (card->lock_count == 1) {
+		/* release reader lock */
 		if (card->reader->ops->unlock != NULL)
 			r = card->reader->ops->unlock(card->reader, card->slot);
 	}
-	card->lock_count--;
-	r = sc_mutex_unlock(card->ctx, card->mutex);
+	r2 = sc_mutex_unlock(card->ctx, card->mutex);
+	if (r2 != SC_SUCCESS) {
+		sc_error(card->ctx, "unable to release lock\n");
+		r = (r == SC_SUCCESS) ? r2 : r;
+	}
 	return r;
 }
 
@@ -762,8 +753,11 @@ static int match_atr_table(sc_context_t *ctx, struct sc_atr_table *table, u8 *at
 		if (ctx->debug >= 4)
 			sc_debug(ctx, "ATR try : %s\n", tatr);
 
-		if (tatr_len != card_atr_hex_len)
+		if (tatr_len != card_atr_hex_len) {
+			if (ctx->debug >= 5)
+				sc_debug(ctx, "ignored - wrong length\n", tatr);
 			continue;
+		}
 		if (matr != NULL) {
 			u8 mbin[SC_MAX_ATR_SIZE], tbin[SC_MAX_ATR_SIZE];
 			size_t mbin_len, tbin_len, s, matr_len;
@@ -774,14 +768,20 @@ static int match_atr_table(sc_context_t *ctx, struct sc_atr_table *table, u8 *at
 			matr_len = strlen(matr);
 			if (tatr_len != matr_len)
 				continue;
-			mbin_len = sizeof(mbin);
-			sc_hex_to_bin(matr, mbin, &mbin_len);
-			if (mbin_len != card_atr_bin_len)
-				continue;
-			for (s = 0; s < mbin_len; s++)
-				mbin[s] = (card_atr_bin[s] & mbin[s]);
 			tbin_len = sizeof(tbin);
 			sc_hex_to_bin(tatr, tbin, &tbin_len);
+			mbin_len = sizeof(mbin);
+			sc_hex_to_bin(matr, mbin, &mbin_len);
+			if (mbin_len != card_atr_bin_len) {
+				sc_error(ctx,"length of atr and atr mask do not match - ignored: %s - %s", tatr, matr); 
+				continue;
+			}
+			for (s = 0; s < tbin_len; s++) {
+				/* reduce tatr with mask */
+				tbin[s] = (tbin[s] & mbin[s]);
+				/* create copy of card_atr_bin masked) */
+				mbin[s] = (card_atr_bin[s] & mbin[s]);
+			}
 			if (memcmp(tbin, mbin, tbin_len) != 0)
 				continue;
 		} else {

@@ -2,62 +2,137 @@
 <title>Cyberflex - OpenSC - Trac</title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div class="wikipage">
-    <div id="searchable"><h1>Schlumberger / Axalto Cyberflex</h1>
+    <div id="searchable"><h1 id="SchlumbergerAxaltoCyberflex">Schlumberger / Axalto Cyberflex</h1>
 <p>
 Earlier versions of Cyberflex cards have the same or a very similiar filesystem interface like the Cryptoflex cards.
 Those cards work well with OpenSC.
 </p>
 <p>
-Newer versions however are pure <a class="missing" href="/opensc/wiki/JavaCards" shape="rect">JavaCards?</a> and will not work without a <a class="missing" href="/opensc/wiki/JavaApplet" shape="rect">JavaApplet?</a>. No such applet is currently supported by OpenSC.
+Newer versions however are pure JavaCards and will not work without a JavaApplet.
 </p>
 <p>
-<a class="ext-link" title="http://www.musclecard.com/" href="http://www.musclecard.com/" shape="rect">MuscleCard</a> is an open source software containing a <a class="missing" href="/opensc/wiki/JavaApplet" shape="rect">JavaApplet?</a> for Cyberflex cards and has a pkcs#11
-library for Unix/Linux and Windows. (<i>Doesn't it only work for Cryptoflex cards?</i>)
+<a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon">MuscleCard</span></a> is an open source software containing a Java Cardlet for several smart cards
+implementing the JavaCard standard. Starting with OpenSC 0.11.2 support for MuscleCard has been added. 
 </p>
 <p>
-FIXME:Did anyone test such a card recently?
+Current Test Status: Test in Progress with Schlumberger/Axalto e-gate (sealed, with a Cyberflex card inside).
+No other card has been tested, and these tests are still incomplete. Only for the brave! This might kill your card!
+No warranty whatsoever!
 </p>
-<hr></hr>
+<h2 id="InitializingaJavaCard">Initializing a JavaCard</h2>
 <p>
-[edit Alexis Lahouze]
+First you need to install gpshell from the global platform open source project:
 </p>
-<p>
-I am trying to test a Cyberflex Access 64k card from Axalto.
-</p>
-<p>
-info from the reader:
-</p>
-<pre class="wiki" xml:space="preserve">$ opensc-tool -l
-Readers known about:
-Nr.    Driver     Name
-0      pcsc       Omnikey CardMan 4040 Socket 0 00 00
+<pre class="wiki" xml:space="preserve">wget http://mesh.dl.sourceforge.net/sourceforge/globalplatform/globalplatform-3.0.2.tar.gz
+tar xfvz globalplatform-3.0.2.tar.gz
+cd globalplatform-3.0.2
+./configure --prefix=/usr
+make
+make install
+cd ..
+
+wget http://mesh.dl.sourceforge.net/sourceforge/globalplatform/gpshell-1.3.1.tar.gz
+tar xfvz gpshell-1.3.1.tar.gz
+cd gpshell-1.3.1
+./configure --prefix=/usr
+make
+make install
+cd ..
 </pre><p>
-when I try to access to th card:
+Second you need to configure PC/SC properly. GP doesn't know about OpenCT or CT-API, but OpenCT can be a
+PC/SC Reader.
 </p>
-<pre class="wiki" xml:space="preserve">$ opensc-tool -v -a -c cyberflex -f
-Connecting to card in reader Omnikey CardMan 4040 Socket 0 00 00...
-reader-pcsc.c:495:pcsc_connect: SCardControl failed: Transaction failed.
-Using card driver Schlumberger Cyberflex.
-Card ATR:
-3B 95 95 40 FF AE 01 03 00 00 ;..@......
-iso7816.c:98:iso7816_check_sw: Class not supported
-card-flex.c:546:select_file_id: Card returned error: Unsupported CLA byte in APDU
-card-flex.c:623:flex_select_file: returning with: Unsupported CLA byte in APDU
-card.c:763:sc_select_file: returning with: Unsupported CLA byte in APDU
-SELECT FILE failed: Unsupported CLA byte in APDU
-iso7816.c:98:iso7816_check_sw: Instruction code not supported or invalid
-card-flex.c:1311:flex_logout: Card returned error: Unsupported INS byte in APDU
+<pre class="wiki" xml:space="preserve">cat &gt; /etc/reader.conf.d/openct &lt;&lt;EOF
+FRIENDLYNAME    OpenCT
+DEVICENAME      /dev/null
+LIBPATH         /usr/lib/openct-ifd.so
+CHANNELID       0
+EOF
+update-reader.conf
+/etc/init.d/pcscd restart
+opensc-tool -l
+opensc-tool -a -r 0
 </pre><p>
-I tried under Windows with an USB Omnikey Cardman 3121 and Axalto specific card manager, that's all okay.
+/etc/reader.conf.d/ feature is available on debian/ubuntu and on fedora as far as I know, users of other distributions will want
+to edit (NOT OVERWRITE) /etc/reader.conf directly. Also only debian/ubuntu users need to run update-reader.conf command.
+opensc-tool -l should show the OpenCT reader via pcsc, and be able to read the atr from it.
 </p>
 <p>
-But under linux, I can't acces to the card, probably due to the <a class="missing" href="/opensc/wiki/JavaApplet" shape="rect">JavaApplet?</a>.
+Next you need to download the MuscleCard Applet. The Muscle Web page is at <a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon">http://www.musclecard.com/</span></a> but you can download the Applet directly from <a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon">http://www.identityalliance.com/CardEdgeII.ijc</span></a>
 </p>
 <p>
-note: please correct my poor English, I'm a french one...
+Finally you need to run gpshell with these commands:
+</p>
+<pre class="wiki" xml:space="preserve">$ gpshell
+mode_201
+enable_trace
+establish_context
+card_connect -readerNumber 1
+select -AID a0000000030000
+open_sc -security 1 -keyind 0 -keyver 0 -mac_key 404142434445464748494a4b4c4d4e4f -enc_key 404142434445464748494a4b4c4d4e4f // Open secure channel
+delete -AID A0000003230101
+delete -AID A00000032301
+delete -AID A00000000101
+delete -AID A000000001
+install -file CardEdgeII.ijc -nvDataLimit 12000 -instParam 00 -priv 2
+card_disconnect
+release_context
+</pre><p>
+The last two "delete" commands will remove an older version of the applet.
 </p>
 <p>
-[/edit]
+Next you need to set the PIN codes to "00000000", so you can initialize the card.
+You can change the pin codes later. (FIXME: How?)
+</p>
+<pre class="wiki" xml:space="preserve">opensc-tool -s 00:A4:04:00:06:A0:00:00:00:01:01  -s B0:2A:00:00:38:08:4D:75:73:63:6C:65:30:30:04:01:08:30:30:30:30:30:30:30:30:08:30:30:30:30:30:30:30:30:05:02:08:30:30:30:30:30:30:30:30:08:30:30:30:30:30:30:30:30:00:00:17:70:00:02:01
+</pre><p>
+Now the token has a working MuscleCard Cardlet and is ready for use with OpenSC.
+</p>
+<h2 id="UsingtheTokenwithOpenSC">Using the Token with OpenSC</h2>
+<p>
+Sorry, not tested so far. Still getting an error.
+</p>
+<pre class="wiki" xml:space="preserve">pkcs15-tool -C -p pkcs15+onepin
+</pre><h2 id="FAQ">FAQ</h2>
+<h3 id="WhattodoonWindows">What to do on Windows ?</h3>
+<p>
+<a class="ext-link" href="http://sourceforge.net/projects/globalplatform" shape="rect"><span class="icon">http://sourceforge.net/projects/globalplatform</span></a> has a download package of GPShell.exe for windows, so no need to compile it on your own.
+</p>
+<p>
+Download
+</p>
+<ul><li><a class="ext-link" href="http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip" shape="rect"><span class="icon">http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip</span></a>
+</li><li><a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon">http://www.identityalliance.com/CardEdgeII.ijc</span></a>
+</li></ul><p>
+and unzip both in the current directory. Run the same commands mentioned above and you should be fine. Note however that this is 100% untested,
+please report back if it works (or not) on the opensc-user or opensc-devel <a class="wiki" href="/opensc/wiki/MailingLists" shape="rect">MailingLists</a>. Thanks for your feedback!
+</p>
+<h3 id="Isthereatoolforit">Is there a tool for it?</h3>
+<p>
+A small tool to get some information about the cards can be found here: <a class="ext-link" href="http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz" shape="rect"><span class="icon">http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz</span></a>
+It was written for IBM JCop cards but should work as well with Cyberflex cards.
+</p>
+<h3 id="HowcanIformatorupdatecardswiththeoldapplet">How can I format or update cards with the old applet?</h3>
+<p>
+If you use ID Ally - it will delete the old applet before installation of the new.  gpshell should allow you to delete:
+first A00000000101
+then A000000001
+</p>
+<h3 id="WhatcanIdoifIspecifiedatoosmallsize">What can I do if I specified a too small size?</h3>
+<p>
+Delete A00000000101 (instance) and reinstantiate to a larger size.
+(this will delete all data / key / ... )
+</p>
+<h3 id="ImaskedaboutUnspecifiedPINReference1">I'm asked about Unspecified PIN [Reference 1]</h3>
+<p>
+There are two APDUs that have to be run first if you use GPShell (which sets the default pins, puks, etc):
+</p>
+<p>
+<tt>00 A4 04 00 06 A0 00 00 00 01 01</tt> and
+<tt>B0 2A 00 00 38 08 4D 75 73 63 6C 65 30 30 04 01 08 30 30 30 30 30 30 30 30 08 30 30 30 30 30 30 30 30 05 02 08 30 30 30 30 30 30 30 30 08 30 30 30 30 30 30 30 30 00 00 17 70 00 02 01</tt>
+</p>
+<p>
+Both need to be send in one go - without card reset in between. The first selects the muscle applet, the second sets the default pins to "00000000".
 </p>
 </div>
    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

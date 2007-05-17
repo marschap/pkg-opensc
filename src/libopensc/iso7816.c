@@ -1,7 +1,7 @@
 /*
  * iso7816.c: Functions specified by the ISO 7816 standard
  *
- * Copyright (C) 2001, 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2001, 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -307,7 +307,7 @@ static int iso7816_process_fci(sc_card_t *card, sc_file_t *file,
 			sc_debug(ctx, "  file identifier: 0x%02X%02X\n", tag[0],
 			       tag[1]);
 	}
-	tag = sc_asn1_find_tag(ctx, p, len, 0x81, &taglen);
+	tag = sc_asn1_find_tag(ctx, p, len, 0x80, &taglen);
 	if (tag != NULL && taglen >= 2) {
 		int bytes = (tag[0] << 8) + tag[1];
 		if (ctx->debug >= 3)
@@ -315,7 +315,7 @@ static int iso7816_process_fci(sc_card_t *card, sc_file_t *file,
 		file->size = bytes;
 	}
 	if (tag == NULL) {
-		tag = sc_asn1_find_tag(ctx, p, len, 0x80, &taglen);
+		tag = sc_asn1_find_tag(ctx, p, len, 0x81, &taglen);
 		if (tag != NULL && taglen >= 2) {
 			int bytes = (tag[0] << 8) + tag[1];
 			if (ctx->debug >= 3)
@@ -360,22 +360,15 @@ static int iso7816_process_fci(sc_card_t *card, sc_file_t *file,
 	}
 	tag = sc_asn1_find_tag(ctx, p, len, 0x84, &taglen);
 	if (tag != NULL && taglen > 0 && taglen <= 16) {
-		char name[17];
-		size_t i;
-
 		memcpy(file->name, tag, taglen);
 		file->namelen = taglen;
 
-		for (i = 0; i < taglen; i++) {
-			if (isalnum(tag[i]) || ispunct(tag[i])
-			    || isspace(tag[i]))
-				name[i] = tag[i];
-			else
-				name[i] = '?';
-		}
-		name[taglen] = 0;
 		if (ctx->debug >= 3)
-			sc_debug(ctx, "  File name: %s\n", name);
+		{
+			char tbuf[128];
+			sc_hex_dump(ctx, file->name, file->namelen, tbuf, sizeof(tbuf));
+			sc_debug(ctx, "  File name: %s\n", tbuf);
+		}
 	}
 	tag = sc_asn1_find_tag(ctx, p, len, 0x85, &taglen);
 	if (tag != NULL && taglen) {
@@ -432,6 +425,14 @@ static int iso7816_select_file(sc_card_t *card,
 			path += 2;
 			pathlen -= 2;
 		}
+		break;
+	case SC_PATH_TYPE_FROM_CURRENT:
+		apdu.p1 = 9;
+		break;
+	case SC_PATH_TYPE_PARENT:
+		apdu.p1 = 3;
+		pathlen = 0;
+		apdu.cse = SC_APDU_CASE_2_SHORT;
 		break;
 	default:
 		SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_INVALID_ARGUMENTS);
@@ -588,10 +589,17 @@ static int iso7816_get_response(sc_card_t *card, size_t *count, u8 *buf)
 {
 	sc_apdu_t apdu;
 	int r;
+	size_t rlen;
+
+	/* request at most max_recv_size bytes */
+	if (*count > card->max_recv_size)
+		rlen = card->max_recv_size;
+	else
+		rlen = *count;
 
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xC0, 0x00, 0x00);
-	apdu.le      = *count;
-	apdu.resplen = *count;
+	apdu.le      = rlen;
+	apdu.resplen = rlen;
 	apdu.resp    = buf;
 	/* don't call GET RESPONSE recursively */
 	apdu.flags  |= SC_APDU_FLAGS_NO_GET_RESP;
@@ -814,9 +822,9 @@ static int iso7816_decipher(sc_card_t *card,
 	free(sbuf);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
 	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00)
-		SC_FUNC_RETURN(card->ctx, 2, apdu.resplen)
+		SC_FUNC_RETURN(card->ctx, 2, apdu.resplen);
 	else
-		SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2))
+		SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
 
 static int iso7816_build_pin_apdu(sc_card_t *card, sc_apdu_t *apdu,
@@ -961,26 +969,6 @@ static int iso7816_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
 	return sc_check_sw(card, apdu->sw1, apdu->sw2);
 }
 
-/*
- * For some cards, selecting the MF clears all access rights gained
- */
-static int iso7816_logout(sc_card_t *card)
-{
-	sc_path_t in_path;
-	in_path.value[0] = 0x3F;
-	in_path.value[1] = 0x00;
-	in_path.len = 2;
-	in_path.index = 0;
-	in_path.count = 2;
-	in_path.type = SC_PATH_TYPE_PATH;
-
-	/* Force the SELECT FILE even if the card thinks
-	 * it's already inside the MF */
-	card->cache_valid = 0;
-
-	return sc_select_file(card, &in_path, NULL);
-}
-
 static int no_match(sc_card_t *card)
 {
 	return 0;
@@ -1002,7 +990,7 @@ static struct sc_card_operations iso_ops = {
 	iso7816_get_response,
 	iso7816_get_challenge,
 	NULL,			/* verify */
-	iso7816_logout,
+	NULL,			/* logout */
 	iso7816_restore_security_env,
 	iso7816_set_security_env,
 	iso7816_decipher,

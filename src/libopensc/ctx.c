@@ -1,7 +1,7 @@
 /*
  * ctx.c: Context related functions
  *
- * Copyright (C) 2002  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2002  Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -70,11 +70,13 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 #endif
 	{ "belpic",	(void *(*)(void)) sc_get_belpic_driver },
 	{ "atrust-acos",(void *(*)(void))sc_get_atrust_acos_driver },
+	{ "muscle", (void *(*)(void)) sc_get_muscle_driver },	// Above EMV because the detection gets caught there first
 	{ "emv",	(void *(*)(void)) sc_get_emv_driver },
 	{ "incrypto34", (void *(*)(void)) sc_get_incrypto34_driver },
 #ifdef HAVE_OPENSSL
 	{ "PIV-II",(void *) sc_get_piv_driver },
 #endif
+	{ "acos5",	(void *(*)(void)) sc_get_acos5_driver },
 	/* The default driver should be last, as it handles all the
 	 * unrecognized cards. */
 	{ "default",	(void *(*)(void)) sc_get_default_driver },
@@ -181,8 +183,13 @@ static int load_parameters(sc_context_t *ctx, scconf_block *block,
 	int err = 0;
 	const scconf_list *list;
 	const char *val, *s_internal = "internal";
+    const char *debug = NULL;
 
 	ctx->debug = scconf_get_int(block, "debug", ctx->debug);
+	debug = getenv("OPENSC_DEBUG");
+	if (debug)
+		ctx->debug = atoi(debug);
+
 	val = scconf_get_str(block, "debug_file", NULL);
 	if (val) {
 		if (ctx->debug_file && ctx->debug_file != stdout)
@@ -256,15 +263,13 @@ static void load_reader_driver_options(sc_context_t *ctx,
 			break;
 	}
 
-	driver->max_send_size = SC_APDU_CHOP_SIZE;
-	driver->max_recv_size = SC_APDU_CHOP_SIZE;
+	driver->max_send_size = SC_DEFAULT_MAX_SEND_SIZE;
+	driver->max_recv_size = SC_DEFAULT_MAX_RECV_SIZE;
 	if (conf_block != NULL) {
 		driver->max_send_size = scconf_get_int(conf_block,
-						"max_send_size",
-						SC_APDU_CHOP_SIZE);
+			"max_send_size", SC_DEFAULT_MAX_SEND_SIZE);
 		driver->max_recv_size = scconf_get_int(conf_block,
-						"max_recv_size",
-						SC_APDU_CHOP_SIZE);
+			"max_recv_size", SC_DEFAULT_MAX_RECV_SIZE);
 	}
 }
 
@@ -554,16 +559,19 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 
 	memset(ctx->conf_blocks, 0, sizeof(ctx->conf_blocks));
 #ifdef _WIN32
-        rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\OpenSC",
-                0, KEY_QUERY_VALUE, &hKey );
-        if( rc == ERROR_SUCCESS ) {
-                temp_len = PATH_MAX;
-                rc = RegQueryValueEx( hKey, "ConfigFile", NULL, NULL,
-                        (LPBYTE) temp_path, &temp_len);
-                if( (rc == ERROR_SUCCESS) && (temp_len < PATH_MAX) )
-                        conf_path = temp_path;
-                RegCloseKey( hKey );
-        }
+        conf_path = getenv("OPENSC_CONF");
+	if (!conf_path) {
+        	rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\OpenSC",
+                	0, KEY_QUERY_VALUE, &hKey );
+        	if( rc == ERROR_SUCCESS ) {
+                	temp_len = PATH_MAX;
+                	rc = RegQueryValueEx( hKey, "ConfigFile", NULL, NULL,
+                        	(LPBYTE) temp_path, &temp_len);
+                	if( (rc == ERROR_SUCCESS) && (temp_len < PATH_MAX) )
+                        	conf_path = temp_path;
+                	RegCloseKey( hKey );
+        	}
+	}
 
         if (! conf_path) {
                 rc = RegOpenKeyEx( HKEY_LOCAL_MACHINE, "Software\\OpenSC",

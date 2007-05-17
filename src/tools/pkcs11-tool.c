@@ -34,6 +34,9 @@
 #include "openssl/err.h"
 #endif
 
+extern void *C_LoadModule(const char *name, CK_FUNCTION_LIST_PTR_PTR);
+extern CK_RV C_UnloadModule(void *module);
+
 #define NEED_SESSION_RO	0x01
 #define NEED_SESSION_RW	0x02
 #define NO_SLOT		((CK_SLOT_ID) -1)
@@ -48,7 +51,8 @@ enum {
 	OPT_INIT_TOKEN,
 	OPT_INIT_PIN,
 	OPT_ATTR_FROM,
-	OPT_KEY_TYPE
+	OPT_KEY_TYPE,
+	OPT_PRIVATE
 };
 
 const struct option options[] = {
@@ -71,7 +75,7 @@ const struct option options[] = {
 	{ "key-type",		1, 0,		OPT_KEY_TYPE },
 	{ "write-object",	1, 0, 		'w' },
 	{ "read-object",	0, 0, 		'r' },
-	{ "application-id",	1, 0, 	OPT_APPLICATION_ID },
+	{ "application-id",	1, 0, 		OPT_APPLICATION_ID },
 	{ "type", 		1, 0, 		'y' },
 	{ "id", 		1, 0, 		'd' },
 	{ "label", 		1, 0, 		'a' },
@@ -86,6 +90,7 @@ const struct option options[] = {
 	{ "test",		0, 0,		't' },
 	{ "moz-cert",		1, 0,		'z' },
 	{ "verbose",		0, 0,		'v' },
+	{ "private",		0, 0,		OPT_PRIVATE },
 	{ 0, 0, 0, 0 }
 };
 
@@ -110,7 +115,7 @@ const char *option_help[] = {
 	"Write an object (key, cert) to the card",
 	"Get object's CKA_VALUE attribute (use with --type)",
 	"Specify the application id of the data object (use with --type data)",
-	"Specify the type of object (e.g. cert, privkey, pubkey)",
+	"Specify the type of object (e.g. cert, privkey, pubkey, data)",
 	"Specify the id of the object",
 	"Specify the label of the object",
 	"Specify number of the slot to use",
@@ -124,6 +129,7 @@ const char *option_help[] = {
 	"Test (best used with the --login or --pin option)",
 	"Test Mozilla-like keypair gen and cert req, <arg>=certfile",
 	"Verbose operation. Use several times to enable debug output.",
+	"Set the CKA_PRIVATE attribute (object is only viewable after a login)"
 };
 
 const char *		app_name = "pkcs11-tool"; /* for utils.c */
@@ -146,6 +152,7 @@ static char *		opt_pin = NULL;
 static char *		opt_so_pin = NULL;
 static char *		opt_application_id = NULL;
 static char *		opt_key_type = NULL;
+static int		opt_is_private = 0;
 
 static void *module = NULL;
 static CK_FUNCTION_LIST_PTR p11 = NULL;
@@ -418,6 +425,9 @@ main(int argc, char * argv[])
 			break ;
 		case OPT_KEY_TYPE:
 			opt_key_type = optarg;
+			break;
+		case OPT_PRIVATE:
+			opt_is_private = 1;
 			break;
 		default:
 			print_usage_and_die();
@@ -1163,9 +1173,9 @@ write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	unsigned char certdata[MAX_OBJECT_SIZE];
 	int certdata_len = 0;
 	FILE *f;
-	CK_OBJECT_HANDLE cert_obj, privkey_obj;
-	CK_ATTRIBUTE cert_templ[20], privkey_templ[20];
-	int n_cert_attr = 0, n_privkey_attr = 0;
+	CK_OBJECT_HANDLE cert_obj, privkey_obj, data_obj;
+	CK_ATTRIBUTE cert_templ[20], privkey_templ[20], data_templ[20];
+	int n_cert_attr = 0, n_privkey_attr = 0, n_data_attr = 0;
 #if 0 
 	CK_ATTRIBUTE pubkey_templ[20];
 	CK_OBJECT_HANDLE pubkey_obj;
@@ -1307,8 +1317,42 @@ write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 #endif
 	}
 	else
+	if (opt_object_class == CKO_DATA) {
+		CK_OBJECT_CLASS clazz = CKO_DATA;
+		FILL_ATTR(data_templ[0], CKA_CLASS, &clazz, sizeof(clazz));
+		FILL_ATTR(data_templ[1], CKA_TOKEN, &_true, sizeof(_true));
+		FILL_ATTR(data_templ[2], CKA_VALUE, &contents, contents_len);
+
+		n_data_attr = 3;
+
+		if (opt_is_private != 0) {
+			FILL_ATTR(data_templ[n_data_attr], CKA_PRIVATE,
+				&_true, sizeof(_true));
+		}
+
+		if (opt_application_id != NULL) {
+			FILL_ATTR(data_templ[n_data_attr], CKA_APPLICATION,
+				opt_application_id, strlen(opt_application_id));
+			n_data_attr++;
+		}
+		if (opt_object_label != NULL) {
+			FILL_ATTR(data_templ[n_data_attr], CKA_LABEL,
+				opt_object_label, strlen(opt_object_label));
+			n_data_attr++;
+		}
+		
+	}
+	else
 		fatal("Writing of a \"%s\" type not (yet) supported\n", opt_object_class_str);
 
+	if (n_data_attr) {
+		rv = p11->C_CreateObject(session, data_templ, n_data_attr, &data_obj);
+		if (rv != CKR_OK)
+			p11_fatal("C_CreateObject", rv);
+		
+		printf("Generated Data Object:\n");
+		show_dobj(session, data_obj);
+	}
 	if (n_cert_attr) {
 		rv = p11->C_CreateObject(session, cert_templ, n_cert_attr, &cert_obj);
 		if (rv != CKR_OK)
@@ -3285,6 +3329,9 @@ static struct mech_info	p11_mechanisms[] = {
       { CKM_MD2_RSA_PKCS,	"MD2-RSA-PKCS", 	NULL },
       { CKM_MD5_RSA_PKCS,	"MD5-RSA-PKCS", 	"rsa-md5" },
       { CKM_SHA1_RSA_PKCS,	"SHA1-RSA-PKCS",	"rsa-sha1" },
+      { CKM_SHA256_RSA_PKCS,	"SHA256-RSA-PKCS",	"rsa-sha256" },
+      { CKM_SHA384_RSA_PKCS,	"SHA384-RSA-PKCS",	"rsa-sha384" },
+      { CKM_SHA512_RSA_PKCS,	"SHA512-RSA-PKCS",	"rsa-sha512" },
       { CKM_RIPEMD128_RSA_PKCS,	"RIPEMD128-RSA-PKCS",	NULL },
       { CKM_RIPEMD160_RSA_PKCS,	"RIPEMD160-RSA-PKCS",	"rsa-ripemd160" },
       { CKM_RSA_PKCS_OAEP,	"RSA-PKCS-OAEP",	NULL },
@@ -3293,6 +3340,9 @@ static struct mech_info	p11_mechanisms[] = {
       { CKM_SHA1_RSA_X9_31,	"SHA1-RSA-X9-31",	NULL },
       { CKM_RSA_PKCS_PSS,	"RSA-PKCS-PSS",	NULL },
       { CKM_SHA1_RSA_PKCS_PSS,	"SHA1-RSA-PKCS-PSS",	NULL },
+      { CKM_SHA256_RSA_PKCS,	"SHA256-RSA-PKCS-PSS",	NULL },
+      { CKM_SHA384_RSA_PKCS,	"SHA384-RSA-PKCS-PSS",	NULL },
+      { CKM_SHA512_RSA_PKCS,	"SHA512-RSA-PKCS-PSS",	NULL },
       { CKM_DSA_KEY_PAIR_GEN,	"DSA-KEY-PAIR-GEN",	NULL },
       { CKM_DSA,		"DSA",	NULL },
       { CKM_DSA_SHA1,		"DSA-SHA1", NULL },
@@ -3338,6 +3388,9 @@ static struct mech_info	p11_mechanisms[] = {
       { CKM_SHA_1,		"SHA-1", NULL },
       { CKM_SHA_1_HMAC,		"SHA-1-HMAC", NULL },
       { CKM_SHA_1_HMAC_GENERAL,	"SHA-1-HMAC-GENERAL", NULL },
+      { CKM_SHA256,		"SHA256", NULL },
+      { CKM_SHA384,		"SHA384", NULL },
+      { CKM_SHA512,		"SHA512", NULL },
       { CKM_RIPEMD128,		"RIPEMD128", NULL },
       { CKM_RIPEMD128_HMAC,	"RIPEMD128-HMAC", NULL },
       { CKM_RIPEMD128_HMAC_GENERAL,"RIPEMD128-HMAC-GENERAL", NULL },
