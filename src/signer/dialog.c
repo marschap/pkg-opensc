@@ -4,6 +4,7 @@
 
 #ifndef PIN_ENTRY
 #define PIN_ENTRY "/usr/bin/pinentry"
+#define PIN_ENTRY "/usr/local/bin/gpinentry"
 #endif
 
 struct entry_parm_s {
