@@ -71,24 +71,22 @@ and
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 </pre><p>
-OpenSC also includes header files known as:
+OpenSC does not include the official PKCS<a class="closed ticket" href="/opensc/ticket/11" title="gcc4 build failure (closed)" shape="rect">#11</a> header file, because that file is under
+a non-free license. Instead OpenSC contains a rewritten header file from scute project
+under this license:
 </p>
-<pre class="wiki" xml:space="preserve">RSA Security Inc. PKCS #11 Cryptographic Token Interface (Cryptoki)
-</pre><p>
-with minimal modification so it compiles on linux/unix/*BSD.
-</p>
-<pre class="wiki" xml:space="preserve">License to copy and use this software is granted provided that it is identified 
-as "RSA Security Inc. PKCS #11 Cryptographic Token Interface (Cryptoki)" in all 
-material mentioning or referencing this software or this function. 
+<pre class="wiki" xml:space="preserve">/* pkcs11.h
+   Copyright 2006, 2007 g10 Code GmbH
+   Copyright 2006 Andreas Jellinghaus
 
-License is also granted to make and use derivative works provided that such
-works are identified as "derived from the RSA Security Inc. PKCS #11
-Cryptographic Token Interface (Cryptoki)" in all material mentioning or
-referencing the derived work.  
+   This file is free software; as a special exception the author gives
+   unlimited permission to copy and/or distribute it, with or without
+   modifications, as long as this notice is preserved.
 
-This software is provided AS IS and RSA Security, Inc. disclaims all warranties
-including but not limited to the implied warranty of merchantability, fitness
-for a particular purpose, and noninfringement.
+   This file is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY, to the extent permitted by law; without even
+   the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+   PURPOSE.  */
 </pre><p>
 OpenSC (signer) also includes header file:
 </p>

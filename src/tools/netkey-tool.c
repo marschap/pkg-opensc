@@ -76,10 +76,8 @@ static struct {
 };
 
 
-void show_pin(
-	sc_card_t *card,
-	int        pin
-){
+static void show_pin(sc_card_t *card, int pin)
+{
 	sc_path_t p;
 	sc_file_t *f;
 	struct sc_apdu a;
@@ -119,13 +117,13 @@ void show_pin(
 	else printf("Error %02X%02X\n", a.sw1, a.sw2);
 }
 
-void show_certs(
-	sc_card_t *card
-){
+static void show_certs(sc_card_t *card)
+{
 	sc_path_t p;
 	sc_file_t *f;
 	X509 *c;
-	u8 buf[2000], *q;
+	u8 buf[2000];
+	const u8 *q;
 	int j;
 	size_t i;
 
@@ -155,19 +153,19 @@ void show_certs(
 			if(q[4]==6 && q[5]<10 && q[q[5]+6]==0x30 && q[q[5]+7]==0x82) q+=q[5]+6;
 			printf(", Len=%d\n", (q[2]<<8)|q[3]);
 			if((c=d2i_X509(NULL,&q,f->size))){
-				X509_NAME_get_text_by_NID(c->cert_info->subject, NID_commonName, buf,sizeof(buf));
-				printf("  Subject-CN: %s\n", buf);
-				X509_NAME_get_text_by_NID(c->cert_info->issuer, NID_commonName, buf,sizeof(buf));
-				printf("  Issuer-CN:  %s\n", buf);
+				char buf2[2000];
+				X509_NAME_get_text_by_NID(c->cert_info->subject, NID_commonName, buf2,sizeof(buf2));
+				printf("  Subject-CN: %s\n", buf2);
+				X509_NAME_get_text_by_NID(c->cert_info->issuer, NID_commonName, buf2,sizeof(buf2));
+				printf("  Issuer-CN:  %s\n", buf2);
 				X509_free(c);
 			} else printf("  Invalid Certificate-Data\n");
 		} else printf(", empty\n");
 	}
 }
 
-void show_initial_puk(
-	sc_card_t *card
-){
+static void show_initial_puk(sc_card_t *card)
+{
 	sc_path_t p;
 	sc_file_t *f;
 	struct sc_apdu a;
@@ -216,9 +214,8 @@ void show_initial_puk(
 	printf("OK ==> Initial-PUK:"); for(i=120;i<128;++i) printf("%c",buf2[i]); printf("\n");
 }
 
-void show_card(
-	sc_card_t    *card
-){
+static void show_card(sc_card_t    *card)
+{
 	sc_path_t path;
 	sc_file_t *file;
 	u8 buf[100];
@@ -248,14 +245,9 @@ void show_card(
 }
 
 
-void handle_change(
-	sc_card_t *card,
-	int        pin1,
-	int        pin2,
-	int        do_change,
-	u8        *newpin,
-	int        newlen
-){
+static void handle_change( sc_card_t *card, int        pin1, int        pin2,
+	int        do_change, u8        *newpin, int        newlen)
+{
 	sc_path_t p;
 	sc_file_t *f;
 	struct sc_apdu a;
@@ -289,11 +281,8 @@ void handle_change(
 }
 
 
-void handle_nullpin(
-	sc_card_t *card,
-	u8        *newpin,
-	int        newlen
-){
+static void handle_nullpin(sc_card_t *card, u8 *newpin, int newlen)
+{
 	sc_path_t p;
 	sc_file_t *f;
 	struct sc_apdu a;
@@ -335,16 +324,14 @@ void handle_nullpin(
 }
 
 
-void handle_readcert(
-	sc_card_t *card,
-	int        cert,
-	char      *file
-){
+static void handle_readcert(sc_card_t *card, int cert, char *file)
+{
 	sc_path_t p;
 	sc_file_t *f;
 	FILE *fp;
 	X509 *c;
-	u8 buf[1536], *q;
+	u8 buf[1536];
+	const u8 *q;
 	int i, len;
 
 	printf("\nReading Card-Certificate %d: ", cert); fflush(stdout);
@@ -375,11 +362,8 @@ void handle_readcert(
 }
 	
 
-void handle_writecert(
-	sc_card_t *card,
-	int        cert,
-	char      *file
-){
+static void handle_writecert(sc_card_t *card, int cert, char *file)
+{
 	sc_path_t p;
 	sc_file_t *f;
 	FILE *fp;
@@ -423,20 +407,15 @@ void handle_writecert(
 }
 	
 
-int pin_string2int(
-	char *s
-){
+static int pin_string2int(char *s) {
 	size_t i;
 
 	for(i=0;i<sizeof(pinlist)/sizeof(pinlist[0]);++i) if(!strcasecmp(pinlist[i].name,s)) return i;
 	return -1;
 }
 
-void set_pin(
-	u8   *data,
-	int  *pinlen,
-	char *pin
-){
+static void set_pin(u8 *data, int  *pinlen, char *pin)
+{
 	int hex, i, j=0, len;
 	char *p;
 
@@ -467,15 +446,15 @@ int main(
 	int   argc,
 	char *argv[]
 ){
-	static struct option options[]={
-		{ "help",     0, 0, 'h' },
-		{ "verbose",  0, 0, 'v' },
-		{ "reader",   1, 0, 'r' },
-		{ "pin",      1, 0, 'p' },
-		{ "puk",      1, 0, 'u' },
-		{ "pin0",     1, 0, '0' },
-		{ "pin1",     1, 0, '1' },
-		{ 0, 0, 0, 0 }
+	const struct option options[]={
+		{ "help",     0, NULL, 'h' },
+		{ "verbose",  0, NULL, 'v' },
+		{ "reader",   1, NULL, 'r' },
+		{ "pin",      1, NULL, 'p' },
+		{ "puk",      1, NULL, 'u' },
+		{ "pin0",     1, NULL, '0' },
+		{ "pin1",     1, NULL, '1' },
+		{ NULL, 0, NULL, 0 }
 	};
 	sc_context_t *ctx;
 	sc_context_param_t ctx_param;
@@ -586,10 +565,10 @@ int main(
 
 	printf("%d Reader detected\n", sc_ctx_get_reader_count(ctx));
 	for(i=0; i < sc_ctx_get_reader_count(ctx); ++i){
-		sc_reader_t *reader = sc_ctx_get_reader(ctx, i);
+		sc_reader_t *myreader = sc_ctx_get_reader(ctx, i);
 		printf("%lu: %s, Driver: %s, %d Slot(s)\n",
-			(unsigned long) i, reader->name,
-			reader->driver->name, reader->slot_count);
+			(unsigned long) i, myreader->name,
+			myreader->driver->name, myreader->slot_count);
 	}
 	if(reader < 0 || reader >= (int)sc_ctx_get_reader_count(ctx)){
 		fprintf(stderr,"Cannot open reader %d\n", reader);

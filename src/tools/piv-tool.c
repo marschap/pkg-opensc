@@ -41,7 +41,7 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 
-const char *app_name = "piv-tool";
+static const char *app_name = "piv-tool";
 
 static int	opt_reader = -1,
 		opt_wait = 0;
@@ -53,26 +53,26 @@ enum {
 	OPT_SERIAL = 0x100,
 };
 
-const struct option options[] = {
-	{ "serial",		0, 0,	OPT_SERIAL  },
-	{ "name",		0, 0,		'n' },
-	{ "admin",		0, 0, 		'A' },
-	{ "usepin",		0, 0,		'P' }, /* some beta cards want user pin for put_data */
-	{ "genkey",		0, 0,		'G' },
-	{ "cert",		0, 0,		'C' },
-	{ "compresscert", 0, 0,		'Z' },
-	{ "req",		0, 0, 		'R' },
-	{ "out",	0, 0, 		'o' },
-	{ "in",		0, 0, 		'o' },
-	{ "send-apdu",		1, 0,		's' },
-	{ "reader",		1, 0,		'r' },
-	{ "card-driver",	1, 0,		'c' },
-	{ "wait",		0, 0,		'w' },
-	{ "verbose",		0, 0,		'v' },
-	{ 0, 0, 0, 0 }
+static const struct option options[] = {
+	{ "serial",		0, NULL,	OPT_SERIAL  },
+	{ "name",		0, NULL,		'n' },
+	{ "admin",		0, NULL, 		'A' },
+	{ "usepin",		0, NULL,		'P' }, /* some beta cards want user pin for put_data */
+	{ "genkey",		0, NULL,		'G' },
+	{ "cert",		0, NULL,		'C' },
+	{ "compresscert", 0, NULL,		'Z' },
+	{ "req",		0, NULL, 		'R' },
+	{ "out",	0, NULL, 		'o' },
+	{ "in",		0, NULL, 		'o' },
+	{ "send-apdu",		1, NULL,		's' },
+	{ "reader",		1, NULL,		'r' },
+	{ "card-driver",	1, NULL,		'c' },
+	{ "wait",		0, NULL,		'w' },
+	{ "verbose",		0, NULL,		'v' },
+	{ NULL, 0, NULL, 0 }
 };
 
-const char *option_help[] = {
+static const char *option_help[] = {
 	"Prints the card serial number",
 	"Identify the card and print its name",
 	"authenticate using default 3des key",
@@ -90,10 +90,10 @@ const char *option_help[] = {
 	"Verbose operation. Use several times to enable debug output.",
 };
 
-sc_context_t *ctx = NULL;
-sc_card_t *card = NULL;
-BIO * bp = NULL;
-RSA * newkey = NULL;
+static sc_context_t *ctx = NULL;
+static sc_card_t *card = NULL;
+static BIO * bp = NULL;
+static RSA * newkey = NULL;
 
 
 static int load_cert(const char * cert_id, const char * cert_file,
@@ -345,8 +345,8 @@ static void print_serial(sc_card_t *in_card)
 	sc_serial_number_t serial;
 
 	r = sc_card_ctl(in_card, SC_CARDCTL_GET_SERIALNR, &serial);
-	if (r)
-		fprintf(stderr, "sc_card_ctl(*, SC_CARDCTL_GET_SERIALNR, *) failed\n");
+	if (r < 0)
+		fprintf(stderr, "sc_card_ctl(*, SC_CARDCTL_GET_SERIALNR, *) failed %d\n", r);
 	else
 		hex_dump_asc(stdout, serial.value, serial.len, -1);
 }
@@ -378,7 +378,7 @@ int main(int argc, char * const argv[])
 		if (c == -1)
 			break;
 		if (c == '?')
-			print_usage_and_die();
+			print_usage_and_die(app_name, options, option_help);
 		switch (c) {
 		case OPT_SERIAL:
 			do_print_serial = 1;
@@ -439,7 +439,7 @@ int main(int argc, char * const argv[])
 		}
 	}
 	if (action_count == 0)
-		print_usage_and_die();
+		print_usage_and_die(app_name, options, option_help);
 
 	CRYPTO_malloc_init();
 	ERR_load_crypto_strings();

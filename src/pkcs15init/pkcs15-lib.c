@@ -161,6 +161,7 @@ static struct profile_operations {
 	{ "setcos", (void *) sc_pkcs15init_get_setcos_ops },
 	{ "incrypto34", (void *) sc_pkcs15init_get_incrypto34_ops },
 	{ "muscle", (void*) sc_pkcs15init_get_muscle_ops },
+	{ "asepcos", (void*) sc_pkcs15init_get_asepcos_ops },
 	{ NULL, NULL },
 };
 
@@ -1789,8 +1790,7 @@ sc_pkcs15init_store_data_object(struct sc_pkcs15_card *p15card,
 	int		r, i;
 	unsigned int    tid = 0x01;
 
-	if ((label = args->label) == NULL)
-		label = "Data Object";
+	label = args->label;
 
 	if (!args->id.len) {
 		/* Select an ID if the user didn't specify one, otherwise
@@ -1831,7 +1831,10 @@ sc_pkcs15init_store_data_object(struct sc_pkcs15_card *p15card,
 	if (object == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
 	data_object_info = (sc_pkcs15_data_info_t *) object->data;
-	if (label != NULL) {
+	if (args->app_label != NULL) {
+		strlcpy(data_object_info->app_label, args->app_label,
+			sizeof(data_object_info->app_label));
+	} else if (label != NULL) {
 		strlcpy(data_object_info->app_label, label,
 			sizeof(data_object_info->app_label));
 	}
@@ -1961,8 +1964,7 @@ sc_pkcs15init_map_usage(unsigned long x509_usage, int _private)
 /*
  * Compute modulus length
  */
-size_t
-sc_pkcs15init_keybits(sc_pkcs15_bignum_t *bn)
+static size_t sc_pkcs15init_keybits(sc_pkcs15_bignum_t *bn)
 {
 	unsigned int	mask, bits;
 
@@ -2127,11 +2129,11 @@ prkey_fixup_rsa(sc_pkcs15_card_t *p15card, struct sc_pkcs15_prkey_rsa *key)
 		BN_CTX *ctx = BN_CTX_new();
 
 		rsa = RSA_new();
-		rsa->n = BN_bin2bn(key->modulus.data, key->modulus.len, 0);
-		rsa->e = BN_bin2bn(key->exponent.data, key->exponent.len, 0);
-		rsa->d = BN_bin2bn(key->d.data, key->d.len, 0);
-		rsa->p = BN_bin2bn(key->p.data, key->p.len, 0);
-		rsa->q = BN_bin2bn(key->q.data, key->q.len, 0);
+		rsa->n = BN_bin2bn(key->modulus.data, key->modulus.len, NULL);
+		rsa->e = BN_bin2bn(key->exponent.data, key->exponent.len, NULL);
+		rsa->d = BN_bin2bn(key->d.data, key->d.len, NULL);
+		rsa->p = BN_bin2bn(key->p.data, key->p.len, NULL);
+		rsa->q = BN_bin2bn(key->q.data, key->q.len, NULL);
 		if (!rsa->dmp1)
 			rsa->dmp1 = BN_new();
 		if (!rsa->dmq1)
@@ -2213,8 +2215,7 @@ find_df_by_type(struct sc_pkcs15_card *p15card, unsigned int type)
 	return df;
 }
 
-int
-select_id(sc_pkcs15_card_t *p15card, int type, sc_pkcs15_id_t *id,
+static int select_id(sc_pkcs15_card_t *p15card, int type, sc_pkcs15_id_t *id,
 		int (*can_reuse)(const sc_pkcs15_object_t *, void *),
 		void *data, sc_pkcs15_object_t **reuse_obj)
 {
@@ -2302,8 +2303,7 @@ select_id(sc_pkcs15_card_t *p15card, int type, sc_pkcs15_id_t *id,
  *  	look for a file corresponding to the type of object we
  *  	wish to create ("private-key", "public-key" etc).
  */
-int
-select_object_path(sc_pkcs15_card_t *p15card, sc_profile_t *profile,
+static int select_object_path(sc_pkcs15_card_t *p15card, sc_profile_t *profile,
 		sc_pkcs15_object_t *obj, sc_pkcs15_id_t *obj_id,
 		sc_path_t *path)
 {
@@ -2685,8 +2685,8 @@ sc_pkcs15init_remove_object(sc_pkcs15_card_t *p15card,
 	return r;
 }
 
-sc_pkcs15_object_t *
-sc_pkcs15init_new_object(int type, const char *label, sc_pkcs15_id_t *auth_id, void *data)
+static sc_pkcs15_object_t * sc_pkcs15init_new_object(int type,
+		const char *label, sc_pkcs15_id_t *auth_id, void *data)
 {
 	sc_pkcs15_object_t	*object;
 	unsigned int		data_size = 0;
@@ -2715,6 +2715,8 @@ sc_pkcs15init_new_object(int type, const char *label, sc_pkcs15_id_t *auth_id, v
 		break;
 	case SC_PKCS15_TYPE_DATA_OBJECT:
 		object->flags = DEFAULT_DATA_FLAGS;
+		if (auth_id->len != 0)
+			object->flags |= SC_PKCS15_CO_FLAG_PRIVATE;
 		data_size = sizeof(sc_pkcs15_data_info_t);
 		break;
 	}
@@ -2803,21 +2805,25 @@ int sc_pkcs15init_delete_object(sc_pkcs15_card_t *p15card,
 {
 	sc_path_t path;
 	struct sc_pkcs15_df *df;
-	int r;
+	int r, stored_in_ef = 0;
 
 	switch(obj->type & SC_PKCS15_TYPE_CLASS_MASK)
 	{
 	case SC_PKCS15_TYPE_PUBKEY:
 		path = ((sc_pkcs15_pubkey_info_t *)obj->data)->path;
+		stored_in_ef = 1;
 		break;
 	case SC_PKCS15_TYPE_PRKEY:
 		path = ((sc_pkcs15_prkey_info_t *)obj->data)->path;
+		stored_in_ef = 1;
 		break;
 	case SC_PKCS15_TYPE_CERT:
 		path = ((sc_pkcs15_cert_info_t *)obj->data)->path;
+		stored_in_ef = 1;
 		break;
 	case SC_PKCS15_TYPE_DATA_OBJECT:
 		path = ((sc_pkcs15_data_info_t *)obj->data)->path;
+		stored_in_ef = 1;
 		break;
 	default:
 		return SC_ERROR_NOT_SUPPORTED;
@@ -2827,13 +2833,26 @@ int sc_pkcs15init_delete_object(sc_pkcs15_card_t *p15card,
 	if ((r = set_so_pin_from_card(p15card, profile)) < 0)
 		return r;
 
-	/* If there's a card-specific way to delete objects, use it.
-	 * Otherwise, just set its label to "deleted" to indicate
-	 * that we can re-used it when we have to make a next
-	 * object in the future. */
-	if (profile->ops->delete_object != NULL) {
-		r = profile->ops->delete_object(profile, p15card->card,
-			obj->type, obj->data, &path);
+	/* if the object is stored in a normal EF try to
+	 * delete the EF */
+	if (stored_in_ef != 0) {
+		r = sc_pkcs15init_delete_by_path(profile, p15card->card, &path);
+		if (r != SC_SUCCESS) {
+			sc_error(p15card->card->ctx, "sc_pkcs15init_delete_by_path failed: %d", r);
+			return r;
+		}
+		/* Get the DF we're part of. If there's no DF, fine, we haven't
+		 * been added yet. */
+		if ((df = obj->df) != NULL) {
+			/* Unlink the object and update the DF */
+			sc_pkcs15_remove_object(p15card, obj);
+		}
+	} else if (profile->ops->delete_object != NULL) {
+		/* If there's a card-specific way to delete objects, use it.
+		 * Otherwise, just set its label to "deleted" to indicate
+		 * that we can re-used it when we have to make a next
+		 * object in the future. */
+		r = profile->ops->delete_object(profile, p15card->card,	obj->type, obj->data, &path);
 		if (r < 0) {
 			sc_error(p15card->card->ctx, "ops->delete_object() failed: %d", r);
 			return r;
@@ -2844,18 +2863,16 @@ int sc_pkcs15init_delete_object(sc_pkcs15_card_t *p15card,
 		if ((df = obj->df) != NULL) {
 			/* Unlink the object and update the DF */
 			sc_pkcs15_remove_object(p15card, obj);
-			r = sc_pkcs15init_update_any_df(p15card, profile, df, 0);
 		}
-	}
-	else {
+	} else {
 		/* Get the DF we're part of. If there's no DF, fine, we haven't
 		 * been added yet. */
 		if ((df = obj->df) != NULL) {
 			/*Change the label into "deleted" and update the DF */
 			strcpy(obj->label, "deleted");
-			r = sc_pkcs15init_update_any_df(p15card, profile, df, 0);
 		}
 	}
+	r = sc_pkcs15init_update_any_df(p15card, profile, df, 0);
 
 	/* mark card as dirty */
 	profile->dirty = 1;
@@ -3083,7 +3100,7 @@ found:	if (type == SC_AC_CHV && pin_info.flags & SC_PKCS15_PIN_FLAG_NEEDS_PADDIN
 		if (file)
 			r = sc_select_file(card, &file->path, NULL);
 	 	if (r >= 0
-		 && (r = sc_verify(card, type, reference, pinbuf, *pinsize, 0)) < 0) {
+		 && (r = sc_verify(card, type, reference, pinbuf, *pinsize, NULL)) < 0) {
 			sc_error(card->ctx, "Failed to verify %s (ref=0x%x)",
 					ident, reference);
 		}
@@ -3128,8 +3145,8 @@ sc_pkcs15init_verify_key(struct sc_profile *pro, sc_card_t *card,
  * Find out whether the card was initialized using an SO PIN,
  * and if so, set the profile information
  */
-int
-set_so_pin_from_card(struct sc_pkcs15_card *p15card, struct sc_profile *profile)
+static int set_so_pin_from_card(struct sc_pkcs15_card *p15card,
+		struct sc_profile *profile)
 {
 	struct sc_pkcs15_pin_info *pin;
 	struct sc_pkcs15_object *obj;
@@ -3270,8 +3287,7 @@ sc_pkcs15init_authenticate(struct sc_profile *pro, sc_card_t *card,
 	return r;
 }
 
-int
-do_select_parent(struct sc_profile *pro, sc_card_t *card,
+static int do_select_parent(struct sc_profile *pro, sc_card_t *card,
 		sc_file_t *file, sc_file_t **parent)
 {
 	struct sc_path	path;
@@ -3385,8 +3401,6 @@ sc_pkcs15init_update_file(struct sc_profile *profile, sc_card_t *card,
 	}
 
 	if (info->size < datalen) {
-		char pbuf[SC_MAX_PATH_STRING_SIZE];
-
 		r = sc_path_print(pbuf, sizeof(pbuf), &file->path);
 		if (r != SC_SUCCESS)
 			pbuf[0] = '\0';
@@ -3546,8 +3560,7 @@ sc_pkcs15init_fixup_acls(struct sc_profile *profile, sc_file_t *file,
 	return r;
 }
 
-int
-sc_pkcs15init_get_pin_path(sc_pkcs15_card_t *p15card,
+static int sc_pkcs15init_get_pin_path(sc_pkcs15_card_t *p15card,
 		sc_pkcs15_id_t *auth_id, sc_path_t *path)
 {
 	sc_pkcs15_object_t *obj;
@@ -3606,8 +3619,7 @@ sc_pkcs15init_get_label(struct sc_profile *profile, const char **res)
 	return 0;
 }
 
-int
-sc_pkcs15init_qualify_pin(sc_card_t *card, const char *pin_name,
+static int sc_pkcs15init_qualify_pin(sc_card_t *card, const char *pin_name,
 	       	unsigned int pin_len, sc_pkcs15_pin_info_t *pin_info)
 {
 	if (pin_len == 0)
@@ -3742,8 +3754,8 @@ do_encode_string(u8 **memp, u8 *end, u8 tag, const char *s)
 	return 0;
 }
 
-int
-sc_pkcs15init_write_info(sc_card_t *card, sc_profile_t *profile, sc_pkcs15_object_t *pin_obj)
+static int sc_pkcs15init_write_info(sc_card_t *card, sc_profile_t *profile,
+		sc_pkcs15_object_t *pin_obj)
 {
 	sc_file_t	*file = NULL;
 	sc_file_t	*df = profile->df_info->file;

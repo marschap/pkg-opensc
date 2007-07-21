@@ -86,10 +86,10 @@ struct auth_update_component_info {
 typedef struct auth_update_component_info auth_update_component_info_t;
 
 
-const unsigned char *aidAuthentIC_V5 = 
+static const unsigned char *aidAuthentIC_V5 = 
 		(const u8 *)"\xA0\x00\x00\x00\x77\x01\x03\x03\x00\x00\x00\xF1\x00\x00\x00\x02";
-const int lenAidAuthentIC_V5 = 16; 
-const char *nameAidAuthentIC_V5 = "AuthentIC v5"; 
+static const int lenAidAuthentIC_V5 = 16; 
+static const char *nameAidAuthentIC_V5 = "AuthentIC v5"; 
 
 #define AUTH_PIN		1
 #define AUTH_PUK		2
@@ -143,7 +143,9 @@ static int auth_sm_release (struct sc_card *card, struct sc_sm_info *sm_info,
 		unsigned char *data, int data_len);
 #endif
 
-void _auth_print_acls(struct sc_card *card, struct sc_file *file)
+#if 0
+/* this function isn't used anywhere */
+static void _auth_print_acls(struct sc_card *card, struct sc_file *file)
 {
 	int ii, jj;   
 	
@@ -156,7 +158,7 @@ void _auth_print_acls(struct sc_card *card, struct sc_file *file)
 		}
 	}
 }
-
+#endif
 
 static int 
 auth_finish(sc_card_t *card)
@@ -508,7 +510,8 @@ static int
 auth_select_file(sc_card_t *card, const sc_path_t *in_path,
 				 sc_file_t **file_out)
 {
-	int rv, offs, ii;
+	int rv;
+	size_t offs, ii;
 	sc_path_t path;
 	sc_file_t *tmp_file = NULL;
 
@@ -578,7 +581,7 @@ auth_select_file(sc_card_t *card, const sc_path_t *in_path,
 
 		sc_debug(card->ctx, "offs %i\n", offs);
 		if (offs && offs < auth_current_df->path.len)   {
-			int deep = auth_current_df->path.len - offs;
+			size_t deep = auth_current_df->path.len - offs;
 
 			sc_debug(card->ctx, "deep %i\n", deep);
 			for (ii=0; ii<deep; ii+=2)   {
@@ -1171,9 +1174,9 @@ auth_compute_signature(sc_card_t *card,
 		SC_FUNC_RETURN(card->ctx, 1, SC_ERROR_CARD_CMD_FAILED);
 	}
 	
-	memcpy(out, apdu.resp, olen);
+	memcpy(out, apdu.resp, apdu.resplen);
 
-	SC_FUNC_RETURN(card->ctx, 1, olen);
+	SC_FUNC_RETURN(card->ctx, 1, apdu.resplen);
 }
 
 
@@ -1566,6 +1569,9 @@ auth_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
 				(struct sc_cardctl_oberthur_createpin_info *) ptr); 
     case SC_CARDCTL_GET_SERIALNR:
         return auth_get_serialnr(card, (sc_serial_number_t *)ptr);
+	case SC_CARDCTL_LIFECYCLE_GET:
+	case SC_CARDCTL_LIFECYCLE_SET:
+		return SC_ERROR_NOT_SUPPORTED;
 	default:
 		SC_FUNC_RETURN(card->ctx, 1, SC_ERROR_NOT_SUPPORTED);
 	}
@@ -1622,7 +1628,8 @@ static int auth_get_pin_reference (sc_card_t *card,
 		
 		*out_ref = reference;
 		if (reference == 1 || reference == 2)
-			*out_ref |= 0x80;
+			if (cmd == SC_PIN_CMD_VERIFY)
+				*out_ref |= 0x80;
 		break;
 
 	default:
@@ -1864,7 +1871,7 @@ auth_create_reference_data (sc_card_t *card,
 		if (args->ref == 1)  
 		    pin_ref = 0x01;
 		else if (args->ref == 2)
-			pin_ref = 0x04;
+			pin_ref = 0x02;
 		else
 			SC_TEST_RET(card->ctx, SC_ERROR_INVALID_PIN_REFERENCE, "Invalid PIN reference");
 	}

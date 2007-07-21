@@ -4,8 +4,8 @@
           </style></head><body><div class="wikipage">
     <div id="searchable"><h1 id="QuickStartwithOpenSC">Quick Start with OpenSC</h1>
 <p>
-If you haven't already, please first take a look at our <a class="wiki" href="/opensc/wiki/OverView" shape="rect">OverView</a> page, the
-<a class="wiki" href="/opensc/wiki/OperatingSystems" shape="rect">OperatingSystems</a> page and the <a class="wiki" href="/opensc/wiki/CompilingInstalling" shape="rect">CompilingInstalling</a> page. For the rest of this
+If you haven't already, please first take a look at our <a class="wiki" href="OverView.html" shape="rect">OverView</a> page, the
+<a class="wiki" href="OperatingSystems.html" shape="rect">OperatingSystems</a> page and the <a class="wiki" href="CompilingInstalling.html" shape="rect">CompilingInstalling</a> page. For the rest of this
 document we assume you have installed OpenSC. We will show you how you
 can test if it works, and what you can do with it.
 </p>
@@ -125,11 +125,11 @@ If <a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">engine_pk
 a self signed certificate. 
 </p>
 <pre class="wiki" xml:space="preserve">$ openssl
-OpenSSL&gt; engine dynamic -pre SO_PATH:/usr/lib/opensc/engine_pkcs11.so \
+OpenSSL&gt; engine dynamic -pre SO_PATH:/usr/lib/engines/engine_pkcs11.so \
 	-pre ID:pkcs11 -pre LIST_ADD:1 -pre LOAD \
         -pre MODULE_PATH:opensc-pkcs11.so
 (dynamic) Dynamic engine loading support
-[Success]: SO_PATH:/home/aj/opentest/lib/opensc/engine_pkcs11.so
+[Success]: SO_PATH:/usr/lib/engines/engine_pkcs11.so
 [Success]: ID:pkcs11
 [Success]: LIST_ADD:1
 [Success]: LOAD

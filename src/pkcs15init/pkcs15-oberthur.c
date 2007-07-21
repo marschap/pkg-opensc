@@ -399,7 +399,7 @@ cosm_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
 	else {
 		type = SC_PKCS15INIT_USER_PIN;
 		
-		if (pinfo->reference !=1)
+		if (pinfo->reference !=1  &&  pinfo->reference != 2)
 			return SC_ERROR_INVALID_PIN_REFERENCE;
 	}
 
@@ -644,8 +644,10 @@ cosm_new_key(struct sc_profile *profile, sc_card_t *card,
 {
 	sc_file_t *prvfile = NULL;
 	struct sc_pkcs15_prkey_rsa *rsa = NULL;
+#ifndef NOT_YET
 	sc_pkcs15_pubkey_t pubkey;
-	int rv, ii;
+#endif
+	int rv;
 	char pbuf[SC_MAX_PATH_STRING_SIZE];
 	struct sc_cardctl_oberthur_updatekey_info update_info;
 

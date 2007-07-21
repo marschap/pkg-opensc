@@ -42,11 +42,7 @@ subdir = etc
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/aclocal/lib-ld.m4 \
-	$(top_srcdir)/aclocal/lib-link.m4 \
-	$(top_srcdir)/aclocal/lib-prefix.m4 \
-	$(top_srcdir)/aclocal/libassuan.m4 \
-	$(top_srcdir)/aclocal/pkg.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d

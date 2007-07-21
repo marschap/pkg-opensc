@@ -38,18 +38,18 @@ typedef unsigned __int32 uint32_t;
 #include <opensc/pkcs15.h>
 #include "util.h"
 
-const char *app_name = "pkcs15-tool";
+static const char *app_name = "pkcs15-tool";
 
-int opt_reader = -1, opt_wait = 0;
-int opt_no_cache = 0;
-char * opt_auth_id;
-char * opt_cert = NULL;
-char * opt_data = NULL;
-char * opt_pubkey = NULL;
-char * opt_outfile = NULL;
-u8 * opt_newpin = NULL;
-u8 * opt_pin = NULL;
-u8 * opt_puk = NULL;
+static int opt_reader = -1, opt_wait = 0;
+static int opt_no_cache = 0;
+static char * opt_auth_id;
+static char * opt_cert = NULL;
+static char * opt_data = NULL;
+static char * opt_pubkey = NULL;
+static char * opt_outfile = NULL;
+static u8 * opt_newpin = NULL;
+static u8 * opt_pin = NULL;
+static u8 * opt_puk = NULL;
 
 static int	verbose = 0;
 
@@ -72,38 +72,37 @@ enum {
 #define NELEMENTS(x)	(sizeof(x)/sizeof((x)[0]))
 
 static int	authenticate(sc_pkcs15_object_t *obj);
-static int	pem_encode(sc_context_t *, int,
-			sc_pkcs15_der_t *, sc_pkcs15_der_t *);
+static int	pem_encode(int, sc_pkcs15_der_t *, sc_pkcs15_der_t *);
 
-const struct option options[] = {
-	{ "learn-card",		no_argument, 0, 	'L' },
-	{ "read-certificate",	required_argument, 0, 	'r' },
-	{ "list-certificates",	no_argument, 0,		'c' },
-	{ "read-data-object",	required_argument, 0, 	'R' },
-	{ "list-data-objects",	no_argument, 0,		'C' },
-	{ "list-pins",		no_argument, 0,		OPT_LIST_PINS },
-	{ "dump",		no_argument, 0,		'D' },
-	{ "unblock-pin",	no_argument, 0,		'u' },
-	{ "change-pin",		no_argument, 0,		OPT_CHANGE_PIN },
-	{ "list-keys",          no_argument, 0,         'k' },
-	{ "list-public-keys",	no_argument, 0,		OPT_LIST_PUB },
-	{ "read-public-key",	required_argument, 0,	OPT_READ_PUB },
+static const struct option options[] = {
+	{ "learn-card",		no_argument, NULL, 	'L' },
+	{ "read-certificate",	required_argument, NULL, 	'r' },
+	{ "list-certificates",	no_argument, NULL,		'c' },
+	{ "read-data-object",	required_argument, NULL, 	'R' },
+	{ "list-data-objects",	no_argument, NULL,		'C' },
+	{ "list-pins",		no_argument, NULL,		OPT_LIST_PINS },
+	{ "dump",		no_argument, NULL,		'D' },
+	{ "unblock-pin",	no_argument, NULL,		'u' },
+	{ "change-pin",		no_argument, NULL,		OPT_CHANGE_PIN },
+	{ "list-keys",          no_argument, NULL,         'k' },
+	{ "list-public-keys",	no_argument, NULL,		OPT_LIST_PUB },
+	{ "read-public-key",	required_argument, NULL,	OPT_READ_PUB },
 #if defined(HAVE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
-	{ "read-ssh-key",	required_argument, 0,	OPT_READ_SSH },
+	{ "read-ssh-key",	required_argument, NULL,	OPT_READ_SSH },
 #endif
-	{ "reader",		required_argument, 0,	OPT_READER },
-	{ "pin",                required_argument, 0,   OPT_PIN },
-	{ "new-pin",		required_argument, 0,	OPT_NEWPIN },
-	{ "puk",		required_argument, 0,	OPT_PUK },
-	{ "output",		required_argument, 0,	'o' },
-	{ "no-cache",		no_argument, 0,		OPT_NO_CACHE },
-	{ "auth-id",		required_argument, 0,	'a' },
-	{ "wait",		no_argument, 0,		'w' },
-	{ "verbose",		no_argument, 0,		'v' },
-	{ 0, 0, 0, 0 }
+	{ "reader",		required_argument, NULL,	OPT_READER },
+	{ "pin",                required_argument, NULL,   OPT_PIN },
+	{ "new-pin",		required_argument, NULL,	OPT_NEWPIN },
+	{ "puk",		required_argument, NULL,	OPT_PUK },
+	{ "output",		required_argument, NULL,	'o' },
+	{ "no-cache",		no_argument, NULL,		OPT_NO_CACHE },
+	{ "auth-id",		required_argument, NULL,	'a' },
+	{ "wait",		no_argument, NULL,		'w' },
+	{ "verbose",		no_argument, NULL,		'v' },
+	{ NULL, 0, NULL, 0 }
 };
 
-const char *option_help[] = {
+static const char *option_help[] = {
 	"Stores card info to cache",
 	"Reads certificate with ID <arg>",
 	"Lists certificates",
@@ -128,9 +127,9 @@ const char *option_help[] = {
 	"Verbose operation. Use several times to enable debug output.",
 };
 
-sc_context_t *ctx = NULL;
-sc_card_t *card = NULL;
-struct sc_pkcs15_card *p15card = NULL;
+static sc_context_t *ctx = NULL;
+static sc_card_t *card = NULL;
+static struct sc_pkcs15_card *p15card = NULL;
 
 static void print_cert_info(const struct sc_pkcs15_object *obj)
 {
@@ -553,7 +552,7 @@ static int read_public_key(void)
 		return 1;
 	}
 
-	r = pem_encode(ctx, pubkey->algorithm, &pubkey->data, &pem_key);
+	r = pem_encode(pubkey->algorithm, &pubkey->data, &pem_key);
 	if (r < 0) {
 		fprintf(stderr, "Error encoding PEM key: %s\n",
 				sc_strerror(r));
@@ -848,8 +847,7 @@ static u8 * get_pin(const char *prompt, sc_pkcs15_object_t *pin_obj)
 	}
 }
 
-int
-authenticate(sc_pkcs15_object_t *obj)
+static int authenticate(sc_pkcs15_object_t *obj)
 {
 	sc_pkcs15_pin_info_t	*pin_info;
 	sc_pkcs15_object_t	*pin_obj;
@@ -929,7 +927,7 @@ static int list_pins(void)
 	return 0;
 }
 
-static int dump()
+static int dump(void)
 {
 
 	const char *flags[] = {
@@ -1203,7 +1201,7 @@ int main(int argc, char * const argv[])
 		if (c == -1)
 			break;
 		if (c == '?')
-			print_usage_and_die();
+			print_usage_and_die(app_name, options, option_help);
 		switch (c) {
 		case 'r':
 			opt_cert = optarg;
@@ -1293,7 +1291,7 @@ int main(int argc, char * const argv[])
 		}
 	}
 	if (action_count == 0)
-		print_usage_and_die();
+		print_usage_and_die(app_name, options, option_help);
 
 	memset(&ctx_param, 0, sizeof(ctx_param));
 	ctx_param.ver      = 0;
@@ -1416,9 +1414,7 @@ static const struct sc_asn1_entry	c_asn1_pem_key[] = {
 	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
-static int
-pem_encode(sc_context_t *ctx,
-		int alg_id, sc_pkcs15_der_t *key, sc_pkcs15_der_t *out)
+static int pem_encode(int alg_id, sc_pkcs15_der_t *key, sc_pkcs15_der_t *out)
 {
 	struct sc_asn1_entry	asn1_pem_key[2],
 				asn1_pem_key_items[3];

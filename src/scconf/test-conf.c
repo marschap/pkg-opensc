@@ -1,5 +1,5 @@
 /*
- * $Id: test-conf.c 2925 2006-05-01 10:07:53Z aj $
+ * $Id: test-conf.c 3177 2007-06-21 10:07:01Z aj $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -86,7 +86,7 @@ static int write_cb(scconf_context * config, scconf_block * block, scconf_entry 
 	return 0;		/* 0 for ok, 1 for error */
 }
 
-int write_entries(scconf_context *conf, scconf_list *list)
+static int write_entries(scconf_context *conf, scconf_list *list)
 {
 	static int int42 = 42, int1 = 1;
 	scconf_entry subblock[] =

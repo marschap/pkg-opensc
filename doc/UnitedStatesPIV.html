@@ -20,7 +20,7 @@ should inter operate with any vendor's client software. The
 to read the objects on the card and to change the user PIN.   
 </p>
 <p>
-The <a class="wiki" href="/opensc/wiki/PivTool" shape="rect">piv-tool</a> is provided to allow for some card administration in testing, such as generating
+The <a class="wiki" href="PivTool.html" shape="rect">piv-tool</a> is provided to allow for some card administration in testing, such as generating
 a key pair, and loading a certificate or other object on the card. You may need more information
 from your card vendor.       
 </p>
@@ -31,17 +31,22 @@ Thus for example the "X.509 Certificate for PIV Authentication" can be used with
 login or web access.
 </p>
 <p>
-OpenSC does not currently search arbitrary cards for an application, so you will need to add
-the ATR of specific vendor's cards to the opensc.conf.
+OpenSC 0.11.2 added support for certificates that are gzip'ed. But only 1024 bit RSA keys are supported.
+Changes are being added to 0.11.3 to support 2048 and 3072 bit RSA keys. 
+</p>
+<p>
+OpenSC 0.11.1 did not search arbitrary cards for the PIV application, and set the max_send_size and max_recv_size
+to low for PIV cards. With 0.11.1 you needed to add the ATR of specific vendor's cards to the opensc.conf.
+This was fixed in 0.11.2.  
 The ATR of your card can be read using the <a href="http://www.opensc-project.org/doc/opensc/html/tools.html#opensc-tool" shape="rect">opensc-tool</a>.
 </p>
 <p>
-Sample changes needed in the opensc.conf file to use some GemAalto and Oberthur PIV cards:
+Sample changes needed for 0.11.1 in the opensc.conf file to use some GemAalto and Oberthur PIV cards:
 </p>
 <pre class="wiki" xml:space="preserve">...
     reader_driver xxxxx {
 ...
-        max_send_size = 256;
+        max_send_size = 255;
         max_recv_size = 256;
 ...
     }

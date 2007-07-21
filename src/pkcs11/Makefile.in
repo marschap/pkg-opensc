@@ -44,11 +44,7 @@ DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/aclocal/lib-ld.m4 \
-	$(top_srcdir)/aclocal/lib-link.m4 \
-	$(top_srcdir)/aclocal/lib-prefix.m4 \
-	$(top_srcdir)/aclocal/libassuan.m4 \
-	$(top_srcdir)/aclocal/pkg.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -67,13 +63,20 @@ libpkcs11_la_DEPENDENCIES =
 am_libpkcs11_la_OBJECTS = libpkcs11.lo
 libpkcs11_la_OBJECTS = $(am_libpkcs11_la_OBJECTS)
 am__DEPENDENCIES_1 =
-opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+onepin_opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	../pkcs15init/libpkcs15init.la
 am__objects_1 = pkcs11-global.lo pkcs11-session.lo pkcs11-object.lo \
 	misc.lo slot.lo mechanism.lo openssl.lo secretkey.lo \
 	framework-pkcs15.lo framework-pkcs15init.lo debug.lo
 am__objects_2 =
-am_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2)
+am_onepin_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
+	hack-enabled.lo
+onepin_opensc_pkcs11_la_OBJECTS =  \
+	$(am_onepin_opensc_pkcs11_la_OBJECTS)
+opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
+	../pkcs15init/libpkcs15init.la
+am_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
+	hack-disabled.lo
 opensc_pkcs11_la_OBJECTS = $(am_opensc_pkcs11_la_OBJECTS)
 pkcs11_spy_la_DEPENDENCIES = $(am__DEPENDENCIES_1) libpkcs11.la \
 	$(am__DEPENDENCIES_1)
@@ -90,9 +93,10 @@ LTCOMPILE = $(LIBTOOL) --tag=CC --mode=compile $(CC) $(DEFS) \
 CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-SOURCES = $(libpkcs11_la_SOURCES) $(opensc_pkcs11_la_SOURCES) \
-	$(pkcs11_spy_la_SOURCES)
-DIST_SOURCES = $(libpkcs11_la_SOURCES) $(opensc_pkcs11_la_SOURCES) \
+SOURCES = $(libpkcs11_la_SOURCES) $(onepin_opensc_pkcs11_la_SOURCES) \
+	$(opensc_pkcs11_la_SOURCES) $(pkcs11_spy_la_SOURCES)
+DIST_SOURCES = $(libpkcs11_la_SOURCES) \
+	$(onepin_opensc_pkcs11_la_SOURCES) $(opensc_pkcs11_la_SOURCES) \
 	$(pkcs11_spy_la_SOURCES)
 includeHEADERS_INSTALL = $(INSTALL_HEADER)
 HEADERS = $(include_HEADERS)
@@ -250,11 +254,16 @@ SRC = pkcs11-global.c pkcs11-session.c pkcs11-object.c misc.c slot.c \
 	framework-pkcs15init.c debug.c
 
 INC = sc-pkcs11.h
-lib_LTLIBRARIES = opensc-pkcs11.la pkcs11-spy.la
+lib_LTLIBRARIES = opensc-pkcs11.la pkcs11-spy.la onepin-opensc-pkcs11.la
 noinst_LTLIBRARIES = libpkcs11.la
-opensc_pkcs11_la_SOURCES = $(SRC) $(INC)
+opensc_pkcs11_la_SOURCES = $(SRC) $(INC) hack-disabled.c
 opensc_pkcs11_la_LDFLAGS = -module -avoid-version
 opensc_pkcs11_la_LIBADD = @LIBOPENSC@ $(OPENSSL_LIBS) \
+	../pkcs15init/libpkcs15init.la 
+
+onepin_opensc_pkcs11_la_SOURCES = $(SRC) $(INC) hack-enabled.c
+onepin_opensc_pkcs11_la_LDFLAGS = -module -avoid-version
+onepin_opensc_pkcs11_la_LIBADD = @LIBOPENSC@ $(OPENSSL_LIBS) \
 	../pkcs15init/libpkcs15init.la 
 
 libpkcs11_la_SOURCES = libpkcs11.c
@@ -335,6 +344,8 @@ clean-noinstLTLIBRARIES:
 	done
 libpkcs11.la: $(libpkcs11_la_OBJECTS) $(libpkcs11_la_DEPENDENCIES) 
 	$(LINK)  $(libpkcs11_la_LDFLAGS) $(libpkcs11_la_OBJECTS) $(libpkcs11_la_LIBADD) $(LIBS)
+onepin-opensc-pkcs11.la: $(onepin_opensc_pkcs11_la_OBJECTS) $(onepin_opensc_pkcs11_la_DEPENDENCIES) 
+	$(LINK) -rpath $(libdir) $(onepin_opensc_pkcs11_la_LDFLAGS) $(onepin_opensc_pkcs11_la_OBJECTS) $(onepin_opensc_pkcs11_la_LIBADD) $(LIBS)
 opensc-pkcs11.la: $(opensc_pkcs11_la_OBJECTS) $(opensc_pkcs11_la_DEPENDENCIES) 
 	$(LINK) -rpath $(libdir) $(opensc_pkcs11_la_LDFLAGS) $(opensc_pkcs11_la_OBJECTS) $(opensc_pkcs11_la_LIBADD) $(LIBS)
 pkcs11-spy.la: $(pkcs11_spy_la_OBJECTS) $(pkcs11_spy_la_DEPENDENCIES) 
@@ -349,6 +360,8 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/framework-pkcs15.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/framework-pkcs15init.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hack-disabled.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hack-enabled.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpkcs11.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mechanism.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Plo@am__quote@

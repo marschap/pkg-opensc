@@ -33,7 +33,7 @@ Use this as an example:
 </pre><p>
 <strong>Notes</strong>
 </p>
-<ul><li>For some readers you can look up the module name in <a class="wiki" href="/opensc/wiki/PinpadReaders" shape="rect">pinpad reader overview</a>.
+<ul><li>For some readers you can look up the module name in <a class="wiki" href="PinpadReaders.html" shape="rect">pinpad reader overview</a>.
 </li></ul><ul><li>Some drivers use port number 0 for the first reader, others start counting with 1.
 </li></ul><ul><li>You can use multiple readers. Just add more "module"-sections if they use other drivers or add port numbers with a comma for the same driver. You can even mix PC/SC drivers and CT-API drivers for different readers.
 </li></ul><ul><li>The same approach should work with Unix if you can find the CT-API library for your reader.
@@ -45,7 +45,7 @@ Readers known about:
 Nr.    Driver     Name
 0      ctapi      CT-API c:\winnt\system32\CTRSCT32.DLL, port 1
 </pre><p>
-If you are using a pinpad aware application (I still don't know any except my private pintest) you are ready. Some other applications (like the PKCS#11 plugin for Mozilla or the <a class="missing wiki" href="/opensc/wiki/OpensslEngines" rel="nofollow" shape="rect">OpensslEngines?</a>) will use the pinpad if you hit return after being asked for a PIN.
+If you are using a pinpad aware application (I still don't know any except my private pintest) you are ready. Some other applications (like the PKCS#11 plugin for Mozilla or the <a class="missing wiki" href="OpensslEngines.html" rel="nofollow" shape="rect">OpensslEngines?</a>) will use the pinpad if you hit return after being asked for a PIN.
 </p>
 <p>
 Note that up to date PIN modification or unblocking is not supported with CT-API driver, there still is some work to do... ;) 

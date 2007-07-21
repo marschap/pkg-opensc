@@ -4,20 +4,20 @@
           </style></head><body><div class="wikipage">
     <div id="searchable"><h1 id="GermanIDCards">German ID Cards</h1>
 <p>
-Germany has several laws for smart cards, and most ID cards conforming to those laws are using the TCOS 2.0X card operating
-system. One exception is the D-Trust card which is Micardo based.
+Germany has several laws for smart cards. Until 2006 most ID cards conforming to those laws were using the TCOS 2.0X card operating
+system. One exception was the D-Trust card which was Micardo based.
 </p>
 <p>
-Both a TeleSec and a SignTrust card were successfully tested with OpenSC 0.10.0.
+Both a TCOS-based TeleSec and a SignTrust card were successfully tested with OpenSC 0.10.0.
 Pkcs11-tool will fail on the signature only key, because it tries differnt kinds of
 rsa-operations and the signature key can do rsa-signatures only.
 Most applications work fine, unless they try raw rsa padding with signature keys.
 </p>
 <p>
-You can find more information about TCOS cards <a class="wiki" href="/opensc/wiki/TCOS" shape="rect">here</a>.
+You can find more information about TCOS cards <a class="wiki" href="TCOS.html" shape="rect">here</a>.
 </p>
 <p>
-Support for D-Trust cards is in OpenSC 0.11.1 and later.
+Support for Micardo-based D-Trust cards is in OpenSC 0.11.1 and later.
 </p>
 <p>
 Datev has a Trustcenter in Germany too. Their cards used to be TCOS-based (at least in 2006).
@@ -35,11 +35,14 @@ Signature cards with a key length of 1024bit conform to the german signature law
 (<a class="ext-link" href="http://www.bundesnetzagentur.de/media/archive/5951.pdf" shape="rect"><span class="icon">http://www.bundesnetzagentur.de/media/archive/5951.pdf</span></a>). This forces german trust centers to either
 use 2048bit cards or use 1024bit cards with certificates that expire by the end of 2007.
 TCOS 2.0 has support for 1024bit keys only so TCOS based signature cards must use TCOS 3.0 soon.
-D-Trust has already changed their cards and now uses CardOS 4.3 instead of Micardo.
+</p>
+<p>
+D-Trust has already changed their cards and now uses CardOS 4.3 instead of Micardo. Deutsche Post made a similar
+decision. SignTrust cards were TCOS 2.0 based until 2006 and the new 2048bit SignTrust cards will be CardOS 4.3 based too.
 </p>
 <h1 id="GermaneHBAeGK">German eHBA, eGK</h1>
 <p>
-<a href="http://www.opensc-project.org/opensc/attachment/wiki/GermanEid/HPC-Image.gif?format=raw" shape="rect">http://www.opensc-project.org/opensc/attachment/wiki/GermanEid/HPC-Image.gif?format=raw</a>
+<a style="padding:0; border:none" href="/opensc/attachment/wiki/GermanEid/HPC-Image.gif" shape="rect"><img src="GermanEid_HPC-Image.gif" alt="HPC-Image" title="HPC-Image"></img></a>
 </p>
 <p>
 Sometime in the future all german physicians and apothecaries will be equipped with a smartcard, the so called eHBA (elektronischer Heilberufeausweis). After that all german citizens that are a member of a public health insurance company (gesetzliche Krankenkasse) will get a similar card, the so called eGK (elektronische Gesundheitskarte). This means that virtually every german citizen will have a smartcard soon.

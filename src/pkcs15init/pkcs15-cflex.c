@@ -492,8 +492,7 @@ cflex_delete_dummy_chvs(sc_profile_t *profile, sc_card_t *card,
 /*
  * Create a pin file
  */
-static inline void
-put_pin(sc_profile_t *profile, unsigned char *buf,
+static void put_pin(sc_profile_t *profile, unsigned char *buf,
 		const u8 *pin, size_t len, int retry)
 {
 	if (len > 8)
@@ -604,8 +603,7 @@ cflex_create_empty_pin_file(sc_profile_t *profile, sc_card_t *card,
 /*
  * Get private and public key file
  */
-int
-cflex_get_keyfiles(sc_profile_t *profile, sc_card_t *card,
+static int cflex_get_keyfiles(sc_profile_t *profile, sc_card_t *card,
 			const sc_path_t *df_path,
 			sc_file_t **prkf, sc_file_t **pukf)
 {
