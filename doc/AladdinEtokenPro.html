@@ -4,7 +4,7 @@
           </style></head><body><div class="wikipage">
     <div id="searchable"><h1 id="AladdineTokenPRO">Aladdin eToken PRO</h1>
 <p>
-<a href="http://www.opensc-project.org/opensc/attachment/wiki/AladdinEtokenPro/eToken.gif?format=raw" shape="rect">http://www.opensc-project.org/opensc/attachment/wiki/AladdinEtokenPro/eToken.gif?format=raw</a>
+<a style="padding:0; border:none" href="/opensc/attachment/wiki/AladdinEtokenPro/eToken.gif" shape="rect"><img src="AladdinEtokenPro_eToken.gif" alt="Image of eToken PRO 32K" title="Image of eToken PRO 32K"></img></a>
 </p>
 <p>
 <a class="ext-link" href="http://www.ealaddin.com/" shape="rect"><span class="icon">Aladdin</span></a> offers the eToken PRO, an USB crypto token with 32k memory
@@ -22,29 +22,22 @@ and might be soon use CardOS M4.3b. We only have documentation for CardOS M4.01 
 newer versions are not supported.
 </p>
 <p>
-One minor feature of the Siemens CardOS M4 is, that a rsa key cannot be used for both signing
+One minor feature of the Siemens CardOS M4 is, that an RSA key cannot be used for both signing
 and decryption. OpenSC has implemented a workaround: software key generation and storing that
 key twice, once marked as decryption key and once marked as signing key. To enable this workaround
-specifiy "--split-key" on the command line, when creating the key.
+specify "--split-key" on the command line, when creating the key.
 </p>
 <p>
 Aladdin has their own software for windows and <a class="ext-link" href="ftp://ftp.ealaddin.com/pub/etoken/Linux" shape="rect"><span class="icon">linux</span></a>. <a class="ext-link" href="http://www.etokenonlinux.org" shape="rect"><span class="icon">This software</span></a> does not implement PKCS#15 and thus is not compatible with OpenSC. As long as the card has memory, you can initialize the card with both software packages, and thus install files and keys side by side - each software can only handle their own structures.
 </p>
 <p>
-Note that Aladdin is maybe the oldest player in the usb token field, and their software predates the PKCS#15 standard, so you can't blame them for not conforming to the standard. Note also that Aladdin sponsored an OpenSC workshop in 2003 by donating 30 Aladdin eToken PRO, thanks a lot!
+Note that Aladdin is maybe the oldest player in the USB token field, and their software predates the PKCS#15 standard, so you can't blame them for not conforming to the standard. Note also that Aladdin sponsored an OpenSC workshop in 2003 by donating 30 Aladdin eToken PRO, thanks a lot!
 </p>
 <p>
 There is a rare version of the Aladdin eToken PRO with a G&amp;D Starcos smart card inside. This version is not supported and never went into mass production as far as we know.
 </p>
 <p>
 Aladdin has an SDK with Documentation on their ftp server for public download, but to implement the OpenSC driver further documentation was necessary (by Siemens and available only under NDA as far as we know).
-</p>
-<p>
-Some people had problems buying a single Aladdin eToken PRO (bare, without any bundle or consulting etc.).
-Please try bristol.de or coretech.at if you run into trouble.
-</p>
-<p>
-<a class="ext-link" href="http://www.security-mart.com/product_info.php?cPath=7_701&amp;products_id=700005" shape="rect"><span class="icon">Security Mart</span></a> sells them at 47$ if you buy 10-99 pieces.
 </p>
 <h2 id="Thanks">Thanks</h2>
 <p>

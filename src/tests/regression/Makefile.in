@@ -41,11 +41,7 @@ subdir = src/tests/regression
 DIST_COMMON = README $(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/aclocal/lib-ld.m4 \
-	$(top_srcdir)/aclocal/lib-link.m4 \
-	$(top_srcdir)/aclocal/lib-prefix.m4 \
-	$(top_srcdir)/aclocal/libassuan.m4 \
-	$(top_srcdir)/aclocal/pkg.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -198,11 +194,11 @@ sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = \
-	crypt0001 crypt0002 crypt0003 crypt0004 crypt0005 crypt0006 \
+	crypt0001 crypt0002 crypt0003 crypt0004 crypt0005 crypt0006 crypt0007 \
 	init0001 init0002 init0003 init0004 init0005 init0006 \
 	init0007 init0008 init0009 init0010 init0011 init0012 \
 	pin0001 pin0002 \
-	erase functions README run-all test.p12
+	erase functions README run-all test.p12 bintest
 
 all: all-am
 

@@ -46,6 +46,7 @@ enum {
 	OPT_MODULE = 0x100,
 	OPT_SLOT,
 	OPT_SLOT_LABEL,
+	OPT_APPLICATION_LABEL,
 	OPT_APPLICATION_ID,
 	OPT_SO_PIN,
 	OPT_INIT_TOKEN,
@@ -55,46 +56,48 @@ enum {
 	OPT_PRIVATE
 };
 
-const struct option options[] = {
-	{ "show-info",		0, 0,		'I' },
-	{ "list-slots",		0, 0,		'L' },
-	{ "list-mechanisms",	0, 0,		'M' },
-	{ "list-objects",	0, 0,		'O' },
+static const struct option options[] = {
+	{ "show-info",		0, NULL,		'I' },
+	{ "list-slots",		0, NULL,		'L' },
+	{ "list-mechanisms",	0, NULL,		'M' },
+	{ "list-objects",	0, NULL,		'O' },
 
-	{ "sign",		0, 0,		's' },
-	{ "hash",		0, 0,		'h' },
-	{ "mechanism",		1, 0,		'm' },
+	{ "sign",		0, NULL,		's' },
+	{ "hash",		0, NULL,		'h' },
+	{ "mechanism",		1, NULL,		'm' },
 
-	{ "login",		0, 0,		'l' },
-	{ "pin",		1, 0,		'p' },
-	{ "so-pin",		1, 0,		OPT_SO_PIN },
-	{ "init-token",		0, 0,		OPT_INIT_TOKEN },
-	{ "init-pin",		0, 0,		OPT_INIT_PIN },
-	{ "change-pin",		0, 0,		'c' },
-	{ "keypairgen", 	0, 0, 		'k' },
-	{ "key-type",		1, 0,		OPT_KEY_TYPE },
-	{ "write-object",	1, 0, 		'w' },
-	{ "read-object",	0, 0, 		'r' },
-	{ "application-id",	1, 0, 		OPT_APPLICATION_ID },
-	{ "type", 		1, 0, 		'y' },
-	{ "id", 		1, 0, 		'd' },
-	{ "label", 		1, 0, 		'a' },
-	{ "slot",		1, 0,		OPT_SLOT },
-	{ "slot-label",		1, 0,		OPT_SLOT_LABEL },
-	{ "set-id",		1, 0, 		'e' },
-	{ "attr-from",		1, 0, 		OPT_ATTR_FROM },
-	{ "input-file",		1, 0,		'i' },
-	{ "output-file",	1, 0,		'o' },
-	{ "module",		1, 0,		OPT_MODULE },
+	{ "login",		0, NULL,		'l' },
+	{ "pin",		1, NULL,		'p' },
+	{ "so-pin",		1, NULL,		OPT_SO_PIN },
+	{ "init-token",		0, NULL,		OPT_INIT_TOKEN },
+	{ "init-pin",		0, NULL,		OPT_INIT_PIN },
+	{ "change-pin",		0, NULL,		'c' },
+	{ "keypairgen", 	0, NULL, 		'k' },
+	{ "key-type",		1, NULL,		OPT_KEY_TYPE },
+	{ "write-object",	1, NULL, 		'w' },
+	{ "read-object",	0, NULL, 		'r' },
+	{ "delete-object",	0, NULL, 		'b' },
+	{ "application-label",	1, NULL, 		OPT_APPLICATION_LABEL },
+	{ "application-id",	1, NULL, 		OPT_APPLICATION_ID },
+	{ "type", 		1, NULL, 		'y' },
+	{ "id", 		1, NULL, 		'd' },
+	{ "label", 		1, NULL, 		'a' },
+	{ "slot",		1, NULL,		OPT_SLOT },
+	{ "slot-label",		1, NULL,		OPT_SLOT_LABEL },
+	{ "set-id",		1, NULL, 		'e' },
+	{ "attr-from",		1, NULL, 		OPT_ATTR_FROM },
+	{ "input-file",		1, NULL,		'i' },
+	{ "output-file",	1, NULL,		'o' },
+	{ "module",		1, NULL,		OPT_MODULE },
 
-	{ "test",		0, 0,		't' },
-	{ "moz-cert",		1, 0,		'z' },
-	{ "verbose",		0, 0,		'v' },
-	{ "private",		0, 0,		OPT_PRIVATE },
-	{ 0, 0, 0, 0 }
+	{ "test",		0, NULL,		't' },
+	{ "moz-cert",		1, NULL,		'z' },
+	{ "verbose",		0, NULL,		'v' },
+	{ "private",		0, NULL,		OPT_PRIVATE },
+	{ NULL, 0, NULL, 0 }
 };
 
-const char *option_help[] = {
+static const char *option_help[] = {
 	"Show global token information",
 	"List slots available on the token",
 	"List mechanisms supported by the token",
@@ -112,8 +115,9 @@ const char *option_help[] = {
 	"Change your User PIN",
 	"Key pair generation",
 	"Specify the type and length of the key to create, for example rsa:1024",
-	"Write an object (key, cert) to the card",
+	"Write an object (key, cert, data) to the card",
 	"Get object's CKA_VALUE attribute (use with --type)",
+	"Specify the application label of the data object (use with --type data)",
 	"Specify the application id of the data object (use with --type data)",
 	"Specify the type of object (e.g. cert, privkey, pubkey, data)",
 	"Specify the id of the object",
@@ -132,7 +136,7 @@ const char *option_help[] = {
 	"Set the CKA_PRIVATE attribute (object is only viewable after a login)"
 };
 
-const char *		app_name = "pkcs11-tool"; /* for utils.c */
+static const char *	app_name = "pkcs11-tool"; /* for utils.c */
 
 static int		verbose = 0;
 static const char *	opt_input = NULL;
@@ -150,6 +154,7 @@ static size_t		opt_object_id_len = 0, new_object_id_len = 0;
 static char *		opt_object_label = NULL;
 static char *		opt_pin = NULL;
 static char *		opt_so_pin = NULL;
+static char *		opt_application_label = NULL;
 static char *		opt_application_id = NULL;
 static char *		opt_key_type = NULL;
 static int		opt_is_private = 0;
@@ -215,6 +220,7 @@ static int		gen_keypair(CK_SLOT_ID, CK_SESSION_HANDLE,
 				CK_OBJECT_HANDLE *, CK_OBJECT_HANDLE *, const char *);
 static int 		write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session);
 static int 		read_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session);
+static int 		delete_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session);
 static void 		set_id_attr(CK_SLOT_ID slot, CK_SESSION_HANDLE session);
 static int		find_object(CK_SESSION_HANDLE, CK_OBJECT_CLASS,
 				CK_OBJECT_HANDLE_PTR,
@@ -249,8 +255,7 @@ static CK_ULONG		get_private_key_length(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE
 # define O_BINARY 0
 #endif
 
-int
-main(int argc, char * argv[])
+int main(int argc, char * argv[])
 {
 	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
 	CK_OBJECT_HANDLE object = CK_INVALID_HANDLE;
@@ -264,6 +269,7 @@ main(int argc, char * argv[])
 	int do_gen_keypair = 0;
 	int do_write_object = 0;
 	int do_read_object = 0;
+	int do_delete_object = 0;
 	int do_set_id = 0;
 	int do_test = 0;
 	int do_test_kpgen_certwrite = 0;
@@ -277,7 +283,7 @@ main(int argc, char * argv[])
 	CK_RV rv;
 
 	while (1) {
-		c = getopt_long(argc, argv, "ILMOa:d:e:hi:klm:o:p:scvty:w:z:r",
+		c = getopt_long(argc, argv, "ILMOa:bd:e:hi:klm:o:p:scvty:w:z:r",
 		                options, &long_optind);
 		if (c == -1)
 			break;
@@ -320,13 +326,18 @@ main(int argc, char * argv[])
 			do_read_object = 1;
 			action_count++;
 			break;
+		case 'b':
+			need_session |= NEED_SESSION_RW;
+			do_delete_object = 1;
+			action_count++;
+			break;
 		case 'e':
 			need_session |= NEED_SESSION_RW;
 			do_set_id = 1;
 			new_object_id_len = sizeof(new_object_id);
 			if (!hex_to_bin(optarg, new_object_id, &new_object_id_len)) {
 				printf("Invalid ID \"%s\"\n", optarg);
-				print_usage_and_die();
+				print_usage_and_die(app_name, options, option_help);
 			}
 			action_count++;
 			break;
@@ -345,14 +356,14 @@ main(int argc, char * argv[])
 				opt_object_class = CKO_DATA;
 			else {
 				printf("Unsupported object type \"%s\"\n", optarg);
-				print_usage_and_die();
+				print_usage_and_die(app_name, options, option_help);
 			}
 			break;
 		case 'd':
 			opt_object_id_len = sizeof(opt_object_id);
 			if (!hex_to_bin(optarg, opt_object_id, &opt_object_id_len)) {
 				printf("Invalid ID \"%s\"\n", optarg);
-				print_usage_and_die();
+				print_usage_and_die(app_name, options, option_help);
 			}
 			break;
 		case 'a':
@@ -407,6 +418,9 @@ main(int argc, char * argv[])
 		case OPT_MODULE:
 			opt_module = optarg;
 			break;
+		case OPT_APPLICATION_LABEL:
+			opt_application_label = optarg;
+			break;
 		case OPT_APPLICATION_ID:
 			opt_application_id = optarg;
 			break;
@@ -430,11 +444,11 @@ main(int argc, char * argv[])
 			opt_is_private = 1;
 			break;
 		default:
-			print_usage_and_die();
+			print_usage_and_die(app_name, options, option_help);
 		}
 	}
 	if (action_count == 0)
-		print_usage_and_die();
+		print_usage_and_die(app_name, options, option_help);
 
 #ifdef HAVE_OPENSSL
 	/* ERR_load_crypto_strings(); */
@@ -572,11 +586,22 @@ main(int argc, char * argv[])
 		if (opt_object_class_str == NULL)
 			fatal("You should specify type of the object to read");
 		if (opt_object_id_len == 0 && opt_object_label == NULL && 
-				opt_application_id == NULL)
+				opt_application_label == NULL && opt_application_id == NULL)
 			 fatal("You should specify at least one of the "
-					 "object ID, object label or application ID\n");
+					 "object ID, object label, application label or application ID\n");
 		read_object(opt_slot, session);
 	}
+
+	if (do_delete_object) {
+		if (opt_object_class_str == NULL)
+			fatal("You should specify type of the object to delete");
+		if (opt_object_id_len == 0 && opt_object_label == NULL && 
+				opt_application_label == NULL && opt_application_id == NULL)
+			 fatal("You should specify at least one of the "
+					 "object ID, object label, application label or application ID\n");
+		delete_object(opt_slot, session);
+	}
+
 	if (do_set_id) {
 		if (opt_object_class_str == NULL)
 			fatal("You should specify the object type with the -y option\n");
@@ -601,8 +626,8 @@ end:
 
 	return err;
 }
-void
-show_cryptoki_info(void)
+
+static void show_cryptoki_info(void)
 {
 	CK_INFO	info;
 	CK_RV	rv;
@@ -624,8 +649,7 @@ show_cryptoki_info(void)
 			info.libraryVersion.minor);
 }
 
-void
-list_slots(void)
+static void list_slots(void)
 {
 	CK_SLOT_INFO	info;
 	CK_ULONG	n;
@@ -666,8 +690,7 @@ list_slots(void)
 	}
 }
 
-void
-show_token(CK_SLOT_ID slot)
+static void show_token(CK_SLOT_ID slot)
 {
 	CK_TOKEN_INFO	info;
 
@@ -693,8 +716,7 @@ show_token(CK_SLOT_ID slot)
 			sizeof(info.serialNumber)));
 }
 
-void
-list_mechs(CK_SLOT_ID slot)
+static void list_mechs(CK_SLOT_ID slot)
 {
 	CK_MECHANISM_TYPE	*mechs = NULL;
 	CK_ULONG		n, num_mechs = 0;
@@ -733,8 +755,7 @@ list_mechs(CK_SLOT_ID slot)
 	}
 }
 
-void
-list_objects(CK_SESSION_HANDLE sess)
+static void list_objects(CK_SESSION_HANDLE sess)
 {
 	CK_OBJECT_HANDLE object;
 	CK_ULONG count;
@@ -756,7 +777,7 @@ list_objects(CK_SESSION_HANDLE sess)
 }
 
 static int login(CK_SESSION_HANDLE session, int need_to_be_so)
- {
+{
 	char		*pin = NULL;
 	CK_TOKEN_INFO	info;
 	CK_RV		rv;
@@ -790,8 +811,7 @@ static int login(CK_SESSION_HANDLE session, int need_to_be_so)
 	return 0;
 }
 
-void
-init_token(CK_SLOT_ID slot)
+static void init_token(CK_SLOT_ID slot)
 {
 	unsigned char token_label[33];
 	char new_buf[21], *new_pin = NULL;
@@ -829,8 +849,7 @@ init_token(CK_SLOT_ID slot)
 	printf("Token successfully initialized\n");
 }
 
-void
-init_pin(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
+static void init_pin(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
 {
 	char new_buf[21], *new_pin = NULL;
 	CK_TOKEN_INFO	info;
@@ -860,8 +879,7 @@ init_pin(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
 	printf("User PIN successfully initialized\n");
 }
 
-int
-change_pin(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
+static int change_pin(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
 {
 	char old_buf[21], *old_pin = NULL;
 	char new_buf[21], *new_pin = NULL;
@@ -897,8 +915,8 @@ change_pin(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
 	return 0;
 }
 
-void
-sign_data(CK_SLOT_ID slot, CK_SESSION_HANDLE session, CK_OBJECT_HANDLE key)
+static void sign_data(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
+		CK_OBJECT_HANDLE key)
 {
 	unsigned char	buffer[512];
 	CK_MECHANISM	mech;
@@ -956,8 +974,7 @@ sign_data(CK_SLOT_ID slot, CK_SESSION_HANDLE session, CK_OBJECT_HANDLE key)
 		close(fd);
 }
 
-void
-hash_data(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static void hash_data(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	unsigned char	buffer[64];
 	CK_MECHANISM	mech;
@@ -1011,8 +1028,7 @@ hash_data(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 
 #define FILL_ATTR(attr, typ, val, len) {(attr).type=(typ); (attr).pValue=(val); (attr).ulValueLen=len;}
 
-int
-gen_keypair(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
+static int gen_keypair(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
 	CK_OBJECT_HANDLE *hPublicKey, CK_OBJECT_HANDLE *hPrivateKey, const char *type)
 {
 	CK_MECHANISM mechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
@@ -1096,10 +1112,11 @@ static void	parse_certificate(struct x509cert_info *cert,
 {
 	X509 *x;
 	unsigned char *p;
+	const unsigned char *pp;
 	int n;
 
-	p = data;
-	x = d2i_X509(NULL, &p, len);
+	pp = data;
+	x = d2i_X509(NULL, &pp, len);
 	if (!x) {
 		/* ERR_print_errors_fp(stderr); */
 		fatal("OpenSSL error during X509 certificate parsing");
@@ -1162,10 +1179,10 @@ static void	parse_rsa_private_key(struct rsakey_info *rsa,
 
 #define MAX_OBJECT_SIZE	5000
 
-/* Currently only for certificates (-type cert) and private keys
-   (-type privkey). Note: only RSA private keys are supported. */
-int
-write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+/* Currently only for certificates (-type cert),
+   private keys (-type privkey) and data objetcs (-type data).
+   Note: only RSA private keys are supported. */
+static int write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	CK_BBOOL _true = TRUE;
 	unsigned char contents[MAX_OBJECT_SIZE];
@@ -1176,6 +1193,7 @@ write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	CK_OBJECT_HANDLE cert_obj, privkey_obj, data_obj;
 	CK_ATTRIBUTE cert_templ[20], privkey_templ[20], data_templ[20];
 	int n_cert_attr = 0, n_privkey_attr = 0, n_data_attr = 0;
+	struct sc_object_id oid;
 #if 0 
 	CK_ATTRIBUTE pubkey_templ[20];
 	CK_OBJECT_HANDLE pubkey_obj;
@@ -1328,13 +1346,22 @@ write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 		if (opt_is_private != 0) {
 			FILL_ATTR(data_templ[n_data_attr], CKA_PRIVATE,
 				&_true, sizeof(_true));
+			n_data_attr++;
+		}
+
+		if (opt_application_label != NULL) {
+			FILL_ATTR(data_templ[n_data_attr], CKA_APPLICATION,
+				opt_application_label, strlen(opt_application_label));
+			n_data_attr++;
 		}
 
 		if (opt_application_id != NULL) {
-			FILL_ATTR(data_templ[n_data_attr], CKA_APPLICATION,
-				opt_application_id, strlen(opt_application_id));
+			sc_format_oid(&oid, opt_application_id);
+			FILL_ATTR(data_templ[n_data_attr], CKA_OBJECT_ID,
+				(unsigned char *)oid.value, sizeof(oid.value));
 			n_data_attr++;
 		}
+
 		if (opt_object_label != NULL) {
 			FILL_ATTR(data_templ[n_data_attr], CKA_LABEL,
 				opt_object_label, strlen(opt_object_label));
@@ -1385,8 +1412,7 @@ write_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	return 1;
 }
 
-void
-set_id_attr(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static void set_id_attr(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	CK_OBJECT_HANDLE obj;
 	CK_ATTRIBUTE templ[] = {{CKA_ID, new_object_id, new_object_id_len}};
@@ -1405,8 +1431,7 @@ set_id_attr(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	show_object(session, obj);
 }
 
-CK_SLOT_ID
-find_slot_by_label(const char *label)
+static CK_SLOT_ID find_slot_by_label(const char *label)
 {
 	CK_TOKEN_INFO	info;
 	CK_ULONG	n, len;
@@ -1430,8 +1455,7 @@ find_slot_by_label(const char *label)
 	return NO_SLOT;
 }
 
-int
-find_object(CK_SESSION_HANDLE sess, CK_OBJECT_CLASS cls,
+static int find_object(CK_SESSION_HANDLE sess, CK_OBJECT_CLASS cls,
 		CK_OBJECT_HANDLE_PTR ret,
 		const unsigned char *id, size_t id_len, int obj_index)
 {
@@ -1474,7 +1498,8 @@ done:	if (count == 0)
 	return count;
 }
 
-CK_RV find_object_with_attributes(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE *out, 
+static CK_RV find_object_with_attributes(CK_SESSION_HANDLE session,
+			CK_OBJECT_HANDLE *out, 
 			CK_ATTRIBUTE *attrs, CK_ULONG attrsLen, 
 			CK_ULONG obj_index)
 {
@@ -1511,8 +1536,8 @@ done:
 }
 
 
-CK_MECHANISM_TYPE
-find_mechanism(CK_SLOT_ID slot, CK_FLAGS flags, int stop_if_not_found)
+static CK_MECHANISM_TYPE find_mechanism(CK_SLOT_ID slot, CK_FLAGS flags,
+		int stop_if_not_found)
 {
 	CK_MECHANISM_TYPE *mechs = NULL, result;
 	CK_ULONG	count = 0;
@@ -1535,7 +1560,7 @@ find_mechanism(CK_SLOT_ID slot, CK_FLAGS flags, int stop_if_not_found)
 static TYPE \
 get##ATTR(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj) \
 { \
-	TYPE		type; \
+	TYPE		type = 0; \
 	CK_ATTRIBUTE	attr = { CKA_##ATTR, &type, sizeof(type) }; \
 	CK_RV		rv; \
  \
@@ -1604,8 +1629,7 @@ VARATTR_METHOD(OBJECT_ID, unsigned char);
 VARATTR_METHOD(MODULUS, unsigned char);
 VARATTR_METHOD(VALUE, unsigned char);
 
-void
-show_object(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
+static void show_object(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
 {
 	CK_OBJECT_CLASS	cls = getCLASS(sess, obj);
 
@@ -1629,8 +1653,7 @@ show_object(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
 	}
 }
 
-void
-show_key(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj, int pub)
+static void show_key(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj, int pub)
 {
 	CK_KEY_TYPE	key_type = getKEY_TYPE(sess, obj);
 	CK_ULONG	size;
@@ -1698,8 +1721,7 @@ show_key(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj, int pub)
 	printf("\n");
 }
 
-void
-show_cert(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
+static void show_cert(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
 {
 	CK_CERTIFICATE_TYPE	cert_type = getCERTIFICATE_TYPE(sess, obj);
 	CK_ULONG	size;
@@ -1738,8 +1760,7 @@ show_cert(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
 	}
 }
 
-void
-show_dobj(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
+static void show_dobj(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
 {
 	int	*app_oid;
 	char		*label;
@@ -1790,8 +1811,7 @@ show_dobj(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE obj)
 	printf ("\n");
 }
 
-void
-get_token_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
+static void get_token_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 {
 	CK_RV		rv;
 
@@ -1800,9 +1820,7 @@ get_token_info(CK_SLOT_ID slot, CK_TOKEN_INFO_PTR info)
 		p11_fatal("C_GetTokenInfo", rv);
 }
 
-CK_ULONG
-get_mechanisms(CK_SLOT_ID slot,
-		CK_MECHANISM_TYPE_PTR *pList,
+static CK_ULONG get_mechanisms(CK_SLOT_ID slot, CK_MECHANISM_TYPE_PTR *pList,
 		CK_FLAGS flags)
 {
 	CK_ULONG	m, n, ulCount;
@@ -1837,8 +1855,7 @@ get_mechanisms(CK_SLOT_ID slot,
 /*
  * Read object CKA_VALUE attribute's value.
  */
-int
-read_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static int read_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	CK_RV rv;
 	CK_ATTRIBUTE attrs[20];
@@ -1865,6 +1882,12 @@ read_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	if (opt_object_label != NULL)   {
 		FILL_ATTR(attrs[nn_attrs], CKA_LABEL, 
 				opt_object_label, strlen(opt_object_label));
+		nn_attrs++;
+	}
+
+	if (opt_application_label != NULL)   {
+		FILL_ATTR(attrs[nn_attrs], CKA_APPLICATION, 
+				opt_application_label, strlen(opt_application_label));
 		nn_attrs++;
 	}
 
@@ -1900,6 +1923,61 @@ read_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	return 1;	
 }
 
+/*
+ * Delete object.
+ */
+static int delete_object(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+{
+	CK_RV rv;
+	CK_ATTRIBUTE attrs[20];
+	CK_OBJECT_CLASS clazz = opt_object_class;
+	CK_OBJECT_HANDLE obj = CK_INVALID_HANDLE;
+	int nn_attrs = 0;
+	struct sc_object_id oid;
+	
+	if (opt_object_class_str != NULL)   {
+		FILL_ATTR(attrs[nn_attrs], CKA_CLASS, 
+				 &clazz, sizeof(clazz));
+		nn_attrs++;
+	}
+
+	if (opt_object_id_len != 0)  {
+		FILL_ATTR(attrs[nn_attrs], CKA_ID, 
+				opt_object_id, opt_object_id_len);
+		nn_attrs++;
+	}
+
+	if (opt_object_label != NULL)   {
+		FILL_ATTR(attrs[nn_attrs], CKA_LABEL, 
+				opt_object_label, strlen(opt_object_label));
+		nn_attrs++;
+	}
+
+	if (opt_application_label != NULL)   {
+		FILL_ATTR(attrs[nn_attrs], CKA_APPLICATION, 
+				opt_application_label, strlen(opt_application_label));
+		nn_attrs++;
+	}
+
+	if (opt_application_id != NULL)   {
+		sc_format_oid(&oid, opt_application_id);
+		FILL_ATTR(attrs[nn_attrs], CKA_OBJECT_ID,
+				(unsigned char *)oid.value, sizeof(oid.value));
+		nn_attrs++;
+	}
+
+	rv = find_object_with_attributes(session, &obj, attrs, nn_attrs, 0);
+	if (rv != CKR_OK)
+		p11_fatal("find_object_with_attributes()", rv);
+	else if (obj==CK_INVALID_HANDLE)  
+		fatal("object not found\n");
+	rv = p11->C_DestroyObject(session, obj);
+	if (rv != CKR_OK)
+		p11_fatal("C_DestroyObject()", rv);
+
+	return 1;
+}
+
 static CK_ULONG	get_private_key_length(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE prkey)
 {
 	unsigned char  *id;
@@ -1923,8 +2001,7 @@ static CK_ULONG	get_private_key_length(CK_SESSION_HANDLE sess, CK_OBJECT_HANDLE 
 	return getMODULUS_BITS(sess, pubkey); 
 }
 
-static int
-test_digest(CK_SLOT_ID slot)
+static int test_digest(CK_SLOT_ID slot)
 {
 	int             errors = 0;
 	CK_RV           rv;
@@ -2095,7 +2172,8 @@ static EVP_PKEY *get_public_key(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE priv
 	unsigned char  *id;
 	CK_ULONG        idLen;
 	CK_OBJECT_HANDLE pubkeyObject;
-	unsigned char  *pubkey, *pubkey_sav;
+	unsigned char  *pubkey;
+	const unsigned char *pubkey_c;
 	CK_ULONG        pubkeyLen;
 	EVP_PKEY       *pkey;
 
@@ -2119,9 +2197,9 @@ static EVP_PKEY *get_public_key(CK_SESSION_HANDLE session, CK_OBJECT_HANDLE priv
 		return NULL;
 	}
 
-	pubkey_sav = pubkey; /* The function below may change pubkey */
-	pkey = d2i_PublicKey(EVP_PKEY_RSA, NULL, &pubkey, pubkeyLen);
-	free(pubkey_sav);
+	pubkey_c = pubkey;
+	pkey = d2i_PublicKey(EVP_PKEY_RSA, NULL, &pubkey_c, pubkeyLen);
+	free(pubkey);
 
 	if (pkey == NULL) {
 		printf(" couldn't parse pubkey, no verification done\n");
@@ -2207,8 +2285,7 @@ static int sign_verify_openssl(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
 /*
  * Test signature functions
  */
-static int
-test_signature(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static int test_signature(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	int             errors = 0;
 	CK_RV           rv;
@@ -2451,8 +2528,8 @@ test_signature(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	return errors;
 }
 
-static int
-sign_verify(CK_SLOT_ID slot, CK_SESSION_HANDLE session,	CK_OBJECT_HANDLE priv_key, int key_len,
+static int sign_verify(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
+	CK_OBJECT_HANDLE priv_key, int key_len,
 	CK_OBJECT_HANDLE pub_key, int one_test)
 {
 	CK_RV rv;
@@ -2530,8 +2607,7 @@ sign_verify(CK_SLOT_ID slot, CK_SESSION_HANDLE session,	CK_OBJECT_HANDLE priv_ke
 	return errors;
 }
 
-static int
-test_verify(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
+static int test_verify(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
 {
 	int key_len, i, errors = 0;
 	CK_OBJECT_HANDLE priv_key, pub_key;
@@ -2604,8 +2680,7 @@ test_verify(CK_SLOT_ID slot, CK_SESSION_HANDLE sess)
 }
 
 #ifdef HAVE_OPENSSL
-static int
-wrap_unwrap(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
+static int wrap_unwrap(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
 	    const EVP_CIPHER *algo, CK_OBJECT_HANDLE privKeyObject)
 {
 	CK_OBJECT_HANDLE cipherKeyObject;
@@ -2694,8 +2769,7 @@ wrap_unwrap(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
 /*
  * Test unwrap functions
  */
-static int
-test_unwrap(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static int test_unwrap(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	int             errors = 0;
 	CK_RV           rv;
@@ -2751,8 +2825,7 @@ test_unwrap(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 }
 
 #ifdef HAVE_OPENSSL
-static int
-encrypt_decrypt(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
+static int encrypt_decrypt(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
 		CK_MECHANISM_TYPE mech_type,
 		CK_OBJECT_HANDLE privKeyObject)
 {
@@ -2826,8 +2899,7 @@ encrypt_decrypt(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
 /*
  * Test decryption functions
  */
-static int
-test_decrypt(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static int test_decrypt(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	int             errors = 0;
 	CK_RV           rv;
@@ -2884,8 +2956,7 @@ test_decrypt(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	return errors;
 }
 
-static int
-test_random(CK_SLOT_ID slot)
+static int test_random(CK_SLOT_ID slot)
 {
 	CK_SESSION_HANDLE session;
 	CK_BYTE buf1[100], buf2[100];
@@ -2946,8 +3017,7 @@ test_random(CK_SLOT_ID slot)
 	return 0;
 }
 
-static int
-test_card_detection(int wait_for_event)
+static int test_card_detection(int wait_for_event)
 {
 	char buffer[256];
 	CK_SLOT_ID slot_id;
@@ -2980,8 +3050,7 @@ test_card_detection(int wait_for_event)
 	return 0;
 }
 
-static int
-p11_test(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static int p11_test(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	int errors = 0;
 
@@ -3014,8 +3083,7 @@ p11_test(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
  * cert request + some other tests, writing certs and changing
  * some attributes.
  */
-static void
-test_kpgen_certwrite(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
+static void test_kpgen_certwrite(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 {
 	CK_MECHANISM		mech = {CKM_RSA_PKCS, NULL_PTR, 0};
 	CK_MECHANISM_TYPE	*mech_type = NULL;
@@ -3179,8 +3247,7 @@ test_kpgen_certwrite(CK_SLOT_ID slot, CK_SESSION_HANDLE session)
 	printf("\n==> OK, successfull! Should work with Mozilla\n");	
 }
 
-const char *
-p11_flag_names(struct flag_info *list, CK_FLAGS value)
+static const char *p11_flag_names(struct flag_info *list, CK_FLAGS value)
 {
 	static char	buffer[1024];
 	const char	*sepa = "";
@@ -3203,8 +3270,7 @@ p11_flag_names(struct flag_info *list, CK_FLAGS value)
 	return buffer;
 }
 
-const char *
-p11_slot_info_flags(CK_FLAGS value)
+static const char *p11_slot_info_flags(CK_FLAGS value)
 {
 	static struct flag_info	slot_flags[] = {
 		{ CKF_TOKEN_PRESENT, "token present" },
@@ -3216,8 +3282,7 @@ p11_slot_info_flags(CK_FLAGS value)
 	return p11_flag_names(slot_flags, value);
 }
 
-const char *
-p11_token_info_flags(CK_FLAGS value)
+static const char *p11_token_info_flags(CK_FLAGS value)
 {
 	static struct flag_info	slot_flags[] = {
 		{ CKF_RNG, "rng" },
@@ -3232,8 +3297,7 @@ p11_token_info_flags(CK_FLAGS value)
 	return p11_flag_names(slot_flags, value);
 }
 
-const char *
-p11_utf8_to_local(CK_UTF8CHAR *string, size_t len)
+static const char *p11_utf8_to_local(CK_UTF8CHAR *string, size_t len)
 {
 	static char	buffer[512];
 	size_t		n, m;
@@ -3251,29 +3315,26 @@ p11_utf8_to_local(CK_UTF8CHAR *string, size_t len)
 	return buffer;
 }
 
-void
-p11_fatal(const char *func, CK_RV rv)
+static void p11_fatal(const char *func, CK_RV rv)
 {
 	fatal("PKCS11 function %s failed: rv = %s (0x%0x)\n",
 		func, CKR2Str(rv), (unsigned int) rv);
 }
 
-void
-p11_warn(const char *func, CK_RV rv)
+static void p11_warn(const char *func, CK_RV rv)
 {
 	warn("PKCS11 function %s failed: rv = %s (0x%0x)\n",
 		func, CKR2Str(rv), (unsigned int) rv);
 }
 
-void
-p11_perror(const char *msg, CK_RV rv)
+static void p11_perror(const char *msg, CK_RV rv)
 {
 	fprintf(stderr,
 		"  ERR: %s failed: %s (0x%0x)\n",
 		msg, CKR2Str(rv), (unsigned int) rv);
 }
 
-int hex_to_bin(const char *in, unsigned char *out, size_t *outlen)
+static int hex_to_bin(const char *in, unsigned char *out, size_t *outlen)
 {
 	size_t left, count = 0;
 
@@ -3508,8 +3569,7 @@ static struct mech_info	p11_mechanisms[] = {
       { NO_MECHANISM, NULL, NULL }
 };
 
-static const char *
-p11_mechanism_to_name(CK_MECHANISM_TYPE mech)
+static const char *p11_mechanism_to_name(CK_MECHANISM_TYPE mech)
 {
 	static char temp[64];
 	struct mech_info *mi;
@@ -3522,8 +3582,7 @@ p11_mechanism_to_name(CK_MECHANISM_TYPE mech)
 	return temp;
 }
 
-CK_MECHANISM_TYPE
-p11_name_to_mechanism(const char *name)
+static CK_MECHANISM_TYPE p11_name_to_mechanism(const char *name)
 {
 	struct mech_info *mi;
 
@@ -3536,8 +3595,7 @@ p11_name_to_mechanism(const char *name)
 	return NO_MECHANISM; /* gcc food */
 }
 
-static const char *
-CKR2Str(CK_ULONG res)
+static const char * CKR2Str(CK_ULONG res)
 {
 	switch (res) {
 	case CKR_OK:

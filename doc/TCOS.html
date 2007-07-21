@@ -4,7 +4,7 @@
           </style></head><body><div class="wikipage">
     <div id="searchable"><h1 id="TCOSbasedpreformattedcards">TCOS based preformatted cards</h1>
 <p>
-<a href="http://www.opensc-project.org/opensc/attachment/wiki/TCOS/Card-Images.gif?format=raw" shape="rect">http://www.opensc-project.org/opensc/attachment/wiki/TCOS/Card-Images.gif?format=raw</a>
+<a style="padding:0; border:none" href="/opensc/attachment/wiki/TCOS/Card-Images.gif" shape="rect"><img src="TCOS_Card-Images.gif" alt="Images of TCOS cards" title="Images of TCOS cards"></img></a>
 </p>
 <p>
 Telesec (part of T-Systems), Deutsche Post, Kobil GmbH and DATEV are german companies that sell TCOS based preformatted cards, i.e NetKey E4 cards, SignTrust cards, Smartkey cards and DATEV-cards. All these cards have a TCOS 2.02 operationg system and an almost PKCS#15 compatible file-layout. OpenSC has read-only support for these kind of cards.
@@ -76,14 +76,14 @@ In general (and in particular with TCOS-cards) it's a lot more complicated to cr
 There is one problem with many PKCS#11 or PKCS#15 smartcard-applications. They assume that the ID of a certificate uniquely identifies the certificate itself. This is wrong as the ID only identifies the private/public keypair that belongs to the certificate. So if you have more than one certificate for the same keypair all these certificates will share the same ID-value. OpenSC has this problem with NetKey cards too. Have a look at the -r option of pkcs15-tool. In order to select a certificate you can only specify its ID and pkcs15-tool will output the first certificate from the card that has such an ID-value.
 </p>
 <p>
-<a class="missing wiki" href="/opensc/wiki/OpenSwan" rel="nofollow" shape="rect">OpenSwan?</a> is another application, that selects a certificate by ID and therefore has problems to select the right one from NetKey cards.
+<a class="missing wiki" href="OpenSwan.html" rel="nofollow" shape="rect">OpenSwan?</a> is another application, that selects a certificate by ID and therefore has problems to select the right one from NetKey cards.
 </p>
 <p>
 If you have stored a certificate on your card, you most likely want to use this certificate (and not the readonly-one). Therefore the emulation will add the user-certificates first into its internal list.
 </p>
 <h3 id="SomeremarksaboutthepinsofaNetkeycard">Some remarks about the pins of a Netkey card</h3>
 <p>
-There are two global pins on a <a class="missing wiki" href="/opensc/wiki/NetKey" rel="nofollow" shape="rect">NetKey?</a>-card and some of the directories contain further pins. The NetKey emuation will list the two global pins (PIN and PUK) and the two local pins contained in directory DF01 (PIN0 and PIN1). The TCOS card operation system can protect a private key by more than one pin. OpenSC does NOT support this and will always ask for one specific pin. If a key is protected by both a global pin and a local pin OpenSC will always ask for the local one.
+There are two global pins on a <a class="missing wiki" href="NetKey.html" rel="nofollow" shape="rect">NetKey?</a>-card and some of the directories contain further pins. The NetKey emuation will list the two global pins (PIN and PUK) and the two local pins contained in directory DF01 (PIN0 and PIN1). The TCOS card operation system can protect a private key by more than one pin. OpenSC does NOT support this and will always ask for one specific pin. If a key is protected by both a global pin and a local pin OpenSC will always ask for the local one.
 </p>
 <p>
 Now that you know that you MUST use local PIN0 or local PIN1 and cannot use your global PIN instead you probably want to know the initial value of those local pins. But these local pins were set to a random 6-digit number when TeleSec Gmbh produced your card. So you cannot know them until you changed them.

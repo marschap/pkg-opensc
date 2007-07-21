@@ -13,7 +13,7 @@ static int get_certificate(PluginInstance *inst,
         int r, i, count;
         X509 *x509;
         struct sc_pkcs15_id cert_id;
-        u8 *p;
+        const u8 *p;
 
         r = sc_pkcs15_get_objects(inst->p15card, SC_PKCS15_TYPE_PRKEY_RSA, objs, 32);
         if (r < 0)
@@ -189,11 +189,11 @@ int create_envelope(PluginInstance *inst, u8 **data, int *datalen)
 		goto err;
 	}
 	for (;;) {
-		char buf[1024];
-		int i = BIO_read(in, buf, sizeof(buf));
+		char lbuf[1024];
+		int i = BIO_read(in, lbuf, sizeof(lbuf));
 		if (i <= 0)
 			break;
-		BIO_write(p7bio, buf, i);
+		BIO_write(p7bio, lbuf, i);
 	}
 	if (!PKCS7_dataFinal(p7, p7bio)) {
 		r = -1;

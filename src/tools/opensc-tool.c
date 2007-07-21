@@ -34,7 +34,7 @@
 #include <opensc/cardctl.h>
 #include "util.h"
 
-const char *app_name = "opensc-tool";
+static const char *app_name = "opensc-tool";
 
 static int	opt_reader = -1,
 		opt_wait = 0;
@@ -46,23 +46,23 @@ enum {
 	OPT_SERIAL = 0x100,
 };
 
-const struct option options[] = {
-	{ "atr",		0, 0,		'a' },
-	{ "serial",		0, 0,	OPT_SERIAL  },
-	{ "name",		0, 0,		'n' },
-	{ "list-readers",	0, 0, 		'l' },
-	{ "list-drivers",	0, 0,		'D' },
-	{ "list-rdrivers",	0, 0,		'R' },
-	{ "list-files",		0, 0,		'f' },
-	{ "send-apdu",		1, 0,		's' },
-	{ "reader",		1, 0,		'r' },
-	{ "card-driver",	1, 0,		'c' },
-	{ "wait",		0, 0,		'w' },
-	{ "verbose",		0, 0,		'v' },
-	{ 0, 0, 0, 0 }
+static const struct option options[] = {
+	{ "atr",		0, NULL,		'a' },
+	{ "serial",		0, NULL,	OPT_SERIAL  },
+	{ "name",		0, NULL,		'n' },
+	{ "list-readers",	0, NULL, 		'l' },
+	{ "list-drivers",	0, NULL,		'D' },
+	{ "list-rdrivers",	0, NULL,		'R' },
+	{ "list-files",		0, NULL,		'f' },
+	{ "send-apdu",		1, NULL,		's' },
+	{ "reader",		1, NULL,		'r' },
+	{ "card-driver",	1, NULL,		'c' },
+	{ "wait",		0, NULL,		'w' },
+	{ "verbose",		0, NULL,		'v' },
+	{ NULL, 0, NULL, 0 }
 };
 
-const char *option_help[] = {
+static const char *option_help[] = {
 	"Prints the ATR bytes of the card",
 	"Prints the card serial number",
 	"Identify the card and print its name",
@@ -77,8 +77,8 @@ const char *option_help[] = {
 	"Verbose operation. Use several times to enable debug output.",
 };
 
-sc_context_t *ctx = NULL;
-sc_card_t *card = NULL;
+static sc_context_t *ctx = NULL;
+static sc_card_t *card = NULL;
 
 static int list_readers(void)
 {
@@ -392,7 +392,7 @@ int main(int argc, char * const argv[])
 		if (c == -1)
 			break;
 		if (c == '?')
-			print_usage_and_die();
+			print_usage_and_die(app_name, options, option_help);
 		switch (c) {
 		case 'l':
 			do_list_readers = 1;
@@ -446,7 +446,7 @@ int main(int argc, char * const argv[])
 		}
 	}
 	if (action_count == 0)
-		print_usage_and_die();
+		print_usage_and_die(app_name, options, option_help);
 
 	memset(&ctx_param, 0, sizeof(ctx_param));
 	ctx_param.ver      = 0;

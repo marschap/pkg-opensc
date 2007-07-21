@@ -24,12 +24,12 @@ OpenSC on all platforms.
 <p>
 Native Windows applications often use the Crypto API interface. OpenSC does not implement
 the matching interface - CSP - but with the help of an additional software it does. See
-<a class="wiki" href="/opensc/wiki/WindowsCSP" shape="rect">WindowsCSP</a> for details. The advantage of Crypto API/CSP is that applications
+<a class="wiki" href="WindowsCSP.html" shape="rect">WindowsCSP</a> for details. The advantage of Crypto API/CSP is that applications
 do not need special code to use smart cards, all applications gain that feature automaticaly.
 </p>
 <p>
 Native Mac OS X applications also have a special interface called CDSA or CSP. See
-<a class="wiki" href="/opensc/wiki/AppleCSP" shape="rect">AppleCSP</a> for details. At this moment OpenSC does not support that interface
+<a class="wiki" href="AppleCSP.html" shape="rect">AppleCSP</a> for details. At this moment OpenSC does not support that interface
 and also there is no bridge to do so. But you can still use applications on Mac OS X
 that implement the PKCS#11 interface like Mozilla, Firefox or Thunderbird.
 </p>
@@ -45,7 +45,7 @@ also work well with OpenSC.
 <h2 id="DriverInterface">Driver Interface</h2>
 <p>
 Windows implements the PC/SC standard. That means OpenSC will use the PCSC interface to talk
-to the middleware, and the middleware will use drivers in "<a class="missing wiki" href="/opensc/wiki/IfdHandler" rel="nofollow" shape="rect">IfdHandler?</a>" format to talk to the
+to the middleware, and the middleware will use drivers in "IfdHandler" format to talk to the
 hardware. Nearly all vendors of smart card readers ship such drivers, or the driver is even
 included in Windows, so there shouldn't be any issue. OpenSC will be able to talk to your
 smart card just fine.

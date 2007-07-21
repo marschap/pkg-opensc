@@ -1056,7 +1056,9 @@ static int mcrd_restore_se(sc_card_t * card, int se_num)
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 }
 
-int select_key_df(sc_card_t * card)
+#if 0
+/* this function isn't used anywhere */
+static int select_key_df(sc_card_t * card)
 {
 	int r;
 	size_t i = 0;
@@ -1078,6 +1080,7 @@ int select_key_df(sc_card_t * card)
 	SC_TEST_RET(card->ctx, r, "Micardo select DF failed");
 	return r;
 }
+#endif
 
 /* It seems that MICARDO does not fully comply with ISO, so I use
    values gathered from peeking actual signing opeations using a
@@ -1090,6 +1093,7 @@ static int mcrd_set_security_env(sc_card_t * card,
 {
 	struct mcrd_priv_data *priv = DRVDATA(card);
 	sc_apdu_t apdu;
+	sc_path_t tmppath;	
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 *p;
 	int r, locked = 0;
@@ -1108,7 +1112,12 @@ static int mcrd_set_security_env(sc_card_t * card,
 		    || env->key_ref_len != 1)
 			return SC_ERROR_INVALID_ARGUMENTS;
 
-		select_esteid_df(card);	/* is it needed? */
+		/* Make sure we always start from MF */
+		sc_format_path ("3f00", &tmppath);
+		tmppath.type = SC_PATH_TYPE_PATH;
+		sc_select_file (card, &tmppath, NULL);
+		/* We now know that cache is not valid */
+		select_esteid_df(card);	
 		switch (env->operation) {
 		case SC_SEC_OPERATION_DECIPHER:
 			sc_debug(card->ctx,

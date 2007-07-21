@@ -48,11 +48,7 @@ DIST_COMMON = $(include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/libscconf.pc.in $(srcdir)/opensc-config.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/aclocal/lib-ld.m4 \
-	$(top_srcdir)/aclocal/lib-link.m4 \
-	$(top_srcdir)/aclocal/lib-prefix.m4 \
-	$(top_srcdir)/aclocal/libassuan.m4 \
-	$(top_srcdir)/aclocal/pkg.m4 $(top_srcdir)/configure.in
+	$(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -84,7 +80,7 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo asn1.lo \
 	card-default.lo card-mcrd.lo card-starcos.lo card-openpgp.lo \
 	card-jcop.lo card-oberthur.lo card-belpic.lo \
 	card-atrust-acos.lo card-incrypto34.lo card-piv.lo \
-	card-muscle.lo card-acos5.lo pkcs15-openpgp.lo \
+	card-muscle.lo card-acos5.lo card-asepcos.lo pkcs15-openpgp.lo \
 	pkcs15-infocamere.lo pkcs15-starcert.lo pkcs15-tcos.lo \
 	pkcs15-esteid.lo pkcs15-postecert.lo pkcs15-gemsafe.lo \
 	pkcs15-actalis.lo pkcs15-atrust-acos.lo pkcs15-tccardos.lo \
@@ -279,6 +275,7 @@ libopensc_la_SOURCES = \
 	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
 	card-oberthur.c card-belpic.c card-atrust-acos.c \
 	card-incrypto34.c card-piv.c card-muscle.c card-acos5.c \
+	card-asepcos.c \
 	\
 	pkcs15-openpgp.c pkcs15-infocamere.c pkcs15-starcert.c \
 	pkcs15-tcos.c pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafe.c \
@@ -395,6 +392,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asn1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/base64.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-acos5.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-asepcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-atrust-acos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-belpic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-cardos.Plo@am__quote@
