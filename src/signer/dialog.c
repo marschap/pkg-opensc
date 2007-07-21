@@ -4,7 +4,6 @@
 
 #ifndef PIN_ENTRY
 #define PIN_ENTRY "/usr/bin/pinentry"
-#define PIN_ENTRY "/usr/local/bin/gpinentry"
 #endif
 
 extern int ask_and_verify_pin_code(struct sc_pkcs15_card *p15card,
