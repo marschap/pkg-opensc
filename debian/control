@@ -3,7 +3,7 @@ Priority: extra
 Section: utils
 Maintainer: Eric Dorland <eric@debian.org>
 Build-Depends: cdbs, debhelper (>> 5), libltdl3-dev, libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), libassuan-dev (>= 0.6.4-2), libopenct1-dev, libxt-dev, flex, pkg-config
-Standards-Version: 3.7.2.0
+Standards-Version: 3.7.2.2
 
 Package: opensc
 Section: utils
@@ -29,7 +29,7 @@ Architecture: any
 Conflicts: libopensc0-dev, libopensc1-dev
 Replaces: libopensc0-dev, libopensc1-dev, libscam1 (<< 0.9.4-5)
 Provides: libopensc-dev
-Depends: libopensc2 (= ${Source-Version}), libssl-dev
+Depends: libopensc2 (= ${binary:Version}), libssl-dev
 Description: OpenSC development files
  Files necessary for developing applications with the libopensc 
  libraries from OpenSC.org.
@@ -56,7 +56,7 @@ Package: libopensc2-dbg
 Section: devel
 Priority: extra
 Architecture: any
-Depends: libopensc2 (= ${Source-Version})
+Depends: libopensc2 (= ${binary:Version})
 Description: debugging symbols for libopensc2
  This package contains the debugging symbols for the libopensc library
  from OpenSC.org.  These libraries allow programs to access data, such

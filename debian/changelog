@@ -1,3 +1,12 @@
+opensc (0.11.3-1) unstable; urgency=low
+
+  * New upstream release. (Closes: #424013)
+  * debian/control:
+    - Use Standards-Version 3.7.2.2.
+    - Use binary:Version instead of Source-Version.
+
+ -- Eric Dorland <eric@debian.org>  Sat, 21 Jul 2007 01:12:13 -0400
+
 opensc (0.11.2-1) unstable; urgency=low
 
   * New upstream release. (Closes: #413470, #410195, #419680)
