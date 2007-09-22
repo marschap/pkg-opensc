@@ -45,7 +45,7 @@ DIST_COMMON = README $(include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/configure.in
+	$(top_srcdir)/aclocal/libassuan.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -114,6 +114,8 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_NSPLUGIN_FALSE = @ENABLE_NSPLUGIN_FALSE@
+ENABLE_NSPLUGIN_TRUE = @ENABLE_NSPLUGIN_TRUE@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
@@ -138,7 +140,6 @@ LIBASSUAN_CFLAGS = @LIBASSUAN_CFLAGS@
 LIBASSUAN_CONFIG = @LIBASSUAN_CONFIG@
 LIBASSUAN_LIBS = @LIBASSUAN_LIBS@
 LIBFL = @LIBFL@
-LIBLTDL = @LIBLTDL@
 LIBOBJS = @LIBOBJS@
 LIBOPENSC = @LIBOPENSC@
 LIBREADLINE = @LIBREADLINE@
@@ -146,8 +147,9 @@ LIBS = @LIBS@
 LIBSCCONF = @LIBSCCONF@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-LTLIBLTDL = @LTLIBLTDL@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIB_CFLAGS = @LTLIB_CFLAGS@
+LTLIB_LIBS = @LTLIB_LIBS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
@@ -257,7 +259,7 @@ libpkcs15init_la_SOURCES = \
 	pkcs15-oberthur.c pkcs15-setcos.c pkcs15-incrypto34.c \
 	pkcs15-muscle.c pkcs15-asepcos.c
 
-libpkcs15init_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@
+libpkcs15init_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@ $(AM_LDFLAGS)
 include_HEADERS = pkcs15-init.h
 noinst_HEADERS = profile.h keycache.h
 pkgdata_DATA = $(PROFILES)

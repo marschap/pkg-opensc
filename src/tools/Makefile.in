@@ -48,7 +48,7 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/configure.in
+	$(top_srcdir)/aclocal/libassuan.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -91,7 +91,7 @@ am_pkcs11_tool_OBJECTS = pkcs11-tool.$(OBJEXT) util.$(OBJEXT) \
 	my_getopt.$(OBJEXT)
 pkcs11_tool_OBJECTS = $(am_pkcs11_tool_OBJECTS)
 pkcs11_tool_DEPENDENCIES = ../pkcs11/libpkcs11.la \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1)
 am_pkcs15_crypt_OBJECTS = pkcs15-crypt.$(OBJEXT) util.$(OBJEXT) \
 	my_getopt.$(OBJEXT)
 pkcs15_crypt_OBJECTS = $(am_pkcs15_crypt_OBJECTS)
@@ -158,6 +158,8 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_NSPLUGIN_FALSE = @ENABLE_NSPLUGIN_FALSE@
+ENABLE_NSPLUGIN_TRUE = @ENABLE_NSPLUGIN_TRUE@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
@@ -182,7 +184,6 @@ LIBASSUAN_CFLAGS = @LIBASSUAN_CFLAGS@
 LIBASSUAN_CONFIG = @LIBASSUAN_CONFIG@
 LIBASSUAN_LIBS = @LIBASSUAN_LIBS@
 LIBFL = @LIBFL@
-LIBLTDL = @LIBLTDL@
 LIBOBJS = @LIBOBJS@
 LIBOPENSC = @LIBOPENSC@
 LIBREADLINE = @LIBREADLINE@
@@ -190,8 +191,9 @@ LIBS = @LIBS@
 LIBSCCONF = @LIBSCCONF@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-LTLIBLTDL = @LTLIBLTDL@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIB_CFLAGS = @LTLIB_CFLAGS@
+LTLIB_LIBS = @LTLIB_LIBS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
@@ -286,7 +288,7 @@ opensc_explorer_LDADD = $(LIBREADLINE)
 pkcs15_tool_SOURCES = pkcs15-tool.c util.c $(top_srcdir)/src/common/my_getopt.c
 pkcs15_tool_LDADD = $(OPENSSL_LIBS)
 pkcs11_tool_SOURCES = pkcs11-tool.c util.c $(top_srcdir)/src/common/my_getopt.c
-pkcs11_tool_LDADD = ../pkcs11/libpkcs11.la $(OPENSSL_LIBS) $(LTLIBLTDL)
+pkcs11_tool_LDADD = ../pkcs11/libpkcs11.la $(OPENSSL_LIBS)
 pkcs15_crypt_SOURCES = pkcs15-crypt.c util.c $(top_srcdir)/src/common/my_getopt.c
 pkcs15_crypt_LDADD = $(OPENSSL_LIBS)
 cryptoflex_tool_SOURCES = cryptoflex-tool.c util.c $(top_srcdir)/src/common/my_getopt.c

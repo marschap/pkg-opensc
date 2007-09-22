@@ -7,7 +7,7 @@ MAINTAINERCLEANFILES = Makefile.in
 
 EXTRA_DIST = Makefile.mak opensc_pkcs11_install.js
 
-INCLUDES = $(CPPFLAGS) -I${top_srcdir}/src/pkcs15init $(OPENSSL_CFLAGS)
+INCLUDES = $(CPPFLAGS) -I${top_srcdir}/src/pkcs15init $(OPENSSL_CFLAGS) $(LTLIB_CFLAGS)
 
 SRC = pkcs11-global.c pkcs11-session.c pkcs11-object.c misc.c slot.c \
 	mechanism.c openssl.c secretkey.c framework-pkcs15.c \
@@ -33,7 +33,7 @@ libpkcs11_la_LIBADD =
 
 pkcs11_spy_la_SOURCES = pkcs11-spy.c pkcs11-display.c pkcs11-display.h
 pkcs11_spy_la_LDFLAGS = -module -avoid-version
-pkcs11_spy_la_LIBADD = $(OPENSSL_LIBS) libpkcs11.la $(LTLIBLTDL)
+pkcs11_spy_la_LIBADD = $(OPENSSL_LIBS) libpkcs11.la $(LTLIB_LIBS)
 
 include_HEADERS = pkcs11.h
 

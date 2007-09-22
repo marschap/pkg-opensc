@@ -44,7 +44,7 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/configure.in
+	$(top_srcdir)/aclocal/libassuan.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -66,8 +66,7 @@ am_opensc_signer_la_OBJECTS = opensc_signer_la-opensc-crypto.lo \
 	opensc_signer_la-opensc-support.lo opensc_signer_la-signer.lo \
 	opensc_signer_la-stubs.lo opensc_signer_la-dialog.lo
 opensc_signer_la_OBJECTS = $(am_opensc_signer_la_OBJECTS)
-@HAVE_ASSUAN_TRUE@@HAVE_OPENSSL_TRUE@am_opensc_signer_la_rpath =  \
-@HAVE_ASSUAN_TRUE@@HAVE_OPENSSL_TRUE@	-rpath $(libdir)
+@ENABLE_NSPLUGIN_TRUE@am_opensc_signer_la_rpath = -rpath $(libdir)
 DEFAULT_INCLUDES = -I. -I$(srcdir) -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
 am__depfiles_maybe = depfiles
@@ -118,6 +117,8 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_NSPLUGIN_FALSE = @ENABLE_NSPLUGIN_FALSE@
+ENABLE_NSPLUGIN_TRUE = @ENABLE_NSPLUGIN_TRUE@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
@@ -142,7 +143,6 @@ LIBASSUAN_CFLAGS = @LIBASSUAN_CFLAGS@
 LIBASSUAN_CONFIG = @LIBASSUAN_CONFIG@
 LIBASSUAN_LIBS = @LIBASSUAN_LIBS@
 LIBFL = @LIBFL@
-LIBLTDL = @LIBLTDL@
 LIBOBJS = @LIBOBJS@
 LIBOPENSC = @LIBOPENSC@
 LIBREADLINE = @LIBREADLINE@
@@ -150,8 +150,9 @@ LIBS = @LIBS@
 LIBSCCONF = @LIBSCCONF@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-LTLIBLTDL = @LTLIBLTDL@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIB_CFLAGS = @LTLIB_CFLAGS@
+LTLIB_LIBS = @LTLIB_LIBS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
@@ -239,7 +240,7 @@ MAINTAINERCLEANFILES = Makefile.in
 SUBDIRS = . npinclude
 EXTRA_DIST = testprog.c
 INCLUDES = -I$(srcdir)/npinclude $(CPPFLAGS) $(OPENSSL_CFLAGS) $(LIBASSUAN_CFLAGS)
-@HAVE_ASSUAN_TRUE@@HAVE_OPENSSL_TRUE@lib_LTLIBRARIES = opensc-signer.la
+@ENABLE_NSPLUGIN_TRUE@lib_LTLIBRARIES = opensc-signer.la
 opensc_signer_la_LDFLAGS = -module -avoid-version
 opensc_signer_la_LIBADD = @LIBOPENSC@ $(OPENSSL_LIBS) $(LIBASSUAN_LIBS)
 opensc_signer_la_CFLAGS = $(AM_CFLAGS) -DXP_UNIX
@@ -668,7 +669,8 @@ uninstall-info: uninstall-info-recursive
 
 
 install-exec-local: install-libLTLIBRARIES
-@HAVE_ASSUAN_TRUE@@HAVE_OPENSSL_TRUE@	-$(LN_S) -f $(libdir)/opensc-signer.so $(DESTDIR)$(plugindir)/
+@ENABLE_NSPLUGIN_TRUE@	-$(mkdir_p) $(DESTDIR)$(plugindir)/
+@ENABLE_NSPLUGIN_TRUE@	-$(LN_S) -f $(libdir)/opensc-signer.so $(DESTDIR)$(plugindir)/
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:
