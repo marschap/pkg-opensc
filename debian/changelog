@@ -1,8 +1,10 @@
-opensc (0.11.3-2) unstable; urgency=low
+opensc (0.11.4-1) unstable; urgency=low
 
+  * New upstream release.
   * src/signer/dialog.c: Remove spurious redefinition of PIN_ENTRY.
+  * debian/control: Add Hompage and XS-Vcs-* headers.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 22 Sep 2007 04:13:54 -0400
 
 opensc (0.11.3-1) unstable; urgency=low
 
