@@ -1,15 +1,206 @@
+2007-09-10 06:41  aj
+
+	* releases/opensc-0.11.4/NEWS,
+	  releases/opensc-0.11.4/configure.in: Release 0.11.4 without
+	  further changes.
+
+2007-08-22 05:09  aj
+
+	* releases/opensc-0.11.4/configure.in: 2nd rc with versions for
+	  windows fixed.
+
+2007-08-20 20:20  aj
+
+	* releases/opensc-0.11.4/src/include/winconfig.h,
+	  releases/opensc-0.11.4/win32/version.rc: update library versions.
+
+2007-08-19 18:56  aj
+
+	* releases/opensc-0.11.4/configure.in: create release candidate 1.
+
+2007-08-19 18:55  aj
+
+	* releases/opensc-0.11.4: Create new release branch for 0.11.4.
+	* trunk/NEWS: Update news file.
+
+2007-08-19 18:37  aj
+
+	* trunk/aclocal/libassuan.m4: update libassuan m4 macro package to
+	  current version.
+
+2007-08-14 06:17  aj
+
+	* trunk/src/libopensc/Makefile.am: fix typo.
+
+2007-08-14 06:02  aj
+
+	* trunk/src/tools/opensc-explorer.c: restores ability to change
+	  opensc-explorer debug level at runtime, using "debug" command
+	  from opensc prompt. by Jakub Bogusz
+
+2007-08-14 05:55  aj
+
+	* trunk/aclocal/Makefile.am, trunk/aclocal/libassuan.m4: keep
+	  libassuan as most users will not have this.
+
+2007-08-13 19:10  aj
+
+	* trunk/src/libopensc/Makefile.am, trunk/src/pkcs11/Makefile.am:
+	  add cflags for ltdl.h where needed.
+
+2007-08-13 08:32  ludovic.rousseau
+
+	* trunk/src/tests/Makefile.am, trunk/src/tools/Makefile.am: the
+	  commands line tools do not call lt_dlopen() so do not need to
+	  link with libltdl
+
+2007-08-13 08:30  ludovic.rousseau
+
+	* trunk/configure.in, trunk/src/libopensc/Makefile.am,
+	  trunk/src/pkcs11/Makefile.am: use LTLIB_CFLAGS and LTLIB_LIBS
+	  instead of the global LIBS to find and use libltdl thanks to
+	  Alon Bar-Lev for the patch
+
+2007-08-10 13:06  ludovic.rousseau
+
+	* trunk/aclocal/Makefile.am, trunk/aclocal/lib-ld.m4,
+	  trunk/aclocal/lib-link.m4, trunk/aclocal/lib-prefix.m4:
+	  lib-link.m4, lib-prefix.m4 and lib-ld.m4 are provided by gettext
+	  but is no more needed after revision 3239
+
+2007-08-10 13:05  ludovic.rousseau
+
+	* trunk/aclocal/Makefile.am, trunk/aclocal/pkg.m4: pkg.m4 is an
+	  external dependency provided by pkg-config (or similar) package
+
+2007-08-10 13:04  ludovic.rousseau
+
+	* trunk/aclocal/Makefile.am, trunk/aclocal/libassuan.m4:
+	  libassuan.m4 is an external dependency provided by libassuan-dev
+	  (or similar) package
+
+2007-08-10 12:56  ludovic.rousseau
+
+	* trunk/configure.in: do not use AC_LIB_LINKFLAGS() since this
+	  macro is provided by gettext and we do not use gettext. Use
+	  AC_CHECK_LIB() instead
+
+2007-08-10 12:51  ludovic.rousseau
+
+	* trunk/man: propset svn:ignore to ignore unversioned files
+
+2007-08-08 20:06  aj
+
+	* trunk/src/libopensc/card-cardos.c, trunk/src/libopensc/cards.h,
+	  trunk/src/pkcs15init/pkcs15-cardos.c,
+	  trunk/src/tools/cardos-info.c: add information about cardos 4.2b
+	  - latest cardos update.
+
+2007-08-03 07:47  aj
+
+	* trunk/src/libopensc/pkcs15.c: Add same hack for Prime cards.
+
+2007-08-02 13:53  ludovic.rousseau
+
+	* trunk/src/pkcs15init/Makefile.am: AM_LDFLAGS is not used in
+	  libpkcs15init_la_LDFLAGS so explicitly use it
+
+2007-07-28 18:27  aj
+
+	* trunk/aclocal/Makefile.am, trunk/aclocal/lib-ld.m4,
+	  trunk/aclocal/lib-link.m4, trunk/aclocal/lib-prefix.m4,
+	  trunk/aclocal/libassuan.m4, trunk/aclocal/pkg.m4: revert
+	  revision 3403 + 3404, seems to break mac os X.
+
+2007-07-28 18:22  aj
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool crashes while
+	  printing its usage message. fixed by Ville Skyttä.
+
+2007-07-28 18:18  aj
+
+	* trunk/src/tools/cryptoflex-tool.c: cryptoflex-tool.c:505:
+	  warning: array subscript is above array bounds gcc 4.3 warning,
+	  reported and fixed by novell: Problem found by David Binderman
+	  Patch created by Michal Vaner closes our trac bug #153 and
+	  novell bug 238660
+
+2007-07-24 06:42  aj
+
+	* trunk/src/libopensc/card-akis.c: fix a compiler warning.
+
+2007-07-22 19:56  aj
+
+	* trunk/src/libopensc/card-akis.c: Gürer Özen: * akis_get_data()
+	  implemented * akis_delete_file() implemented *
+	  akis_set_security_env() implemented, pkcs15 signing works now *
+	  life cycle set/get via cardctl implemented * card_ops commented,
+	  so it is clear whether a function is supported via iso7816
+	  implementation or not * mark pin apdu as sensitive in
+	  akis_pin_cmd
+
+2007-07-21 07:31  aj
+
+	* trunk/src/signer/Makefile.am: create plugin directory if it does
+	  not exist.
+
+2007-07-20 18:50  aj
+
+	* trunk/configure.in, trunk/src/signer/Makefile.am: add explicit
+	  option to enable/disable the ns plugin. patch by Alon Bar-Lev.
+
+2007-07-20 14:38  aj
+
+	* trunk/src/libopensc/pkcs15-sec.c: oops, define tmplen at start
+	  of block.
+
+2007-07-20 13:47  aj
+
+	* trunk/src/libopensc/pkcs15-pubkey.c: silence a warning we get
+	  with siemens cards.
+
+2007-07-20 12:30  aj
+
+	* trunk/src/libopensc/asn1.c: asn1_decode_entry() allocates
+	  (objlen - 1) bytes for SC_ASN1_UTF8STRING types with
+	  SC_ASN1_ALLOC flag, then calls the sc_asn1_decode_utf8string()
+	  function which then fails with BUFFER TOO SMALL cause it wants
+	  to end the string with an extra NULL. allocation size was
+	  supposed to be objlen + 1. Patch by Gürer Özen
+
+2007-07-20 12:28  aj
+
+	* trunk/NEWS, trunk/src/libopensc/card-akis.c: Gürer Özen send
+	  another akis update: * create_file implemented * EF(DIR) hack
+	  removed, it is easier to put a real EF(DIR) *
+	  SC_CARDCTL_GET_SERIALNR implemented
+
+2007-07-20 12:19  aj
+
+	* trunk/NEWS, trunk/src/libopensc/pkcs15-sec.c,
+	  trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h: Sign
+	  by using the decrypt function.
+
+2007-07-17 20:01  aj
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/card-akis.c, trunk/src/libopensc/cards.h,
+	  trunk/src/libopensc/ctx.c, trunk/src/libopensc/opensc.h: add
+	  akis support by Gürer Özen.
+
 2007-07-15 15:29  aj
 
-	* releases/opensc-0.11.3/src/libopensc/pkcs15-piv.c: Douglas E.
-	  Engert: The IdAlly CSP calls C_FindObjectsInit looking for
-	  CK_PRIVATE_KEY before C_Login with a pin. If it does not find
-	  any, it fails. The pkcs15-piv.c in 0.11.3 and 0.11.3-pre3 set
-	  the pubkey and prvkey objects as private. This patch removes the
+	* trunk/src/libopensc/pkcs15-piv.c: Douglas E. Engert: The IdAlly
+	  CSP calls C_FindObjectsInit looking for CK_PRIVATE_KEY before
+	  C_Login with a pin. If it does not find any, it fails. The
+	  pkcs15-piv.c in 0.11.3 and 0.11.3-pre3 set the pubkey and prvkey
+	  objects as private. This patch removes the
 	  SC_PKCS15_CO_FLAG_PRIVATE so IdAlly will work with the PIV cards.
 
 2007-07-11 14:47  aj
 
-	* releases/opensc-0.11.3: release opensc 0.11.3
+	* trunk/configure.in: trunk is now post 0.11.3 release.
 
 2007-07-11 14:46  aj
 

@@ -4,6 +4,35 @@
           </style></head><body><div class="wikipage">
     <div id="searchable"><h2 id="PuTTYcard">PuTTYcard</h2>
 <p>
+The idea behind PuTTYcard was to extend the capabilities
+of PuTTY without adding dependencies to PuTTY. Therefore
+all smart card routines were realized within a seperate
+DLL (namely PuTTYcard.dll). Pageant.exe would try to open
+this DLL. If it could not find it, it would behave like
+a "normal" Pageant.
+</p>
+<p>
+This only needed about 20 lines of codes within the source
+of pageant.exe and I was hoping that the PuTTY team would
+include this into future PuTTY-packages. They did not :-(
+</p>
+<p>
+Therefore I merged the source code of PuTTYcard.dll with
+the source code of  pageant.exe and released a smart card
+enabled version of pageant.exe. If you are interested you
+may download it at
+<a class="ext-link" href="http://smartcard-auth.de/ssh-en.html" shape="rect"><span class="icon">http://smartcard-auth.de/ssh-en.html</span></a>.
+</p>
+<p>
+You must register your public key if you want to use
+some features (for example secure PIN entry).
+If you used PuTTYcard in the past or are willing to test
+my smart card enabled version of pageant.exe with a new
+card or a new card reader I will send you a free licence.
+Just let me know at <a class="ext-link" href="mailto:pk@opensc-project.org" shape="rect"><span class="icon">pk@opensc-project.org</span></a>.
+</p>
+<h2 id="PuTTYcard1">PuTTYcard</h2>
+<p>
 PuTTYcard is an extension to PuTTY, the free SSH-client
 from Simon Tatham. With this extension PuTTY can use
 RSA-keys from external devices, ie. smart cards, usb-tokens.

@@ -48,7 +48,7 @@ DIST_COMMON = $(include_HEADERS) $(noinst_HEADERS) \
 	$(srcdir)/libscconf.pc.in $(srcdir)/opensc-config.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/configure.in
+	$(top_srcdir)/aclocal/libassuan.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -80,11 +80,12 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo asn1.lo \
 	card-default.lo card-mcrd.lo card-starcos.lo card-openpgp.lo \
 	card-jcop.lo card-oberthur.lo card-belpic.lo \
 	card-atrust-acos.lo card-incrypto34.lo card-piv.lo \
-	card-muscle.lo card-acos5.lo card-asepcos.lo pkcs15-openpgp.lo \
-	pkcs15-infocamere.lo pkcs15-starcert.lo pkcs15-tcos.lo \
-	pkcs15-esteid.lo pkcs15-postecert.lo pkcs15-gemsafe.lo \
-	pkcs15-actalis.lo pkcs15-atrust-acos.lo pkcs15-tccardos.lo \
-	pkcs15-piv.lo compression.lo p15card-helper.lo
+	card-muscle.lo card-acos5.lo card-asepcos.lo card-akis.lo \
+	pkcs15-openpgp.lo pkcs15-infocamere.lo pkcs15-starcert.lo \
+	pkcs15-tcos.lo pkcs15-esteid.lo pkcs15-postecert.lo \
+	pkcs15-gemsafe.lo pkcs15-actalis.lo pkcs15-atrust-acos.lo \
+	pkcs15-tccardos.lo pkcs15-piv.lo compression.lo \
+	p15card-helper.lo
 libopensc_la_OBJECTS = $(am_libopensc_la_OBJECTS)
 binSCRIPT_INSTALL = $(INSTALL_SCRIPT)
 SCRIPTS = $(bin_SCRIPTS)
@@ -134,6 +135,8 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_NSPLUGIN_FALSE = @ENABLE_NSPLUGIN_FALSE@
+ENABLE_NSPLUGIN_TRUE = @ENABLE_NSPLUGIN_TRUE@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
@@ -158,7 +161,6 @@ LIBASSUAN_CFLAGS = @LIBASSUAN_CFLAGS@
 LIBASSUAN_CONFIG = @LIBASSUAN_CONFIG@
 LIBASSUAN_LIBS = @LIBASSUAN_LIBS@
 LIBFL = @LIBFL@
-LIBLTDL = @LIBLTDL@
 LIBOBJS = @LIBOBJS@
 LIBOPENSC = @LIBOPENSC@
 LIBREADLINE = @LIBREADLINE@
@@ -166,8 +168,9 @@ LIBS = @LIBS@
 LIBSCCONF = @LIBSCCONF@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-LTLIBLTDL = @LTLIBLTDL@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIB_CFLAGS = @LTLIB_CFLAGS@
+LTLIB_LIBS = @LTLIB_LIBS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
@@ -253,7 +256,7 @@ target_alias = @target_alias@
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = Makefile.mak libopensc.pc.in libpkcs15init.pc.in libscconf.pc.in 
 INCLUDES = $(CPPFLAGS) $(OPENSSL_CFLAGS) $(OPENCT_CFLAGS) $(PCSC_CFLAGS) \
-	-I$(top_srcdir)/src/common
+	$(LTLIB_CFLAGS) -I$(top_srcdir)/src/common
 
 AM_LDFLAGS = 
 bin_SCRIPTS = opensc-config
@@ -275,7 +278,7 @@ libopensc_la_SOURCES = \
 	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
 	card-oberthur.c card-belpic.c card-atrust-acos.c \
 	card-incrypto34.c card-piv.c card-muscle.c card-acos5.c \
-	card-asepcos.c \
+	card-asepcos.c card-akis.c\
 	\
 	pkcs15-openpgp.c pkcs15-infocamere.c pkcs15-starcert.c \
 	pkcs15-tcos.c pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafe.c \
@@ -283,7 +286,7 @@ libopensc_la_SOURCES = \
 	compression.c p15card-helper.c
 
 libopensc_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@OPENSC_LT_AGE@
-libopensc_la_LIBADD = @LIBSCCONF@ $(OPENSSL_LIBS) $(OPENCT_LIBS) $(PCSC_LIBS) $(LTLIBLTDL)
+libopensc_la_LIBADD = @LIBSCCONF@ $(OPENSSL_LIBS) $(OPENCT_LIBS) $(PCSC_LIBS) $(LTLIB_LIBS)
 include_HEADERS = \
 	opensc.h pkcs15.h emv.h \
 	cardctl.h asn1.h log.h ui.h \
@@ -392,6 +395,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/asn1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/base64.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-acos5.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-akis.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-asepcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-atrust-acos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-belpic.Plo@am__quote@

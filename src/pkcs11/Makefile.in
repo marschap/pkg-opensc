@@ -44,7 +44,7 @@ DIST_COMMON = $(include_HEADERS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/aclocal/acx_pthread.m4 \
-	$(top_srcdir)/configure.in
+	$(top_srcdir)/aclocal/libassuan.m4 $(top_srcdir)/configure.in
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -129,6 +129,8 @@ ECHO_C = @ECHO_C@
 ECHO_N = @ECHO_N@
 ECHO_T = @ECHO_T@
 EGREP = @EGREP@
+ENABLE_NSPLUGIN_FALSE = @ENABLE_NSPLUGIN_FALSE@
+ENABLE_NSPLUGIN_TRUE = @ENABLE_NSPLUGIN_TRUE@
 EXEEXT = @EXEEXT@
 F77 = @F77@
 FFLAGS = @FFLAGS@
@@ -153,7 +155,6 @@ LIBASSUAN_CFLAGS = @LIBASSUAN_CFLAGS@
 LIBASSUAN_CONFIG = @LIBASSUAN_CONFIG@
 LIBASSUAN_LIBS = @LIBASSUAN_LIBS@
 LIBFL = @LIBFL@
-LIBLTDL = @LIBLTDL@
 LIBOBJS = @LIBOBJS@
 LIBOPENSC = @LIBOPENSC@
 LIBREADLINE = @LIBREADLINE@
@@ -161,8 +162,9 @@ LIBS = @LIBS@
 LIBSCCONF = @LIBSCCONF@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
-LTLIBLTDL = @LTLIBLTDL@
 LTLIBOBJS = @LTLIBOBJS@
+LTLIB_CFLAGS = @LTLIB_CFLAGS@
+LTLIB_LIBS = @LTLIB_LIBS@
 MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
@@ -248,7 +250,7 @@ target_alias = @target_alias@
 bundledir = $(BUNDLEDIR)/pkcs11
 MAINTAINERCLEANFILES = Makefile.in
 EXTRA_DIST = Makefile.mak opensc_pkcs11_install.js
-INCLUDES = $(CPPFLAGS) -I${top_srcdir}/src/pkcs15init $(OPENSSL_CFLAGS)
+INCLUDES = $(CPPFLAGS) -I${top_srcdir}/src/pkcs15init $(OPENSSL_CFLAGS) $(LTLIB_CFLAGS)
 SRC = pkcs11-global.c pkcs11-session.c pkcs11-object.c misc.c slot.c \
 	mechanism.c openssl.c secretkey.c framework-pkcs15.c \
 	framework-pkcs15init.c debug.c
@@ -271,7 +273,7 @@ libpkcs11_la_LDFLAGS = -version-info @OPENSC_LT_CURRENT@:@OPENSC_LT_REVISION@:@O
 libpkcs11_la_LIBADD = 
 pkcs11_spy_la_SOURCES = pkcs11-spy.c pkcs11-display.c pkcs11-display.h
 pkcs11_spy_la_LDFLAGS = -module -avoid-version
-pkcs11_spy_la_LIBADD = $(OPENSSL_LIBS) libpkcs11.la $(LTLIBLTDL)
+pkcs11_spy_la_LIBADD = $(OPENSSL_LIBS) libpkcs11.la $(LTLIB_LIBS)
 include_HEADERS = pkcs11.h
 all: all-am
 
