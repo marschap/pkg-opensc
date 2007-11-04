@@ -2,6 +2,8 @@ debian/tmp/usr/lib/libopensc.so.*
 debian/tmp/usr/lib/libpkcs15init.so.*
 debian/tmp/usr/lib/libscconf.so.*
 debian/tmp/usr/share/opensc/*.profile
+debian/tmp/usr/lib/onepin-opensc-pkcs11.so
+debian/tmp/usr/lib/onepin-opensc-pkcs11.la
 debian/tmp/usr/lib/opensc-pkcs11.so
 debian/tmp/usr/lib/opensc-pkcs11.la
 debian/tmp/usr/lib/pkcs11-spy.so

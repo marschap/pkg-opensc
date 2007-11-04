@@ -1,3 +1,12 @@
+opensc (0.11.4-2) unstable; urgency=low
+
+  * debian/libopensc2.install: Install onepin-opensc-pkcs11 signer. Thanks
+    Laurent Bigonville. (Closes: #449219)
+  * debian/libopensc2-dev.install: Install all the .a files.
+  * debian/control: Remove XS- prefix from Vcs headers.
+
+ -- Eric Dorland <eric@debian.org>  Sun, 04 Nov 2007 18:04:34 -0500
+
 opensc (0.11.4-1) unstable; urgency=low
 
   * New upstream release.
