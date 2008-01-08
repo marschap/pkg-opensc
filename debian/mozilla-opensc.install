@@ -1,1 +1,2 @@
-debian/tmp/usr/lib/opensc-signer.*
+debian/tmp/usr/lib/opensc-signer.so
+debian/tmp/usr/lib/opensc-signer.la
