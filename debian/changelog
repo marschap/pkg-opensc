@@ -1,9 +1,12 @@
-opensc (0.11.4-4) unstable; urgency=low
+opensc (0.11.4-4) unstable; urgency=high
 
+  * src/libopensc/card-cardos.c, src/tools/pkcs15-tool.c: Patch to fix
+    CVE-2008-2235 "OpenSC initializes CardOS cards with improper 
+    access rights".
   * debian/control: Up Standards-Version to 3.7.3.
   * debian/opensc.NEWS: Fix typo.
 
- --
+ -- Eric Dorland <eric@debian.org>  Thu, 31 Jul 2008 13:27:31 -0400
 
 opensc (0.11.4-3) unstable; urgency=low
 
