@@ -1,3 +1,10 @@
+opensc (0.11.4-5) unstable; urgency=high
+
+  * src/tools/pkcs15-tool.c: Small fix to the previous security
+    vulnerability to remove a strict check for the default card label.
+
+ -- Eric Dorland <eric@debian.org>  Fri, 29 Aug 2008 03:14:53 -0400
+
 opensc (0.11.4-4) unstable; urgency=high
 
   * src/libopensc/card-cardos.c, src/tools/pkcs15-tool.c: Patch to fix
