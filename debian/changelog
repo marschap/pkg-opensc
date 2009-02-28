@@ -1,4 +1,4 @@
-opensc (0.11.4-5lenny1) stable-security; urgency=critical
+opensc (0.11.4-5+lenny1) stable-security; urgency=critical
 
   * src/pkcs15init/asepcos.profile, src/pkcs15init/cardos.profile,
     src/pkcs15init/cyberflex.profile, src/pkcs15init/flex.profile,
@@ -11,8 +11,9 @@ opensc (0.11.4-5lenny1) stable-security; urgency=critical
     lock_login and soft_keygen_allowed to prevent untrusted applications
     from using the smartcard and preventing unexpected client side key
     generation.
+  * debian/opensc.NEWS: Add a note about old data objects not being safe.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 28 Feb 2009 18:33:41 -0500
 
 opensc (0.11.4-5) unstable; urgency=high
 
