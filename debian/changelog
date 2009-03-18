@@ -1,3 +1,9 @@
+opensc (0.11.7-1) unstable; urgency=low
+
+  * New upstream release. Fixes CVE-2009-0368.
+
+ --
+
 opensc (0.11.4-5) unstable; urgency=high
 
   * src/tools/pkcs15-tool.c: Small fix to the previous security
