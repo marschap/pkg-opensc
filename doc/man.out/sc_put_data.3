@@ -1,0 +1,42 @@
+.\"     Title: sc_put_data
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC API reference
+.\"    Source: opensc
+.\"
+.TH "SC_PUT_DATA" "3" "02/26/2009" "opensc" "OpenSC API reference"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+sc_put_data \- Store a primitive data object on a card
+.SH "SYNOPSIS"
+.PP
+
+.sp
+.RS 4
+.nf
+#include <opensc\&.h>
+
+int sc_put_data(sc_card_t *card, unsigned int tag,
+                const unsigned char *buf, size_t len);
+		
+.fi
+.RE
+.sp
+.SH "DESCRIPTION"
+.PP
+This function is used to store a primitive data object on
+\fIcard\fR\&. It corresponds to the PUT DATA command in the ISO 7816 standard\&. The data to be sent to the card is stored in
+\fIbuf\fR, which is
+\fIbuflen\fR
+bytes long\&.
+.PP
+The
+\fItag\fR
+parameter specifies the object to be stored\&. Refer to the standard for the correct values to use\&.
+.SH "RETURN VALUE"
+.PP
+Returns 0 if successful, or a negative value in case of error\&.

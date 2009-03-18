@@ -1,5 +1,5 @@
 /*
- * $Id: sclex.c 1686 2003-12-18 21:37:34Z aet $
+ * $Id: sclex.c 3510 2008-05-05 13:00:01Z ludovic.rousseau $
  *
  * Copyright (C) 2003
  *  Jamie Honan <jhonan@optusnet.com.au>
@@ -92,7 +92,7 @@ static void buf_finished(BUFHAN * bp)
 	}
 }
 
-static void buf_eat_till(BUFHAN * bp, char start, char *end)
+static void buf_eat_till(BUFHAN * bp, char start, const char *end)
 {
 	int i;
 

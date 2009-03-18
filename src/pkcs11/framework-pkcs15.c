@@ -187,7 +187,10 @@ static CK_RV pkcs15_unbind(struct sc_pkcs11_card *p11card)
 static void pkcs15_init_token_info(struct sc_pkcs15_card *card, CK_TOKEN_INFO_PTR pToken)
 {
 	strcpy_bp(pToken->manufacturerID, card->manufacturer_id, 32);
-	strcpy_bp(pToken->model, "PKCS #15 SCard", 16);
+	if (card->flags & SC_PKCS15_CARD_FLAG_EMULATED)
+		strcpy_bp(pToken->model, "PKCS#15 emulated", 16);
+	else
+		strcpy_bp(pToken->model, "PKCS#15", 16);
 
 	/* Take the last 16 chars of the serial number (if the are more
 	 * than 16).
@@ -212,9 +215,9 @@ static void pkcs15_init_token_info(struct sc_pkcs15_card *card, CK_TOKEN_INFO_PT
 	pToken->ulFreePublicMemory = CK_UNAVAILABLE_INFORMATION;
 	pToken->ulTotalPrivateMemory = CK_UNAVAILABLE_INFORMATION;
 	pToken->ulFreePrivateMemory = CK_UNAVAILABLE_INFORMATION;
-	pToken->hardwareVersion.major = 1;
+	pToken->hardwareVersion.major = 0;
 	pToken->hardwareVersion.minor = 0;
-	pToken->firmwareVersion.major = 1;
+	pToken->firmwareVersion.major = 0;
 	pToken->firmwareVersion.minor = 0;
 }
 
@@ -263,7 +266,7 @@ static int public_key_created(struct pkcs15_fw_data *fw_data,
 			      struct pkcs15_any_object **obj2)
 {
 	int found = 0;
-	int ii=0;
+	unsigned int ii=0;
 
 	while(ii<num_objects && !found) {
 		if (!fw_data->objects[ii]->p15_object) {
@@ -618,7 +621,7 @@ pkcs15_add_object(struct sc_pkcs11_slot *slot,
 	obj->refcount++;
 
 	if (obj->p15_object && (obj->p15_object->user_consent > 0) ) {
-		sc_debug(context, "User consent object deteced, marking slot as user_consent!\n");
+		sc_debug(context, "User consent object detected, marking slot as user_consent!\n");
 		((struct pkcs15_slot_data *)slot->fw_data)->user_consent = 1;
 	}
 
@@ -814,7 +817,7 @@ static CK_RV pkcs15_create_tokens(struct sc_pkcs11_card *p11card)
 	 * If there's only 1 pin and the hide_empty_tokens option is set,
 	 * add the public objects to the slot that corresponds to that pin.
 	 */
-	if (!(auth_count == 1 && sc_pkcs11_conf.hide_empty_tokens))
+	if (!(auth_count == 1 && (sc_pkcs11_conf.hide_empty_tokens || (fw_data->p15_card->flags & SC_PKCS15_CARD_FLAG_EMULATED))))
 		slot = NULL;
 
 	/* Add all the remaining objects */
@@ -837,7 +840,7 @@ static CK_RV pkcs15_create_tokens(struct sc_pkcs11_card *p11card)
 
 	/* Create read/write slots */
 	while (slot_allocate(&slot, p11card) == CKR_OK) {
-		if (!sc_pkcs11_conf.hide_empty_tokens) {
+		if (!sc_pkcs11_conf.hide_empty_tokens && !(fw_data->p15_card->flags & SC_PKCS15_CARD_FLAG_EMULATED)) {
 			slot->slot_info.flags |= CKF_TOKEN_PRESENT;
 			pkcs15_init_token_info(fw_data->p15_card, &slot->token_info);
 			strcpy_bp(slot->token_info.label, fw_data->p15_card->label, 32);
@@ -905,10 +908,15 @@ static CK_RV pkcs15_login(struct sc_pkcs11_card *p11card,
 		 * a valid pin (which is processed normally). --okir */
 		if (ulPinLen == 0)
 			pPin = NULL;
-	} else
-	if (ulPinLen < pin->min_length ||
-	    ulPinLen > pin->max_length)
-		return CKR_ARGUMENTS_BAD;
+	} else {
+		/*
+		 * If PIN is out of range,
+		 * it cannot be correct.
+		 */
+		if (ulPinLen < pin->min_length ||
+		    ulPinLen > pin->max_length)
+			return CKR_PIN_INCORRECT;
+	}
 
 	/* By default, we make the reader resource manager keep other
 	 * processes from accessing the card while we're logged in.
@@ -2074,6 +2082,9 @@ static CK_RV pkcs15_prkey_sign(struct sc_pkcs11_session *ses, void *obj,
 	case CKM_RSA_X_509:
 		flags = SC_ALGORITHM_RSA_RAW;
 		break;
+	case CKM_OPENSC_GOST:
+		flags = SC_ALGORITHM_GOST;
+		break;
 	default:
 		return CKR_MECHANISM_INVALID;
 	}
@@ -2152,6 +2163,8 @@ pkcs15_prkey_decrypt(struct sc_pkcs11_session *ses, void *obj,
 	case CKM_RSA_X_509:
 		flags |= SC_ALGORITHM_RSA_RAW;
 		break;
+	case CKM_OPENSC_GOST:
+		flags |= SC_ALGORITHM_GOST;
 	default:
 		return CKR_MECHANISM_INVALID;		
 	}
@@ -2440,7 +2453,18 @@ static int pkcs15_dobj_get_value(struct sc_pkcs11_session *session,
 	return rv;
 }
 
+static CK_RV data_value_to_attr(CK_ATTRIBUTE_PTR attr, struct sc_pkcs15_data *data)
+{
+	if (!attr || !data)
+		return CKR_ATTRIBUTE_VALUE_INVALID;
 
+	sc_debug(context, "data %p\n", data);
+	sc_debug(context, "data_len %i\n", data->data_len);
+
+	check_attribute_buffer(attr, data->data_len);
+	memcpy(attr->pValue, data->data, data->data_len);
+	return CKR_OK;
+}
 
 static CK_RV pkcs15_dobj_get_attribute(struct sc_pkcs11_session *session,
 				void *object,
@@ -2498,16 +2522,14 @@ static CK_RV pkcs15_dobj_get_attribute(struct sc_pkcs11_session *session,
 			struct sc_pkcs15_data *data = NULL;
 			
 			rv = pkcs15_dobj_get_value(session, dobj, &data);
-			if (rv!=CKR_OK)
+			if (rv == CKR_OK)
+				rv = data_value_to_attr(attr, data);
+			if (data) {
+				free(data->data);
+				free(data);
+			}
+			if (rv != CKR_OK)
 				return rv;
-			else if (!data)
-				return CKR_ATTRIBUTE_VALUE_INVALID;
-			
-			sc_debug(context, "data %p\n", data);
-			sc_debug(context, "data_len %i\n", data->data_len);
-			check_attribute_buffer(attr, data->data_len);
-			memcpy(attr->pValue, data->data, data->data_len);
-			free(data);
 		}
 		break;
 	default:
@@ -2786,7 +2808,7 @@ static int register_mechanisms(struct sc_pkcs11_card *p11card)
 	sc_pkcs11_register_generic_mechanisms(p11card);
 
 	mech_info.flags = CKF_HW | CKF_SIGN | CKF_UNWRAP | CKF_DECRYPT;
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 	mech_info.flags |= CKF_VERIFY;
 #endif
 	mech_info.ulMinKeySize = ~0;
@@ -2808,6 +2830,21 @@ static int register_mechanisms(struct sc_pkcs11_card *p11card)
 		flags |= alg_info->flags;
 		}
 		
+		if (alg_info->algorithm == SC_ALGORITHM_GOST){
+		    mech_info.flags = CKF_HW | CKF_SIGN | CKF_ENCRYPT | CKF_DECRYPT;
+		    #ifdef ENABLE_OPENSSL
+		    mech_info.flags |= CKF_VERIFY;
+		    #endif
+		    mech_info.ulMinKeySize = 32;
+		    mech_info.ulMaxKeySize = 32;
+		    mt = sc_pkcs11_new_fw_mechanism(CKM_OPENSC_GOST,
+					&mech_info, CKK_RSA, NULL);
+		    rc = sc_pkcs11_register_mechanism(p11card, mt);
+			sc_debug(card->ctx, "register GOST!!! %d", rc);
+			if(rc < 0)
+				return rc;	
+		}
+			
 		alg_info++;
 	}
 
@@ -2856,7 +2893,7 @@ static int register_mechanisms(struct sc_pkcs11_card *p11card)
 					CKM_XXX_RSA_PKCS, CKM_XXX, mt);
 #endif
 
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 		mech_info.flags = CKF_GENERATE_KEY_PAIR;
 		mt = sc_pkcs11_new_fw_mechanism(CKM_RSA_PKCS_KEY_PAIR_GEN,
 					&mech_info, CKK_RSA, NULL);

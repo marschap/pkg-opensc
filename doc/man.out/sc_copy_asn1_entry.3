@@ -1,0 +1,38 @@
+.\"     Title: sc_copy_asn1_entry
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC API reference
+.\"    Source: opensc
+.\"
+.TH "SC_COPY_ASN1_ENTRY" "3" "02/26/2009" "opensc" "OpenSC API reference"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+sc_copy_asn1_entry \- Copy an ASN.1 entry
+.SH "SYNOPSIS"
+.PP
+
+.sp
+.RS 4
+.nf
+#include <opensc\&.h>
+
+void sc_copy_asn1_entry(const struct sc_asn1_entry *src, struct sc_asn1_entry *dest);
+		
+.fi
+.RE
+.sp
+.SH "DESCRIPTION"
+.PP
+This function copies an array of
+struct sc_asn1_entry
+entries pointed to be
+\fIsrc\fR
+to
+\fIdest\fR\&. The array must be NULL\-terminated (that is, the last entry must have its
+\fIname\fR
+field set to NULL)\&. There must be enough space available in
+\fIdest\fR\&.

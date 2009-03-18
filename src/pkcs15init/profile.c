@@ -41,7 +41,7 @@
 #include <opensc/log.h>
 #include "pkcs15-init.h"
 #include "profile.h"
-#include "strlcpy.h"
+#include <compat_strlcpy.h>
 
 #define DEF_PRKEY_RSA_ACCESS	0x1D
 #define DEF_PRKEY_DSA_ACCESS	0x12
@@ -300,9 +300,10 @@ sc_profile_load(struct sc_profile *profile, const char *filename)
 	}
 
 	if (!profile_dir) {
-		sc_error(ctx, "you need to set profile_dir in your config file.");
-		return SC_ERROR_FILE_NOT_FOUND;
-	 }
+		profile_dir = SC_PKCS15_PROFILE_DIRECTORY;
+	}
+
+	sc_debug(ctx, "Using profile directory '%s'.", profile_dir);
 
 #ifdef _WIN32
 	snprintf(path, sizeof(path), "%s\\%s.%s",

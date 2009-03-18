@@ -1,0 +1,42 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      OperatingSystems – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="OperatingSystems">Operating Systems</h1>
+<p>
+If you haven't already, please first read the <a class="wiki" href="OverView.html" shape="rect">OverView</a> document and then come back here.
+</p>
+<h2 id="Linux">Linux</h2>
+<ul><li>Most people can use the packages provided by your distribution (in the core or in the contrib section).
+You probably want to install <a class="ext-link" href="http://www.openssl.org/" shape="rect"><span class="icon">OpenSSL</span></a>, <a href="http://www.opensc-project.org/openct/" shape="rect">OpenCT</a>, <a href="http://www.opensc-project.org/opensc/" shape="rect">OpenSC</a>, <a href="http://www.opensc-project.org/libp11/" shape="rect">libp11</a>, <a href="http://www.opensc-project.org/enigne_pkcs11" shape="rect">engine_pkcs11</a> and maybe <a href="http://www.opensc-project.org/pam_p11" shape="rect">pam_p11</a> or <a href="http://www.opensc-project.org/pam_pkcs11/" shape="rect">pam_pkcs11</a> for authentication
+(or <a class="ext-link" href="http://pcsclite.alioth.debian.org/" shape="rect"><span class="icon">PCSC-Lite</span></a> and some driver for it instead of OpenCT).
+</li></ul><ul><li>If you want to compile OpenSC, you need to install either OpenCT or PCSC-Lite first, to use those drivers/middleware.
+Install both the runtime and the development package. Also it is highly suggested to install OpenSSL (including development)
+as some smart card drivers require it. If you want to use the signer applet in mozilla, you also need libassuan from the
+gnupg (like always, both runtime and development packages). See <a class="wiki" href="QuickStart.html" shape="rect">QuickStart</a> for configure options and testing if OpenSC works.
+</li></ul><ul><li>Developers can work on tar.gz files, like the latest release, or the nightly snapshots provided on <a href="http://www.opensc-project.org/files/opensc/snapshots/" shape="rect">http://www.opensc-project.org/files/opensc/snapshots/</a>
+</li><li>Developers can also check out the current source code using subversion. See <a class="missing wiki" shape="rect">SubversionReposity?</a> for details. You will need autoconf,
+automake and libtool at least. "make dist" uses wget to download the wiki and xsltproc to create html files and man pages, and svn
+to create the <a class="missing wiki" shape="rect">ChangeLog?</a>.
+</li></ul><h2 id="MacOSX">Mac OS X</h2>
+<ul><li>Mac OS X installer is <a href="http://www.opensc-project.org/sca" shape="rect">available</a> for 10.4.4 and later.
+</li></ul><h2 id="Windows">Windows</h2>
+<p>
+ 
+</p>
+<ul><li>Windows NT, 2000 and XP contains the windows smart card middleware. For older versions you can download it from
+Microsoft.com (FIXME: Name, download link, ...)
+</li></ul><ul><li>You might be best off with our installer package containing OpenSSL, OpenSC, Libp11, Engine_pkcs11 and Putty.
+The latest version is available on at the <a href="http://www.opensc-project.org/scb/" shape="rect">smart card bundle</a> project page.
+</li></ul><ul><li>Note that applications like Outlook or Internet Explorer as well as many other Windows native application
+use the so called Crypto API. If you combine OpenSC with a Crypto Service Provide those applications can
+use Smart Cards  without any change. More details on the <a class="wiki" href="WindowsCSP.html" shape="rect">WindowsCSP</a> page.
+</li></ul>
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

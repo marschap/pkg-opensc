@@ -1,5 +1,8 @@
-# Process this file with automake to create Makefile.in
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
+EXTRA_DIST = Make.rules.mak
 
-EXTRA_DIST = Make.rules.mak Makefile.mak makedef.pl version.rc
-
-MAINTAINERCLEANFILES = Makefile.in
+if WIN32
+sbin_SCRIPTS = opensc-install.bat
+else
+dist_noinst_SCRIPTS = opensc-install.bat
+endif

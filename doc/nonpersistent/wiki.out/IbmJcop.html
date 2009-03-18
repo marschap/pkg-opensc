@@ -1,0 +1,41 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      IbmJcop – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="IBMJCop">IBM JCop</h1>
+<p>
+Supported cards: jcop31bio cards that include the "bluez" applet in their rom mask.
+</p>
+<p>
+This includes the sample cards that you can sometimes (but not presently) buy from IBM. 
+We do not know if any of the manufacturers/resellers of non-application-specific 'jcop30' 
+cards provide this rom (or even if any of the providers will provide cards 
+that are still in the OP_READY state).
+</p>
+<p>
+jcop21id cards could work, they are fips compliant and thus require
+secure messaging, and the opensc code has secure messaging, but
+noone gave us feedback this far whether or not it works, so we have
+assume that it does not :(
+</p>
+<p>
+IBM recently released the jcop40/41. We do not know if this card provides 
+the applet. There do not yet seem to be any 3rd party manufacturer/resellers.
+</p>
+<p>
+Note that pkcs15-init cannot initialize or erase jcop cards. There are no
+free tools to do that in OpenSC.
+</p>
+<p>
+A small tool to get some information about the cards can be found here:
+<a class="ext-link" href="http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz" shape="rect"><span class="icon">http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz</span></a>
+</p>
+
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

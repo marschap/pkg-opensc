@@ -21,10 +21,13 @@
 #endif
 #include <stdlib.h>
 #include <stdio.h>
+#define CRYPTOKI_EXPORTS
 #include "pkcs11-display.h"
 
 #ifdef _WIN32
+#include <windows.h>
 #include <winreg.h>
+#include <limits.h>
 #endif
 
 #define __PASTE(x,y)      x##y
@@ -50,7 +53,7 @@ static CK_RV init_spy(void)
   int rv = CKR_OK;
 #ifdef _WIN32
         char temp_path[PATH_MAX];
-        int temp_len;
+        DWORD temp_len;
         long rc;
         HKEY hKey;
 #endif
@@ -274,6 +277,11 @@ static void spy_attribute_list_out(const char *name, CK_ATTRIBUTE_PTR pTemplate,
   print_attribute_list(spy_output, pTemplate, ulCount);
 }
 
+static void print_ptr_in(const char *name, CK_VOID_PTR ptr)
+{
+  fprintf(spy_output, "[in] %s = %p\n", name, ptr);
+}
+
 CK_RV C_GetFunctionList
 (CK_FUNCTION_LIST_PTR_PTR ppFunctionList)
 {
@@ -299,6 +307,7 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
   }
 
   enter("C_Initialize");
+  print_ptr_in("pInitArgs", pInitArgs);
   rv = po->C_Initialize(pInitArgs);
   return retne(rv);
 }
@@ -308,9 +317,6 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
   CK_RV rv;
   enter("C_Finalize");
   rv = po->C_Finalize(pReserved);
-  /* After Finalize do not use the module again */
-  C_UnloadModule(modhandle);
-  po = NULL;
   return retne(rv);
 }
 
@@ -320,6 +326,7 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo)
   enter("C_GetInfo");
   rv = po->C_GetInfo(pInfo);
   if(rv == CKR_OK) {
+    spy_dump_desc_out("pInfo");
     print_ck_info(spy_output, pInfo);
   }
   return retne(rv);
@@ -1369,6 +1376,7 @@ CK_RV C_WaitForSlotEvent(CK_FLAGS flags,
 {
   CK_RV rv;
   enter("C_WaitForSlotEvent");
+  spy_dump_ulong_in("flags", flags);
   rv = po->C_WaitForSlotEvent(flags, pSlot, pRserved);
   return retne(rv);
 }

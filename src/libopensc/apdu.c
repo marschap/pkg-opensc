@@ -332,7 +332,7 @@ static int sc_check_apdu(sc_card_t *card, const sc_apdu_t *apdu)
 error:
 	sc_error(card->ctx, "Invalid Case %d %s APDU:\n"
 		"cse=%02x cla=%02x ins=%02x p1=%02x p2=%02x lc=%lu le=%lu\n"
-		"resp=%p resplen=%lu data=%p datelen=%lu",
+		"resp=%p resplen=%lu data=%p datalen=%lu",
 		apdu->cse & SC_APDU_SHORT_MASK,
 		(apdu->cse & SC_APDU_EXT) != 0 ? "extended" : "short",
 		apdu->cse, apdu->cla, apdu->ins, apdu->p1, apdu->p2,
@@ -396,7 +396,7 @@ static int do_single_transmit(sc_card_t *card, sc_apdu_t *apdu)
 	}
 	/* ok, the APDU was successfully transmitted. Now we have two
 	 * special cases:
-	 * 1. the card returnd 0x6Cxx: in this case we re-trasmit the APDU
+	 * 1. the card returned 0x6Cxx: in this case we re-trasmit the APDU
 	 *    wit hLe set to SW2 (this is course only possible if the
 	 *    response buffer size is larger than the new Le = SW2)
 	 */

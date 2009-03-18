@@ -82,9 +82,9 @@ static CK_RV pkcs15init_create_tokens(struct sc_pkcs11_card *p11card)
 		pToken->ulFreePublicMemory = CK_UNAVAILABLE_INFORMATION;
 		pToken->ulTotalPrivateMemory = CK_UNAVAILABLE_INFORMATION;
 		pToken->ulFreePrivateMemory = CK_UNAVAILABLE_INFORMATION;
-		pToken->hardwareVersion.major = 1;
+		pToken->hardwareVersion.major = 0;
 		pToken->hardwareVersion.minor = 0;
-		pToken->firmwareVersion.major = 1;
+		pToken->firmwareVersion.major = 0;
 		pToken->firmwareVersion.minor = 0;
 	}
 
@@ -173,6 +173,11 @@ struct sc_pkcs11_framework_ops framework_pkcs15init = {
 	pkcs15init_logout,
 	pkcs15init_change_pin,
 	pkcs15init_initialize,
+	NULL, /* init_pin */
+	NULL, /* create_object */
+	NULL, /* gen_keypair */
+	NULL, /* seed_random */
+	NULL, /* get_random */
 };
 
 #else /* ifdef USE_PKCS15_INIT */

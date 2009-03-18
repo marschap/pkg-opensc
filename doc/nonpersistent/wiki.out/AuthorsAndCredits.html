@@ -1,0 +1,200 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      AuthorsAndCredits – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="OpenSCCredits">OpenSC Credits</h1>
+<p>
+OpenSC was written by (or uses code copied from):
+</p>
+<ul><li>Alon Bar-Lev
+</li><li>Andrea Frigido
+</li><li>Andreas Jellinghaus
+</li><li>Antonino Iacono
+</li><li>Antti Partanen
+</li><li>Antti Tapaninen
+</li><li>Benjamin Bender
+</li><li>Bert Vermeulen
+</li><li>Boris Kröger
+</li><li>Bud P. Bruegger
+</li><li>Carlos Prados
+</li><li>Chaskiel Grundman
+</li><li>Danny De Cock
+</li><li>David Corcoran
+</li><li>Douglas E. Engert
+</li><li>Eric Dorland
+</li><li>Franz Brandl
+</li><li>Geoff Thorpe
+</li><li>Gürer Özen for TUBITAK / UEKAE
+</li><li>Jamie Honan
+</li><li>Jean-Pierre Szikora
+</li><li>Joe Phillips
+</li><li>Juan Antonio Martinez
+</li><li>Juha Yrjölä
+</li><li>Jörn Zukowski
+</li><li>Kevin Stefanik
+</li><li>Ludovic Rousseau
+</li><li>Marc Bevand
+</li><li>Marie Fischer
+</li><li>Markus Friedl
+</li><li>Martin Paljak
+</li><li>Mathias Brossard
+</li><li>Matthias Brüstle
+</li><li>Nils Larsch
+</li><li>Olaf Kirch
+</li><li>Peter Koch
+</li><li>Priit Randla
+</li><li>Robert Bihlmeyer
+</li><li>Sirio Capizzi
+</li><li>Stef Hoeben
+</li><li>Timo Teräs
+</li><li>Todd C. Miller
+</li><li>Viktor Tarasov
+</li><li>Villy Skyttä
+</li><li>Weitao Sun
+</li><li>Werner Koch
+</li><li>William Wanders
+</li></ul><p>
+and
+</p>
+<ul><li>Zetes
+</li><li>g10 Code GmbH
+</li><li>Idealx <a class="ext-link" href="http://www.idealx.org/" shape="rect"><span class="icon">http://www.idealx.org/</span></a>
+</li></ul><h1 id="License">License</h1>
+<pre class="wiki" xml:space="preserve"> * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+</pre><p>
+OpenSC does not include the official PKCS<a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a> header file, because that file is under
+a non-free license. Instead OpenSC contains a rewritten header file from scute project
+under this license:
+</p>
+<pre class="wiki" xml:space="preserve">/* pkcs11.h
+   Copyright 2006, 2007 g10 Code GmbH
+   Copyright 2006 Andreas Jellinghaus
+
+   This file is free software; as a special exception the author gives
+   unlimited permission to copy and/or distribute it, with or without
+   modifications, as long as this notice is preserved.
+
+   This file is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY, to the extent permitted by law; without even
+   the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+   PURPOSE.  */
+</pre><p>
+OpenSC (signer) also includes header file:
+</p>
+<pre class="wiki" xml:space="preserve">Java Runtime Interface
+Copyright (c) 1996 Netscape Communications Corporation. All rights reserved.
+dp Suresh &lt;dp@netscape.com&gt;
+</pre><p>
+OpenSC also includes a copy of <a class="ext-link" href="http://www.geocities.com/bsittler/" shape="rect"><span class="icon">my_getopt</span></a>:
+</p>
+<pre class="wiki" xml:space="preserve">my_getopt - a command-line argument parser
+Copyright 1997-2001, Benjamin Sittler
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use, copy,
+modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT.  IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+</pre><p>
+OpenSC can be compiled with OpenSSL:
+</p>
+<pre class="wiki" xml:space="preserve">This product includes software developed by the OpenSSL Project
+for use in the OpenSSL Toolkit (http://www.OpenSSL.org/)
+
+This product includes cryptographic software written by Eric Young
+(eay@cryptsoft.com).  This product includes software written by Tim
+Hudson (tjh@cryptsoft.com).
+</pre><p>
+OpenSC uses autoconf m4 macros by
+</p>
+<pre class="wiki" xml:space="preserve">m4/autoconf macros by Bruno Haible
+Copyright (C) 2001-2005 Free Software Foundation, Inc.
+
+Copyright (C) 2002, 2003 Free Software Foundation, Inc.
+
+using pkg-config and pkg.,4 autoconf macro by
+Copyright (C) 2004 Scott James Remnant
+</pre><p>
+OpenSC includes svn2cl by
+</p>
+<pre class="wiki" xml:space="preserve">svn2cl Arthur de Jong
+   Copyright (C) 2004, 2005 Arthur de Jong.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions
+   are met:
+   1. Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the
+      distribution.
+   3. The name of the author may not be used to endorse or promote
+      products derived from this software without specific prior
+      written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+   IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+   GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+   IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+   IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</pre><p>
+OpenSC includes strlcpy.c (from <a class="ext-link" href="ftp://ftp.openbsd.org/pub/OpenBSD/src/lib/libc/string/" shape="rect"><span class="icon">ftp://ftp.openbsd.org/pub/OpenBSD/src/lib/libc/string/</span></a>) by
+</p>
+<pre class="wiki" xml:space="preserve"> Copyright (c) 1998 Todd C. Miller &lt;Todd.Miller@courtesan.com&gt;
+
+ Permission to use, copy, modify, and distribute this software for any
+ purpose with or without fee is hereby granted, provided that the above
+ copyright notice and this permission notice appear in all copies.
+
+ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+</pre><p>
+Please see each file for the detailed copyright information.
+</p>
+
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

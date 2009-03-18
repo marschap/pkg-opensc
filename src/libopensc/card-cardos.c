@@ -93,12 +93,15 @@ static int cardos_match_card(sc_card_t *card)
 		if (card->atr[11] <= 0x04) {
 			sc_debug(card->ctx, "found cardos m4.01");
 			card->type = SC_CARD_TYPE_CARDOS_M4_01;
-		} else if (card->atr[11] >= 0x08) {
-			sc_debug(card->ctx, "found cardos v4.3b or higher");
+		} else if (card->atr[11] == 0x08) {
+			sc_debug(card->ctx, "found cardos v4.3b");
 			card->type = SC_CARD_TYPE_CARDOS_M4_3;
-		} else if (card->atr[11] >= 0x09) {
-			sc_debug(card->ctx, "found cardos v4.2b or higher");
+		} else if (card->atr[11] == 0x09) {
+			sc_debug(card->ctx, "found cardos v4.2b");
 			card->type = SC_CARD_TYPE_CARDOS_M4_2B;
+                } else if (card->atr[11] >= 0x0B) {
+                        sc_debug(card->ctx, "found cardos v4.2c or higher");
+                        card->type = SC_CARD_TYPE_CARDOS_M4_2C;
 		} else {
 			sc_debug(card->ctx, "found cardos m4.2");
 		}
@@ -167,7 +170,8 @@ static int cardos_init(sc_card_t *card)
 			card->caps |= SC_CARD_CAP_RSA_2048;
 		card->caps |= SC_CARD_CAP_APDU_EXT;
 	} else if (card->type == SC_CARD_TYPE_CARDOS_M4_3 
-		|| card->type == SC_CARD_TYPE_CARDOS_M4_2B) {
+		|| card->type == SC_CARD_TYPE_CARDOS_M4_2B
+		|| card->type == SC_CARD_TYPE_CARDOS_M4_2C) {
 		card->caps |= SC_CARD_CAP_RSA_2048;
 		card->caps |= SC_CARD_CAP_APDU_EXT;
 	}
@@ -645,7 +649,8 @@ static int cardos_create_file(sc_card_t *card, sc_file_t *file)
 		return iso_ops->create_file(card, file);
 	} else if (card->type == SC_CARD_TYPE_CARDOS_M4_2 ||
 	           card->type == SC_CARD_TYPE_CARDOS_M4_3 ||
-	           card->type == SC_CARD_TYPE_CARDOS_M4_2B) {
+		   card->type == SC_CARD_TYPE_CARDOS_M4_2B ||
+	           card->type == SC_CARD_TYPE_CARDOS_M4_2C) {
 		u8        sbuf[SC_MAX_APDU_BUFFER_SIZE];
 		size_t    len = sizeof(sbuf);
 		sc_apdu_t apdu;
@@ -802,14 +807,28 @@ cardos_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	 * certain key, let's try RSA_PURE etc. and see which operation
 	 * succeeds (this is not really beautiful, but currently the
 	 * only way I see) -- Nils
+	 *
+	 * We also check for several caps flags here to pervent generating
+	 * invalid signatures with duplicated hash prefixes with some cards
 	 */
-	if (ctx->debug >= 3)
-		sc_debug(ctx, "trying RSA_PURE_SIG (padded DigestInfo)\n");
-	sc_ctx_suppress_errors_on(ctx);
-	r = do_compute_signature(card, data, datalen, out, outlen);
-	sc_ctx_suppress_errors_off(ctx);
-	if (r >= SC_SUCCESS)
-		SC_FUNC_RETURN(ctx, 4, r);
+
+    if (ctx->debug >= 3) {	 
+        if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED)
+            sc_debug(ctx, "Forcing RAW_HASH_STRIPPED\n");        	 
+        if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH)
+            sc_debug(ctx, "Forcing RAW_HASH\n");
+    }
+
+	if (!(card->caps & (SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED | SC_CARD_CAP_ONLY_RAW_HASH))) {
+		if (ctx->debug >= 3)
+			sc_debug(ctx, "trying RSA_PURE_SIG (padded DigestInfo)\n");
+		sc_ctx_suppress_errors_on(ctx);
+		r = do_compute_signature(card, data, datalen, out, outlen);
+		sc_ctx_suppress_errors_off(ctx);
+		if (r >= SC_SUCCESS)
+			SC_FUNC_RETURN(ctx, 4, r);
+	}		
+		
 	if (ctx->debug >= 3)
 		sc_debug(ctx, "trying RSA_SIG (just the DigestInfo)\n");
 	/* remove padding: first try pkcs1 bt01 padding */
@@ -826,13 +845,24 @@ cardos_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 		}
 		memcpy(buf, p, tmp_len);
 	}
-	sc_ctx_suppress_errors_on(ctx);
-	r = do_compute_signature(card, buf, tmp_len, out, outlen);
-	sc_ctx_suppress_errors_off(ctx);
-	if (r >= SC_SUCCESS)	
-		SC_FUNC_RETURN(ctx, 4, r);
+
+	if (!(card->caps & (SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED | SC_CARD_CAP_ONLY_RAW_HASH)) || card->caps & SC_CARD_CAP_ONLY_RAW_HASH ) {
+		if (ctx->debug >= 3)
+			sc_debug(ctx, "trying to sign raw hash value with prefix\n");	
+		sc_ctx_suppress_errors_on(ctx);
+		r = do_compute_signature(card, buf, tmp_len, out, outlen);
+		sc_ctx_suppress_errors_off(ctx);
+		if (r >= SC_SUCCESS)	
+			SC_FUNC_RETURN(ctx, 4, r);
+	}
+
+	if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH) {
+	    sc_debug(ctx, "Failed to sign raw hash value with prefix when forcing\n");
+	    SC_FUNC_RETURN(ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
+	}
+	   
 	if (ctx->debug >= 3)
-		sc_debug(ctx, "trying to sign raw hash value\n");
+		sc_debug(ctx, "trying to sign stripped raw hash value (card is responsible for prefix)\n");
 	r = sc_pkcs1_strip_digest_info_prefix(NULL,buf,tmp_len,buf,&buf_len);
 	if (r != SC_SUCCESS)
 		SC_FUNC_RETURN(ctx, 4, r);
@@ -1105,6 +1135,33 @@ static int cardos_logout(sc_card_t *card)
 		return SC_ERROR_NOT_SUPPORTED;
 }
 
+static int cardos_get_data(struct sc_card *card, unsigned int tag,  u8 *buf, size_t len)
+{
+	int                             r;
+	struct sc_apdu                  apdu;
+
+	SC_FUNC_CALLED(card->ctx, 1);
+
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xCA,
+			(tag >> 8) & 0xff, tag & 0xff);
+	apdu.lc = 0;
+	apdu.datalen = 0;
+	apdu.le = len;
+	apdu.resp = buf;
+	apdu.resplen = len;
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	SC_TEST_RET(card->ctx, r, "GET_DATA returned error");
+
+	if (apdu.resplen > len)
+		r = SC_ERROR_WRONG_LENGTH;
+	else
+		r = apdu.resplen;
+
+	SC_FUNC_RETURN(card->ctx, 1, r);
+}
 
 
 /* eToken R2 supports WRITE_BINARY, PRO Tokens support UPDATE_BINARY */
@@ -1128,6 +1185,7 @@ static struct sc_card_driver * sc_get_driver(void)
 	cardos_ops.card_ctl = cardos_card_ctl;
 	cardos_ops.pin_cmd = cardos_pin_cmd;
 	cardos_ops.logout  = cardos_logout;
+	cardos_ops.get_data = cardos_get_data;
 
 	return &cardos_drv;
 }

@@ -1,0 +1,66 @@
+.\"     Title: cardos-tool
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC tools
+.\"    Source: opensc
+.\"
+.TH "CARDOS\-TOOL" "1" "02/26/2009" "opensc" "OpenSC tools"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+cardos-tool \- displays information about Card OS-based security tokens or format them
+.SH "SYNOPSIS"
+.PP
+
+\fBcardos\-tool\fR
+[OPTIONS]
+.SH "DESCRIPTION"
+.PP
+The
+\fBcardos\-tool\fR
+utility is used to display information about smart cards and similar security tokens based on Siemens Card/OS M4\&.
+.SH "OPTIONS"
+.PP
+.PP
+\fB\-\-info\fR, \fB\-i\fR
+.RS 4
+Display information about the card or token\&.
+.RE
+.PP
+\fB\-\-format\fR, \fB\-f\fR
+.RS 4
+Format the card or token\&.
+.RE
+.PP
+\fB\-\-reader\fR number, \fB\-r\fR number
+.RS 4
+Specify the reader number
+\fInumber\fR
+to use\&. The default is reader 0\&.
+.RE
+.PP
+\fB\-\-card\-driver\fR name, \fB\-c\fR driver
+.RS 4
+Use the card driver specified by
+\fIname\fR\&. The default is to auto\-detect the correct card driver\&.
+.RE
+.PP
+\fB\-\-wait, \-w\fR
+.RS 4
+Causes
+\fBcardos\-info\fR
+to wait for the token to be inserted into reader\&.
+.RE
+.PP
+\fB\-\-verbose, \-v\fR
+.RS 4
+Causes
+\fBcardos\-info\fR
+to be more verbose\&. Specify this flag several times to enable debug output in the opensc library\&.
+.RE
+.SH "SEE ALSO"
+.PP
+opensc(7)

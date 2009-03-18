@@ -28,9 +28,23 @@
 
 /*****************************************************************************/
 
+#define ACOS_EMV_A03		"A-TRUST ACOS"
+#define ACOS_EMV_A05		"A-TRUST ACOS A05"
+
 static const char *atrust_acos_atrs[] = {
   "3B:BF:11:00:81:31:fe:45:45:50:41",
   "3B:BF:11:00:81:31:fe:45:4d:43:41",
+  "3B:BF:13:00:81:31:fe:45:45:50:41",
+  "3B:BF:13:00:81:31:fe:45:4d:43:41",
+  NULL
+};
+
+/* sequence and number has to match atr table ! */
+static const char *atrust_acos_names[] = {
+  ACOS_EMV_A03,
+  ACOS_EMV_A03,
+  ACOS_EMV_A05,
+  ACOS_EMV_A05,
   NULL
 };
 
@@ -66,13 +80,16 @@ static int atrust_acos_match_card(struct sc_card *card)
       
 		if (sc_hex_to_bin(atrp, defatr, &len))
 			continue;
-		// we may only verify part of ATR since
-		// part of the hist chars is variable
+		/* we may only verify part of ATR since */
+		/* part of the hist chars is variable */
 		if (len > card->atr_len)
 			continue;
 		if (memcmp(card->atr, defatr, len) != 0)
 			continue;
+
 		match = 1;
+		card->name = atrust_acos_names[i];
+
 		break;
     }
 	return match;
@@ -89,7 +106,6 @@ static int atrust_acos_init(struct sc_card *card)
 	if (ex_data == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
 
-	card->name = "A-TRUST ACOS";
 	card->cla  = 0x00;
 	card->drv_data = (void *)ex_data;
 
@@ -102,7 +118,10 @@ static int atrust_acos_init(struct sc_card *card)
 		| SC_ALGORITHM_RSA_HASH_RIPEMD160
 		| SC_ALGORITHM_RSA_HASH_MD5_SHA1;
 
-	_sc_card_add_rsa_alg(card,1536, flags, 0x10001);
+	if (!strcmp(card->name, ACOS_EMV_A05))
+		flags |= SC_ALGORITHM_RSA_HASH_SHA256;
+
+	_sc_card_add_rsa_alg(card, 1536, flags, 0x10001);
 
 	/* we need read_binary&friends with max 128 bytes per read */
 	if (card->max_send_size > 128)
@@ -136,7 +155,7 @@ static int process_fci(struct sc_context *ctx, struct sc_file *file,
 
 	if (buflen < 2)
 		return SC_ERROR_INTERNAL;
-	if (buf[0] != 0x6f)					// FCI template
+	if (buf[0] != 0x6f)					/* FCI template */
 		return SC_ERROR_INVALID_DATA;
 	len = (size_t)buf[1];
 	if (buflen - 2 < len)
@@ -150,7 +169,7 @@ static int process_fci(struct sc_context *ctx, struct sc_file *file,
 	file->record_length = 0;
 	file->size = 0;
   
-	// get file size
+	/* get file size */
 	tag = sc_asn1_find_tag(ctx, p, len, 0x80, &taglen);
 	if (tag != NULL && taglen >= 2) {
 		int bytes = (tag[0] << 8) + tag[1];
@@ -159,7 +178,7 @@ static int process_fci(struct sc_context *ctx, struct sc_file *file,
 		file->size = bytes;
 	}
 
-	// get file type
+	/* get file type */
   	tag = sc_asn1_find_tag(ctx, p, len, 0x82, &taglen);
 	if (tag != NULL) {
 		const char *type = "unknown";
@@ -507,7 +526,6 @@ static int atrust_acos_select_file(struct sc_card *card,
 		SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_INVALID_ARGUMENTS);
 }
 
-
 /** atrust_acos_set_security_env
  * sets the security enviroment
  * \param card pointer to the sc_card object
@@ -725,6 +743,8 @@ static int atrust_acos_compute_signature(struct sc_card *card,
 		apdu.le = 256;
 		r = sc_transmit_apdu(card, &apdu);
 		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
+			SC_FUNC_RETURN(card->ctx, 4, sc_check_sw(card, apdu.sw1, apdu.sw2));
 		{
 			size_t len = apdu.resplen > outlen ? outlen : apdu.resplen;
 
@@ -801,7 +821,7 @@ static int atrust_acos_check_sw(struct sc_card *card, unsigned int sw1,
 		return SC_ERROR_PIN_CODE_INCORRECT;
 	}
   
-	// iso error 
+	/* iso error */
 	return iso_ops->check_sw(card, sw1, sw2);
 }
 

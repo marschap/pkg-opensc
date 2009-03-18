@@ -5,7 +5,7 @@
  */
 
 #include "internal.h"
-#ifdef HAVE_OPENCT
+#ifdef ENABLE_OPENCT
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,16 +20,6 @@
 #include <openct/openct.h>
 #include <openct/logging.h>
 #include <openct/error.h>
-
-/* If you set PREALLOCATE to a non-zero value, this backend
- * will allocate that many reader slots. This will allow hot-
- * plugging devices (such as USB tokens) while OpenSC is running.
- *
- * To disable this, set PREALLOCATE to 0.
- *
- * This will most likely become a config file option soon.
- */
-#define PREALLOCATE	5
 
 /* function declarations */
 static int openct_reader_init(sc_context_t *ctx, void **priv_data);
@@ -83,24 +73,24 @@ struct slot_data {
 static int
 openct_reader_init(sc_context_t *ctx, void **priv_data)
 {
-	unsigned int	i,max;
+	unsigned int	i,max_virtual;
 	scconf_block *conf_block;
 
 	SC_FUNC_CALLED(ctx, 1);
 
-	max=OPENCT_MAX_READERS; 
 
-        conf_block = sc_get_conf_block(ctx, "reader_driver", "openct", 1);
+	max_virtual = 2;
+	conf_block = sc_get_conf_block(ctx, "reader_driver", "openct", 1);
 	if (conf_block) {
-		max = scconf_get_int(conf_block, "readers", OPENCT_MAX_READERS);
+		max_virtual = scconf_get_int(conf_block, "readers", max_virtual);
 	}
 
-	for (i = 0; i < max; i++) {
+	for (i = 0; i < OPENCT_MAX_READERS; i++) {
 		ct_info_t	info;
 
 		if (ct_reader_info(i, &info) >= 0) {
 			openct_add_reader(ctx, i, &info);
-		} else if (i < PREALLOCATE) {
+		} else if (i < max_virtual) {
 			openct_add_reader(ctx, i, NULL);
 		}
 	}
@@ -430,7 +420,9 @@ static int openct_reader_lock(sc_reader_t *reader, sc_slot_info_t *slot)
 	if (rc == IFD_ERROR_NOT_CONNECTED) {
 		ct_reader_disconnect(data->h);
 		data->h = NULL;
-		return SC_ERROR_READER_DETACHED;
+
+		/* Try to reconnect as reader may be plugged-in again */
+		return openct_reader_reconnect(reader, slot);
 	}
 
 	return openct_error(reader, rc);
@@ -479,6 +471,7 @@ struct sc_reader_driver *sc_get_openct_driver(void)
 {
 	openct_ops.init = openct_reader_init;
 	openct_ops.finish = openct_reader_finish;
+	openct_ops.detect_readers = NULL;
 	openct_ops.release = openct_reader_release;
 	openct_ops.detect_card_presence = openct_reader_detect_card_presence;
 	openct_ops.connect = openct_reader_connect;
@@ -491,4 +484,4 @@ struct sc_reader_driver *sc_get_openct_driver(void)
 	return &openct_reader_driver;
 }
 
-#endif	/* HAVE_OPENCT */
+#endif	/* ENABLE_OPENCT */

@@ -1,7 +1,7 @@
-# Process this file with automake to create Makefile.in
+MAINTAINERCLEANFILES = \
+	$(srcdir)/Makefile.in $(srcdir)/winconfig.h
+EXTRA_DIST = Makefile.mak
 
-MAINTAINERCLEANFILES = Makefile.in
+SUBDIRS = opensc
 
-EXTRA_DIST = Makefile.mak winconfig.h
-
-SUBDIRS = . opensc
+dist_noinst_HEADERS = winconfig.h

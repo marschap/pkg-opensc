@@ -1,0 +1,46 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      e-gate – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="UsingSchlumbergere-gateonLinux">Using Schlumberger e-gate on Linux</h1>
+<p>
+You have two options: OpenCT or PC/SC.
+</p>
+<ul><li>PC/SC @ <a class="ext-link" href="http://dl.central.org/dl/software/ifd-egate/" shape="rect"><span class="icon">http://dl.central.org/dl/software/ifd-egate/</span></a>
+</li></ul><h2 id="UsingOpenCTasaPCSCreader">Using OpenCT as a PC/SC reader</h2>
+<p>
+TODO: This should be moved to <a href="http://www.opensc-project.org/openct/intertrac/WikiStart" title="WikiStart in OpenCT Trac" shape="rect">OpenCT Wiki</a>
+</p>
+<pre class="wiki" xml:space="preserve">cat &gt; /etc/reader.conf.d/openct &lt;&lt;EOF
+FRIENDLYNAME    OpenCT
+DEVICENAME      /dev/null
+LIBPATH         /usr/lib/openct-ifd.so
+CHANNELID       0
+EOF
+update-reader.conf
+/etc/init.d/pcscd restart
+opensc-tool -l
+opensc-tool -a -r 0
+</pre><p>
+/etc/reader.conf.d/ feature is available on debian/ubuntu and on fedora as far as I know, users of other distributions will want
+to edit (NOT OVERWRITE) /etc/reader.conf directly. Also only debian/ubuntu users need to run update-reader.conf command.
+opensc-tool -l should show the OpenCT reader via pcsc, and be able to read the atr from it.
+</p>
+
+        
+        
+      </div>
+          <h3>Attachments</h3>
+          <ul>
+              <li>
+      <a href="/opensc/attachment/wiki/e-gate/ifd-egate-0.05-fedora-patches.tar.gz" title="View attachment" shape="rect">ifd-egate-0.05-fedora-patches.tar.gz</a>
+      (<span title="18241 bytes">17.8 KB</span>) - added by <em>martin</em>
+      <a class="timeline" href="/opensc/timeline?from=2008-12-08T20%3A40%3A05Z%2B0000&amp;precision=second" title="2008-12-08T20:40:05Z+0000 in Timeline" shape="rect">3 months</a> ago.
+                <q>working ifd-egate with fedora patches</q>
+              </li>
+          </ul>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

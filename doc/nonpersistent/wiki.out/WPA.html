@@ -1,0 +1,73 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      WPA – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="Wirelessauthentication">Wireless authentication</h1>
+<p>
+Wireless network used to be protected by the WEP standard, but WEP turned out to be insecure and thus useless.
+These days wireless networks are usualy protected using WPA - Wi-Fi Protected Access.
+</p>
+<p>
+Unfortunatly WPA is available in several flavors and versions, see
+the <a class="ext-link" href="http://www.wi-fi.org/OpenSection/protected_access.asp" shape="rect"><span class="icon">Wi-Fi Alliance website</span></a> for details.
+</p>
+<p>
+If your wireless network is set up to ask for authentication using client certificates,
+then you can use it with those certificates and keys on your smart card.
+</p>
+<p>
+For windows the windows build in WPA client should work well, if you have a CSP installed that works with OpenSC.
+This is untested, please report your results.
+</p>
+<p>
+For linux you can use the <a class="ext-link" href="http://hostap.epitest.fi/wpa_supplicant/" shape="rect"><span class="icon">WPA Supplicant</span></a> or <a class="ext-link" href="http://www.open1x.org/" shape="rect"><span class="icon">Xsupplicant</span></a> with OpenSC.
+The support for smart cards is implemented in both via the <a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">PKCS#11 Engine for OpenSSL</a>.
+</p>
+<h2 id="WPASupplicant">WPA Supplicant</h2>
+<p>
+To use WPA Suppplicant with smart card authentication you need to compile it with smart card support. Your config file should include this line:
+</p>
+<pre class="wiki" xml:space="preserve"># Smartcard support (i.e., private key on a smartcard), e.g., with openssl
+# engine.
+CONFIG_SMARTCARD=y
+</pre><p>
+Also you need to edit wpa_supplicant.conf like this:
+</p>
+<pre class="wiki" xml:space="preserve"># OpenSSL Engine support
+# These options can be used to load OpenSSL engines.
+# make the pkcs11 engine available
+pkcs11_engine_path=/usr/lib/engine/engine_pkcs11.so
+# configure the path to the pkcs11 module required by the pkcs11 engine
+pkcs11_module_path=/usr/lib/engine/opensc-pkcs11.so
+</pre><h2 id="XSupplicant">X Supplicant</h2>
+<p>
+It looks like xsupplicant is always compiled with smart card support.
+</p>
+<p>
+To enable it, edit the xsupplicant.conf config file and look for lines
+like these:
+</p>
+<pre class="wiki" xml:space="preserve">     # this section configures the smartcard used with eap-tls
+     # for now the smartcard PIN is handled the same way as the 
+     # password for a private key
+     smartcard {
+        # this line actually enables the smartcard and makes xsupplicant use
+        # the opensc engine
+        engine_id = pkcs11
+        # set the path to the engine
+        opensc_so_path = "/usr/lib/engine/engine_pkcs11.so"
+        # set the key id on the smartcard
+        key_id = 45
+     }
+</pre><p>
+FIXME: someone should test this and check if it works as advertised.
+</p>
+
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

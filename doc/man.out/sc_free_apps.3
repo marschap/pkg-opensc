@@ -1,0 +1,32 @@
+.\"     Title: sc_free_apps
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC API reference
+.\"    Source: opensc
+.\"
+.TH "SC_FREE_APPS" "3" "02/26/2009" "opensc" "OpenSC API reference"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+sc_free_apps \- Free application list
+.SH "SYNOPSIS"
+.PP
+
+.sp
+.RS 4
+.nf
+#include <opensc\&.h>
+
+void sc_free_apps(struct sc_card *card);
+		
+.fi
+.RE
+.sp
+.SH "DESCRIPTION"
+.PP
+This functions releases all memory associated with the list of applications on
+\fIcard\fR, as obtained by a call to
+sc_enum_apps()\&.

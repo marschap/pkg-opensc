@@ -1,0 +1,139 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="OpenSC">OpenSC</h1>
+<p>
+OpenSC provides a set of libraries and utilities to access smart
+cards. Its main focus is on cards that support cryptographic operations,
+and facilitate their use in security applications such as mail encryption,
+authentication, and digital signature. OpenSC implements the <a class="ext-link" href="http://www.rsa.com/rsalabs/node.asp?id=2133" shape="rect"><span class="icon">PKCS#11 API</span></a>
+so applications supporting this API such as Mozilla Firefox and Thunderbird
+can use it. OpenSC implements the <a class="ext-link" href="http://www.rsa.com/rsalabs/node.asp?id=2141" shape="rect"><span class="icon">PKCS#15</span></a> standard and aims to be compatible
+with every software that does so, too.
+</p>
+<p>
+See our <a class="wiki" href="OverView.html" shape="rect">OverView</a> page for more details. 
+</p>
+<p>
+OpenSC was written by an international team and is licensed as 
+<a class="ext-link" href="http://www.opensource.org/" shape="rect"><span class="icon">Open Source</span></a> software under the 
+<a class="ext-link" href="http://www.opensource.org/licenses/lgpl-license.php" shape="rect"><span class="icon">LGPL license</span></a>.
+For a list of all authors and contributers as well as detailed
+license information see <a class="wiki" href="AuthorsAndCredits.html" shape="rect">AuthorsAndCredits</a>.
+</p>
+<p>
+Please note: typical smart cards are completely undocumented and incompatible
+with all other existing smart cards. Thus please check these lists below, and review
+each page to find out which specific smart card is supported by opensc.
+</p>
+<p>
+For programmable java cards: the support is for the card with the specific applet -
+if you have a different applet on your card, it might not be supported.
+</p>
+<h2 id="NationalIDCards">National ID Cards</h2>
+<p>
+These are pre-initialized read-only cards.
+</p>
+<ul><li><a class="wiki" href="FinnishEid.html" shape="rect">Finnish ID Card FINEID</a>
+</li><li><a class="wiki" href="SwedishEid.html" shape="rect">Swedish Posten eID</a>
+</li><li><a class="wiki" href="EstonianEid.html" shape="rect">Estonian ID Card EstEID</a>
+</li><li><a class="wiki" href="ItalianEid.html" shape="rect">Italian Infocamere</a>
+</li><li><a class="wiki" href="ItalianPostecert.html" shape="rect">Italian Postecert</a>
+</li><li><a class="wiki" href="ItalianCNS.html" shape="rect">Italian CNS/CIE (eID)</a>
+</li><li><a class="wiki" href="BelgianEid.html" shape="rect">Belgian eID</a>
+</li><li><a class="wiki" href="SpanishEid.html" shape="rect">Spanish Ceres</a>
+</li><li><a class="wiki" href="GermanEid.html" shape="rect">German ID Cards, eHBA, eGK</a>
+</li><li><a class="wiki" href="TaiwanEid.html" shape="rect">Taiwan</a>
+</li><li><a class="wiki" href="AustrianEid.html" shape="rect">Austrian Bürgerkarte, e-card</a>
+</li><li><a class="wiki" href="Australia.html" shape="rect">Australian national ID card</a>
+</li><li><a class="wiki" href="UnitedStatesPIV.html" shape="rect">United States PIV card applet</a>
+</li><li><a class="wiki" href="AKIS.html" shape="rect">Turkish EID Card</a>
+</li></ul><h2 id="SmartCards">Smart Cards</h2>
+<p>
+This is a list of supported cards which can be written to by the user.
+</p>
+<ul><li><a class="wiki" href="Cryptoflex.html" shape="rect">Schlumberger/Axalto Cryptoflex</a>
+</li><li><a class="wiki" href="Cyberflex.html" shape="rect">Schlumberger/Axalto Cyberflex</a>
+</li><li><a class="wiki" href="GemplusGpk.html" shape="rect">Gemplus GPK</a>
+</li><li><a class="wiki" href="CardOs.html" shape="rect">Siemens CardOS M4</a>
+</li><li><a class="wiki" href="IbmJcop.html" shape="rect">IBM JCOP</a>
+</li><li><a class="wiki" href="Micardo.html" shape="rect">Micardo</a>
+</li><li><a class="wiki" href="OberThur.html" shape="rect">Oberthur</a>
+</li><li><a class="wiki" href="OpenPgp.html" shape="rect">OpenPGP</a>
+</li><li><a class="wiki" href="SetCos.html" shape="rect">Setec Setcos</a>
+</li><li><a class="wiki" href="Starcos.html" shape="rect">Giesecke &amp; Devrient Starcos</a>
+</li><li><a class="wiki" href="Seccos.html" shape="rect">Giesecke &amp; Devrient Seccos</a>
+</li><li><a class="wiki" href="TCOS.html" shape="rect">TCOS based cards (NetKey E4, SignTrust, Smartkey)</a>
+</li><li><a class="wiki" href="AKIS.html" shape="rect">AKIS Smart Cards</a>
+</li><li><a class="wiki" href="ASEPCOS.html" shape="rect">Athena Smart Cards</a>
+</li></ul><h2 id="USBTokens">USB Tokens</h2>
+<p>
+USB tokens usually have writeable smart cards inside.
+</p>
+<ul><li><a class="wiki" href="AladdinEtokenPro.html" shape="rect">Aladdin eToken Pro</a>
+</li><li><a class="wiki" href="CryptoIdentityItsec.html" shape="rect">Eutron CryptoIdentity ITSEC</a>
+</li><li><a class="wiki" href="SchlumbergerEgate.html" shape="rect">Schlumberger/Axalto e-gate</a>
+</li><li><a class="wiki" href="RainbowIkeyThree.html" shape="rect">Rainbow iKey 3000</a>
+</li><li><a class="wiki" href="RainbowIkeyFour.html" shape="rect">Rainbow iKey 4000</a> (not supported)
+</li><li><a class="wiki" href="ePass3000.html" shape="rect">Feitian ePass3000</a>
+</li><li><a class="wiki" href="ASEPCOS.html" shape="rect">Athena ASEKey</a>
+</li></ul><h2 id="Miscellaneous">Miscellaneous</h2>
+<ul><li><a class="wiki" href="Emv.html" shape="rect">EMV cards</a> (not supported)
+</li></ul><h3 id="OpenSCforks">OpenSC forks</h3>
+<ul><li><a class="wiki" href="PortugeseEid.html" shape="rect">PortugeseEid</a>
+</li><li><a class="wiki" href="BelgianEid.html" shape="rect">BelgianEid</a>
+</li></ul><h2 id="StartingPoints">Starting Points</h2>
+<ul><li><a class="wiki" href="OverView.html" shape="rect">OverView</a> - A short introduction what OpenSC is and how it fits into the big picture.
+</li><li><a class="wiki" href="WhatsNew.html" shape="rect">WhatsNew</a> - What is new, what has changed since the last major release?
+</li><li><a class="wiki" href="OperatingSystems.html" shape="rect">OperatingSystems</a> - What your operating system needs to have for OpenSC to work.
+</li><li><a href="http://www.opensc-project.org/files/" shape="rect">Download</a> the latest stable release of OpenSC.
+</li><li><a class="wiki" href="CompilingInstalling.html" shape="rect">CompilingInstalling</a> - How to compile and install OpenSC yourself.
+</li><li><a class="wiki" href="QuickStart.html" shape="rect">QuickStart</a> - installation and basic steps to initialize a blank smart card.
+</li><li><a class="wiki" href="UsingOpensc.html" shape="rect">UsingOpensc</a> - options when using OpenSC.
+</li><li><a class="wiki" href="Pkcs15Init.html" shape="rect">PKCS#15 Initialization</a> Guide with many small details
+</li><li><a class="wiki" href="PinpadReaders.html" shape="rect">PinpadReaders</a> - are special because there was no standard for pinpads for a long time.
+</li><li><a class="wiki" href="ReplacingCertificates.html" shape="rect">ReplacingCertificates</a> - does not work for all cards and is a bit tricky.
+</li><li><a class="wiki" href="SecureSetup.html" shape="rect">SecureSetup</a> - how to configure the security aspects or OpenSC
+</li><li><a class="wiki" href="TroubleShooting.html" shape="rect">TroubleShooting</a> explains the most common problems and how to solve them.
+</li><li><a class="wiki" href="MoreDocumentation.html" shape="rect">MoreDocumentation</a> -- older and specific documents.
+</li><li><strong><a class="wiki" href="MailingLists.html" shape="rect">MailingLists</a></strong> -- How to contact us.
+</li></ul><h2 id="ApplicationSupport">Application Support</h2>
+<ul><li><a class="wiki" href="PKCS11.html" shape="rect">PKCS11 Module</a> - OpenSC includes a PKCS#11 module "opensc-pkcs11.so" that works with many applications.
+</li><li><a class="wiki" href="Tools.html" shape="rect">Tools</a> - OpenSC includes a number of command line tools for exploring, initializing, automatisation and debugging.
+</li><li><a class="wiki" href="OpenSSL.html" shape="rect">OpenSSL</a> can use a so called engine to delegate cryptographic operations to your smart card.
+</li><li><a class="wiki" href="WindowsCSP.html" shape="rect">WindowsCSP</a> - on Windows a Cryptographic Service Provider (CSP) offers your smart card to all applications.
+</li><li><a class="wiki" href="AppleCSP.html" shape="rect">AppleCSP</a> - on Mac OS X a Cryptographic Service Provider (CSP) offers your smart card to all applications.
+</li><li><a class="wiki" href="Mozilla.html" shape="rect">Mozilla</a>, Firefox and Thunderbird all can use OpenSC for authentication, signing and decryption
+</li><li><a class="wiki" href="PamModules.html" shape="rect">PamModules</a> - allow people to login using their smart card.
+</li><li><a class="wiki" href="SecureShell.html" shape="rect">SecureShell</a> - use ssh network connections with smart card authentication.
+</li><li><a class="wiki" href="PKI.html" shape="rect">PKI</a> - Public Key Infrastructures are used to manage certificates, including those on smart cards.
+</li><li><a class="wiki" href="VPN.html" shape="rect">VPN</a> - build private networks using smart card authentication.
+</li><li><a class="wiki" href="WPA.html" shape="rect">WPA</a> - use WPA to secure your wireless network including smart card authentication.
+</li><li><a class="wiki" href="PGP.html" shape="rect">PGP</a> - email can be signed and crypted in PGP format using smart cards.
+</li><li><a class="wiki" href="Sign.html" shape="rect">Sign</a> arbitrary data and documents using smart cards.
+</li><li><a class="wiki" href="XML.html" shape="rect">XML</a> advanced signatures can be created with smart cards.
+</li><li><a class="wiki" href="HBCI.html" shape="rect">HBCI</a> homebanking with a smart card (HBCI is a standard common in Germany).
+</li></ul><h2 id="DevelopersCorner">Developers Corner</h2>
+<ul><li><a class="wiki" href="SubversionRepository.html" shape="rect">SubversionRepository</a> has our latest source code, if you want to test it or improve it.
+</li><li>All changes are listed in the [file:ChangeLog ChangeLog] in the source code or <a href="http://www.opensc-project.org/opensc/log/" shape="rect">online</a>.
+</li><li>Bug reports are <a class="ext-link" href="https://www.opensc-project.org/opensc/newticket" shape="rect"><span class="icon">reported</span></a> and <a class="ext-link" href="https://www.opensc-project.org/opensc/report" shape="rect"><span class="icon">viewed</span></a> best online.
+</li><li><a class="wiki" href="DeveloperHardware.html" shape="rect">DeveloperHardware</a> is always welcome. Thanks for your donation!
+</li><li><a class="wiki" href="ReleaseHowto.html" shape="rect">ReleaseHowto</a> documents our release process. 
+</li><li><a class="wiki" href="ReleaseTodo.html" shape="rect">ReleaseTodo</a> lists the things we want to do before our next release.
+</li><li>Interoperability is best discussed on an the <a class="ext-link" href="http://www.gol.grosseto.it/mailman/listinfo/interopeid" shape="rect"><span class="icon">interopeid</span></a> mailing list for national id cards.
+</li><li><a class="wiki" href="RecentTestresults.html" shape="rect">RecentTestresults</a> has the test course we aim to do with each release, and help is always very welcome!
+</li><li><a class="wiki" href="ResourcesLinks.html" shape="rect">ResourcesLinks</a> -- Standards, Documents, etc.
+</li><li><a class="wiki" href="DevelopmentPolicy.html" shape="rect">DevelopmentPolicy</a> -- the how and why of OpenSC development.
+</li><li><a class="wiki" href="SslChoice.html" shape="rect">SslChoice</a> -- if you want to write an SSL enabled application you can choose between many libraries.
+</li><li><a href="http://www.opensc-project.org/sca/wiki/OpenscTokend" shape="rect">MacOsXTokend</a> -- a Tokend implementation for Mac OS 10.4, based on OpenSC
+</li><li><a class="wiki" href="GermanApi.html" shape="rect">GermanApi</a> -- Information about new eCardAPI published by german goverment
+</li></ul>
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

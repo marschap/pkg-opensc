@@ -20,7 +20,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 #include <openssl/x509.h>
 #endif
 #include "pkcs11-display.h"
@@ -108,7 +108,7 @@ void print_boolean(FILE *f, CK_LONG type, CK_VOID_PTR value, CK_ULONG size, CK_V
 void print_generic(FILE *f, CK_LONG type, CK_VOID_PTR value, CK_ULONG size, CK_VOID_PTR arg)
 {
   CK_ULONG i;
-  if(size > 0 && value != NULL) {
+  if(size != (CK_LONG)(-1) && value != NULL) {
     fprintf(f, "[size : 0x%lX (%ld)]\n    ", size, size);
     for(i = 0; i < size; i++) {
       if (i != 0) {
@@ -128,7 +128,7 @@ void print_generic(FILE *f, CK_LONG type, CK_VOID_PTR value, CK_ULONG size, CK_V
   fprintf(f, "\n");
 }
 
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 static void print_dn(FILE *f, CK_LONG type, CK_VOID_PTR value, CK_ULONG size, CK_VOID_PTR arg)
 {
   print_generic(f, type, value, size, arg);
@@ -151,7 +151,7 @@ void print_print(FILE *f, CK_LONG type, CK_VOID_PTR value, CK_ULONG size, CK_VOI
 {
   CK_ULONG i, j;
   CK_BYTE  c;
-  if(size > 0) {
+  if(size != (CK_LONG)(-1)) {
     fprintf(f, "[size : 0x%lX (%ld)]\n    ", size, size);
     for(i = 0; i < size; i += j) {
       for(j = 0; ((i + j < size) && (j < 32)); j++) {
@@ -289,12 +289,27 @@ static enum_specs ck_mec_s[] = {
   { CKM_SHA_1                    , "CKM_SHA_1                    " },
   { CKM_SHA_1_HMAC               , "CKM_SHA_1_HMAC               " },
   { CKM_SHA_1_HMAC_GENERAL       , "CKM_SHA_1_HMAC_GENERAL       " },
+  { CKM_SHA256                   , "CKM_SHA256                   " },
+  { CKM_SHA256_HMAC              , "CKM_SHA256_HMAC              " },
+  { CKM_SHA256_HMAC_GENERAL      , "CKM_SHA256_HMAC_GENERAL      " },
+  { CKM_SHA384                   , "CKM_SHA384                   " },
+  { CKM_SHA384_HMAC              , "CKM_SHA384_HMAC              " },
+  { CKM_SHA384_HMAC_GENERAL      , "CKM_SHA384_HMAC_GENERAL      " },
+  { CKM_SHA512                   , "CKM_SHA512                   " },
+  { CKM_SHA512_HMAC              , "CKM_SHA512_HMAC              " },
+  { CKM_SHA512_HMAC_GENERAL      , "CKM_SHA512_HMAC_GENERAL      " },
   { CKM_RIPEMD128                , "CKM_RIPEMD128                " },
   { CKM_RIPEMD128_HMAC           , "CKM_RIPEMD128_HMAC           " },
   { CKM_RIPEMD128_HMAC_GENERAL   , "CKM_RIPEMD128_HMAC_GENERAL   " },
   { CKM_RIPEMD160                , "CKM_RIPEMD160                " },
   { CKM_RIPEMD160_HMAC           , "CKM_RIPEMD160_HMAC           " },
   { CKM_RIPEMD160_HMAC_GENERAL   , "CKM_RIPEMD160_HMAC_GENERAL   " },
+  { CKM_SHA256                   , "CKM_SHA256                   " },
+  { CKM_SHA256_HMAC              , "CKM_SHA256_HMAC              " },
+  { CKM_SHA256_HMAC_GENERAL      , "CKM_SHA256_HMAC_GENERAL      " },
+  { CKM_SHA384                   , "CKM_SHA384                   " },
+  { CKM_SHA384_HMAC              , "CKM_SHA384_HMAC              " },
+  { CKM_SHA384_HMAC_GENERAL      , "CKM_SHA384_HMAC_GENERAL      " },
   { CKM_CAST_KEY_GEN             , "CKM_CAST_KEY_GEN             " },
   { CKM_CAST_ECB                 , "CKM_CAST_ECB                 " },
   { CKM_CAST_CBC                 , "CKM_CAST_CBC                 " },
@@ -540,13 +555,13 @@ type_spec ck_attribute_specs[] = {
   { CKA_VALUE             , "CKA_VALUE            ", print_generic, NULL },
   { CKA_OBJECT_ID         , "CKA_OBJECT_ID        ", print_generic, NULL },
   { CKA_CERTIFICATE_TYPE  , "CKA_CERTIFICATE_TYPE ", print_enum,    ck_crt_t },
-#ifdef HAVE_OPENSSL 
+#ifdef ENABLE_OPENSSL 
   { CKA_ISSUER            , "CKA_ISSUER           ", print_dn,      NULL },
 #else
   { CKA_ISSUER            , "CKA_ISSUER           ", print_generic, NULL },
 #endif
   { CKA_SERIAL_NUMBER     , "CKA_SERIAL_NUMBER    ", print_generic, NULL },
-#ifdef HAVE_OPENSSL 
+#ifdef ENABLE_OPENSSL 
   { CKA_AC_ISSUER         , "CKA_AC_ISSUER        ", print_dn,      NULL },
 #else
   { CKA_AC_ISSUER         , "CKA_AC_ISSUER        ", print_generic, NULL },
@@ -561,7 +576,7 @@ type_spec ck_attribute_specs[] = {
   { CKA_HASH_OF_ISSUER_PUBLIC_KEY, "CKA_HASH_OF_ISSUER_PUBLIC_KEY ", print_generic, NULL },
   { CKA_CHECK_VALUE       , "CKA_CHECK_VALUE      ", print_generic, NULL },
   { CKA_KEY_TYPE          , "CKA_KEY_TYPE         ", print_enum,    ck_key_t },
-#ifdef HAVE_OPENSSL 
+#ifdef ENABLE_OPENSSL 
   { CKA_SUBJECT           , "CKA_SUBJECT          ", print_dn,      NULL },
 #else
   { CKA_SUBJECT           , "CKA_SUBJECT          ", print_generic, NULL },
@@ -713,7 +728,7 @@ void print_slot_list(FILE *f, CK_SLOT_ID_PTR pSlotList, CK_ULONG ulCount)
 
 void print_slot_info(FILE *f, CK_SLOT_INFO *info)
 {
-  int            i;
+  size_t i;
   enum_specs ck_flags[] = {
     { CKF_TOKEN_PRESENT    , "CKF_TOKEN_PRESENT                " },
     { CKF_REMOVABLE_DEVICE , "CKF_REMOVABLE_DEVICE             " },
@@ -809,16 +824,6 @@ void print_mech_info(FILE *f, CK_MECHANISM_TYPE type,
     CKF_GENERATE|CKF_GENERATE_KEY_PAIR|CKF_WRAP|CKF_UNWRAP|
     CKF_DERIVE;
     
-#if 0
-  if (name) {
-    fprintf(f, "%30s ", name);
-  } else {
-    fprintf(f, " Unknown Mechanism (%08lx)  ", type);
-  }
-  fprintf(f, "min:%6lu  max:%6lu  flags:0x%08lX  \n",
-	  minfo->ulMinKeySize, minfo->ulMaxKeySize, minfo->flags);
-  printf("  flags:  %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
-#else
   if (name) {
     fprintf(f, "%s : ", name);
   } else {
@@ -827,8 +832,7 @@ void print_mech_info(FILE *f, CK_MECHANISM_TYPE type,
   fprintf(f, "min:%lu max:%lu flags:0x%lX ",
 	  (unsigned long) minfo->ulMinKeySize,
 	  (unsigned long) minfo->ulMaxKeySize, minfo->flags);
-  printf("( %s%s%s%s%s%s%s%s%s%s%s%s%s%s)\n",
-#endif
+  fprintf(f, "( %s%s%s%s%s%s%s%s%s%s%s%s%s%s)\n",
 	 (minfo->flags & CKF_HW)                ? "Hardware " : "",
 	 (minfo->flags & CKF_ENCRYPT)           ? "Encrypt "  : "",
 	 (minfo->flags & CKF_DECRYPT)           ? "Decrypt "  : "",
@@ -899,7 +903,7 @@ void print_attribute_list_req(FILE *f, CK_ATTRIBUTE_PTR pTemplate,
 
 void print_session_info(FILE *f, CK_SESSION_INFO *info)
 {
-  int            i;
+  size_t i;
   enum_specs ck_flags[] = {
     { CKF_RW_SESSION     , "CKF_RW_SESSION                   " },
     { CKF_SERIAL_SESSION , "CKF_SERIAL_SESSION               " }

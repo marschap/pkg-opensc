@@ -1,0 +1,172 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      Cyberflex – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="SchlumbergerAxaltoCyberflex">Schlumberger / Axalto Cyberflex</h1>
+<p>
+Earlier versions of Cyberflex cards have the same or a very similiar filesystem interface like the Cryptoflex cards.
+Those cards work well with OpenSC.
+</p>
+<p>
+Newer versions however are pure JavaCards and will not work without a JavaApplet.
+</p>
+<p>
+<a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon">MuscleCard</span></a> is an open source software containing a Java Cardlet for several smart cards
+implementing the JavaCard standard. Starting with OpenSC 0.11.2 support for MuscleCard has been added. 
+</p>
+<p>
+Current Test Status: Only for the brave! This might kill your card! No warranty whatsoever! But initialization with OpenSC works.
+</p>
+<h2 id="Readerconfiguration">Reader configuration</h2>
+<p>
+If you have an e-gate token, you need to <a class="wiki" href="e-gate.html" shape="rect">configure it for PC/SC</a> properly, as the tools used for loading the applet into the card only speak PC/SC. 
+</p>
+<h2 id="InstallingGlobalPlatformtools">Installing GlobalPlatform tools</h2>
+<p>
+First you need to install gpshell from the <a class="ext-link" href="http://sourceforge.net/projects/globalplatform/" shape="rect"><span class="icon">GlobalPlatform open source project</span></a>:
+</p>
+<pre class="wiki" xml:space="preserve">wget http://heanet.dl.sourceforge.net/sourceforge/globalplatform/globalplatform-5.0.0.tar.gz
+tar xfvz globalplatform-5.0.0.tar.gz
+cd globalplatform-5.0.0
+./configure --prefix=/usr
+make
+sudo make install
+cd ..
+
+wget http://heanet.dl.sourceforge.net/sourceforge/globalplatform/gpshell-1.4.0.tar.gz
+tar xfvz gpshell-1.4.0.tar.gz
+cd gpshell-1.4.0
+./configure --prefix=/usr
+make
+sudo make install
+cd ..
+</pre><p>
+Note: gpshell 1.4.1 and later <strong>do not</strong> work with these instructions and give an error:
+</p>
+<pre class="wiki" xml:space="preserve">install -file CardEdgeII.ijc -nvDataLimit 12000 -instParam 00 -priv 2
+Command --&gt; 80E602001B05A00000000107A0000000030000000AEF08C6023100C8022EE00000
+Wrapped command --&gt; 84E602002305A00000000107A0000000030000000AEF08C6023100C8022EE0002C197064B44B6AC700
+Response &lt;-- 6A80
+install_for_load() returns 0x80206A80 (6A80: Wrong data / Incorrect values in command data.)
+</pre><p>
+Bug @ sf.net: <a class="ext-link" href="https://sourceforge.net/tracker2/?func=detail&amp;aid=2406176&amp;group_id=143343&amp;atid=755201" shape="rect"><span class="icon">https://sourceforge.net/tracker2/?func=detail&amp;aid=2406176&amp;group_id=143343&amp;atid=755201</span></a>
+</p>
+<h2 id="LoadingMuscleCardApplet">Loading MuscleCard Applet</h2>
+<p>
+The Muscle Web page is at <a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon">http://www.musclecard.com/</span></a> but you can download the Applet directly from <a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon">http://www.identityalliance.com/CardEdgeII.ijc</span></a>. A recent copy is also attached to this wiki <a class="attachment" href="/opensc/attachment/wiki/Cyberflex/CardEdgeII.ijc" title="Attachment 'CardEdgeII.ijc' in Cyberflex" shape="rect">attachment:CardEdgeII.ijc</a>
+</p>
+<p>
+You need to run gpshell with these commands:
+</p>
+<pre class="wiki" xml:space="preserve">$ gpshell
+mode_201
+enable_trace
+establish_context
+card_connect -readerNumber 1 // Depends on your reader
+select -AID a0000000030000
+open_sc -security 1 -keyind 0 -keyver 0 -mac_key 404142434445464748494a4b4c4d4e4f -enc_key 404142434445464748494a4b4c4d4e4f // Open secure channel
+delete -AID A0000003230101
+delete -AID A00000032301
+delete -AID A00000000101
+delete -AID A000000001
+install -file CardEdgeII.ijc -nvDataLimit 12000 -instParam 00 -priv 2
+card_disconnect
+release_context
+</pre><p>
+The last two "delete" commands will remove an older version of the applet.
+</p>
+<p>
+Next you need to set the PIN codes to "00000000", so you can initialize the card.
+</p>
+<pre class="wiki" xml:space="preserve">opensc-tool -s 00:A4:04:00:06:A0:00:00:00:01:01  -s B0:2A:00:00:38:08:4D:75:73:63:6C:65:30:30:04:01:08:30:30:30:30:30:30:30:30:08:30:30:30:30:30:30:30:30:05:02:08:30:30:30:30:30:30:30:30:08:30:30:30:30:30:30:30:30:00:00:17:70:00:02:01
+</pre><p>
+Now the token has a working MuscleCard Applet and is ready for use with OpenSC.
+</p>
+<h2 id="UsingtheTokenwithOpenSC">Using the Token with OpenSC</h2>
+<pre class="wiki" xml:space="preserve">pkcs15-init -EC -p pkcs15+onepin
+</pre><p>
+If you're asked for "Unspecified PIN [reference 1] required", use "00000000".
+</p>
+<pre class="wiki" xml:space="preserve">$ pkcs15-init -EC -p pkcs15+onepin --pin 1234 --puk 12345678
+Using reader with a card: Eutron SIM Pocket Combo 01 00
+Unspecified PIN [reference 1] required.
+Please enter Unspecified PIN [reference 1]: 
+$ pkcs15-tool -D
+Using reader with a card: Eutron SIM Pocket Combo 01 00
+PKCS#15 Card [MUSCLE]:
+	Version        : 1
+	Serial number  : 0000
+	Manufacturer ID: Identity Alliance
+	Last update    : 20081207120153Z
+	Flags          : EID compliant
+
+PIN [User PIN]
+	Com. Flags: 0x3
+	ID        : 01
+	Flags     : [0x10], initialized
+	Length    : min_len:4, max_len:8, stored_len:8
+	Pad char  : 0x00
+	Reference : 1
+	Type      : ascii-numeric
+	Path      : 3f005015
+
+
+</pre><h1 id="FAQ">FAQ</h1>
+<h3 id="WhattodoonWindows">What to do on Windows ?</h3>
+<p>
+<a class="ext-link" href="http://sourceforge.net/projects/globalplatform" shape="rect"><span class="icon">http://sourceforge.net/projects/globalplatform</span></a> has a download package of GPShell.exe for windows, so no need to compile it on your own.
+</p>
+<p>
+Download
+</p>
+<ul><li><a class="ext-link" href="http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip" shape="rect"><span class="icon">http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip</span></a>
+</li><li><a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon">http://www.identityalliance.com/CardEdgeII.ijc</span></a>
+</li></ul><p>
+and unzip both in the current directory. Run the same commands mentioned above and you should be fine. Note however that this is 100% untested,
+please report back if it works (or not) on the opensc-user or opensc-devel <a class="wiki" href="MailingLists.html" shape="rect">MailingLists</a>. Thanks for your feedback!
+</p>
+<h3 id="Isthereatoolforit">Is there a tool for it?</h3>
+<p>
+A small tool to get some information about the cards can be found here: <a class="ext-link" href="http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz" shape="rect"><span class="icon">http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz</span></a>
+It was written for IBM JCop cards but should work as well with Cyberflex cards. Note: Does not work with latest OpenSC as sc_check_sw symbol is not exported from libopensc.
+</p>
+<h3 id="HowcanIformatorupdatecardswiththeoldapplet">How can I format or update cards with the old applet?</h3>
+<p>
+If you use ID Ally - it will delete the old applet before installation of the new.  gpshell should allow you to delete:
+first A00000000101
+then A000000001
+</p>
+<h3 id="WhatcanIdoifIspecifiedatoosmallsize">What can I do if I specified a too small size?</h3>
+<p>
+Delete A00000000101 (instance) and reinstantiate to a larger size.
+(this will delete all data / key / ... )
+</p>
+<h3 id="ImaskedaboutUnspecifiedPINReference1">I'm asked about Unspecified PIN [Reference 1]</h3>
+<p>
+There are two APDUs that have to be run first if you use GPShell (which sets the default pins, puks, etc):
+</p>
+<p>
+<tt>00 A4 04 00 06 A0 00 00 00 01 01</tt> and
+<tt>B0 2A 00 00 38 08 4D 75 73 63 6C 65 30 30 04 01 08 30 30 30 30 30 30 30 30 08 30 30 30 30 30 30 30 30 05 02 08 30 30 30 30 30 30 30 30 08 30 30 30 30 30 30 30 30 00 00 17 70 00 02 01</tt>
+</p>
+<p>
+Both need to be send in one go - without card reset in between. The first selects the muscle applet, the second sets the default pins to "00000000". You can copypaste the above opensc-tool line to execute these commands.
+</p>
+
+        
+        
+      </div>
+          <h3>Attachments</h3>
+          <ul>
+              <li>
+      <a href="/opensc/attachment/wiki/Cyberflex/CardEdgeII.ijc" title="View attachment" shape="rect">CardEdgeII.ijc</a>
+      (<span title="12532 bytes">12.2 KB</span>) - added by <em>martin</em>
+      <a class="timeline" href="/opensc/timeline?from=2008-12-07T10%3A52%3A01Z%2B0000&amp;precision=second" title="2008-12-07T10:52:01Z+0000 in Timeline" shape="rect">3 months</a> ago.
+                <q>Applet to load onto the card</q>
+              </li>
+          </ul>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>
