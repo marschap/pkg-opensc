@@ -1,0 +1,36 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      CardOs – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="SiemensCardOSM4">Siemens CardOS M4</h1>
+<p>
+Siemens CardOS M4 smart card should work fine with OpenSC.
+</p>
+<p>
+Supported smart cards are the <a class="wiki" href="AladdinEtokenPro.html" shape="rect">Aladdin eToken PRO</a> and the <a class="wiki" href="CryptoIdentityItsec.html" shape="rect">Eutron ITSEC-I</a> USB tokens.
+</p>
+<p>
+Currently only the <a class="wiki" href="AladdinEtokenPro.html" shape="rect">Aladdin eToken PRO</a> is tested often (a usb crypto dongle that contains a card with this operating system). It works fine, so all other smart cards with the same card operating system should work fine, too.
+</p>
+<p>
+Siemens CardOS M4 does not allow a key to be used for signing and decryption. OpenSC has a workaround for this restriction, you can generate or store a private key with the "--split-key" flag which will store the key twice, with different usage options, but hide this detail.
+</p>
+<p>
+Some documentation is available from Aladdin for their eToken PRO, but for an in-depth documentation you need the Siemens card manual, which requires signing an NDA.
+</p>
+<p>
+The versions of CardOS M4 are: M4.0, M4.01, M4.2, M4.3, M4.3b, M4.2b and M4.2c in this order. Yes, M4.2c is the latest and greatest and later than M4.3 and M4.3B. 
+</p>
+<p>
+Also note that M4.0 needs special "packages" (i.e. signed firmware addons by siemens) installed to work properly. Best not to use that ancient version
+if you can.
+</p>
+
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

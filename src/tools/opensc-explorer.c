@@ -26,7 +26,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <opensc/opensc.h>
-#ifdef HAVE_READLINE_READLINE_H
+#include <opensc/asn1.h>
+#ifdef ENABLE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
@@ -116,7 +117,7 @@ static void check_ret(int r, int op, const char *err, const sc_file_t *file)
 {
 	fprintf(stderr, "%s: %s\n", err, sc_strerror(r));
 	if (r == SC_ERROR_SECURITY_STATUS_NOT_SATISFIED)
-		fprintf(stderr, "ACL for operation: %s\n", acl_to_str(sc_file_get_acl_entry(file, op)));
+		fprintf(stderr, "ACL for operation: %s\n", util_acl_to_str(sc_file_get_acl_entry(file, op)));
 }
 
 static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
@@ -128,7 +129,7 @@ static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
 		path->type = SC_PATH_TYPE_DF_NAME;
 	} else {
 		/* file id */
-		int buf[2];
+		unsigned int buf[2];
 		u8 cbuf[2];
 	
 		if (strlen(arg) != 4) {
@@ -188,7 +189,7 @@ static void print_file(const sc_file_t *file)
 	printf(" %5lu", (unsigned long)file->size);
 	if (file->namelen) {
 		printf("\tName: ");
-		print_binary(stdout, file->name, file->namelen);
+		util_print_binary(stdout, file->name, file->namelen);
 	}
 	printf("\n");
 	return;
@@ -222,16 +223,18 @@ static int do_ls(int argc, char **argv)
 			}
 		}
 			
+		ctx->suppress_errors++;
 		r = sc_select_file(card, &path, &file);
+		ctx->suppress_errors--;
 		if (r) {
-			check_ret(r, SC_AC_OP_SELECT, "unable to select file", current_file);
-			return -1;
+			printf(" %02X%02X unable to select file, %s\n", cur[0], cur[1], sc_strerror(r));
+		} else {
+			file->id = (cur[0] << 8) | cur[1];
+			print_file(file);
+			sc_file_free(file);
 		}
-		file->id = (cur[0] << 8) | cur[1];
 		cur += 2;
 		count -= 2;
-		print_file(file);
-		sc_file_free(file);
 		r = sc_select_file(card, &current_path, NULL);
 		if (r) {
 			printf("unable to select parent DF: %s\n", sc_strerror(r));
@@ -297,7 +300,7 @@ usage:
 	return -1;
 }
 
-static int read_and_print_binary_file(sc_file_t *file)
+static int read_and_util_print_binary_file(sc_file_t *file)
 {
 	unsigned int idx = 0;
 	u8 buf[128];
@@ -319,7 +322,7 @@ static int read_and_print_binary_file(sc_file_t *file)
 		}
 		if ((r == 0) && (card->caps & SC_CARD_CAP_NO_FCI))
 			break;
-		hex_dump_asc(stdout, buf, r, idx);
+		util_hex_dump_asc(stdout, buf, r, idx);
 		idx += r;
 		count -= r;
 	}
@@ -342,15 +345,15 @@ static int read_and_print_record_file(sc_file_t *file)
 			return -1;
 		}
 		printf("Record %d:\n", rec);
-		hex_dump_asc(stdout, buf, r, 0);
+		util_hex_dump_asc(stdout, buf, r, 0);
 	}
 }
 
 static int do_cat(int argc, char **argv)
 {
-	int r, err = 0;
+	int r, err = 1;
 	sc_path_t path;
-	sc_file_t *file;
+	sc_file_t *file = NULL;
 	int not_current = 1;
 
 	if (argc > 1)
@@ -366,27 +369,33 @@ static int do_cat(int argc, char **argv)
 		r = sc_select_file(card, &path, &file);
 		if (r) {
 			check_ret(r, SC_AC_OP_SELECT, "unable to select file", current_file);
-			return -1;
+			goto err;
 		}
 	}
 	if (file->type != SC_FILE_TYPE_WORKING_EF) {
 		printf("only working EFs may be read\n");
-		sc_file_free(file);
-		return -1;
+		goto err;
 	}
 	if (file->ef_structure == SC_FILE_EF_TRANSPARENT)
-		read_and_print_binary_file(file);
+		read_and_util_print_binary_file(file);
 	else
 		read_and_print_record_file(file);
+	
+	err = 0;
+
+err:
 	if (not_current) {
-		sc_file_free(file);
+		if (file != NULL) {
+			sc_file_free(file);
+		}
 		r = sc_select_file(card, &current_path, NULL);
 		if (r) {
 			printf("unable to select parent file: %s\n", sc_strerror(r));
 			die(1);
 		}
 	}
-   return -err;
+
+	return -err;
 usage:
 	puts("Usage: cat [file_id]");
 	return -1;
@@ -445,14 +454,14 @@ static int do_info(int argc, char **argv)
 		};
 		if (file->namelen) {
 			printf("%-15s", "DF name:");
-			print_binary(stdout, file->name, file->namelen);
+			util_print_binary(stdout, file->name, file->namelen);
 			printf("\n");
 		}
 		for (i = 0; i < sizeof(ops)/sizeof(ops[0]); i++) {
 			char buf[80];
 			
 			sprintf(buf, "ACL for %s:", ops[i]);
-			printf("%-25s%s\n", buf, acl_to_str(sc_file_get_acl_entry(file, i)));
+			printf("%-25s%s\n", buf, util_acl_to_str(sc_file_get_acl_entry(file, i)));
 		}
 	} else {
 		const char *structs[] = {
@@ -469,7 +478,7 @@ static int do_info(int argc, char **argv)
 			char buf[80];
 			
 			sprintf(buf, "ACL for %s:", ops[i]);
-			printf("%-25s%s\n", buf, acl_to_str(sc_file_get_acl_entry(file, i)));
+			printf("%-25s%s\n", buf, util_acl_to_str(sc_file_get_acl_entry(file, i)));
 		}
 	}	
 	if (file->prop_attr_len) {
@@ -531,7 +540,7 @@ static int do_create(int argc, char **argv)
 	if (arg_to_path(argv[0], &path, 1) != 0)
 		goto usage;
 	/* %z isn't supported everywhere */
-	if (sscanf(argv[1], "%d", &size) != 1)
+	if (sscanf(argv[1], "%u", &size) != 1)
 		goto usage;
 	file = sc_file_new();
 	file->id = (path.value[0] << 8) | path.value[1];
@@ -561,7 +570,7 @@ static int do_mkdir(int argc, char **argv)
 		goto usage;
 	if (arg_to_path(argv[0], &path, 1) != 0)
 		goto usage;
-	if (sscanf(argv[1], "%d", &size) != 1)
+	if (sscanf(argv[1], "%u", &size) != 1)
 		goto usage;
 	file = sc_file_new();
 	file->id = (path.value[0] << 8) | path.value[1];
@@ -829,11 +838,11 @@ usage:
 static int do_get(int argc, char **argv)
 {
 	u8 buf[256];
-	int r, err = 0;
+	int r, err = 1;
 	size_t count = 0;
 	unsigned int idx = 0;
 	sc_path_t path;
-	sc_file_t *file;
+	sc_file_t *file = NULL;
 	char fbuf[256], *filename;
 	FILE *outf = NULL;
 	
@@ -856,19 +865,16 @@ static int do_get(int argc, char **argv)
 	outf = fopen(filename, "wb");
 	if (outf == NULL) {
 		perror(filename);
-		return -1;
+		goto err;
 	}
 	r = sc_select_file(card, &path, &file);
 	if (r) {
-		fclose(outf);
 		check_ret(r, SC_AC_OP_SELECT, "unable to select file", current_file);
-		return -1;
+		goto err;
 	}
 	if (file->type != SC_FILE_TYPE_WORKING_EF) {
-		fclose(outf);
 		printf("only working EFs may be read\n");
-		sc_file_free(file);
-		return -1;
+		goto err;
 	}
 	count = file->size;
 	while (count) {
@@ -877,12 +883,10 @@ static int do_get(int argc, char **argv)
 		r = sc_read_binary(card, idx, buf, c, 0);
 		if (r < 0) {
 			check_ret(r, SC_AC_OP_READ, "read failed", file);
-			err = 1;
 			goto err;
 		}
 		if ((r != c) && !(card->caps & SC_CARD_CAP_NO_FCI)) {
 			printf("expecting %d, got only %d bytes.\n", c, r);
-			err = 1;
 			goto err;
 		}
 		if ((r == 0) && (card->caps & SC_CARD_CAP_NO_FCI))
@@ -893,15 +897,18 @@ static int do_get(int argc, char **argv)
 	}
 	printf("Total of %d bytes read from %s and saved to %s.\n",
 	       idx, argv[0], filename);
+	
+	err = 0;
 err:
-	sc_file_free(file);
+	if (file)
+		sc_file_free(file);
+	if (outf)
+		fclose(outf);
 	r = sc_select_file(card, &current_path, NULL);
 	if (r) {
 		printf("unable to select parent file: %s\n", sc_strerror(r));
 		die(1);
 	}
-	if (outf)
-		fclose(outf);
 	return -err;
 usage:
 	printf("Usage: get <file id> [output file]\n");
@@ -990,7 +997,9 @@ static int do_update_binary(int argc, char **argv)
 
 	printf("Total of %d bytes written to %04X at %i offset.\n", 
 	       r, file->id, offs);
+
 	err = 0;
+
 err:
 	sc_file_free(file);
 	r = sc_select_file(card, &current_path, NULL);
@@ -1059,6 +1068,7 @@ static int do_update_record(int argc, char **argv)
 	printf("Total of %d bytes written to record %i at %i offset.\n", 
 	       i, rec, offs);
 	err = 0;
+
 err:
 	sc_file_free(file);
 	r = sc_select_file(card, &current_path, NULL);
@@ -1077,11 +1087,11 @@ usage:
 static int do_put(int argc, char **argv)
 {
 	u8 buf[256];
-	int r, err = 0;
+	int r, err = 1;
 	size_t count = 0;
 	unsigned int idx = 0;
 	sc_path_t path;
-	sc_file_t *file;
+	sc_file_t *file = NULL;
 	const char *filename;
 	FILE *outf = NULL;
 
@@ -1098,13 +1108,12 @@ static int do_put(int argc, char **argv)
 	outf = fopen(filename, "rb");
 	if (outf == NULL) {
 		perror(filename);
-		return -1;
+		goto err;
 	}
 	r = sc_select_file(card, &path, &file);
 	if (r) {
 		check_ret(r, SC_AC_OP_SELECT, "unable to select file", current_file);
-		fclose(outf);
-		return -1;
+		goto err;
 	}
 	count = file->size;
 	while (count) {
@@ -1113,7 +1122,6 @@ static int do_put(int argc, char **argv)
 		r = fread(buf, 1, c, outf);
 		if (r < 0) {
 			perror("fread");
-			err = 1;
 			goto err;
 		}
 		if (r != c)
@@ -1121,27 +1129,30 @@ static int do_put(int argc, char **argv)
 		r = sc_update_binary(card, idx, buf, c, 0);
 		if (r < 0) {
 			check_ret(r, SC_AC_OP_READ, "update failed", file);
-			err = 1;
 			goto err;
 		}
 		if (r != c) {
 			printf("expecting %d, wrote only %d bytes.\n", c, r);
-			err = 1;
 			goto err;
 		}
 		idx += c;
 		count -= c;
 	}
 	printf("Total of %d bytes written.\n", idx);
+
+	err = 0;
+
 err:
-	sc_file_free(file);
+
+	if (file)
+		sc_file_free(file);
+	if (outf)
+		fclose(outf);
 	r = sc_select_file(card, &current_path, NULL);
 	if (r) {
 		printf("unable to select parent file: %s\n", sc_strerror(r));
 		die(1);
 	}
-	if (outf)
-		fclose(outf);
 	return -err;
 usage:
 	printf("Usage: put <file id> [input file]\n");
@@ -1255,7 +1266,7 @@ static int do_pksign(int argc, char **argv)
 		printf("Signing failed: %s\n",  sc_strerror (r));
 		return -1;
 	}
-	hex_dump_asc(stdout, outdata, r, -1);
+	util_hex_dump_asc(stdout, outdata, r, -1);
 	printf ("Done.\n");
 	return 0;
 usage:
@@ -1319,7 +1330,7 @@ static int do_pkdecrypt(int argc, char **argv)
 		printf("Decryption failed: %s\n",  sc_strerror (r));
 		return -1;
 	}
-	hex_dump_asc (stdout, outdata, r, -1);
+	util_hex_dump_asc (stdout, outdata, r, -1);
 	printf("Done.\n");
 	return 0;
 usage:
@@ -1369,7 +1380,7 @@ do_random(int argc, char **argv)
 		return -1;
 	}
 
-	hex_dump_asc(stdout, buffer, count, 0);
+	util_hex_dump_asc(stdout, buffer, count, 0);
 	return 0;
 
 usage:
@@ -1405,7 +1416,7 @@ static int do_get_data(int argc, char **argv)
 		fclose(fp);
 	} else {
 		printf("Object %04x:\n", tag & 0xFFFF);
-		hex_dump_asc(stdout, buffer, r, 0);
+		util_hex_dump_asc(stdout, buffer, r, 0);
 	}
 
 	return 0;
@@ -1420,6 +1431,165 @@ static int do_put_data(int argc, char **argv)
 	       "or:    do_put hex_tag aa:bb:cc\n"
 	       "or:    do_put hex_tag \"foobar...\"\n");
 	return -1;
+}
+
+static int do_apdu(int argc, char **argv)
+{
+	sc_apdu_t apdu;
+	u8 buf[SC_MAX_APDU_BUFFER_SIZE];
+	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
+	u8 *p;
+	size_t len, len0, r;
+
+	if (argc == 0 || argc > 1) {
+		puts("Usage: apdu [apdu:hex:codes:...]");
+		return -1;
+	}
+
+	len = strlen(argv[0]);
+	len0 = len;
+	sc_hex_to_bin(argv[0], buf, &len);
+	if (len < 4) {
+		puts("APDU too short (must be at least 4 bytes)");
+		return 1;
+	}
+
+	memset(&apdu, 0, sizeof(apdu));
+	p = buf;
+	apdu.cla = *p++;
+	apdu.ins = *p++;
+	apdu.p1 = *p++;
+	apdu.p2 = *p++;
+	len -= 4;
+	if (len > 1) {
+		apdu.lc = *p++;
+		len--;
+		memcpy(sbuf, p, apdu.lc);
+		apdu.data = sbuf;
+		apdu.datalen = apdu.lc;
+		if (len < apdu.lc) {
+			printf("APDU too short (need %lu bytes)\n",
+				(unsigned long) apdu.lc - len);
+			return 1;
+		}
+		len -= apdu.lc;
+		p += apdu.lc;
+		if (len) {
+			apdu.le = *p++;
+			if (apdu.le == 0)
+				apdu.le = 256;
+			len--;
+			apdu.cse = SC_APDU_CASE_4_SHORT;
+		} else {
+			apdu.cse = SC_APDU_CASE_3_SHORT;
+		}
+		if (len) {
+			printf("APDU too long (%lu bytes extra)\n",
+				(unsigned long) len);
+			return 1;
+		}
+	} else if (len == 1) {
+		apdu.le = *p++;
+		if (apdu.le == 0)
+			apdu.le = 256;
+		len--;
+		apdu.cse = SC_APDU_CASE_2_SHORT;
+	} else {
+		apdu.cse = SC_APDU_CASE_1;
+	}
+	apdu.resp = rbuf;
+	apdu.resplen = sizeof(rbuf);
+
+	printf("Sending: ");
+	for (r = 0; r < len0; r++)
+		printf("%02X ", buf[r]);
+	printf("\n");
+	r = sc_transmit_apdu(card, &apdu);
+	if (r) {
+		fprintf(stderr, "APDU transmit failed: %s\n", sc_strerror(r));
+		return 1;
+	}
+	printf("Received (SW1=0x%02X, SW2=0x%02X)%s\n", apdu.sw1, apdu.sw2,
+	       apdu.resplen ? ":" : "");
+	if (apdu.resplen)
+		util_hex_dump_asc(stdout, apdu.resp, apdu.resplen, -1);
+
+	return 0;
+}
+
+static int do_asn1(int argc, char **argv)
+{
+	int r, err = 1;
+	sc_path_t path;
+	sc_file_t *file = NULL;
+	int not_current = 1;
+	size_t len;
+	unsigned char *buf = NULL;
+
+	if (argc > 1) {
+		puts("Usage: asn1 [file_id]");
+		return -1;
+	}
+
+	/* select file */
+	if (argc) {
+		if (arg_to_path(argv[0], &path, 1) != 0) {
+			puts("Invalid file path");
+			return -1;
+		}
+		r = sc_select_file(card, &path, &file);
+		if (r) {
+			check_ret(r, SC_AC_OP_SELECT, "unable to select file", current_file);
+			goto err;
+		}
+	} else {
+		path = current_path;
+		file = current_file;
+		not_current = 0;
+	}
+	if (file->type != SC_FILE_TYPE_WORKING_EF) {
+		printf("only working EFs may be read\n");
+		goto err;
+	}
+
+	/* read */
+	if (file->ef_structure != SC_FILE_EF_TRANSPARENT) {
+		printf("only transparent file type is supported at the moment\n");
+		goto err;
+	}
+	len = file->size;
+	buf = calloc(1, len);
+	if (!buf) {
+		goto err;
+	}
+	r = sc_read_binary(card, 0, buf, len, 0);
+	if (r < 0) {
+		check_ret(r, SC_AC_OP_READ, "read failed", file);
+		goto err;
+	}
+	if ((size_t)r != len) {
+		printf("expecting %d, got only %d bytes.\n", len, r);
+		goto err;
+	}
+
+	/* asn1 dump */
+	sc_asn1_print_tags(buf, len);
+
+	err = 0;
+err:
+	if (buf)
+		free(buf);
+	if (not_current) {
+		if (file)
+			sc_file_free(file);
+		r = sc_select_file(card, &current_path, NULL);
+		if (r) {
+			printf("unable to select parent file: %s\n", sc_strerror(r));
+			die(1);
+		}
+	}
+	return -err;
 }
 
 static int do_quit(int argc, char **argv)
@@ -1453,6 +1623,8 @@ static struct command	cmds[] = {
  { "update_record", do_update_record, "update record"			},
  { "update_binary", do_update_binary, "update binary"			},
  { "debug",	do_debug,	"set the debug level"			},
+ { "apdu",	do_apdu,	"send a custom apdu command"		},
+ { "asn1",	do_asn1,	"decode an asn1 file"			},
  { NULL, NULL, NULL }
 };
 
@@ -1499,12 +1671,12 @@ static char * my_readline(char *prompt)
 	if (!initialized) {
 		initialized = 1;
 		interactive = isatty(fileno(stdin));
-#ifdef HAVE_READLINE
+#ifdef ENABLE_READLINE
 		if (interactive)
 			using_history ();
 #endif
 	}
-#ifdef HAVE_READLINE
+#ifdef ENABLE_READLINE
 	if (interactive) {
 		char *line = readline(prompt);
 		if (line && strlen(line) > 2 )
@@ -1514,7 +1686,7 @@ static char * my_readline(char *prompt)
 #endif
 	/* Either we don't have readline or we are not running
 	   interactively */
-#ifndef HAVE_READLINE
+#ifndef ENABLE_READLINE
 	printf("%s", prompt);
 #endif
 	fflush(stdout);
@@ -1542,7 +1714,7 @@ int main(int argc, char * const argv[])
 		if (c == -1)
 			break;
 		if (c == '?')
-			print_usage_and_die(app_name, options, option_help);
+			util_print_usage_and_die(app_name, options, option_help);
 		switch (c) {
 		case 'r':
 			opt_reader = atoi(optarg);
@@ -1580,7 +1752,7 @@ int main(int argc, char * const argv[])
 		}
 	}
 
-	err = connect_card(ctx, &card, opt_reader, 0, opt_wait, 0);
+	err = util_connect_card(ctx, &card, opt_reader, 0, opt_wait, 0);
 	if (err)
 		goto end;
 
@@ -1589,6 +1761,13 @@ int main(int argc, char * const argv[])
 	if (r) {
 		printf("unable to select MF: %s\n", sc_strerror(r));
 		return 1;
+	}
+	{
+		int lcycle = SC_CARDCTRL_LIFECYCLE_ADMIN;
+		r = sc_card_ctl(card, SC_CARDCTL_LIFECYCLE_SET, &lcycle);
+		if (r && r != SC_ERROR_NOT_SUPPORTED)
+			printf("unable to change lifecycle: %s\n",
+				sc_strerror(r));
 	}
 	while (1) {
 		struct command *cmd;

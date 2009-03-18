@@ -48,8 +48,9 @@ CK_RV card_initialize(int reader)
 {
 	struct sc_pkcs11_card *card = card_table + reader;
 	unsigned int avail;
+	unsigned int i;
 
-	if (reader < 0 || reader >= SC_PKCS11_MAX_READERS)
+	if (reader < 0 || reader >= SC_MAX_READERS)
 		return CKR_FUNCTION_FAILED;
 
 	memset(card, 0, sizeof(struct sc_pkcs11_card));
@@ -58,16 +59,18 @@ CK_RV card_initialize(int reader)
 	/* Always allocate a fixed slot range to one reader/card.
 	 * Some applications get confused if readers pop up in
 	 * different slots. */
-	if (sc_pkcs11_conf.num_slots == 0)
-		avail = SC_PKCS11_DEF_SLOTS_PER_CARD;
-	else
-		avail = sc_pkcs11_conf.num_slots;
+	avail = sc_pkcs11_conf.slots_per_card;
 
-	if (first_free_slot + avail > SC_PKCS11_MAX_VIRTUAL_SLOTS)
-		avail = SC_PKCS11_MAX_VIRTUAL_SLOTS - first_free_slot;
+	if (first_free_slot + avail > sc_pkcs11_conf.max_virtual_slots)
+		avail = sc_pkcs11_conf.max_virtual_slots - first_free_slot;
 	card->first_slot = first_free_slot;
 	card->max_slots = avail;
 	card->num_slots = 0;
+
+	for (i = 0; i < card->max_slots; i++) {
+		struct sc_pkcs11_slot *slot = virtual_slots + card->first_slot + i;
+		slot->reader = reader;
+	}
 
 	first_free_slot += card->max_slots;
 	return CKR_OK;
@@ -86,7 +89,7 @@ CK_RV card_detect(int reader)
 		sc_reader_t *rdr = sc_ctx_get_reader(context, (unsigned int)reader);
 
 		if (rdr == NULL)
-			return CKR_GENERAL_ERROR;
+			return CKR_TOKEN_NOT_PRESENT;
 		slot = virtual_slots + card->first_slot + i;
 		strcpy_bp(slot->slot_info.slotDescription, rdr->name, 64);
 		slot->reader = reader;
@@ -165,7 +168,7 @@ CK_RV __card_detect_all(int report_events)
 	if (!report_events) {
 		CK_SLOT_ID id;
 
-		for (id = 0; id < SC_PKCS11_MAX_VIRTUAL_SLOTS; id++)
+		for (id = 0; id < sc_pkcs11_conf.max_virtual_slots; id++)
 			virtual_slots[id].events = 0;
 	}
 
@@ -179,12 +182,12 @@ CK_RV card_detect_all(void)
 
 CK_RV card_removed(int reader)
 {
-	int i;
+	unsigned int i;
 	struct sc_pkcs11_card *card;
 
 	sc_debug(context, "%d: smart card removed\n", reader);
 
-	for (i=0; i<SC_PKCS11_MAX_VIRTUAL_SLOTS; i++) {
+	for (i=0; i<sc_pkcs11_conf.max_virtual_slots; i++) {
 		if (virtual_slots[i].card &&
 		    virtual_slots[i].card->reader == reader)
 				slot_token_removed(i);
@@ -245,7 +248,7 @@ CK_RV slot_get_slot(int id, struct sc_pkcs11_slot **slot)
 	if (context == NULL)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (id < 0 || id >= SC_PKCS11_MAX_VIRTUAL_SLOTS)
+	if (id < 0 || id >= sc_pkcs11_conf.max_virtual_slots)
 		return CKR_SLOT_ID_INVALID;
 		
 	*slot = &virtual_slots[id];
@@ -265,6 +268,12 @@ CK_RV slot_get_token(int id, struct sc_pkcs11_slot **slot)
 		rv = card_detect((*slot)->reader);
 		if (rv != CKR_OK)
 			return CKR_TOKEN_NOT_PRESENT;
+	}
+
+	if (!((*slot)->slot_info.flags & CKF_TOKEN_PRESENT))
+	{
+		sc_debug(context, "card detected, but slot not presenting token");
+		return CKR_TOKEN_NOT_PRESENT;
 	}
 	return CKR_OK;
 }
@@ -324,7 +333,7 @@ CK_RV slot_find_changed(CK_SLOT_ID_PTR idp, int mask)
 	CK_SLOT_ID id;
 
 	card_detect_all();
-	for (id = 0; id < SC_PKCS11_MAX_VIRTUAL_SLOTS; id++) {
+	for (id = 0; id < sc_pkcs11_conf.max_virtual_slots; id++) {
 		slot = &virtual_slots[id];
 		if ((slot->events & SC_EVENT_CARD_INSERTED)
 		 && !(slot->slot_info.flags & CKF_TOKEN_PRESENT))

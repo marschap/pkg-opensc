@@ -1,0 +1,112 @@
+.\"     Title: cryptoflex-tool
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC tools
+.\"    Source: opensc
+.\"
+.TH "CRYPTOFLEX\-TOOL" "1" "02/26/2009" "opensc" "OpenSC tools"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+cryptoflex-tool \- utility for manipulating Schlumberger Cryptoflex data structures
+.SH "SYNOPSIS"
+.PP
+
+\fBcryptoflex\-tool\fR
+[OPTIONS]
+.SH "DESCRIPTION"
+.PP
+
+\fBcryptoflex\-tool\fR
+is used to manipulate PKCS data structures on Schlumberger Cryptoflex smart cards\&. Users can create, list and read PINs and keys stored on the smart card\&. User PIN authentication is performed for those operations that require it\&.
+.SH "OPTIONS"
+.PP
+.PP
+\fB\-\-verify\-pin, \-V\fR
+.RS 4
+Verifies CHV1 before issuing commands
+.RE
+.PP
+\fB\-\-list\-keys, \-l\fR
+.RS 4
+Lists all keys stored in a public key file
+.RE
+.PP
+\fB\-\-create\-key\-files\fR \fIarg\fR, \fB\-c\fR \fIarg\fR
+.RS 4
+Creates new RSA key files for
+\fIarg\fR
+keys
+.RE
+.PP
+\fB\-\-create\-pin\-files\fR \fIid\fR, \fB\-P\fR \fIid\fR
+.RS 4
+Creates new PIN file for CHV\fIid\fR
+.RE
+.PP
+\fB\-\-generate\-key, \-g\fR
+.RS 4
+Generate a new RSA key pair
+.RE
+.PP
+\fB\-\-read\-key\fR
+.RS 4
+Reads a public key from the card, allowing the user to extract and store or use the public key
+.RE
+.PP
+\fB\-\-key\-num\fR \fInum\fR, \fB\-k\fR \fInum\fR
+.RS 4
+Specifies the key number to operate on\&. The default is key number 1\&.
+.RE
+.PP
+\fB\-\-app\-df\fR \fInum\fR, \fB\-a\fR \fInum\fR
+.RS 4
+Specifies the DF to operate in
+.RE
+.PP
+\fB\-\-prkey\-file\fR \fIid\fR, \fB\-p\fR \fIid\fR
+.RS 4
+Specifies the private key file id,
+\fIid\fR, to use
+.RE
+.PP
+\fB\-\-pubkey\-file\fR \fIid\fR, \fB\-u\fR \fIid\fR
+.RS 4
+Specifies the public key file id,
+\fIid\fR, to use
+.RE
+.PP
+\fB\-\-exponent\fR \fIexp\fR, \fB\-e\fR \fIexp\fR
+.RS 4
+Specifies the RSA exponent,
+\fIexp\fR, to use in key generation\&. The default value is 3\&.
+.RE
+.PP
+\fB\-\-modulus\-length\fR \fIlength\fR, \fB\-m\fR \fIlength\fR
+.RS 4
+Specifies the modulus
+\fIlength\fR
+to use in key generation\&. The default value is 1024\&.
+.RE
+.PP
+\fB\-\-reader\fR \fInum\fR, \fB\-r\fR \fInum\fR
+.RS 4
+Forces
+\fBcryptoflex\-tool\fR
+to use reader number
+\fInum\fR
+for operations\&. The default is to use reader number 0, the first reader in the system\&.
+.RE
+.PP
+\fB\-\-verbose, \-v\fR
+.RS 4
+Causes
+\fBcryptoflex\-tool\fR
+to be more verbose\&. Specify this flag several times to enable debug output in the opensc library\&.
+.RE
+.SH "SEE ALSO"
+.PP
+opensc(7), pkcs15\-tool(1)

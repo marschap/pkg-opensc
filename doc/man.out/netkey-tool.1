@@ -1,0 +1,140 @@
+.\"     Title: netkey-tool
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC tools
+.\"    Source: opensc
+.\"
+.TH "NETKEY\-TOOL" "1" "02/26/2009" "opensc" "OpenSC tools"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+netkey-tool \- administrative utility for Netkey E4 cards
+.SH "SYNOPSIS"
+.PP
+\fBnetkey\-tool\fR
+[OPTIONS] [COMMAND]
+.SH "DESCRIPTION"
+.PP
+The
+\fBnetkey\-tool\fR
+utility can be used from the command line to perform some smart card operations with NetKey E4 cards that cannot be done easily with other OpenSC\-tools, such as changing local PINs, storing certificates into empty NetKey E4 cert\-files or displaying the initial PUK\-value\&.
+.SH "OPTIONS"
+.PP
+.PP
+\fB\-\-help\fR, \fB\-h\fR
+.RS 4
+Displays a short help message\&.
+.RE
+.PP
+\fB\-\-reader\fR number, \fB\-r\fR number
+.RS 4
+Use smart card in specified reader\&. Default is reader 0\&.
+.RE
+.PP
+\fB\-v\fR
+.RS 4
+Causes
+\fBnetkey\-tool\fR
+to be more verbose\&. This options may be specified multiple times to increase verbosity\&.
+.RE
+.PP
+\fB\-\-pin\fR pin\-value, \fB\-p\fR pin\-value
+.RS 4
+Specifies the current value of the global PIN\&.
+.RE
+.PP
+\fB\-\-puk\fR pin\-value, \fB\-u\fR pin\-value
+.RS 4
+Specifies the current value of the global PUK\&.
+.RE
+.PP
+\fB\-\-pin0\fR pin\-value, \fB\-0\fR pin\-value
+.RS 4
+Specifies the current value of the local PIN0 (aka local PIN)\&.
+.RE
+.PP
+\fB\-\-pin1\fR pin\-value, \fB\-1\fR pin\-value
+.RS 4
+Specifies the current value of the local PIN1 (aka local PUK)\&.
+.RE
+.SH "PIN FORMAT"
+.PP
+With the
+\fB\-p\fR,
+\fB\-u\fR,
+\fB\-0\fR
+or the
+\fB\-1\fR
+one of the cards pins may be specified\&. You may use plain ascii\-strings (i\&.e\&. 123456) or a hex\-string (i\&.e\&. 31:32:33:34:35:36)\&. A hex\-string must consists of exacly n 2\-digit hexnumbers separated by n\-1 colons\&. Otherwise it will be interpreted as an ascii string\&. For example :12:34: and 1:2:3:4 are both pins of length 7, while 12:34 and 01:02:03:04 are pins of length 2 and 4\&.
+.SH "COMMANDS"
+.PP
+When used without any options or commands,
+\fBnetkey\-tool\fR
+will display information about the smart cards pins and certificates\&. This will not change your card in any aspect (assumed there are no bugs in
+\fBnetkey\-tool\fR)\&. In particular the tries\-left counters of the pins are investigated without doing actual pin\-verifications\&.
+.PP
+If you specify the global PIN via the
+\fB\-\-pin\fR
+option,
+\fBnetkey\-tool\fR
+will also display the initial value of the cards global PUK\&. If your global PUK was changed
+\fBnetkey\-tool\fR
+will still diplay its initial value\&. There\'s no way to recover a lost global PUK once it was changed\&. There\'s also no way to display the initial value of your global PUK without knowing the current value of your global PIN\&.
+.PP
+For most of the commands that
+\fBnetkey\-tool\fR
+can execute, you have to specify one pin\&. One notable exeption is the
+\fBnullpin\fR
+command, but this command can only be executed once in the lifetime of a NetKey E4 card\&.
+.PP
+.PP
+\fBunblock\fR { \fBpin\fR | \fBpin0\fR | \fBpin1\fR }
+.RS 4
+This unblocks the specified pin\&. You must specify another pin to be able to do this and if you don\'t specify a correct one,
+\fBnetkey\-tool\fR
+will tell you which one is needed\&.
+.RE
+.PP
+\fBchange\fR { \fBpin\fR | \fBpuk\fR | \fBpin0\fR | \fBpin1\fR } new\-pin
+.RS 4
+This changes the value of the specified pin to the given new value\&. You must specify either the current value of the pin or another pin to be able to do this and if you don\'t specify a correct one,
+\fBnetkey\-tool\fR
+will tell you which one is needed\&.
+.RE
+.PP
+\fBnullpin\fR initial\-pin
+.RS 4
+This command can be executed only if the global PIN of your card is in nullpin\-state\&. There\'s no way to return back to nullpin\-state once you have changed your global PIN\&. You don\'t need a pin to execute the nullpin\-command\&. After a succesfull nullpin\-command
+\fBnetkey\-tool\fR
+will display your cards initial PUK\-value\&.
+.RE
+.PP
+\fBcert\fR number filename
+.RS 4
+This command will read one of your cards certificates (as specified by
+\fBnumber\fR) and save this certificate into file
+\fBfilename\fR
+in PEM\-format\&. Certificates on a NetKey E4 card are readable without a pin, so you don\'t have to specify one\&.
+.RE
+.PP
+\fBcert\fR filename number
+.RS 4
+This command will read the first PEM\-encoded certificate from file
+\fBfilename\fR
+and store this into your smart cards certificate file
+\fBnumber\fR\&. Some of your smart cards certificate files might be readonly, so this will not work with all values of
+\fBnumber\fR\&. If a certificate file is writable you must specify a pin in order to change it\&. If you try to use this command without specifying a pin,
+\fBnetkey\-tool\fR
+will tell you which one is needed\&.
+.RE
+.SH "SEE ALSO"
+.PP
+opensc(7), opensc\-explorer(1)
+.SH "AUTHORS"
+.PP
+\fBnetkey\-tool\fR
+was written by Peter Koch
+<pk_opensc@web\&.de>\&.

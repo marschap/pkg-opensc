@@ -31,9 +31,12 @@
 
 sc_context_t *context = NULL;
 struct sc_pkcs11_pool session_pool;
-struct sc_pkcs11_slot virtual_slots[SC_PKCS11_MAX_VIRTUAL_SLOTS];
-struct sc_pkcs11_card card_table[SC_PKCS11_MAX_READERS];
+struct sc_pkcs11_slot *virtual_slots = NULL;
+struct sc_pkcs11_card card_table[SC_MAX_READERS];
 struct sc_pkcs11_config sc_pkcs11_conf;
+#if !defined(_WIN32)
+pid_t initialized_pid = (pid_t)-1;
+#endif
 
 extern CK_FUNCTION_LIST pkcs11_function_list;
 
@@ -111,8 +114,8 @@ static CK_C_INITIALIZE_ARGS _def_locks = {
 	mutex_create, mutex_destroy, mutex_lock, mutex_unlock, 0, NULL };
 #endif
 
-static CK_C_INITIALIZE_ARGS_PTR	_locking;
-static void *			_lock = NULL;
+static CK_C_INITIALIZE_ARGS_PTR	global_locking;
+static void *			global_lock = NULL;
 #if (defined(HAVE_PTHREAD) || defined(_WIN32)) && defined(PKCS11_THREAD_LOCKING)
 #define HAVE_OS_LOCKING
 static CK_C_INITIALIZE_ARGS_PTR default_mutex_funcs = &_def_locks;
@@ -123,9 +126,9 @@ static CK_C_INITIALIZE_ARGS_PTR default_mutex_funcs = NULL;
 /* wrapper for the locking functions for libopensc */
 static int sc_create_mutex(void **m)
 {
-	if (_locking == NULL)
+	if (global_locking == NULL)
 		return SC_SUCCESS;
-	if (_locking->CreateMutex(m) == CKR_OK)
+	if (global_locking->CreateMutex(m) == CKR_OK)
 		return SC_SUCCESS;
 	else
 		return SC_ERROR_INTERNAL;
@@ -133,9 +136,9 @@ static int sc_create_mutex(void **m)
 
 static int sc_lock_mutex(void *m)
 {
-	if (_locking == NULL)
+	if (global_locking == NULL)
 		return SC_SUCCESS;
-	if (_locking->LockMutex(m) == CKR_OK)
+	if (global_locking->LockMutex(m) == CKR_OK)
 		return SC_SUCCESS;
 	else
 		return SC_ERROR_INTERNAL;
@@ -143,9 +146,9 @@ static int sc_lock_mutex(void *m)
 
 static int sc_unlock_mutex(void *m)
 {
-	if (_locking == NULL)
+	if (global_locking == NULL)
 		return SC_SUCCESS;
-	if (_locking->UnlockMutex(m) == CKR_OK)
+	if (global_locking->UnlockMutex(m) == CKR_OK)
 		return SC_SUCCESS;
 	else
 		return SC_ERROR_INTERNAL;
@@ -154,9 +157,9 @@ static int sc_unlock_mutex(void *m)
 
 static int sc_destroy_mutex(void *m)
 {
-	if (_locking == NULL)
+	if (global_locking == NULL)
 		return SC_SUCCESS;
-	if (_locking->DestroyMutex(m) == CKR_OK)
+	if (global_locking->DestroyMutex(m) == CKR_OK)
 		return SC_SUCCESS;
 	else
 		return SC_ERROR_INTERNAL;
@@ -169,8 +172,19 @@ static sc_thread_context_t sc_thread_ctx = {
 
 CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 {
+#if !defined(_WIN32)
+	pid_t current_pid = getpid();
+#endif
 	int i, rc, rv;
 	sc_context_param_t ctx_opts;
+
+	/* Handle fork() exception */
+#if !defined(_WIN32)
+	if (current_pid != initialized_pid) {
+		C_Finalize(NULL_PTR);
+	}
+	initialized_pid = current_pid;
+#endif
 
 	if (context != NULL) {
 		sc_error(context, "C_Initialize(): Cryptoki already initialized\n");
@@ -178,10 +192,8 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 	}
 
 	rv = sc_pkcs11_init_lock((CK_C_INITIALIZE_ARGS_PTR) pInitArgs);
-	if (rv != CKR_OK)   {
-		sc_release_context(context);
-		context = NULL;
-	}
+	if (rv != CKR_OK)
+		goto out;
 
 	/* set context options */
 	memset(&ctx_opts, 0, sizeof(sc_context_param_t));
@@ -199,10 +211,17 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 	load_pkcs11_parameters(&sc_pkcs11_conf, context);
 
 	first_free_slot = 0;
+	virtual_slots = (struct sc_pkcs11_slot *)malloc(
+		sizeof (*virtual_slots) * sc_pkcs11_conf.max_virtual_slots
+	);
+	if (virtual_slots == NULL) {
+		rv = CKR_HOST_MEMORY;
+		goto out;
+	}
 	pool_initialize(&session_pool, POOL_TYPE_SESSION);
-	for (i=0; i<SC_PKCS11_MAX_VIRTUAL_SLOTS; i++)
+	for (i=0; i<sc_pkcs11_conf.max_virtual_slots; i++)
 		slot_initialize(i, &virtual_slots[i]);
-	for (i=0; i<SC_PKCS11_MAX_READERS; i++)
+	for (i=0; i<SC_MAX_READERS; i++)
 		card_initialize(i);
 
 	/* Detect any card, but do not flag "insert" events */
@@ -211,6 +230,16 @@ CK_RV C_Initialize(CK_VOID_PTR pInitArgs)
 out:	
 	if (context != NULL)
 		sc_debug(context, "C_Initialize: result = %d\n", rv);
+
+	if (rv != CKR_OK) {
+		if (context != NULL) {
+			sc_release_context(context);
+			context = NULL;
+		}
+		/* Release and destroy the mutex */
+		sc_pkcs11_free_lock();
+	}
+
 	return rv;
 }
 
@@ -218,6 +247,9 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 {
 	int i;
 	CK_RV rv;
+
+	if (context == NULL)
+		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
 	rv = sc_pkcs11_lock();
 	if (rv != CKR_OK)
@@ -231,6 +263,11 @@ CK_RV C_Finalize(CK_VOID_PTR pReserved)
 	sc_debug(context, "Shutting down Cryptoki\n");
 	for (i=0; i < (int)sc_ctx_get_reader_count(context); i++)
 		card_removed(i);
+
+	if (virtual_slots) {
+		free(virtual_slots);
+		virtual_slots = NULL;
+	}
 
 	sc_release_context(context);
 	context = NULL;
@@ -258,15 +295,15 @@ CK_RV C_GetInfo(CK_INFO_PTR pInfo)
 
 	memset(pInfo, 0, sizeof(CK_INFO));
 	pInfo->cryptokiVersion.major = 2;
-	pInfo->cryptokiVersion.minor = 11;
+	pInfo->cryptokiVersion.minor = 20;
 	strcpy_bp(pInfo->manufacturerID,
 		  "OpenSC (www.opensc-project.org)",
 		  sizeof(pInfo->manufacturerID));
 	strcpy_bp(pInfo->libraryDescription,
 		  "smart card PKCS#11 API",
 		  sizeof(pInfo->libraryDescription));
-	pInfo->libraryVersion.major = 1;
-	pInfo->libraryVersion.minor = 0;
+	pInfo->libraryVersion.major = 0;
+	pInfo->libraryVersion.minor = 0; /* FIXME: use 0.116 for 0.11.6 from autoconf */
 
 out:	sc_pkcs11_unlock();
 	return rv;
@@ -285,26 +322,39 @@ CK_RV C_GetSlotList(CK_BBOOL       tokenPresent,  /* only slots with token prese
 		    CK_SLOT_ID_PTR pSlotList,     /* receives the array of slot IDs */
 		    CK_ULONG_PTR   pulCount)      /* receives the number of slots */
 {
-	CK_SLOT_ID found[SC_PKCS11_MAX_VIRTUAL_SLOTS];
+	CK_SLOT_ID_PTR found = NULL;
 	int i;
 	CK_ULONG numMatches;
 	sc_pkcs11_slot_t *slot;
 	CK_RV rv;
 
-	rv = sc_pkcs11_lock();
-	if (rv != CKR_OK)
+	if ((rv = sc_pkcs11_lock()) != CKR_OK) {
 		return rv;
+	}
 
 	if (pulCount == NULL_PTR) {
 		rv = CKR_ARGUMENTS_BAD;
 		goto out;
 	}
 
+	if (
+		(found = (CK_SLOT_ID_PTR)malloc (
+			sizeof (*found) * sc_pkcs11_conf.max_virtual_slots
+		)) == NULL
+	) {
+		rv = CKR_HOST_MEMORY;
+		goto out;
+	}
+
 	sc_debug(context, "Getting slot listing\n");
+	/* Slot list can only change in v2.20 */
+	if (pSlotList == NULL_PTR && sc_pkcs11_conf.plug_and_play) {
+		sc_ctx_detect_readers(context);
+	}
 	card_detect_all();
 
 	numMatches = 0;
-	for (i=0; i<SC_PKCS11_MAX_VIRTUAL_SLOTS; i++) {
+	for (i=0; i<sc_pkcs11_conf.max_virtual_slots; i++) {
 		slot = &virtual_slots[i];
 
 		if (!tokenPresent || (slot->slot_info.flags & CKF_TOKEN_PRESENT))
@@ -331,13 +381,18 @@ CK_RV C_GetSlotList(CK_BBOOL       tokenPresent,  /* only slots with token prese
 
 	sc_debug(context, "returned %d slots\n", numMatches);
 
-out:	sc_pkcs11_unlock();
+out:
+	if (found != NULL) {
+		free (found);
+		found = NULL;
+	}
+	sc_pkcs11_unlock();
 	return rv;
 }
 
 static sc_timestamp_t get_current_time(void)
 {
-#ifndef _WIN32
+#if HAVE_GETTIMEOFDAY
 	struct timeval tv;
 	struct timezone tz;
 	sc_timestamp_t curr;
@@ -597,7 +652,7 @@ sc_pkcs11_init_lock(CK_C_INITIALIZE_ARGS_PTR args)
 
 	int applock = 0;
 	int oslock = 0;
-	if (_lock)
+	if (global_lock)
 		return CKR_OK;
 
 	/* No CK_C_INITIALIZE_ARGS pointer, no locking */
@@ -610,7 +665,7 @@ sc_pkcs11_init_lock(CK_C_INITIALIZE_ARGS_PTR args)
 	/* If the app tells us OS locking is okay,
 	 * use that. Otherwise use the supplied functions.
 	 */
-	_locking = NULL;
+	global_locking = NULL;
 	if (args->CreateMutex && args->DestroyMutex &&
 		   args->LockMutex   && args->UnlockMutex) {
 			applock = 1;
@@ -622,21 +677,21 @@ sc_pkcs11_init_lock(CK_C_INITIALIZE_ARGS_PTR args)
 	/* Based on PKCS#11 v2.11 11.4 */
 	if (applock && oslock) {
 		/* Shall be used in threaded environment, prefer app provided locking */
-		_locking = args;
+		global_locking = args;
 	} else if (!applock && oslock) {
 		/* Shall be used in threaded environment, must use operating system locking */
-		_locking = default_mutex_funcs;
+		global_locking = default_mutex_funcs;
 	} else if (applock && !oslock) {
 		/* Shall be used in threaded envirnoment, must use app provided locking */
-		_locking = args;
+		global_locking = args;
 	} else if (!applock && !oslock) {
-		/* Shall not be used in threaded environemtn, use operating system locking */
-		_locking = default_mutex_funcs;
+		/* Shall not be used in threaded environment, use operating system locking */
+		global_locking = default_mutex_funcs;
 	}
 
-	if (_locking != NULL) {
+	if (global_locking != NULL) {
 		/* create mutex */
-		rv = _locking->CreateMutex(&_lock);
+		rv = global_locking->CreateMutex(&global_lock);
 	}
 
 	return rv;
@@ -647,10 +702,10 @@ CK_RV sc_pkcs11_lock(void)
 	if (context == NULL)
 		return CKR_CRYPTOKI_NOT_INITIALIZED;
 
-	if (!_lock)
+	if (!global_lock)
 		return CKR_OK;
-	if (_locking)  {
-		while (_locking->LockMutex(_lock) != CKR_OK)
+	if (global_locking)  {
+		while (global_locking->LockMutex(global_lock) != CKR_OK)
 			;
 	} 
 
@@ -662,15 +717,15 @@ __sc_pkcs11_unlock(void *lock)
 {
 	if (!lock)
 		return;
-	if (_locking) {
-		while (_locking->UnlockMutex(lock) != CKR_OK)
+	if (global_locking) {
+		while (global_locking->UnlockMutex(lock) != CKR_OK)
 			;
 	} 
 }
 
 void sc_pkcs11_unlock(void)
 {
-	__sc_pkcs11_unlock(_lock);
+	__sc_pkcs11_unlock(global_lock);
 }
 
 /*
@@ -681,25 +736,25 @@ void sc_pkcs11_free_lock(void)
 {
 	void	*tempLock;
 
-	if (!(tempLock = _lock))
+	if (!(tempLock = global_lock))
 		return;
 
 	/* Clear the global lock pointer - once we've
 	 * unlocked the mutex it's as good as gone */
-	_lock = NULL;
+	global_lock = NULL;
 
 	/* Now unlock. On SMP machines the synchronization
 	 * primitives should take care of flushing out
 	 * all changed data to RAM */
 	__sc_pkcs11_unlock(tempLock);
 
-	if (_locking)
-		_locking->DestroyMutex(tempLock);
-	_locking = NULL;
+	if (global_locking)
+		global_locking->DestroyMutex(tempLock);
+	global_locking = NULL;
 }
 
 CK_FUNCTION_LIST pkcs11_function_list = {
-	{ 2, 11 },
+	{ 2, 11 }, /* Note: NSS/Firefox ignores this version number and uses C_GetInfo() */
 	C_Initialize,
 	C_Finalize,
 	C_GetInfo,

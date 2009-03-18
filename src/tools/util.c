@@ -7,7 +7,7 @@
 #include <ctype.h>
 #include "util.h"
 
-int connect_card(sc_context_t *ctx, sc_card_t **cardp,
+int util_connect_card(sc_context_t *ctx, sc_card_t **cardp,
 		 int reader_id, int slot_id, int wait, int verbose)
 {
 	sc_reader_t *reader;
@@ -45,13 +45,25 @@ int connect_card(sc_context_t *ctx, sc_card_t **cardp,
 		reader = readers[found];
 		slot_id = slots[found];
 	} else {
-		if (reader_id < 0)
-			reader_id = 0;
 		if (sc_ctx_get_reader_count(ctx) == 0) {
 			fprintf(stderr,
-				"No smart card readers configured.\n");
+				"No smart card readers found.\n");
 			return 1;
 		}
+		if (reader_id < 0) {
+			int i;
+			/* Automatically try to skip to a reader with a card if reader not specified */
+			for (i = 0; i < sc_ctx_get_reader_count(ctx); i++) {
+				reader = sc_ctx_get_reader(ctx, i);
+				if (sc_detect_card_presence(reader, 0) & SC_SLOT_CARD_PRESENT) {
+					reader_id = i;
+					fprintf(stderr, "Using reader with a card: %s\n", reader->name);
+					goto autofound;
+				}
+			}
+			reader_id = 0;
+		}
+autofound:
 		if ((unsigned int)reader_id >= sc_ctx_get_reader_count(ctx)) {
 			fprintf(stderr,
 				"Illegal reader number. "
@@ -92,14 +104,14 @@ int connect_card(sc_context_t *ctx, sc_card_t **cardp,
 	return 0;
 }
 
-void print_binary(FILE *f, const u8 *buf, int count)
+void util_print_binary(FILE *f, const u8 *buf, int count)
 {
 	int i;
 	
 	for (i = 0; i < count; i++) {
 		unsigned char c = buf[i];
 		const char *format;
-		if (!isalnum(c) && !ispunct(c) && !isspace(c))
+		if (!isprint(c))
 			format = "\\x%02X";
 		else
 			format = "%c";
@@ -108,7 +120,7 @@ void print_binary(FILE *f, const u8 *buf, int count)
 	(void) fflush(f);
 }
 
-void hex_dump(FILE *f, const u8 *in, int len, const char *sep)
+void util_hex_dump(FILE *f, const u8 *in, int len, const char *sep)
 {
 	int i;
 	
@@ -119,7 +131,7 @@ void hex_dump(FILE *f, const u8 *in, int len, const char *sep)
 	}
 }
 
-void hex_dump_asc(FILE *f, const u8 *in, size_t count, int addr)
+void util_hex_dump_asc(FILE *f, const u8 *in, size_t count, int addr)
 {
 	int lines = 0;
 
@@ -148,7 +160,7 @@ void hex_dump_asc(FILE *f, const u8 *in, size_t count, int addr)
 	}
 }
 
-void print_usage_and_die(const char *app_name, const struct option options[],
+void util_print_usage_and_die(const char *app_name, const struct option options[],
 	const char *option_help[])
 {
 	int i = 0;
@@ -190,7 +202,7 @@ void print_usage_and_die(const char *app_name, const struct option options[],
 	exit(2);
 }
 
-const char * acl_to_str(const sc_acl_entry_t *e)
+const char * util_acl_to_str(const sc_acl_entry_t *e)
 {
 	static char line[80], buf[10];
 	unsigned int acl;
@@ -237,7 +249,7 @@ const char * acl_to_str(const sc_acl_entry_t *e)
 }
 
 void
-fatal(const char *fmt, ...)
+util_fatal(const char *fmt, ...)
 {
 	va_list	ap;
 
@@ -250,7 +262,7 @@ fatal(const char *fmt, ...)
 }
 
 void
-error(const char *fmt, ...)
+util_error(const char *fmt, ...)
 {
 	va_list	ap;
 
@@ -262,7 +274,7 @@ error(const char *fmt, ...)
 }
 
 void
-warn(const char *fmt, ...)
+util_warn(const char *fmt, ...)
 {
 	va_list	ap;
 

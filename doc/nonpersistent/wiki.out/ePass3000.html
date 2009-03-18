@@ -1,0 +1,37 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      ePass3000 – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="FeitianePass3000">Feitian ePass3000</h1>
+<p>
+<a class="ext-link" href="http://www.ftsafe.com/" shape="rect"><span class="icon">Feitian</span></a> offers the <a class="ext-link" href="http://www.ftsafe.com/product/show_product.php?id=25&amp;type=200000" shape="rect"><span class="icon">ePass3000</span></a>, an USB crypto token with 32-bit high performance smart card chip and support for accelerated hardware computation.
+</p>
+<p>
+The driver of ePass3000 in OpenSC is called "entersafe".
+</p>
+<p>
+Feitian has their own software for windows, GNU/linux and MAC OSX. This software does not implement PKCS15 and thus is not compatible with OpenSC. Because Feitian's software reserves all storage, its data cannot be co-existed with OpenSC's in the USB token. In addition, there may be unexpected errors if both softwares exists in the operating system concurrently, since Feitian's software assumes there is one and only one software manipulates the token.
+</p>
+<p>
+Token initialized with Feitian's private format can not be directly used by OpenSC. Unless it is totally erased by command "pkcs15-init -E" (all data including private keys inside the token will be lost), and then the token can be re-initialized to OpenSC format by command "pkcs15-init -p pkcs15+onepin -C".
+</p>
+<p>
+The APDU level manual and further documentation to implement OpenSC are available only under NDA as far as we know.
+</p>
+<p>
+The USB Interface of the ePass3000 is not public but there is
+a binary only driver package available for download for free for both Linux and Mac OS X at <a class="ext-link" href="http://www.entersafe.com/ePass3000.html" shape="rect"><span class="icon">http://www.entersafe.com/ePass3000.html</span></a>. Recent OpenCT also <a href="http://www.opensc-project.org/openct/wiki/epass3000" shape="rect">has support</a> for this token.
+</p>
+<h1 id="Thanks">Thanks</h1>
+<p>
+Big thanks to <a class="ext-link" href="http://www.entersafe.com/" shape="rect"><span class="icon">EnterSafe</span></a> division of <a class="ext-link" href="http://www.ftsafe.com/" shape="rect"><span class="icon">Feitian</span></a>, for their technical help in adding support for the ePass3000, and donating hardware tokens.
+</p>
+
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

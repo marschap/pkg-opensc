@@ -51,13 +51,15 @@ struct _sc_driver_entry {
 
 static const struct _sc_driver_entry internal_card_drivers[] = {
 	/* legacy, the old name was "etoken", so we keep that for a while */
+	{ "rutoken",	(void *(*)(void)) sc_get_rutoken_driver },
 	{ "cardos",	(void *(*)(void)) sc_get_cardos_driver },
 	{ "etoken",	(void *(*)(void)) sc_get_cardos_driver },
 	{ "flex",	(void *(*)(void)) sc_get_cryptoflex_driver },
 	{ "cyberflex",	(void *(*)(void)) sc_get_cyberflex_driver },
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 	{ "gpk",	(void *(*)(void)) sc_get_gpk_driver },
 #endif
+	{ "gemsafeV1",	(void *(*)(void)) sc_get_gemsafeV1_driver },
 	{ "miocos",	(void *(*)(void)) sc_get_miocos_driver },
 	{ "mcrd",	(void *(*)(void)) sc_get_mcrd_driver },
 	{ "asepcos",	(void *(*)(void)) sc_get_asepcos_driver },
@@ -66,19 +68,22 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 	{ "tcos",	(void *(*)(void)) sc_get_tcos_driver },
 	{ "opengpg",	(void *(*)(void)) sc_get_openpgp_driver },
 	{ "jcop",	(void *(*)(void)) sc_get_jcop_driver },
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 	{ "oberthur",	(void *(*)(void)) sc_get_oberthur_driver },
 #endif
 	{ "belpic",	(void *(*)(void)) sc_get_belpic_driver },
 	{ "atrust-acos",(void *(*)(void)) sc_get_atrust_acos_driver },
-	{ "muscle", (void *(*)(void)) sc_get_muscle_driver },	// Above EMV because the detection gets caught there first
+	{ "muscle", (void *(*)(void)) sc_get_muscle_driver },	/* Above EMV because the detection gets caught there first */
 	{ "emv",	(void *(*)(void)) sc_get_emv_driver },
 	{ "incrypto34", (void *(*)(void)) sc_get_incrypto34_driver },
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 	{ "PIV-II",	(void *(*)(void)) sc_get_piv_driver },
 #endif
 	{ "acos5",	(void *(*)(void)) sc_get_acos5_driver },
 	{ "akis",	(void *(*)(void)) sc_get_akis_driver },
+#ifdef ENABLE_OPENSSL
+	{ "entersafe",(void *(*)(void)) sc_get_entersafe_driver },
+#endif
 	/* The default driver should be last, as it handles all the
 	 * unrecognized cards. */
 	{ "default",	(void *(*)(void)) sc_get_default_driver },
@@ -86,12 +91,12 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 };
 
 static const struct _sc_driver_entry internal_reader_drivers[] = {
-#if defined(HAVE_PCSC)
+#if defined(ENABLE_PCSC)
 	{ "pcsc",	(void *(*)(void)) sc_get_pcsc_driver },
 #endif
 	{ "ctapi",	(void *(*)(void)) sc_get_ctapi_driver },
 #ifndef _WIN32
-#ifdef HAVE_OPENCT
+#ifdef ENABLE_OPENCT
 	{ "openct",	(void *(*)(void)) sc_get_openct_driver },
 #endif
 #endif
@@ -352,7 +357,8 @@ static void *load_dynamic_driver(sc_context_t *ctx, void **dll,
 	}
 	/* verify module version */
 	version = modversion();
-	if (version == NULL || strncmp(version, "0.9.", strlen("0.9.")) > 0) {
+	/* XXX: We really need to have ABI version for each interface */
+	if (version == NULL || strncmp(version, PACKAGE_VERSION, strlen(PACKAGE_VERSION)) != 0) {
 		sc_error(ctx,"dynamic library '%s': invalid module version\n",libname);
 		lt_dlclose(handle);
 		return NULL;
@@ -554,7 +560,7 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 	const char *conf_path = NULL;
 #ifdef _WIN32
 	char temp_path[PATH_MAX];
-	int temp_len;
+	DWORD temp_len;
 	long rc;
 	HKEY hKey;
 #endif
@@ -633,6 +639,25 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 	 * so at least one is NULL */
 	for (i = 0; ctx->conf_blocks[i]; i++)
 		load_parameters(ctx, ctx->conf_blocks[i], opts);
+}
+
+int sc_ctx_detect_readers(sc_context_t *ctx)
+{
+	int i;
+
+	sc_mutex_lock(ctx, ctx->mutex);
+
+	for (i = 0; ctx->reader_drivers[i] != NULL; i++) {
+		const struct sc_reader_driver *drv = ctx->reader_drivers[i];
+
+		if (drv->ops->detect_readers != NULL)
+			drv->ops->detect_readers(ctx, ctx->reader_drv_data[i]);
+	}
+
+	sc_mutex_unlock(ctx, ctx->mutex);
+
+	/* XXX: Do not ignore erros? */
+	return SC_SUCCESS;
 }
 
 sc_reader_t *sc_ctx_get_reader(sc_context_t *ctx, unsigned int i)
@@ -722,10 +747,7 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 	}
 	del_drvs(&opts, 0);
 	del_drvs(&opts, 1);
-	if (ctx->reader_count == 0) {
-		sc_release_context(ctx);
-		return SC_ERROR_NO_READERS_FOUND;
-	}
+	sc_ctx_detect_readers(ctx);
 	*ctx_out = ctx;
 	return SC_SUCCESS;
 }
@@ -845,7 +867,11 @@ int sc_make_cache_dir(sc_context_t *ctx)
 	namelen = strlen(dirname);
 
 	while (1) {
+#ifdef _WIN32
+		if (mkdir(dirname) >= 0)
+#else
 		if (mkdir(dirname, 0700) >= 0)
+#endif
 			break;
 		if (errno != ENOENT
 		 || (sp = strrchr(dirname, '/')) == NULL
@@ -861,7 +887,11 @@ int sc_make_cache_dir(sc_context_t *ctx)
 		if (j >= namelen)
 			break;
 		dirname[j] = '/';
+#ifdef _WIN32
+		if (mkdir(dirname) < 0)
+#else
 		if (mkdir(dirname, 0700) < 0)
+#endif
 			goto failed;
 	}
 	return SC_SUCCESS;

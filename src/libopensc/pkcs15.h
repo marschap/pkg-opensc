@@ -399,6 +399,7 @@ typedef struct sc_pkcs15_card {
 #define SC_PKCS15_CARD_FLAG_PRN_GENERATION	0x04
 #define SC_PKCS15_CARD_FLAG_EID_COMPLIANT	0x08
 #define SC_PKCS15_CARD_FLAG_SIGN_WITH_DECRYPT	0x10
+#define SC_PKCS15_CARD_FLAG_EMULATED		0x20
 
 /* sc_pkcs15_bind:  Binds a card object to a PKCS #15 card object
  * and initializes a new PKCS #15 card object.  Will return
@@ -476,6 +477,10 @@ int sc_pkcs15_find_data_object_by_id(struct sc_pkcs15_card *p15card,
 int sc_pkcs15_find_data_object_by_app_oid(struct sc_pkcs15_card *p15card,
 					  const struct sc_object_id *app_oid,
 					  struct sc_pkcs15_object **out);
+int sc_pkcs15_find_data_object_by_name(struct sc_pkcs15_card *p15card,
+				const char *app_label,
+				const char *label,
+				struct sc_pkcs15_object **out);
 void sc_pkcs15_free_data_object(struct sc_pkcs15_data *data_object);
 
 int sc_pkcs15_read_certificate(struct sc_pkcs15_card *card,
@@ -662,6 +667,8 @@ typedef struct sc_pkcs15_search_key {
 
 	unsigned int		match_reference : 1;
 	int			reference;
+	const char *		app_label;
+	const char *		label;
 } sc_pkcs15_search_key_t;
 
 int sc_pkcs15_search_objects(sc_pkcs15_card_t *, sc_pkcs15_search_key_t *,

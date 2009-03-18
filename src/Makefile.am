@@ -1,7 +1,4 @@
-# Process this file with automake to create Makefile.in
-
-MAINTAINERCLEANFILES = Makefile.in
-
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 EXTRA_DIST = Makefile.mak
 
 # Order IS important

@@ -47,9 +47,12 @@ enum {
 };
 
 static const struct option options[] = {
+	{ "info",		0, NULL,		'i' },
 	{ "atr",		0, NULL,		'a' },
 	{ "serial",		0, NULL,	OPT_SERIAL  },
 	{ "name",		0, NULL,		'n' },
+	{ "get-conf-entry",	1, NULL,		'G' },
+	{ "set-conf-entry",	1, NULL,		'S' },
 	{ "list-readers",	0, NULL, 		'l' },
 	{ "list-drivers",	0, NULL,		'D' },
 	{ "list-rdrivers",	0, NULL,		'R' },
@@ -63,9 +66,12 @@ static const struct option options[] = {
 };
 
 static const char *option_help[] = {
+	"Prints information about OpenSC",
 	"Prints the ATR bytes of the card",
 	"Prints the card serial number",
 	"Identify the card and print its name",
+	"Get configuration key, format: section:name:key",
+	"Set configuration key, format: section:name:key:value",
 	"Lists all configured readers",
 	"Lists all installed card drivers",
 	"Lists all installed reader drivers",
@@ -80,12 +86,167 @@ static const char *option_help[] = {
 static sc_context_t *ctx = NULL;
 static sc_card_t *card = NULL;
 
+static int opensc_info(void)
+{
+	printf (
+		"%s %s ",
+		PACKAGE_NAME,
+		PACKAGE_VERSION
+	);
+
+#if defined(__VERSION__)
+	printf (
+		"[%s %s]\n",
+#if defined(__GNUC__)
+		"gcc ",
+#else
+		"unknown ",
+#endif
+		__VERSION__
+	);
+#elif defined(_MSC_VER)
+	printf ("[Microsoft %d]\n", _MSC_VER);
+#else
+	printf ("[Unknown compiler, please report]");
+#endif
+	printf ("Enabled features:%s\n", OPENSC_FEATURES);
+	return 0;
+}
+
+static int opensc_get_conf_entry(const char *config)
+{
+	scconf_block *conf_block = NULL, **blocks;
+	char *buffer = NULL;
+	char *section = NULL;
+	char *name = NULL;
+	char *key = NULL;
+	int r = 0;
+
+	if (ctx->conf == NULL) {
+		r = ENOENT;
+		goto cleanup;
+	}
+
+	if ((buffer = strdup(config)) == NULL) {
+		r = ENOMEM;
+		goto cleanup;
+	}
+
+	section = buffer;
+	name = section == NULL ? NULL : strchr(section+1, ':');
+	key = name == NULL ? NULL : strchr(name+1, ':');
+	if (key == NULL) {
+		r = EINVAL;
+		goto cleanup;
+	}
+	*name = '\0';
+	name++;
+	*key = '\0';
+	key++;
+
+	blocks = scconf_find_blocks(ctx->conf, NULL, section, name);
+	if (blocks[0])
+		conf_block = blocks[0];
+	free(blocks);
+	if (conf_block != NULL) {
+		const char *value = scconf_get_str(conf_block, key, NULL);
+
+		if (value != NULL) {
+			printf ("%s\n", value);
+		}
+	}
+
+	r = 0;
+
+cleanup:
+
+	if (buffer != NULL)
+		free(buffer);
+
+	return r;
+}
+
+static int opensc_set_conf_entry(const char *config)
+{
+	scconf_block *conf_block = NULL, **blocks;
+	char *buffer = NULL;
+	char *section = NULL;
+	char *name = NULL;
+	char *key = NULL;
+	char *value = NULL;
+	int r = 0;
+
+	if (ctx->conf == NULL) {
+		r = ENOENT;
+		goto cleanup;
+	}
+
+	if ((buffer = strdup(config)) == NULL) {
+		r = ENOMEM;
+		goto cleanup;
+	}
+
+	section = buffer;
+	name = section == NULL ? NULL : strchr(section+1, ':');
+	key = name == NULL ? NULL : strchr(name+1, ':');
+	value = key == NULL ? NULL : strchr(key+1, ':');
+	if (value == NULL) {
+		r = EINVAL;
+		goto cleanup;
+	}
+	*name = '\0';
+	name++;
+	*key = '\0';
+	key++;
+	*value = '\0';
+	value++;
+
+	blocks = scconf_find_blocks(ctx->conf, NULL, section, name);
+	if (blocks[0])
+		conf_block = blocks[0];
+	free(blocks);
+	if (conf_block != NULL) {
+		scconf_item *item;
+
+		for (item = conf_block->items; item != NULL; item = item->next) {
+			scconf_list *list;
+
+			if ((item->type != SCCONF_ITEM_TYPE_VALUE)
+			    || (strcmp(item->key, key) != 0))
+				continue;
+			list = item->value.list;
+			scconf_list_destroy(list);
+			list = NULL;
+			scconf_list_add(&list, value);
+			item->value.list = list;
+			break;
+		}
+		if (item == NULL)
+			scconf_put_str(conf_block, key, value);
+	}
+
+	/* Write */
+	if ((r = scconf_write(ctx->conf, ctx->conf->filename)) != 0) {
+		fprintf(stderr, "scconf_write(): %s\n", strerror(r));
+		goto cleanup;
+	}
+
+	r = 0;
+
+cleanup:
+
+	if (buffer != NULL)
+		free(buffer);
+
+	return r;
+}
+
 static int list_readers(void)
 {
 	unsigned int i, rcount = sc_ctx_get_reader_count(ctx);
 	
 	if (rcount == 0) {
-		printf("No readers configured!\n");
+		printf("No smart card readers found.\n");
 		return 0;
 	}
 	printf("Readers known about:\n");
@@ -148,7 +309,7 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 	printf("%s ", sc_print_path(path));
 	if (file->namelen) {
 		printf("[");
-		print_binary(stdout, file->name, file->namelen);
+		util_print_binary(stdout, file->name, file->namelen);
 		printf("] ");
 	}
 	switch (file->type) {
@@ -181,10 +342,10 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 		printf("  ");
 	if (file->type == SC_FILE_TYPE_DF)
 		for (r = 0; r < (int) (sizeof(ac_ops_df)/sizeof(ac_ops_df[0])); r++)
-			printf("%s[%s] ", ac_ops_df[r], acl_to_str(sc_file_get_acl_entry(file, r)));
+			printf("%s[%s] ", ac_ops_df[r], util_acl_to_str(sc_file_get_acl_entry(file, r)));
 	else
 		for (r = 0; r < (int) (sizeof(ac_ops_ef)/sizeof(ac_ops_ef[0])); r++)
-			printf("%s[%s] ", ac_ops_ef[r], acl_to_str(sc_file_get_acl_entry(file, r)));
+			printf("%s[%s] ", ac_ops_ef[r], util_acl_to_str(sc_file_get_acl_entry(file, r)));
 
 	if (file->sec_attr_len) {
 		printf("sec: ");
@@ -194,14 +355,14 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 		 * 4 MSB's of the octet mean:			 
 		 *  0 = ALW, 1 = PIN1, 2 = PIN2, 4 = SYS,
 		 * 15 = NEV */
-		hex_dump(stdout, file->sec_attr, file->sec_attr_len, ":");
+		util_hex_dump(stdout, file->sec_attr, file->sec_attr_len, ":");
 	}
 	if (file->prop_attr_len) {
 		printf("\n");
 		for (r = 0; r < depth; r++)
 			printf("  ");
 		printf("prop: ");
-		hex_dump(stdout, file->prop_attr, file->prop_attr_len, ":");
+		util_hex_dump(stdout, file->prop_attr, file->prop_attr_len, ":");
 	}
 	printf("\n\n");
 
@@ -218,7 +379,7 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 
 		r = sc_read_binary(in_card, 0, buf, file->size, 0);
 		if (r > 0)
-			hex_dump_asc(stdout, buf, r, 0);
+			util_hex_dump_asc(stdout, buf, r, 0);
 		free(buf);
 	} else {
 		unsigned char buf[256];
@@ -228,7 +389,7 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 			printf("Record %d\n", i);
 			r = sc_read_record(in_card, i, buf, 256, 0);
 			if (r > 0)
-				hex_dump_asc(stdout, buf, r, 0);
+				util_hex_dump_asc(stdout, buf, r, 0);
 		}
 	}
 	return 0;
@@ -352,7 +513,7 @@ static int send_apdu(void)
 		printf("Received (SW1=0x%02X, SW2=0x%02X)%s\n", apdu.sw1, apdu.sw2,
 		       apdu.resplen ? ":" : "");
 		if (apdu.resplen)
-			hex_dump_asc(stdout, apdu.resp, apdu.resplen, -1);
+			util_hex_dump_asc(stdout, apdu.resp, apdu.resplen, -1);
 	}
 	return 0;
 }
@@ -366,12 +527,15 @@ static void print_serial(sc_card_t *in_card)
 	if (r)
 		fprintf(stderr, "sc_card_ctl(*, SC_CARDCTL_GET_SERIALNR, *) failed\n");
 	else
-		hex_dump_asc(stdout, serial.value, serial.len, -1);
+		util_hex_dump_asc(stdout, serial.value, serial.len, -1);
 }
 
 int main(int argc, char * const argv[])
 {
 	int err = 0, r, c, long_optind = 0;
+	int do_info = 0;
+	int do_get_conf_entry = 0;
+	int do_set_conf_entry = 0;
 	int do_list_readers = 0;
 	int do_list_drivers = 0;
 	int do_list_rdrivers = 0;
@@ -382,18 +546,33 @@ int main(int argc, char * const argv[])
 	int do_print_name = 0;
 	int action_count = 0;
 	const char *opt_driver = NULL;
+	const char *opt_conf_entry = NULL;
 	sc_context_param_t ctx_param;
 		
 	setbuf(stderr, NULL);
 	setbuf(stdout, NULL);
 
 	while (1) {
-		c = getopt_long(argc, argv, "nlfr:vs:DRc:aw", options, &long_optind);
+		c = getopt_long(argc, argv, "inlG:S:fr:vs:DRc:aw", options, &long_optind);
 		if (c == -1)
 			break;
 		if (c == '?')
-			print_usage_and_die(app_name, options, option_help);
+			util_print_usage_and_die(app_name, options, option_help);
 		switch (c) {
+		case 'i':
+			do_info = 1;
+			action_count++;
+			break;
+		case 'G':
+			do_get_conf_entry = 1;
+			opt_conf_entry = optarg;
+			action_count++;
+			break;
+		case 'S':
+			do_set_conf_entry = 1;
+			opt_conf_entry = optarg;
+			action_count++;
+			break;
 		case 'l':
 			do_list_readers = 1;
 			action_count++;
@@ -446,7 +625,12 @@ int main(int argc, char * const argv[])
 		}
 	}
 	if (action_count == 0)
-		print_usage_and_die(app_name, options, option_help);
+		util_print_usage_and_die(app_name, options, option_help);
+
+	if (do_info) {
+		opensc_info();
+		action_count--;
+	}
 
 	memset(&ctx_param, 0, sizeof(ctx_param));
 	ctx_param.ver      = 0;
@@ -459,6 +643,16 @@ int main(int argc, char * const argv[])
 	}
 	if (verbose > 1)
 		ctx->debug = verbose-1;
+	if (do_get_conf_entry) {
+		if ((err = opensc_get_conf_entry (opt_conf_entry)))
+			goto end;
+		action_count--;
+	}
+	if (do_set_conf_entry) {
+		if ((err = opensc_set_conf_entry (opt_conf_entry)))
+			goto end;
+		action_count--;
+	}
 	if (do_list_rdrivers) {
 		if ((err = list_reader_drivers()))
 			goto end;
@@ -486,14 +680,14 @@ int main(int argc, char * const argv[])
 		}
 	}
 
-	err = connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
+	err = util_connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
 	if (err)
 		goto end;
 
 	if (do_print_atr) {
 		if (verbose) {
 			printf("Card ATR:\n");
-			hex_dump_asc(stdout, card->atr, card->atr_len, -1);		
+			util_hex_dump_asc(stdout, card->atr, card->atr_len, -1);		
 		} else {
 			char tmp[SC_MAX_ATR_SIZE*3];
 			sc_bin_to_hex(card->atr, card->atr_len, tmp, sizeof(tmp) - 1, ':');

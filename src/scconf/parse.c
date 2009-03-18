@@ -1,5 +1,5 @@
 /*
- * $Id: parse.c 2993 2006-07-12 08:12:38Z ludovic.rousseau $
+ * $Id: parse.c 3510 2008-05-05 13:00:01Z ludovic.rousseau $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -31,7 +31,7 @@
 #include <errno.h>
 #include "scconf.h"
 #include "internal.h"
-#include "strlcpy.h"
+#include <compat_strlcpy.h>
 
 #define STATE_NAME	0x01
 #define STATE_VALUE	0x02
@@ -150,7 +150,7 @@ scconf_item *scconf_item_add(scconf_context * config, scconf_block * block, scco
 	scconf_item_add_internal(&parser, type);
 	switch (parser.current_item->type) {
 	case SCCONF_ITEM_TYPE_COMMENT:
-		parser.current_item->value.comment = strdup((char *) data);
+		parser.current_item->value.comment = strdup((const char *) data);
 		break;
 	case SCCONF_ITEM_TYPE_BLOCK:
 		if (!dst)

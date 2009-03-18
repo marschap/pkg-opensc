@@ -1,0 +1,164 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      GermanEid – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="GermanIDCards">German ID Cards</h1>
+<p>
+Germany has several laws for smart cards. Until 2006 most ID cards conforming to those laws were using the TCOS 2.0X card operating
+system. One exception was the 1024bit D-Trust card which was Micardo based.
+</p>
+<p>
+Until the end of 2007 the german government (i.e. the Bundesnetzagentur) required a minimal keylength of 1024 bit. Since the beginning of 2008 this requirement was raised to 1280 bit. Therefore all german trust centers now offer 2048 bit cards.
+</p>
+<p>
+The german government was using the RipeMD 160 hash algorithm within their 1024 bit root-certificates ignoring the fact that the rest of the world was using MD5, SHA-1 or SHA-256 instead. One consequence was that you were not able to store the german 1024bit root certificates within the trusted keystore of almost all popular signature aware products like IE, Outlook, Mozilla, Thunderbird, Acrobat, etc. This changed when the keylength of the german root certificates was increased from 1024 bit to 2048 bit. Now the Bundesnetzagentur uses SHA-512 within their 2048 bit root-certificates (12R-CA 1:PN and 13R-CA 1:PN) wich is supported by recent versions of some of the above mentioned signature aware products.
+</p>
+<p>
+Since july 2008 german signature cards must not use SHA-1 anymore but must use RIPEMD160, SHA-224, SHA-256, SHA-384 or SHA-512. This forced some trust center to replace all of their signature card in the middle of 2008 (of course after they had to replaced all their signature cards at the beginning of 2008 due to the increased keylength - Trust center in germany love the Bundesnetzagentur).
+</p>
+<p>
+You find the 2008-regulations <a class="ext-link" href="http://www.bundesnetzagentur.de/media/archive/12198.pdf" shape="rect"><span class="icon">here</span></a>.
+</p>
+<p>
+As of august 2008 you may get signature cards from the following Trust center in germany:
+</p>
+<ul><li>TeleSec GmbH (akkreditiert seit 22.12.1998).
+</li><li>Deutsche Post (akkreditiert seit 17.9.2004).
+</li><li>D-Trust GmbH (akkreditiert seit 17.12.2004).
+</li><li>Deutscher Sparkassen Verlag GmbH (Anbieter ohne Akkreditierung, angezeigt seit 12.9.2005).
+</li><li>TC Trust CenterGmbH (akkreditiert seit 24.5.2006).
+</li><li>DGN Deutsches Gesundheitsnetz Service GmbH (akkreditiert seit 9.8.2007).
+</li></ul><h2 id="TeleSecNetKeycards">TeleSec, NetKey cards</h2>
+<p>
+TeleSec GmbH is the manufacturer of TCOS cards and they offer TCOS based signature cards, i.e. NetKey E4 cards. Until the end of 2007 theses card were TCOS2 based with a miximal keylength of 1024 bit. Since october 2007 TeleSec offers 2048 bit signature cards which are TCOS3 based.
+</p>
+<p>
+TCOS2 cards work well with OpenSC 0.10.0 or later. TCOS3 support was added in december 2007 and is included in OpenSC 0.11.5. Unfortunately the 2048 bit NetKey card contains one key (the one that conforms to the german signature law) that can be used only over a secure channel. So if you want to use this particular key with OpenSC you must wait until OpenSC supports Secure Messaging. NetKeyV3Sign is a (non-free) library that creates signatures with NetKey cards. Let me know if you are interested.
+</p>
+<p>
+You will find more information about NetKey cards an a <a class="wiki" href="TCOS.html" shape="rect">separate Wikipage on TCOS based cards</a>.
+</p>
+<h2 id="DeutschePostSignTrustcard">Deutsche Post, SignTrust card</h2>
+<p>
+1024 bit SignTrust cards are TCOS 2 based. They work well with OpenSC and you will find more informations about this card on a <a class="wiki" href="TCOS.html" shape="rect">separate Wikipage on TCOS based cards</a>.
+</p>
+<p>
+The new 2048 bit SignTrust cards are StarCos 3.0 based. This card operating system is not supported by OpenSC yet. Also 2048 SignTrust cards only support SHA-1 and RIPEMD160. If you want to create signatures with your SignTrust card that conform to the german signature law you must use RIPEMD160. 
+</p>
+<p>
+The qualified signature certificate on a 2048bit SignTrust is signed by a CA-certificate from Deutsche Post which itself was signed by a 2048 bit german root certificate (12R-CA 1:PN). All other certificates on a SignTrust card are signed by a CA-certificate that Deutsche Post signed with a self generated root certificate.
+</p>
+<h2 id="D-Trust">D-Trust</h2>
+<p>
+1024 bit signature cards from D-Trust are Micardo based and were cessfully tested with OpenSC 0.11.1. 2048 bit D-Trust cards are CardOS 4.3 based. D-TRUST cards 2.0 2cc conform to the PKCS#15 standard and work well with OpenSC 0.11.4. D-Trust uses strange IDs though. Here's some demo output:
+</p>
+<pre class="wiki" xml:space="preserve">$ pkcs15-tool -r 000102030405060708090a0b0c0d0e0f | openssl x509 -noout -text -certopt no_pubkey,no_sigdump
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 234973 (0x395dd)
+        Signature Algorithm: sha1WithRSAEncryption
+        Issuer: C=DE, O=D-Trust GmbH, CN=D-TRUST Qualified CA 1 2006:PN
+        Validity
+            Not Before: Jul 25 10:20:31 2007 GMT
+            Not After : Aug  4 10:20:31 2009 GMT
+        Subject: C=DE, CN=Peter Koch, GN=Peter, SN=Koch/serialNumber=DTRWE181908128430122
+        X509v3 extensions:
+            X509v3 Authority Key Identifier:
+                keyid:84:20:88:7F:C1:8F:53:45:C0:3B:B3:7F:F4:B5:53:3B:73:59:CC:84
+            Authority Information Access:
+                OCSP - URI:http://qual.ocsp.d-trust.net
+            X509v3 Certificate Policies:
+                Policy: 1.3.6.1.4.1.4788.2.30.1
+            X509v3 CRL Distribution Points:
+                URI:http://www.d-trust.net/crl/d-trust_qualified_ca_1_2006.crl
+            X509v3 Issuer Alternative Name:
+                email:info@d-trust.net, URI:http://www.d-trust.net
+            X509v3 Subject Key Identifier:
+                88:66:AB:03:C0:DE:72:D6:5D:57:9A:D7:14:69:59:B3:BD:BD:9E:47
+            X509v3 Key Usage: critical
+                Non Repudiation
+</pre><p>
+You may download D-Trust CA certificates <a class="ext-link" href="http://www.d-trust.net/internet/content/d-trust-roots.html" shape="rect"><span class="icon">here</span></a>. All CA-certificates that D-Trust uses were signed by a self generated root certificates from D-Trust. The following output lists the verifiction chain of the above 2048 bit qualified "SigG signature certificate". Despite the fact that D-Trust is an accredited trust center they do not use CA-certificates that were signed by the root-certificates of the Bundesnetzagentur.
+</p>
+<p>
+Here's what D-Trust told me on 2008 Cebit (sorry, but I cannot translate this, I'm not even sure wether I understand it):
+</p>
+<p>
+"D-Trust ist ein akkreditierter Zertifizierungsdiensteanbieter. Die Akkreditierung bezieht sich auf D-Trust selber, nicht auf die von D-Trust angebotenen Produkte. Es gibt prinzipiell keine akkreditierten Produkte, sondern nur akkreditierte Zertifizierungsdiensteanbieter. Die Annahme, dass alle qualifizierten Signaturkarten eines akkreditierten Zertifizierungsdiensteanbieter auch aus dem Trust-Center stammen, für das der Zertifizierungsdiensteanbieter akkreditiert wurde, ist falsch. Ein akkreditierter Zertifizierungsdiensteanbieter kann vielmehr auch weitere Trust-Center betreiben und als akkreditierter Zertifizierungsdiensteanbieter Signaturkarten vertreiben, die aus diesen anderen Trust-Centern stammen. Genau das macht D-Trust: Es betreibt zusätzlich zum Trust-Center, das sich im akkreditierten Betrieb befindet, ein weiteres Trust-Center und aus diesem Trust-Center stammen die qualifizierten Signaturkarten. Qualifizierte Signaturkaten aus dem im akkreditierten Betrieb befindlichen Trust-Center sind nicht allgemein verfügbar."
+</p>
+<pre class="wiki" xml:space="preserve">$ openssl x509 -inform der -in D-TRUST_Qualified_CA_1_2006.crt -noout -subject -issuer -dates
+subject= /C=DE/O=D-Trust GmbH/CN=D-TRUST Qualified CA 1 2006:PN
+issuer=  /C=DE/O=D-Trust GmbH/CN=D-TRUST Qualified Root CA 1 2006:PN
+notBefore=Apr 27 12:40:54 2006 GMT
+notAfter= Apr 27 12:40:54 2011 GMT
+
+$ openssl x509 -inform der -in D-TRUST_Qualified_Root_CA_1_2006.crt -noout -subject -issuer -dates
+subject= /C=DE/O=D-Trust GmbH/CN=D-TRUST Qualified Root CA 1 2006:PN
+issuer=  /C=DE/O=D-Trust GmbH/CN=D-TRUST Qualified Root CA 1 2006:PN
+notBefore=Apr 27 12:40:54 2006 GMT
+notAfter= Apr 27 12:40:54 2011 GMT
+</pre><h2 id="SparkassenverlagS-Trustcard">Sparkassenverlag, S-Trust card</h2>
+<p>
+Sparkassenverlag is another trust center in germany.
+</p>
+<p>
+A first test showed that OpenSC does not support the S-Trust card of Sparkassenverlag. I don't even
+know what card operation system is used.
+</p>
+<h2 id="TCTrustCenter">TC Trust Center</h2>
+<p>
+I don't have informations about this Trust center. If you do - please add them!
+</p>
+<h2 id="DGNMedisigncard">DGN, Medisign card</h2>
+<p>
+I don't have informations about this Trust center. If you do - please add them!
+</p>
+<h2 id="Datev">Datev</h2>
+<p>
+Datev had a Trustcenter in Germany that was closed in 2007. Their 1024 bit cards were TCOS 2.0 based and are
+described on a <a class="wiki" href="TCOS.html" shape="rect">separate Wikipage on TCOS based cards</a>.
+</p>
+<h1 id="GermaneHBAeGK">German eHBA, eGK</h1>
+<p>
+<a style="padding:0; border:none" href="/opensc/attachment/wiki/GermanEid/HPC-Image.gif" shape="rect"><img src="/opensc/raw-attachment/wiki/GermanEid/HPC-Image.gif" alt="HPC-Image" title="HPC-Image"></img></a>
+</p>
+<p>
+Sometime in the future all german physicians and apothecaries will be equipped with a smartcard, the so called eHBA (elektronischer Heilberufeausweis). And all german citizens that are a member of a public health insurance company (gesetzliche Krankenkasse) will get a similar card, the so called eGK (elektronische Gesundheitskarte). This means that virtually every german citizen will have a smartcard soon (actually I wrote this sentence in 2006, so be carefull when interpreting the word "soon").
+</p>
+<p>
+We do have eHBA test cards and they are StarCos 3.0 based. So in order to support these kind of eHBA we do need a StarCos 3.0 driver first. If you have information about eHBAs, please let us know or add a link to the list below:
+</p>
+<p>
+We also got eGK test cards but so far I had no time to test them. If you are interested, please contact me.
+</p>
+<p>
+Information about the future german eHBA / eGK:
+</p>
+<ul><li><a class="ext-link" href="http://www.gesundheitskarte-sh.de" shape="rect"><span class="icon">Informations about the "elektronische Gesundheitskarte Schleswig-Holstein"</span></a>
+</li><li><a class="ext-link" href="http://www.heilberufeausweis.de" shape="rect"><span class="icon">Informations about the "Heilberufeausweis"</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/HPC_P1_COS_V2_1_1.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.1 Part1: Commands, Algorithms and Functions of the COS Platform</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/HPC_P2_HPC_V2_1_1.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.1 Part2: HPC Applications and Functions</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/HPC_P3_SMC_V2_1_1.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.1 Part3: SMC Applications and Functions</span></a>
+</li><li><a class="ext-link" href="http://www.baek.de/downloads/usecases.pdf" shape="rect"><span class="icon">HPC Use-Cases</span></a>
+</li><li><a class="ext-link" href="http://www.gematik.de/upload/gematik_eGK_Spezifikation_Teil1_V2_2_1_3804.pdf" shape="rect"><span class="icon">eGK-Specification V2.2.1 Part1: eGK Spezifikation</span></a>
+</li><li><a class="ext-link" href="http://www.gematik.de/upload/gematik_eGK_Spezifikation_Teil2_V2_2_1_3805.pdf" shape="rect"><span class="icon">eGK-Specification V2.2.1 Part2: eGK Anwendungen</span></a>
+</li><li><a class="ext-link" href="http://www.gematik.de/upload/gematik_eGK_Spezifikation_Teil3_V2_2_0_3806.pdf" shape="rect"><span class="icon">eGK-Specification V2.2.0 Part3: äußere Gestaltung</span></a>
+</li></ul>
+        
+        
+      </div>
+          <h3>Attachments</h3>
+          <ul>
+              <li>
+      <a href="/opensc/attachment/wiki/GermanEid/HPC-Image.gif" title="View attachment" shape="rect">HPC-Image.gif</a>
+      (<span title="18570 bytes">18.1 KB</span>) - added by <em>pk</em>
+      <a class="timeline" href="/opensc/timeline?from=2006-11-02T17%3A44%3A00Z%2B0000&amp;precision=second" title="2006-11-02T17:44:00Z+0000 in Timeline" shape="rect">2 years</a> ago.
+                <q>HPC-Image</q>
+              </li>
+          </ul>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

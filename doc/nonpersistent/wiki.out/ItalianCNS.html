@@ -1,0 +1,47 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      ItalianCNS – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="ItalianCNSandCIE">Italian CNS and CIE</h1>
+<p>
+The patch in ticket <a class="assigned ticket" href="/opensc/ticket/177" title="enhancement: Patch: support for Italian CNS (assigned)" shape="rect">#177</a> adds support for the Italian CNS and CIE through the <tt>itacns</tt> card driver and PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> emulator.
+</p>
+<p>
+The patch is under development and testing; you can grab the latest version with Mercurial at <a class="ext-link" href="http://itacns.corp.it/hg/itacns/" shape="rect"><span class="icon">http://itacns.corp.it/hg/itacns/</span></a> or <a class="ext-link" href="http://itacns.corp.it/hg/itacns/archive/tip.tar.bz2" shape="rect"><span class="icon">download</span></a> (tar.bz2) it directly.
+</p>
+<p>
+CNS stands for Carta Nazionale dei Servizi (National Service Card); CIE stands for Carta d'Identità Elettronica (Electronic Identity Card). From the viewpoint of the software there is not much difference between them: the basic filesystem layout is very similar and the Functional Specifications detailing the APDU commands are almost identical. The two cards exist because:
+</p>
+<ul><li>The CIE can be used as a physical ID card, but not the CNS;
+</li><li>A single citizen can own any number of CNS cards, but at most one CIE card (in place of the "paper" version).
+</li><li>The CNS is issued by Public Administrations, leveraging on services provided by a qualified Certification Authority.
+</li><li>The CIE is issued by the italian Ministry of Interior, Municipalities act as Registration Autorities.
+</li><li>CNS cannot be issued to a citizen who already owns a CIE.
+</li></ul><p>
+The filesystem layout is flexible. A lot of different administrations issue CNS cards; each administration personalizes the card with its own "service installation" public key. Authentication with the matching private key provides the ability to add support for custom additional objects after the card has been issued. Some Regions have prepared their cards to store medical data in accordance to the NETLINK standard; Chambers of Commerce issue CNS cards with additional signature keys. Third parties can register with the CNIPA government agency and obtain the <a class="ext-link" href="http://www.cnipa.gov.it/site/it-IT/Attività/Certificatori_accreditati/Carta_Nazionale_dei_Servizi/Servizi_aggiuntivi/" shape="rect"><span class="icon">allocation of file IDs</span></a> for their applications; then the CNS issuer may install the files.
+</p>
+<p>
+All CNS/CIE cards carry one X.509 certificate with its public and private keys, mostly used for on-line authentication via SSL. Encryption, decryption, signature with this certificate is the basic functionality currently supported by the <tt>itacns</tt> driver.
+</p>
+<h2 id="References">References</h2>
+<p>
+<a class="ext-link" href="http://www.cnipa.gov.it/site/it-IT/Attività/Certificatori_accreditati/Carta_Nazionale_dei_Servizi/Specifiche_tecniche/" shape="rect"><span class="icon">CNS tech specs</span></a>:
+</p>
+<ul><li><a class="ext-link" href="http://www.cnipa.gov.it/site/_files/CNS%20Functional%20Specification%201.1.3_06042006_.pdf" shape="rect"><span class="icon">Functional Specification v. 1.1.3</span></a> (in English)
+</li><li>Censored <a class="ext-link" href="http://www.cnipa.gov.it/site/_files/Organizzazione_del_File_System.pdf" shape="rect"><span class="icon">filesystem layout</span></a> (NDA required to obtain the full version; in Italian, but mostly drawn)
+</li><li><a class="ext-link" href="http://www.cnipa.gov.it/site/_files/StrutturaCertificatoAutenticazioneCNS_v1.1_.pdf" shape="rect"><span class="icon">X.509 certificate structure</span></a> (in Italian)
+</li><li>General <a class="ext-link" href="http://www.cnipa.gov.it/site/_files/LineeguidaCNS(v3.0).pdf" shape="rect"><span class="icon">guidelines</span></a> for the issue and usage of the CNS (in Italian)
+</li></ul><p>
+<a class="ext-link" href="http://www.servizidemografici.interno.it/sitoCNSD/documentazioneRicerca.do?metodo=homePage&amp;servizio=documentazione&amp;codiceFunzione=DO" shape="rect"><span class="icon">CIE specs</span></a>: (leave the search box empty and hit "Inizia la ricerca" to get a full listing of the documents)]:
+</p>
+<ul><li><a class="ext-link" href="http://www.servizidemografici.interno.it/sitoCNSD/ricercaAllegatiFunzione.do?servizio=allegati&amp;metodo=contenutoAllegato&amp;ALLEGATO_ID_ALLEGATO=345&amp;ALL_NO_FI_AL=CIE_inglese.pdf" shape="rect"><span class="icon">Physical features</span></a> (in English)
+</li><li><a class="ext-link" href="http://www.servizidemografici.interno.it/sitoCNSD/documentazioneRicerca.do?metodo=contenutoDocumento&amp;servizio=documentazione&amp;ID_DOCUMENTO=1043" shape="rect"><span class="icon">Filesystem layout</span></a> (uncensored, in English)
+</li></ul>
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

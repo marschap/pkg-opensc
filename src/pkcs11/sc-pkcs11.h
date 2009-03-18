@@ -33,13 +33,14 @@
 
 #define CRYPTOKI_EXPORTS
 #include <pkcs11.h>
+#include <pkcs11-opensc.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif 
 
-#if defined(_WIN32)
-#define PKCS11_DEFAULT_MODULE_NAME      "opensc-pkcs11"
+#if defined(_WIN32) || defined(USE_CYGWIN)
+#define PKCS11_DEFAULT_MODULE_NAME      "opensc-pkcs11.dll"
 #else
 #define PKCS11_DEFAULT_MODULE_NAME      "opensc-pkcs11.so"
 #endif
@@ -52,17 +53,13 @@ extern CK_RV C_UnloadModule(void *module);
 #endif
 
 /* Decide whether to use pkcs11 for initialization support */
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 #define USE_PKCS15_INIT
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#define SC_PKCS11_MAX_VIRTUAL_SLOTS	8
-#define SC_PKCS11_DEF_SLOTS_PER_CARD	4
-#define SC_PKCS11_MAX_READERS           SC_MAX_READERS
 
 struct sc_pkcs11_session;
 struct sc_pkcs11_slot;
@@ -90,7 +87,9 @@ struct sc_pkcs11_pool {
 };
 
 struct sc_pkcs11_config {
-	unsigned int num_slots;
+	unsigned int plug_and_play;
+	unsigned int max_virtual_slots;
+	unsigned int slots_per_card;
 	unsigned char hide_empty_tokens;
 	unsigned char lock_login;
 	unsigned char cache_pins;
@@ -280,7 +279,7 @@ struct sc_pkcs11_mechanism_type {
 					CK_BYTE_PTR, CK_ULONG_PTR);
 	CK_RV		  (*sign_size)(sc_pkcs11_operation_t *,
 					CK_ULONG_PTR);
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 	CK_RV		  (*verif_init)(sc_pkcs11_operation_t *,
 					struct sc_pkcs11_object *);
 	CK_RV		  (*verif_update)(sc_pkcs11_operation_t *,
@@ -335,8 +334,8 @@ typedef struct sc_pkcs11_session sc_pkcs11_session_t;
 /* Module variables */
 extern struct sc_context *context;
 extern struct sc_pkcs11_pool session_pool;
-extern struct sc_pkcs11_slot virtual_slots[SC_PKCS11_MAX_VIRTUAL_SLOTS];
-extern struct sc_pkcs11_card card_table[SC_PKCS11_MAX_READERS];
+extern struct sc_pkcs11_slot *virtual_slots;
+extern struct sc_pkcs11_card card_table[SC_MAX_READERS];
 extern struct sc_pkcs11_config sc_pkcs11_conf;
 extern unsigned int first_free_slot;
 
@@ -412,7 +411,7 @@ CK_RV sc_pkcs11_sign_init(struct sc_pkcs11_session *, CK_MECHANISM_PTR,
 CK_RV sc_pkcs11_sign_update(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG);
 CK_RV sc_pkcs11_sign_final(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG_PTR);
 CK_RV sc_pkcs11_sign_size(struct sc_pkcs11_session *, CK_ULONG_PTR);
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 CK_RV sc_pkcs11_verif_init(struct sc_pkcs11_session *, CK_MECHANISM_PTR,
 				struct sc_pkcs11_object *, CK_MECHANISM_TYPE);
 CK_RV sc_pkcs11_verif_update(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG);
@@ -429,14 +428,14 @@ sc_pkcs11_operation_t *sc_pkcs11_new_operation(sc_pkcs11_session_t *,
 				sc_pkcs11_mechanism_type_t *);
 void sc_pkcs11_release_operation(sc_pkcs11_operation_t **);
 CK_RV sc_pkcs11_register_generic_mechanisms(struct sc_pkcs11_card *);
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 void sc_pkcs11_register_openssl_mechanisms(struct sc_pkcs11_card *);
 #endif
 CK_RV sc_pkcs11_register_sign_and_hash_mechanism(struct sc_pkcs11_card *,
 				CK_MECHANISM_TYPE, CK_MECHANISM_TYPE,
 				sc_pkcs11_mechanism_type_t *);
 
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 /* Random generation functions */
 CK_RV sc_pkcs11_gen_keypair_soft(CK_KEY_TYPE keytype, CK_ULONG keybits,
 	struct sc_pkcs15_prkey *privkey, struct sc_pkcs15_pubkey *pubkey);

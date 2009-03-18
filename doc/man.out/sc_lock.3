@@ -1,0 +1,33 @@
+.\"     Title: sc_lock
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC API reference
+.\"    Source: opensc
+.\"
+.TH "SC_LOCK" "3" "02/26/2009" "opensc" "OpenSC API reference"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+sc_lock \- Lock a card for exclusive use
+.SH "SYNOPSIS"
+.PP
+
+.sp
+.RS 4
+.nf
+#include <opensc\&.h>
+
+int sc_lock(struct sc_card *card);
+		
+.fi
+.RE
+.sp
+.SH "DESCRIPTION"
+.PP
+This function locks the card against modification from other threads or processes\&. The function may be called several times; a counter will be increased, and the card will be unlocked only when this counter reaches zero\&.
+.SH "RETURN VALUE"
+.PP
+Returns 0 on success, or a negative value in case of error\&.

@@ -26,7 +26,7 @@
 #include <unistd.h>
 #endif
 #include <stdlib.h>
-#include <my_getopt.h>
+#include <compat_getopt.h>
 #include <string.h>
 #include <opensc/opensc.h>
 #include <opensc/asn1.h>
@@ -80,7 +80,7 @@ static struct {
 static void show_version(void)
 {
 	fprintf(stderr,
-		"eidenv - EstEID utility version " VERSION "\n"
+		"eidenv - EstEID utility version " PACKAGE_VERSION "\n"
 		"\n"
 		"Copyright (c) 2004 Martin Paljak <martin@paljak.pri.ee>\n"
 		"Licensed under GPL v2\n");
@@ -422,7 +422,7 @@ int main(int argc, char **argv)
 	}
 	
 	if (exec_program) {
-		char *largv[2];
+		const char *largv[2];
 		sc_unlock(card);
 		sc_disconnect_card(card, 0);
 		sc_release_context(ctx);

@@ -25,7 +25,6 @@
 #include <string.h>
 #include <ltdl.h>
 
-#define GET_SLOT_PTR(s, i) (&(s)->slot[(i)])
 #define GET_PRIV_DATA(r) ((struct ctapi_private_data *) (r)->drv_data)
 #define GET_SLOT_DATA(r) ((struct ctapi_slot_data *) (r)->drv_data)
 
@@ -611,6 +610,7 @@ struct sc_reader_driver * sc_get_ctapi_driver(void)
 {
 	ctapi_ops.init = ctapi_init;
 	ctapi_ops.finish = ctapi_finish;
+	ctapi_ops.detect_readers = NULL;
 	ctapi_ops.transmit = ctapi_transmit;
 	ctapi_ops.detect_card_presence = ctapi_detect_card_presence;
 	ctapi_ops.lock = ctapi_lock;

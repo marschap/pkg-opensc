@@ -4,7 +4,37 @@ Please also see doc/WhatsNew.html or
 http://www.opensc-project.org/opensc/wiki/WhatsNew
 
 Also see the svn changelog using svn command
-or doc/ChangeLog.
+or doc/nonpersistent/ChangeLog.
+
+New in 0.11.7; 2009-02-26; Andreas Jellinghaus
+* hide_empty_slots now on by default? small logic change?
+* pinpad supported fixed for Mac OS X.
+* ruToken driver was updated.
+* openct virtual readers reduced to 2 by default.
+* link with iconv on Mac OS X for i18n support.
+* Security issue: Fix private data support.
+* Enable lock_login by default.
+* Disable allow_soft_keygen by default.
+
+New in 0.11.6; 2008-08-27; Andreas Jellinghaus
+* Improved security fix: don't match for "OpenSC" in the card label.
+* New support for Feitian ePass3000 bei Weitao Sun.
+* GemSafeV1 improved to handle key_ref other than 3 by Douglas E. Engert 
+
+New in 0.11.5; 2008-07-31; Andreas Jellinghaus
+* Apply security fix for cardos driver and extend pkcs15-tool to
+  test cards for the security vulnerability and update them.
+* Build system rewritten (NOTICE: configure options was modified). 
+  The build system can produce outputs for *NIX, cygwin and native
+  windows (using mingw).
+* ruToken now supported.
+* Allow specifying application name for data objects.
+* Basic reader hotplug support.
+* PC/SC library is dynamic linked no longer compile time dependency.
+* PKCS#11 provider is now installed at LIBDIR/pkcs11
+* PKCS#11 - Number of virtual slots moved into configuration.
+* PKCS#11 - Fix fork() compliance.
+* make sign_with_decrypt hack configureable for siemens cards.
 
 New in 0.11.4; 2007-09-10; Andreas Jellinghaus
 * Drop AC_LIB_LINKFLAGS for libltdl and aclocal/lib* files.

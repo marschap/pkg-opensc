@@ -23,17 +23,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "internal.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
-#include <opensc/pkcs15.h>
-#include <opensc/log.h>
-#include <opensc/cardctl.h>
-#include <opensc/cards.h>
-#include <openssl/bio.h>
-#include <openssl/rsa.h>
-#include <openssl/pem.h>
+#include "pkcs15.h"
+#include "cardctl.h"
 
 #define MANU_ID		"piv_II "
 
@@ -111,18 +107,29 @@ static int piv_detect_card(sc_pkcs15_card_t *p15card)
 static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 {
 
+	/* The cert objects will return all the data */
 const objdata objects[] = {
 	{"1", "Card Capability Container", 
 			"2.16.840.1.101.3.7.1.219.0", NULL, "DB00", 0},
 	{"2", "Card Holder Unique Identifier",
 			"2.16.840.1.101.3.7.2.48.0", NULL, "3000", 0},
-	{"3", "Card Holder Fingerprints",
+	{"3", "Unsigned Card Holder Unique Identifier",
+			"2.16.840.1.101.3.7.2.48.2", NULL, "3002", 0},
+	{"4", "X.509 Certificate for PIV Authentication",
+			"2.16.840.1.101.3.7.2.1.1", NULL, "0101", 0},
+	{"5", "Card Holder Fingerprints",
 			"2.16.840.1.101.3.7.2.96.16", "1", "6010", SC_PKCS15_CO_FLAG_PRIVATE},
-	{"4", "Printed Information",
+	{"6", "Printed Information",
 			"2.16.840.1.101.3.7.2.48.1", "1", "3001", SC_PKCS15_CO_FLAG_PRIVATE},
-	{"5", "Card Holder Facial Image", 
+	{"7", "Card Holder Facial Image", 
 			"2.16.840.1.101.3.7.2.96.48", "1", "6030", SC_PKCS15_CO_FLAG_PRIVATE},
-	{"6", "Security Object",
+	{"8", "X.509 Certificate for Digital Signature",
+			"2.16.840.1.101.3.7.2.1.0",  NULL, "0100", 0},
+	{"9", "X.509 Certificate for Key Management", 
+			"2.16.840.1.101.3.7.2.1.2", NULL, "0102", 0},
+	{"10","X.509 Certificate for Card Authentication",
+			"2.16.840.1.101.3.7.2.5.0", NULL, "0500", 0},
+	{"11", "Security Object",
 			"2.16.840.1.101.3.7.2.144.0", NULL, "9000", 0},
 	{NULL, NULL, NULL, NULL, NULL, 0}
 };
@@ -133,11 +140,13 @@ const objdata objects[] = {
 	 * that do enforce it. Code later on will allow SC_PKCS15_CO_FLAG_PRIVATE
 	 * to be set. 
 	 */
+	/* certs will be pulled out from the cert objects */
 	cdata certs[] = {
-		{"1", "Certificate for PIV Authentication", 0, "0101", 0, 0},
-		{"2", "Certificate for Digital Signature", 0, "0100", 0, 0},
-		{"3", "Certificate for Key Management", 0, "0102", 0, 0},
-		{"4", "Certificate for Card Authentication", 0, "0500", 0, 0},
+		{"1", "Certificate for PIV Authentication", 0, "0101cece", 0, 0},
+
+		{"2", "Certificate for Digital Signature", 0, "0100cece", 0, 0},
+		{"3", "Certificate for Key Management", 0, "0102cece", 0, 0},
+		{"4", "Certificate for Card Authentication", 0, "0500cece", 0, 0},
 		{NULL, NULL, 0, NULL, 0, 0}
 	};
 

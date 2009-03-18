@@ -151,10 +151,12 @@ extern "C" {
 /* Symmetric algorithms */
 #define SC_ALGORITHM_DES		64
 #define SC_ALGORITHM_3DES		65
+#define SC_ALGORITHM_GOST		66
 
 /* Hash algorithms */
 #define SC_ALGORITHM_MD5		128
 #define SC_ALGORITHM_SHA1		129
+#define SC_ALGORITHM_GOSTHASH		130
 
 /* Key derivation algorithms */
 #define SC_ALGORITHM_PBKDF2		192
@@ -187,6 +189,10 @@ extern "C" {
 #define SC_ALGORITHM_RSA_HASH_SHA512	0x00000800
 #define SC_ALGORITHM_RSA_HASH_SHA224	0x00001000
 #define SC_ALGORITHM_RSA_HASHES		0x00001FE0
+
+#define SC_ALGORITHM_GOST_CRYPT_PZ     0x0     
+#define SC_ALGORITHM_GOST_CRYPT_GAMM   0x1     
+#define SC_ALGORITHM_GOST_CRYPT_GAMMOS 0x2     
 
 /* Event masks for sc_wait_for_event() */
 #define SC_EVENT_CARD_INSERTED		0x0001
@@ -367,6 +373,9 @@ struct sc_reader_operations {
 	/* Called when the driver is being unloaded.  finish() has to
 	 * deallocate the private data and any resources. */
 	int (*finish)(struct sc_context *ctx, void *priv_data);
+	/* Called when library wish to detect new readers
+	 * should add only new readers. */
+	int (*detect_readers)(struct sc_context *ctx, void *priv_data);
 	/* Called when releasing a reader.  release() has to
 	 * deallocate the private data.  Other fields will be
 	 * freed by OpenSC. */
@@ -445,6 +454,10 @@ struct sc_reader_operations {
 
 /* The card supports 2048 bit RSA keys */
 #define SC_CARD_CAP_RSA_2048		0x00000020
+
+/* D-TRUST CardOS cards special flags */
+#define SC_CARD_CAP_ONLY_RAW_HASH        0x00000040
+#define SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED      0x00000080
 
 typedef struct sc_card {
 	struct sc_context *ctx;
@@ -715,6 +728,13 @@ int sc_context_create(sc_context_t **ctx, const sc_context_param_t *parm);
  * @param ctx A pointer to the context structure to be released
  */
 int sc_release_context(sc_context_t *ctx);
+
+/**
+ * Detect new readers available on system.
+ * @param  ctx  OpenSC context
+ * @return SC_SUCCESS on success and an error code otherwise.
+ */
+int sc_ctx_detect_readers(sc_context_t *ctx);
 
 /**
  * Returns a pointer to the specified sc_reader_t object
@@ -1150,33 +1170,7 @@ extern const char *sc_get_version(void);
 		return drv_version; \
 	}
 
-extern struct sc_reader_driver *sc_get_pcsc_driver(void);
-extern struct sc_reader_driver *sc_get_ctapi_driver(void);
-extern struct sc_reader_driver *sc_get_openct_driver(void);
-
-extern sc_card_driver_t *sc_get_default_driver(void);
-extern sc_card_driver_t *sc_get_emv_driver(void);
-extern sc_card_driver_t *sc_get_cardos_driver(void);
-extern sc_card_driver_t *sc_get_cryptoflex_driver(void);
-extern sc_card_driver_t *sc_get_cyberflex_driver(void);
-extern sc_card_driver_t *sc_get_gpk_driver(void);
 extern sc_card_driver_t *sc_get_iso7816_driver(void);
-extern sc_card_driver_t *sc_get_miocos_driver(void);
-extern sc_card_driver_t *sc_get_mcrd_driver(void);
-extern sc_card_driver_t *sc_get_setcos_driver(void);
-extern sc_card_driver_t *sc_get_starcos_driver(void);
-extern sc_card_driver_t *sc_get_tcos_driver(void);
-extern sc_card_driver_t *sc_get_openpgp_driver(void);
-extern sc_card_driver_t *sc_get_jcop_driver(void);
-extern sc_card_driver_t *sc_get_oberthur_driver(void);
-extern sc_card_driver_t *sc_get_belpic_driver(void);
-extern sc_card_driver_t *sc_get_atrust_acos_driver(void);
-extern sc_card_driver_t *sc_get_incrypto34_driver(void);
-extern sc_card_driver_t *sc_get_piv_driver(void);
-extern sc_card_driver_t *sc_get_muscle_driver(void);
-extern sc_card_driver_t *sc_get_acos5_driver(void);
-extern sc_card_driver_t *sc_get_asepcos_driver(void);
-extern sc_card_driver_t *sc_get_akis_driver(void);
 
 #ifdef __cplusplus
 }

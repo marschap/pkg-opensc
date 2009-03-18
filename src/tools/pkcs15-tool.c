@@ -2,6 +2,7 @@
  * pkcs15-tool.c: Tool for poking with PKCS #15 smart cards
  *
  * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
+ * Copyright (C) 2008  Andreas Jellinghaus <aj@dungeon.inka.de>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,21 +22,22 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-#ifdef HAVE_OPENSSL
-#ifdef _WIN32
+#ifdef ENABLE_OPENSSL
+#if defined(HAVE_INTTYPES_H)
+#include <inttypes.h>
+#elif defined(HAVE_STDINT_H)
+#include <stdint.h>
+#elif defined(_MSC_VER)
 typedef unsigned __int32 uint32_t;
 #else
-#ifdef HAVE_INTTYPES_H
-#include <inttypes.h>
-#else
 #warning no uint32_t type available, please contact opensc-devel@opensc-project.org
-#endif
 #endif
 #include <openssl/bn.h>
 #include <openssl/crypto.h>
 #endif
 #include <limits.h>
 #include <opensc/pkcs15.h>
+#include <compat_getpass.h>
 #include "util.h"
 
 static const char *app_name = "pkcs15-tool";
@@ -61,7 +63,7 @@ enum {
 	OPT_NO_CACHE,
 	OPT_LIST_PUB,
 	OPT_READ_PUB,
-#if defined(HAVE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
+#if defined(ENABLE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
 	OPT_READ_SSH,
 #endif
 	OPT_PIN,
@@ -87,9 +89,11 @@ static const struct option options[] = {
 	{ "list-keys",          no_argument, NULL,         'k' },
 	{ "list-public-keys",	no_argument, NULL,		OPT_LIST_PUB },
 	{ "read-public-key",	required_argument, NULL,	OPT_READ_PUB },
-#if defined(HAVE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
+#if defined(ENABLE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
 	{ "read-ssh-key",	required_argument, NULL,	OPT_READ_SSH },
 #endif
+	{ "test-update",	no_argument, NULL,		'T' },
+	{ "update",		no_argument, NULL,		'U' },
 	{ "reader",		required_argument, NULL,	OPT_READER },
 	{ "pin",                required_argument, NULL,   OPT_PIN },
 	{ "new-pin",		required_argument, NULL,	OPT_NEWPIN },
@@ -106,7 +110,7 @@ static const char *option_help[] = {
 	"Stores card info to cache",
 	"Reads certificate with ID <arg>",
 	"Lists certificates",
-	"Reads data object with applicationName or OID <arg>",
+	"Reads data object with OID, applicationName or label <arg>",
 	"Lists data objects",
 	"Lists PIN codes",
 	"Dump card objects",
@@ -116,6 +120,8 @@ static const char *option_help[] = {
 	"Lists public keys",
 	"Reads public key with ID <arg>",
 	"Reads public key with ID <arg>, outputs ssh format",
+	"Test if the card needs a security update",
+	"Update the card with a security update",
 	"Uses reader number <arg>",
 	"Specify PIN",
 	"Specify New PIN (when changing or unblocking)",
@@ -317,7 +323,7 @@ static int read_data_object(void)
 			if (memcmp(oid.value, cinfo->app_oid.value, sizeof(int) * oid_len))
 				continue;
 		} else {
-			if (memcmp(opt_data, &cinfo->app_label, strlen(opt_data)))
+			if (strcmp(opt_data, cinfo->app_label) && strcmp(opt_data, objs[i]->label))
 				continue;
 		}
 			
@@ -361,6 +367,7 @@ static int list_data_objects(void)
 
 		printf("Reading data object <%i>\n", i);
 		printf("applicationName: %s\n", cinfo->app_label);
+		printf("Label:           %s\n", objs[i]->label);
 		printf("applicationOID:  ");
 		if (cinfo->app_oid.value[0] >= 0) {
 			printf("%i", cinfo->app_oid.value[0]);
@@ -559,9 +566,9 @@ static int read_public_key(void)
 		r = 1;
 	} else {
 		r = print_pem_object("PUBLIC KEY", pem_key.value, pem_key.len);
+		free(pem_key.value);
 	}
 
-	free(pem_key.value);
 	if (cert)
 		sc_pkcs15_free_certificate(cert);
 	else if (pubkey)
@@ -570,7 +577,7 @@ static int read_public_key(void)
 	return r;
 }
 
-#if defined(HAVE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
+#if defined(ENABLE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
 static int read_ssh_key(void)
 {
 	int r;
@@ -1083,7 +1090,7 @@ static int read_and_cache_file(const sc_path_t *path)
 
 	if (verbose) {
 		printf("Reading file ");
-		hex_dump(stdout, path->value, path->len, "");
+		util_hex_dump(stdout, path->value, path->len, "");
 		printf("...\n");
 	}
 	r = sc_select_file(card, path, &tfile);
@@ -1175,6 +1182,212 @@ static int learn_card(void)
 	return 0;
 }
 
+static int test_update(sc_card_t *in_card)
+{
+	sc_apdu_t apdu;
+	static u8 cmd1[2] = { 0x50, 0x15};
+	u8 rbuf[258];
+        int rc;
+	int r;
+	static u8 fci_bad[] = { 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+	static u8 fci_good[] = { 0x00, 0xFF, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x00, 0x00 };
+
+
+
+        if (strcmp("cardos",in_card->driver->short_name) != 0) {
+ 		printf("not using the cardos driver, card is fine.\n");
+		rc = 0;
+                goto end;
+        }
+
+	/* first select file on 5015 and get fci */
+	sc_format_apdu(in_card, &apdu, SC_APDU_CASE_4_SHORT, 0xa4, 0x08, 0x00);
+	apdu.lc = sizeof(cmd1);
+	apdu.datalen = sizeof(cmd1);
+	apdu.data = cmd1;
+	apdu.le = 256;
+	apdu.resp = rbuf;
+	apdu.resplen = sizeof(rbuf);
+
+	r = sc_transmit_apdu(card, &apdu);
+	if (r < 0) {
+		printf("selecting folder failed: %s\n", sc_strerror(r));
+		rc = 2;
+		goto end;
+	}
+
+	if (apdu.sw1 != 0x90) {
+		printf("apdu command select file failed: card returned %02X %02X\n",
+			apdu.sw1, apdu.sw2);
+		rc = 2;
+		goto end;
+
+	}
+
+	if (apdu.resplen < 6) {
+		printf("select file did not return enough data (length %d)\n",
+			(int) apdu.resplen);
+		goto bad_fci;
+	}
+
+	if (rbuf[0] != 0x6f) {
+		printf("select file did not return the information we need\n");
+		goto bad_fci;
+	}
+
+	if (rbuf[1] != apdu.resplen -2) {
+		printf("select file returned inconsistent information\n");
+		goto bad_fci;
+	}
+
+	{
+		int i=0;
+	  	while(i < rbuf[1]) {
+			if (rbuf[2+i] == 0x86) { /* found our buffer */
+				break;
+			}
+			/* other tag */
+			i += 2 + rbuf[2+i+1]; /* length of this tag*/
+		}	
+		if (rbuf[2+i+1] < 9 || 2+i+2+9 > apdu.resplen) {
+			printf("select file returned short fci\n");
+			goto bad_fci;
+		}
+
+		if (memcmp(&rbuf[2+i+2],fci_good,sizeof(fci_good)) == 0) {
+			printf("fci is up-to-date, card is fine\n");
+			rc = 0;
+			goto end;
+		}
+
+		if (memcmp(&rbuf[2+i+2],fci_bad,sizeof(fci_bad)) == 0) {
+			printf("fci is out-of-date, card is vulnerable\n");
+			rc = 1;
+			goto end;
+		}
+
+		printf("select file returned fci with unknown data\n");
+		goto bad_fci;
+	}
+end:
+	/* 0 = card ok, 1 = card vulnerable, 2 = problem! */
+        return rc;
+
+bad_fci:
+	util_hex_dump(stdout,rbuf,apdu.resplen," ");
+	printf("\n");
+	return 2;
+}
+
+static int update(sc_card_t *in_card)
+{
+	sc_apdu_t apdu;
+	u8 rbuf[258];
+	static u8 cmd1[2] = { 0x50, 0x15};
+	static u8 cmd3[11] = { 0x86, 0x09, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00,
+				0xff, 0x00, 0x00};
+	int r;
+
+	/* first select file on 5015 */
+	sc_format_apdu(in_card, &apdu, SC_APDU_CASE_3_SHORT, 0xa4, 0x08, 0x00);
+	apdu.lc = sizeof(cmd1);
+	apdu.datalen = sizeof(cmd1);
+	apdu.data = cmd1;
+
+	r = sc_transmit_apdu(card, &apdu);
+	if (r < 0) {
+		printf("selecting folder failed: %s\n", sc_strerror(r));
+		goto end;
+	}
+
+	if (apdu.sw1 != 0x90) {
+		printf("apdu command select file: card returned %02X %02X\n",
+			apdu.sw1, apdu.sw2);
+		goto end;
+
+	}
+
+	/* next get lifecycle */
+	memset(&apdu, 0, sizeof(apdu));
+	sc_format_apdu(in_card, &apdu, SC_APDU_CASE_2, 0xca, 0x01, 0x83);
+	apdu.cla = 0x00;
+	apdu.le = 256;
+	apdu.resp = rbuf;
+	apdu.resplen = sizeof(rbuf);
+
+	r = sc_transmit_apdu(card, &apdu);
+	if (r < 0) {
+		printf("get lifecycle failed: %s\n", sc_strerror(r));
+		goto end;
+	}
+
+	if (apdu.sw1 != 0x90) {
+		printf("get lifecycle failed: card returned %02X %02X\n",
+			apdu.sw1, apdu.sw2);
+		goto end;
+
+	}
+
+	if (apdu.resplen < 1) {
+		printf("get lifecycle failed: lifecycle byte not in response\n");
+		goto end;
+        }
+
+	if (rbuf[0] != 0x10 && rbuf[0] != 0x20) {
+		printf("lifecycle neither user nor admin, can't proceed\n");
+		goto end;
+	}
+
+	if (rbuf[0] == 0x20)
+		goto skip_change_lifecycle;
+
+	/* next phase control / change lifecycle to operational */
+	memset(&apdu, 0, sizeof(apdu));
+	sc_format_apdu(in_card, &apdu, SC_APDU_CASE_1, 0x10, 0x00, 0x00);
+	apdu.cla = 0x80;
+
+	r = sc_transmit_apdu(card, &apdu);
+	if (r < 0) {
+		printf("change lifecycle failed: %s\n", sc_strerror(r));
+		goto end;
+	}
+
+	if (apdu.sw1 != 0x90) {
+		printf("apdu command change lifecycle failed: card returned %02X %02X\n",
+			apdu.sw1, apdu.sw2);
+		goto end;
+
+	}
+
+skip_change_lifecycle:
+	/* last update AC */
+	memset(&apdu, 0, sizeof(apdu));
+	sc_format_apdu(in_card, &apdu, SC_APDU_CASE_3_SHORT, 0xda, 0x01, 0x6f);
+	apdu.lc = sizeof(cmd3);
+	apdu.datalen = sizeof(cmd3);
+	apdu.data = cmd3;
+	apdu.le = 0;
+	apdu.resplen = 0;
+	apdu.resp = NULL;
+
+	r = sc_transmit_apdu(card, &apdu);
+	if (r < 0) {
+		printf("update fci failed: %s\n", sc_strerror(r));
+		goto end;
+	}
+
+	if (apdu.sw1 != 0x90) {
+		printf("apdu command update fci failed: card returned %02X %02X\n",
+			apdu.sw1, apdu.sw2);
+		goto end;
+
+	}
+	
+	printf("security update applied successfully.\n");
+end:
+        return 0;
+}
+
 int main(int argc, char * const argv[])
 {
 	int err = 0, r, c, long_optind = 0;
@@ -1187,21 +1400,23 @@ int main(int argc, char * const argv[])
 	int do_list_prkeys = 0;
 	int do_list_pubkeys = 0;
 	int do_read_pubkey = 0;
-#if defined(HAVE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
+#if defined(ENABLE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
 	int do_read_sshkey = 0;
 #endif
 	int do_change_pin = 0;
 	int do_unblock_pin = 0;
 	int do_learn_card = 0;
+	int do_test_update = 0;
+	int do_update = 0;
 	int action_count = 0;
 	sc_context_param_t ctx_param;
 
 	while (1) {
-		c = getopt_long(argc, argv, "r:cuko:va:LR:CwD", options, &long_optind);
+		c = getopt_long(argc, argv, "r:cuko:va:LR:CwDTU", options, &long_optind);
 		if (c == -1)
 			break;
 		if (c == '?')
-			print_usage_and_die(app_name, options, option_help);
+			util_print_usage_and_die(app_name, options, option_help);
 		switch (c) {
 		case 'r':
 			opt_cert = optarg;
@@ -1250,7 +1465,7 @@ int main(int argc, char * const argv[])
 			do_read_pubkey = 1;
 			action_count++;
 			break;
-#if defined(HAVE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
+#if defined(ENABLE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
 		case OPT_READ_SSH:
 			opt_pubkey = optarg;
 			do_read_sshkey = 1;
@@ -1259,6 +1474,14 @@ int main(int argc, char * const argv[])
 #endif
 		case 'L':
 			do_learn_card = 1;
+			action_count++;
+			break;
+		case 'T':
+			do_test_update = 1;
+			action_count++;
+			break;
+		case 'U':
+			do_update = 1;
 			action_count++;
 			break;
 		case OPT_READER:
@@ -1291,7 +1514,7 @@ int main(int argc, char * const argv[])
 		}
 	}
 	if (action_count == 0)
-		print_usage_and_die(app_name, options, option_help);
+		util_print_usage_and_die(app_name, options, option_help);
 
 	memset(&ctx_param, 0, sizeof(ctx_param));
 	ctx_param.ver      = 0;
@@ -1305,7 +1528,7 @@ int main(int argc, char * const argv[])
 	if (verbose > 1 )
 		ctx->debug = verbose-1;
 
-	err = connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
+	err = util_connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
 	if (err)
 		goto end;
 
@@ -1361,7 +1584,7 @@ int main(int argc, char * const argv[])
 			goto end;
 		action_count--;
 	}
-#if defined(HAVE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
+#if defined(ENABLE_OPENSSL) && (defined(_WIN32) || defined(HAVE_INTTYPES_H))
 	if (do_read_sshkey) {
 		if ((err = read_ssh_key()))
 			goto end;
@@ -1387,6 +1610,18 @@ int main(int argc, char * const argv[])
 		if ((err = unblock_pin()))
 			goto end;
 		action_count--;
+	}
+	if (do_test_update || do_update) {
+ 		err = test_update(card);
+		action_count--;
+		if (err == 2) { /* problem */
+			err =1;
+			goto end;
+		}
+		if (do_update && err == 1) { /* card vulnerable */
+			if ((err = update(card)))
+				goto end;
+		}
 	}
 end:
 	if (p15card)
@@ -1419,7 +1654,7 @@ static int pem_encode(int alg_id, sc_pkcs15_der_t *key, sc_pkcs15_der_t *out)
 	struct sc_asn1_entry	asn1_pem_key[2],
 				asn1_pem_key_items[3];
 	struct sc_algorithm_id algorithm;
-	int key_len;
+	size_t key_len;
 
 	memset(&algorithm, 0, sizeof(algorithm));
 	algorithm.algorithm = alg_id;

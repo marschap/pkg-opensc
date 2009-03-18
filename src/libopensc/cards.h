@@ -42,7 +42,8 @@ enum {
 	SC_CARD_TYPE_CARDOS_M4_01,
 	SC_CARD_TYPE_CARDOS_M4_2,
 	SC_CARD_TYPE_CARDOS_M4_3,
-	SC_CARD_TYPE_CARDOS_M4_2B, /* 4.2b is the latest after 4.3b */
+	SC_CARD_TYPE_CARDOS_M4_2B, /* 4.2b is after 4.3b */
+	SC_CARD_TYPE_CARDOS_M4_2C,
 
 	/* flex/cyberflex drivers */
 	SC_CARD_TYPE_FLEX_BASE = 2000,
@@ -91,6 +92,8 @@ enum {
 	/* tcos driver */
 	SC_CARD_TYPE_TCOS_BASE = 8000,
 	SC_CARD_TYPE_TCOS_GENERIC,
+	SC_CARD_TYPE_TCOS_V2,
+	SC_CARD_TYPE_TCOS_V3,
 
 	/* openpgp driver */
 	SC_CARD_TYPE_OPENPGP_BASE = 9000,
@@ -135,8 +138,38 @@ enum {
 
 	/* TUBITAK UEKAE cards */
 	SC_CARD_TYPE_AKIS_BASE = 18000,
-	SC_CARD_TYPE_AKIS_GENERIC
+	SC_CARD_TYPE_AKIS_GENERIC,
+
+	/* EnterSafe cards */
+	SC_CARD_TYPE_ENTERSAFE_BASE = 19000,
+	SC_CARD_TYPE_ENTERSAFE_3K,
 };
+
+extern sc_card_driver_t *sc_get_rutoken_driver(void);
+extern sc_card_driver_t *sc_get_default_driver(void);
+extern sc_card_driver_t *sc_get_emv_driver(void);
+extern sc_card_driver_t *sc_get_cardos_driver(void);
+extern sc_card_driver_t *sc_get_cryptoflex_driver(void);
+extern sc_card_driver_t *sc_get_cyberflex_driver(void);
+extern sc_card_driver_t *sc_get_gpk_driver(void);
+extern sc_card_driver_t *sc_get_gemsafeV1_driver(void);
+extern sc_card_driver_t *sc_get_miocos_driver(void);
+extern sc_card_driver_t *sc_get_mcrd_driver(void);
+extern sc_card_driver_t *sc_get_setcos_driver(void);
+extern sc_card_driver_t *sc_get_starcos_driver(void);
+extern sc_card_driver_t *sc_get_tcos_driver(void);
+extern sc_card_driver_t *sc_get_openpgp_driver(void);
+extern sc_card_driver_t *sc_get_jcop_driver(void);
+extern sc_card_driver_t *sc_get_oberthur_driver(void);
+extern sc_card_driver_t *sc_get_belpic_driver(void);
+extern sc_card_driver_t *sc_get_atrust_acos_driver(void);
+extern sc_card_driver_t *sc_get_incrypto34_driver(void);
+extern sc_card_driver_t *sc_get_piv_driver(void);
+extern sc_card_driver_t *sc_get_muscle_driver(void);
+extern sc_card_driver_t *sc_get_acos5_driver(void);
+extern sc_card_driver_t *sc_get_asepcos_driver(void);
+extern sc_card_driver_t *sc_get_akis_driver(void);
+extern sc_card_driver_t *sc_get_entersafe_driver(void);
 
 #ifdef __cplusplus
 }

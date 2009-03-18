@@ -3,6 +3,7 @@
  *
  * Copyright (C) 2007 TUBITAK / UEKAE
  * contact: bilgi@pardus.org.tr
+ *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
@@ -61,8 +62,13 @@ akis_init(sc_card_t *card)
 
 	card->name = "AKIS";
 	card->cla = 0x00;
+	card->max_pin_len = 16;
+	if (card->max_recv_size > 244)
+		card->max_recv_size = 244;
+	if (card->max_send_size > 244)
+		card->max_send_size = 244;
 
-	flags = SC_ALGORITHM_RSA_RAW;
+	flags = SC_ALGORITHM_RSA_RAW | SC_ALGORITHM_RSA_PAD_PKCS1;
         _sc_card_add_rsa_alg(card, 2048, flags, 0);
 
 	return 0;
@@ -213,10 +219,10 @@ akis_process_fci(sc_card_t *card, sc_file_t *file,
 
 	if (file->type == SC_FILE_TYPE_DF) {
 		if (perms & 0x04)
-			sc_file_add_acl_entry(file, SC_AC_OP_LIST_FILES, SC_AC_CHV, 0);
+			sc_file_add_acl_entry(file, SC_AC_OP_LIST_FILES, SC_AC_CHV, 0x80);
 	} else {
 		if (!(perms & 0x04))
-			sc_file_add_acl_entry(file, SC_AC_OP_READ, SC_AC_CHV, 0);
+			sc_file_add_acl_entry(file, SC_AC_OP_READ, SC_AC_CHV, 0x80);
 	}
 
 	return 0;
@@ -328,26 +334,46 @@ akis_delete_file(sc_card_t *card, const sc_path_t *path)
 static int
 akis_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data, int *tries_left)
 {
-	int r;
-	sc_apdu_t apdu;
-
-	if (data->cmd != SC_PIN_CMD_VERIFY) {
-		sc_error(card->ctx, "Other pin cmds not supported yet");
-		return SC_ERROR_NOT_SUPPORTED;
+	if (data->cmd == SC_PIN_CMD_VERIFY) {
+		/* ISO7816 implementation works */
+		return iso_ops->pin_cmd(card, data, tries_left);
 	}
 
-	/* AKIS VERIFY command uses P2 0x80 while ISO uses 0x00
-	 */
-	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x20, 0, 0x80);
-	apdu.data = data->pin1.data;
-	apdu.datalen = data->pin1.len;
-	apdu.lc = apdu.datalen;
-	apdu.sensitive = 1;
+	if (data->cmd == SC_PIN_CMD_CHANGE) {
+		/* This is AKIS specific */
+		int r;
+		sc_apdu_t apdu;
+		u8 buf[64];
+		int p1, p2;
 
-	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
-	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
-	return r;
+		p2 = data->pin_reference;
+		if (p2 & 0x80) {
+			p1 = 2;
+			p2 &= 0x7f;
+		} else {
+			p1 = 1;
+		}
+		sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x24, p1, p2);
+		apdu.sensitive = 1;
+
+		buf[0] = data->pin1.len;
+		memcpy(buf+1, data->pin1.data, data->pin1.len);
+
+		buf[data->pin1.len+1] = data->pin2.len;
+		memcpy(buf+data->pin1.len+2, data->pin2.data, data->pin2.len);
+
+		apdu.data = buf;
+		apdu.datalen = data->pin1.len + data->pin2.len + 2;
+		apdu.lc = apdu.datalen;
+
+		r = sc_transmit_apdu(card, &apdu);
+		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+		r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+		return r;
+	}
+
+	sc_error(card->ctx, "Other pin cmds not supported yet");
+	return SC_ERROR_NOT_SUPPORTED;
 }
 
 static int
@@ -371,7 +397,7 @@ static int
 akis_get_serialnr(sc_card_t *card, sc_serial_number_t *serial)
 {
 	int r;
-	u8 system[128];
+	u8 system_buffer[128];
 
 	if (!serial)
 		return SC_ERROR_INVALID_ARGUMENTS;
@@ -380,11 +406,11 @@ akis_get_serialnr(sc_card_t *card, sc_serial_number_t *serial)
 	if (card->serialnr.len) goto end;
 
 	/* read serial number */
-	r = akis_get_data(card, 6, system, 0x4D);
+	r = akis_get_data(card, 6, system_buffer, 0x4D);
 	SC_TEST_RET(card->ctx, r, "GET_DATA failed");
 
 	card->serialnr.len = 12;
-	memcpy(card->serialnr.value, system+55, 12);
+	memcpy(card->serialnr.value, system_buffer+55, 12);
 
 end:
 	memcpy(serial, &card->serialnr, sizeof(*serial));
@@ -476,6 +502,20 @@ akis_set_security_env(sc_card_t *card,
 	return SC_SUCCESS;
 }
 
+static int
+akis_logout(sc_card_t *card)
+{
+	int r;
+	sc_apdu_t apdu;
+
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_1, 0x1A, 0, 0);
+	apdu.cla = 0x80;
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	return r;
+}
+
 static struct sc_card_driver *
 sc_get_driver(void)
 {
@@ -486,32 +526,33 @@ sc_get_driver(void)
 
 	akis_ops.match_card = akis_match_card;
 	akis_ops.init = akis_init;
-	// read_binary: ISO7816 implementation works
-	// write_binary: ISO7816 implementation works
-	// update_binary: ISO7816 implementation works
-	// erase_binary: Untested
-	// read_record: Untested
-	// write_record: Untested
-	// append_record: Untested
-	// update_record: Untested
+	/* read_binary: ISO7816 implementation works */
+	/* write_binary: ISO7816 implementation works */
+	/* update_binary: ISO7816 implementation works */
+	/* erase_binary: Untested */
+	/* read_record: Untested */
+	/* write_record: Untested */
+	/* append_record: Untested */
+	/* update_record: Untested */
 	akis_ops.select_file = akis_select_file;
-	// get_response: Untested
-	// get_challenge: ISO7816 implementation works
-	// restore_security_env: Untested
+	/* get_response: ISO7816 implementation works */
+	/* get_challenge: ISO7816 implementation works */
+	akis_ops.logout = akis_logout;
+	/* restore_security_env: Untested */
 	akis_ops.set_security_env = akis_set_security_env;
-	// decipher: Untested
-	// compute_signature: ISO7816 implementation works
+	/* decipher: Untested */
+	/* compute_signature: ISO7816 implementation works */
 	akis_ops.create_file = akis_create_file;
 	akis_ops.delete_file = akis_delete_file;
 	akis_ops.list_files = akis_list_files;
-	// check_sw: ISO7816 implementation works
+	/* check_sw: ISO7816 implementation works */
 	akis_ops.card_ctl = akis_card_ctl;
 	akis_ops.process_fci = akis_process_fci;
-	// construct_fci: Not needed
+	/* construct_fci: Not needed */
 	akis_ops.pin_cmd = akis_pin_cmd;
 	akis_ops.get_data = akis_get_data;
-	// put_data: Not implemented
-	// delete_record: Not implemented
+	/* put_data: Not implemented */
+	/* delete_record: Not implemented */
 
 	return &akis_drv;
 }

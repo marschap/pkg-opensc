@@ -1,0 +1,43 @@
+.\"     Title: sc_connect_card
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC API reference
+.\"    Source: opensc
+.\"
+.TH "SC_CONNECT_CARD" "3" "02/26/2009" "opensc" "OpenSC API reference"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+sc_connect_card \- Connect to smart card in reader
+.SH "SYNOPSIS"
+.PP
+
+.sp
+.RS 4
+.nf
+#include <opensc\&.h>
+
+int sc_connect_card(sc_reader_t *reader, int slot, sc_card_t **card);
+		
+.fi
+.RE
+.sp
+.SH "DESCRIPTION"
+.PP
+This function connects to a card in a reader, resets the card and retrieves the ATR (Answer To Reset)\&. Based on the ATR, it tries to auto\-detect which card driver to use\&.
+.PP
+The
+\fIslot\fR
+parameter identifies the card reader\'s slot\&. Slots are numbered consecutively, starting at 0\&.
+.PP
+If OpenSC was able to connect to the card, a pointer to the sc_card_t object is stored in the location pointer to by the
+\fIcard\fR
+parameter\&. The card handle should be released with
+sc_disconnect_card
+when no longer in use\&.
+.SH "RETURN VALUE"
+.PP
+Returns 0 if successful, or a negative value in case of error\&.

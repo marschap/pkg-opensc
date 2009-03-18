@@ -956,8 +956,10 @@ CK_RV C_SeedRandom(CK_SESSION_HANDLE hSession,  /* the session's handle */
 	rv = pool_find(&session_pool, hSession, (void**) &session);
 	if (rv == CKR_OK) {
 		slot = session->slot;
-		if (slot->card->framework->seed_random == NULL)
-			rv = CKR_FUNCTION_NOT_SUPPORTED;
+		if (slot->card->framework->get_random == NULL)
+			rv = CKR_RANDOM_NO_RNG;
+		else if (slot->card->framework->seed_random == NULL)
+			rv = CKR_RANDOM_SEED_NOT_SUPPORTED;
 		else
 			rv = slot->card->framework->seed_random(slot->card, pSeed, ulSeedLen);
 	}
@@ -982,7 +984,7 @@ CK_RV C_GenerateRandom(CK_SESSION_HANDLE hSession,    /* the session's handle */
 	if (rv == CKR_OK) {
 		slot = session->slot;
 		if (slot->card->framework->get_random == NULL)
-			rv = CKR_FUNCTION_NOT_SUPPORTED;
+			rv = CKR_RANDOM_NO_RNG;
 		else
 			rv = slot->card->framework->get_random(slot->card, RandomData, ulRandomLen);
 	}
@@ -1005,7 +1007,7 @@ CK_RV C_VerifyInit(CK_SESSION_HANDLE hSession,    /* the session's handle */
 		   CK_MECHANISM_PTR  pMechanism,  /* the verification mechanism */
 		   CK_OBJECT_HANDLE  hKey)        /* handle of the verification key */
 {
-#ifndef HAVE_OPENSSL
+#ifndef ENABLE_OPENSSL
 	return CKR_FUNCTION_NOT_SUPPORTED;
 #else
 #if 0
@@ -1058,7 +1060,7 @@ CK_RV C_Verify(CK_SESSION_HANDLE hSession,       /* the session's handle */
 	       CK_BYTE_PTR       pSignature,     /* the signature to be verified */
 	       CK_ULONG          ulSignatureLen) /* count of bytes of signature */
 {
-#ifndef HAVE_OPENSSL
+#ifndef ENABLE_OPENSSL
 	return CKR_FUNCTION_NOT_SUPPORTED;
 #else
 	int rv;
@@ -1086,7 +1088,7 @@ CK_RV C_VerifyUpdate(CK_SESSION_HANDLE hSession,  /* the session's handle */
 		     CK_BYTE_PTR       pPart,     /* plaintext data (digest) to compare */
 		     CK_ULONG          ulPartLen) /* length of data (digest) in bytes */
 {
-#ifndef HAVE_OPENSSL
+#ifndef ENABLE_OPENSSL
 	return CKR_FUNCTION_NOT_SUPPORTED;
 #else
 	struct sc_pkcs11_session *session;
@@ -1110,7 +1112,7 @@ CK_RV C_VerifyFinal(CK_SESSION_HANDLE hSession,       /* the session's handle */
 		    CK_BYTE_PTR       pSignature,     /* the signature to be verified */
 		    CK_ULONG          ulSignatureLen) /* count of bytes of signature */
 {
-#ifndef HAVE_OPENSSL
+#ifndef ENABLE_OPENSSL
 	return CKR_FUNCTION_NOT_SUPPORTED;
 #else
 	struct sc_pkcs11_session *session;

@@ -308,7 +308,8 @@ cardos_generate_key(sc_profile_t *profile, sc_card_t *card,
 	u8		abignum[256];
 	int		algorithm, r, delete_it = 0, use_ext_rsa = 0;
 	size_t		keybits, rsa_max_size;
-	
+	int             pin_id = -1;
+
 	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA)
 		return SC_ERROR_NOT_SUPPORTED;
 
@@ -333,6 +334,12 @@ cardos_generate_key(sc_profile_t *profile, sc_card_t *card,
 		sc_error(card->ctx, "Profile doesn't define temporary file "
 				"for key generation.");
 		return SC_ERROR_NOT_SUPPORTED;
+	}
+       pin_id = sc_keycache_find_named_pin(&key_info->path, SC_PKCS15INIT_USER_PIN);
+       if (pin_id > 0) {
+		r = sc_pkcs15init_verify_key(profile, card, NULL, SC_AC_CHV, pin_id);
+		if (r < 0)
+			return r;
 	}
 	if (use_ext_rsa == 0)
 		temp->ef_structure = SC_FILE_EF_LINEAR_VARIABLE_TLV;
@@ -544,7 +551,7 @@ cardos_store_key_component(sc_card_t *card,
 	struct sc_cardctl_cardos_obj_info args;
 	struct tlv	tlv;
 	unsigned char	buffer[256];
-#if SET_SM_BYTES
+#ifdef SET_SM_BYTES
 	unsigned int	n;
 #endif
 	int		r;
@@ -582,7 +589,7 @@ cardos_store_key_component(sc_card_t *card,
 	tlv_add(&tlv, 0);
 #endif
 
-#if SET_SM_BYTES
+#ifdef SET_SM_BYTES
 	/* it shouldn't be necessary to set the default value */
 	/* SM bytes */
 	tlv_next(&tlv, 0x8B);
@@ -622,7 +629,8 @@ static int cardos_put_key(sc_profile_t *profile, sc_card_t *card,
 		pin_id = 0;
 
 	if (key_info->modulus_length > 1024 && (card->type == SC_CARD_TYPE_CARDOS_M4_2 ||
-	    card->type == SC_CARD_TYPE_CARDOS_M4_3 ||card->type == SC_CARD_TYPE_CARDOS_M4_2B)) {
+	    card->type == SC_CARD_TYPE_CARDOS_M4_3 ||card->type == SC_CARD_TYPE_CARDOS_M4_2B ||
+	    card->type == SC_CARD_TYPE_CARDOS_M4_2C )) {
 		r = cardos_store_key_component(card, algorithm, key_id, pin_id, 0,
 			key->p.data, key->p.len, 0, 0);
 		if (r != SC_SUCCESS)

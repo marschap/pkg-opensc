@@ -184,13 +184,13 @@ static int asepcos_parse_sec_attr(sc_card_t *card, sc_file_t *file, const u8 *bu
 			int r = set_sec_attr(file, amode, p[5], SC_AC_CHV);
 			if (r != SC_SUCCESS)
 				return r;
-			tlen += 2 + p[4]; // FIXME
+			tlen += 2 + p[4]; /* FIXME */
 		} else if (p[3] == 0xAF && len >= 4U + p[4]) {
 			/* TODO: support AND expressions */
 			int r = set_sec_attr(file, amode, p[5], SC_AC_CHV);
 			if (r != SC_SUCCESS)
 				return r;
-			tlen += 2 + p[4];	// FIXME
+			tlen += 2 + p[4];	/* FIXME */
 		} else {
 			sc_error(card->ctx, "invalid security condition");
 			return SC_ERROR_INTERNAL;
@@ -212,8 +212,10 @@ static int asepcos_tlvpath_to_scpath(sc_path_t *out, const u8 *in, size_t in_len
 	memset(out, 0, sizeof(sc_path_t));
 
 	while (len != 0) {
-		if (len < 4 || in[0] != 0x8b || in[1] != 0x02)
+		if (len < 4)
 			return SC_ERROR_INTERNAL;
+		if (in[0] != 0x8b || in[1] != 0x02)
+			return SC_ERROR_INVALID_ASN1_OBJECT;
 		/* append file id to the path */
 		r = sc_append_path_id(out, &in[2], 2);
 		if (r != SC_SUCCESS)
@@ -268,9 +270,13 @@ static int asepcos_select_file(sc_card_t *card, const sc_path_t *in_path,
 		sc_path_t tpath;
 
 		r = asepcos_get_current_df_path(card, &tpath);
-		if (r != SC_SUCCESS)
+		/* workaround: as opensc can't handle paths with file id
+		 * and application names in it let's ignore the current
+		 * DF if the returned path contains a unsupported tag.
+		 */
+		if (r != SC_ERROR_INVALID_ASN1_OBJECT && r != SC_SUCCESS)
 			return r;
-		if (sc_compare_path_prefix(&tpath, &npath) != 0) {
+		if (r == SC_SUCCESS && sc_compare_path_prefix(&tpath, &npath) != 0) {
 			/* remove the currently selected DF from the path */
 			if (tpath.len == npath.len) {
 				/* we are already in the requested DF */
@@ -615,6 +621,10 @@ static int asepcos_create_file(sc_card_t *card, sc_file_t *file)
 		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
 		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 			return sc_check_sw(card, apdu.sw1, apdu.sw2); 
+
+		r = sc_select_file(card, &file->path, NULL);
+		if (r != SC_SUCCESS)
+			return r;
 		/* set security attributes */
 		r = asepcos_set_security_attributes(card, file);
 		if (r != SC_SUCCESS) {
@@ -1082,7 +1092,7 @@ static int asepcos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *pdata,
 			*tries_left = apdu.sw2 & 0x0F;
 		return SC_ERROR_PIN_CODE_INCORRECT;
 	}
-	return r;
+	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 }
 
 static struct sc_card_driver * sc_get_driver(void)

@@ -1,0 +1,157 @@
+.\"     Title: opensc-explorer
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 02/26/2009
+.\"    Manual: OpenSC tools
+.\"    Source: opensc
+.\"
+.TH "OPENSC\-EXPLORER" "1" "02/26/2009" "opensc" "OpenSC tools"
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+opensc-explorer \- generic interactive utility for accessing smart card and similar security token functions
+.SH "SYNOPSIS"
+.PP
+
+\fBopensc\-explorer\fR
+[OPTIONS]
+.SH "DESCRIPTION"
+.PP
+The
+\fBopensc\-explorer\fR
+utility can be used interactively to perform miscellaneous operations such as exploring the contents of or sending arbitrary APDU commands to a smart card or similar security token\&.
+.SH "OPTIONS"
+.PP
+The following are the command\-line options for
+\fBopensc\-explorer\fR\&. There are additional interactive commands available once it is running\&.
+.PP
+\fB\-\-reader\fR num, \fB\-r\fR num
+.RS 4
+Use the given reader number\&. The default is 0, the first reader in the system\&.
+.RE
+.PP
+\fB\-\-card\-driver\fR driver, \fB\-c\fR driver
+.RS 4
+Use the given card driver\&. The default is auto\-detected\&.
+.RE
+.PP
+\fB\-\-verbose, \-v\fR
+.RS 4
+Causes
+\fBopensc\-explorer\fR
+to be more verbose\&. Specify this flag several times to enable debug output in the opensc library\&.
+.RE
+.SH "COMMANDS"
+.PP
+The following commands are supported at the
+\fBopensc\-explorer\fR
+interactive prompt\&.
+.PP
+\fBls\fR
+.RS 4
+list all files in the current DF
+.RE
+.PP
+\fBcd\fR \fIfile\-id\fR
+.RS 4
+change to another DF specified by
+\fIfile\-id\fR
+.RE
+.PP
+\fBcat\fR
+.RS 4
+print the contents of the currently selected EF
+.RE
+.PP
+\fBinfo\fR [\fIfile\-id\fR]
+.RS 4
+display attributes of a file specified by
+\fIfile\-id\fR\&. If
+\fIfile\-id\fR
+is not supplied, the attributes of the current file are printed\&.
+.RE
+.PP
+\fBcreate\fR \fIfile\-id\fR \fIsize\fR
+.RS 4
+create a new EF\&.
+\fIfile\-id\fR
+specifies the id number and
+\fIsize\fR
+is the size of the new file\&.
+.RE
+.PP
+\fBdelete\fR \fIfile\-id\fR
+.RS 4
+remove the EF or DF specified by
+\fIfile\-id\fR
+.RE
+.PP
+\fBverify\fR \fIkey\-type\fR\fIkey\-id\fR [\fIkey\fR]
+.RS 4
+present a PIN or key to the card\&. Where
+\fIkey\-type\fR
+can be one of CHV, KEY or PRO\&.
+\fIkey\-id\fR
+is a number representing the key or PIN number\&.
+\fIkey\fR
+is the key or PIN to be verified in hex\&.
+.sp
+Example: verify CHV0 31:32:33:34:00:00:00:00
+.RE
+.PP
+\fBchange CHV\fR\fIid [old\-pin] new\-pin\fR
+.RS 4
+change a PIN
+.sp
+Example: change CHV0 31:32:33:34:00:00:00:00 \'secret\'
+.RE
+.PP
+\fBput\fR \fIfile\-id\fR [\fIinput\fR]
+.RS 4
+copy a local file to the card\&. The local file is specified by
+\fIinput\fR
+while the card file is specified by
+\fIfile\-id\fR
+.RE
+.PP
+\fBget\fR \fIfile\-id\fR [\fIoutput\fR]
+.RS 4
+copy an EF to a local file\&. The local file is specified by
+\fIoutput\fR
+while the card file is specified by
+\fIfile\-id\fR\&.
+.RE
+.PP
+\fBmkdir\fR \fIfile\-id\fR \fIsize\fR
+.RS 4
+create a DF\&.
+\fIfile\-id\fR
+specifies the id number and
+\fIsize\fR
+is the size of the new file\&.
+.RE
+.PP
+\fBpksign\fR
+.RS 4
+create a public key signature\&. NOTE: This command is currently not implemented\&.
+.RE
+.PP
+\fBpkdecrypt\fR
+.RS 4
+perform a public key decryption\&. NOTE: This command is currently not implemented\&.
+.RE
+.PP
+\fBerase\fR
+.RS 4
+erase the card, if the card supports it\&.
+.RE
+.PP
+\fBquit\fR
+.RS 4
+exit the program
+.RE
+.SH "SEE ALSO"
+.PP
+opensc(7), opensc\-tool(1)

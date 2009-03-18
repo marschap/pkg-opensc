@@ -454,7 +454,7 @@ int sc_write_binary(sc_card_t *card, unsigned int idx,
 			r = sc_write_binary(card, idx, p, n, flags);
 			if (r < 0) {
 				sc_unlock(card);
-				SC_TEST_RET(card->ctx, r, "sc_read_binary() failed");
+				SC_TEST_RET(card->ctx, r, "sc_write_binary() failed");
 			}
 			p += r;
 			idx += r;
@@ -749,19 +749,20 @@ static int match_atr_table(sc_context_t *ctx, struct sc_atr_table *table, u8 *at
 		const char *tatr = table[i].atr;
 		const char *matr = table[i].atrmask;
 		size_t tatr_len = strlen(tatr);
+		u8 mbin[SC_MAX_ATR_SIZE], tbin[SC_MAX_ATR_SIZE];
+		size_t mbin_len, tbin_len, s, matr_len;
+		size_t fix_hex_len = card_atr_hex_len;
+		size_t fix_bin_len = card_atr_bin_len;
 
 		if (ctx->debug >= 4)
 			sc_debug(ctx, "ATR try : %s\n", tatr);
 
-		if (tatr_len != card_atr_hex_len) {
+		if (tatr_len != fix_hex_len) {
 			if (ctx->debug >= 5)
 				sc_debug(ctx, "ignored - wrong length\n", tatr);
 			continue;
 		}
 		if (matr != NULL) {
-			u8 mbin[SC_MAX_ATR_SIZE], tbin[SC_MAX_ATR_SIZE];
-			size_t mbin_len, tbin_len, s, matr_len;
-
 			if (ctx->debug >= 4)
 				sc_debug(ctx, "ATR mask: %s\n", matr);
 
@@ -772,7 +773,7 @@ static int match_atr_table(sc_context_t *ctx, struct sc_atr_table *table, u8 *at
 			sc_hex_to_bin(tatr, tbin, &tbin_len);
 			mbin_len = sizeof(mbin);
 			sc_hex_to_bin(matr, mbin, &mbin_len);
-			if (mbin_len != card_atr_bin_len) {
+			if (mbin_len != fix_bin_len) {
 				sc_error(ctx,"length of atr and atr mask do not match - ignored: %s - %s", tatr, matr); 
 				continue;
 			}

@@ -1,0 +1,130 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      CryptoIdentityItsec – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="EutronCryptoIdentityITSEC-IITSEC-P">Eutron <a class="wiki" href="CryptoIdentity.html" shape="rect">CryptoIdentity</a> ITSEC-I &amp; ITSEC-P</h1>
+<p>
+<a class="ext-link" href="http://www.eutron.com/default.asp" shape="rect"><span class="icon">Eutron</span></a> offers the <a class="ext-link" href="http://www.cryptoidentity.eutron.com/ENG/modelli_tecnologia.asp" shape="rect"><span class="icon">CryptoIdentity</span></a> <a class="ext-link" href="http://www.cryptoidentity.eutron.com/ENG/modelli_cryptoitsec.asp" shape="rect"><span class="icon">ITSEC-I</span></a> &amp; <a class="ext-link" href="http://www.cryptoidentity.eutron.com/ENG/modelli_cryptoitsecp.asp" shape="rect"><span class="icon">ITSEC-P</span></a>, an <a class="ext-link" href="http://en.wikipedia.org/wiki/USB" shape="rect"><span class="icon">USB</span></a> readerless smart card / crypto token with 32k memory and support for RSA keys up to 1024bit key length.
+</p>
+<p>
+The <a class="wiki" href="CryptoIdentity.html" shape="rect">CryptoIdentity</a> ITSEC-I &amp; ITSEC-P is fully supported by OpenSC, but has not been tested for a while.
+</p>
+<p>
+Note that Eutron also offers two other crypto tokens in the <a class="wiki" href="CryptoIdentity.html" shape="rect">CryptoIdentity</a> line, but those
+are not supported at all (no documentation available); <a class="ext-link" href="http://www.cryptocombo.eutron.com/eng/home.asp" shape="rect"><span class="icon">combo</span></a> models are also available
+offering USB flash memory mass-storage functionality in addiction to smart card features.
+</p>
+<p>
+The smart card inside is an Infineon Chip with the <a class="wiki" href="CardOs.html" shape="rect">Siemens CardOS M4</a> smart card operating system (<a class="ext-link" href="http://www.cryptoidentity.eutron.com/ENG/modelli_cryptoitsec.asp" shape="rect"><span class="icon">ITSEC-I</span></a> model) or Philips Chip with the <a class="wiki" href="Starcos.html" shape="rect">StarCOS SPK 2.3/2.4</a> operating system (<a class="ext-link" href="http://www.cryptoidentity.eutron.com/ENG/modelli_cryptoitsecp.asp" shape="rect"><span class="icon">ITSEC-P</span></a>, model).
+The driver is called "etoken" because this was the first device with that smart card that was tested with OpenSC. Only the usb
+interface differs, the rest seems to be the same.
+</p>
+<p>
+One minor feature of the Siemens CardOS M4 is, that a rsa key cannot be used for both signing
+and decryption. OpenSC has implemented a workaround: software key generation and storing that
+key twice, once marked as decryption key and once marked as signing key. To enable this workaround
+specifiy "--split-key" on the command line, when creating the key.
+</p>
+<p>
+Eutron has their own software for windows. This software does not implement PKCS#15 and thus is not
+compatible with OpenSC. As long as the card has memory, you can initialize the card with both software
+packages, and thus install files and keys side by side - each software can only handle their own structures.
+</p>
+<p>
+Documentation was not necessary, as the driver for the smart card inside was already implemented.
+</p>
+<p>
+However there is no official tool to format a token (for example if you lock it up by accident), you must contact Eutron in this case.
+</p>
+<p>
+For price and availability, please contact Eutron directly.
+</p>
+<h2 id="Thanks">Thanks</h2>
+<p>
+Big thanks to Eutron, they donated several tokens and a sim card reader. We are working on 
+improving our support for the cards. Thanks!
+</p>
+<h2 id="ProblemwithcurrentITSEC-Itokens">Problem with current ITSEC-I tokens</h2>
+<p>
+As of 2006-06-17 there are known problems with ITSEC-I toekn, which have been initialized by Eutron for their own software.
+As a symptom you encounter the following error when trying to generate a private key atop of an existing PIN:
+</p>
+<pre class="wiki" xml:space="preserve">$ pkcs15-init -G rsa/1024 -a 1 -i 45 -u sign --so-pin 11111111 --pin 11112222            
+card-cardos.c:225:cardos_check_sw: required access right not granted
+card-cardos.c:907:cardos_put_data_oci: Card returned error: Security status 
+not satisfied
+card.c:686:sc_card_ctl: returning with: Security status not satisfied
+Failed to generate key: Security status not satisfied
+</pre><p>
+You might also come across the following error, if you try to generate an PIN-protected private key more than once,
+after you have got the above error message:
+</p>
+<pre class="wiki" xml:space="preserve">$ pkcs15-init -G rsa/1024 -a 1 -i 46 -u sign
+card-cardos.c:225:cardos_check_sw: invalid parameters in data field
+card.c:376:sc_create_file: returning with: Incorrect parameters in APDU
+Failed to generate key: Incorrect parameters in APDU
+</pre><p>
+The reason for the above error messages is, that the Token is in the wrong cardos-lifecycle "operational", where some operations
+like key generation do not seem to be suported. You can get the current lifecycle of a token using the cardos-info command:
+</p>
+<pre class="wiki" xml:space="preserve"># cardos-info
+Info : CardOS/M4.01a (C) Siemens AG 1994-2002
+Chip type: 108
+Serial number: 24 72 7b 03 1c 0a
+Full prom dump:
+33 66 00 1F DD DD DD DD 6C FF 24 72 7B 03 1C 0A 3f......l.$r{...
+00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 ................
+OS Version: 200.4 (that's CardOS M4.01a)
+Current life cycle: 16 (operational)
+Security Status of current DF:
+Free memory : 1000
+ATR Status: 0x0 ROM-ATR
+Packages installed:
+01 04 07 02 C8 04 01 04 13 04 C8 04 ............
+Ram size: 4, Eeprom size: 32, cpu type: 66, chip config: 63
+Free eeprom memory: 20596
+System keys: PackageLoadKey (version 0x00, retries 10)
+System keys: StartKey (version 0xff, retries 10)
+Path to current DF:
+</pre><p>
+In the above snippet you see, that this token is in the "operational" lifecycle and is hence subject to the above mentioned problems.
+As a side effect of the wrong operational mode, opensc is not alble to delete any DFs/MFs when the private key generation fails. 
+In such a case you will discover a temporary object EF 5015/7EAD on your token, which triggers the second problem mentioned above.
+</p>
+<pre class="wiki" xml:space="preserve">$ opensc-explorer
+OpenSC Explorer version 0.11.0
+OpenSC [3F00]&gt; cd 5015
+OpenSC [3F00/5015]&gt; ls
+FileID  Type  Size
+ 4401    wEF   256
+ 5031    wEF   256
+ 5032    wEF    42
+ 4946    wEF   128
+ 4402    wEF   256
+ 3048    wEF   142
+ 4403    wEF   256
+ 7EAD    wEF   512
+OpenSC [3F00/5015]&gt; quit
+</pre><p>
+Nils Larsch has kindly provided me with a workaround for the problem of deleting EFs/MFs, however there's no benefit for the end-user, because
+you neither will be able to generate a private key if you can delete the temporatry object. If you are interested in the whole story,
+mail me (wolfgang dot wglas at ev-i dot at).
+</p>
+<p>
+A satisfying solution of this problem is unfortunately tied to the solution of the initialization problem. Eutron has been so kind to provide me with Tokens, which are in the "manufactured" lifecycle, which means that these tokens are not initialized with any software package. In this state, these tokens are not usable for opensc, because you need some APDU-initalization scripts from Siemens in order to initialize the software packages on the chip.
+</p>
+<p>
+The <a class="ext-link" href="https://www.opensc-project.org/openct/wiki/eutron" shape="rect"><span class="icon">Eutron entry</span></a> in the openct Wiki has some informations on an initialization tool, which is available from Eutron, but this tool is not very helpful, since is restores the token to the state described above.
+</p>
+<p>
+We are currently trying to find a solution for this problem together with Siemens, Eutron and Andreas Jellinghaus. If we make further progress with this issue, we will publish them on this Wiki page as soon as possible.
+</p>
+
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

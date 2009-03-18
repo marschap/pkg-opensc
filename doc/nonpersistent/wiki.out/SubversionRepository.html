@@ -1,0 +1,69 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      SubversionRepository – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="SubversionRepository">Subversion Repository</h1>
+<p>
+OpenSC is using subversion as version control system. You can find out more about subversion at
+</p>
+<ul><li><a class="ext-link" href="http://subversion.tigris.org/" shape="rect"><span class="icon">http://subversion.tigris.org/</span></a> is the official home for subversion.
+</li><li><a class="ext-link" href="http://svnbook.red-bean.com/" shape="rect"><span class="icon">http://svnbook.red-bean.com/</span></a> has the book "Version Control with Subversion"
+</li></ul><p>
+In our subversion repository we have
+</p>
+<ul><li><tt>trunk/</tt> contains the current development code
+</li><li><tt>branches/opensc-0.10</tt> contains the 0.10 maintenance branch
+</li><li><tt>releases/opensc-0.10.0</tt> contains the opensc 0.10.0 release code.
+</li></ul><p>
+You can checkout these with the subversion commands
+</p>
+<pre class="wiki" xml:space="preserve">svn co http://www.opensc-project.org/svn/opensc/trunk/
+svn co http://www.opensc-project.org/svn/opensc/branches/opensc-0.10/
+svn co http://www.opensc-project.org/svn/opensc/releases/opensc-0.10.0/
+</pre><p>
+Note that the subversion repository only contains development files.
+Before compiling the code you need to run the "<tt>./bootstrap</tt>" script
+to create many files like "<tt>configure</tt>" and "<tt>Makefile.in</tt>". You need to have
+<tt>autoconf</tt>, <tt>automake</tt> and <tt>libtool</tt> installed on your system to do that (see <a class="missing wiki" shape="rect">AutoVersions?</a>)
+</p>
+<p>
+Some people have reported problems with some http proxies. If you find some problem,
+you can maybe solve it by using https instead. Try to checkout the repository
+like this: 
+</p>
+<pre class="wiki" xml:space="preserve">svn co --non-interactive https://www.opensc-project.org/svn/opensc/trunk/
+svn co --non-interactive https://www.opensc-project.org/svn/opensc/branches/opensc-0.10/
+svn co --non-interactive https://www.opensc-project.org/svn/opensc/releases/opensc-0.10.0/
+</pre><h1 id="Writeaccessfordevelopers">Write access for developers</h1>
+<p>
+Developers with write access usualy access the repository via https with authentication
+using ssl client certificates. You might want to put something like this into your
+<tt>~/.subversion/servers</tt> file to point subversion to your client certificate:
+</p>
+<pre class="wiki" xml:space="preserve">[groups]
+opensc = www.opensc-project.org
+
+[opensc]
+ssl-client-cert-file=/home/aj/.subversion/aj.p12  
+</pre><p>
+You can access the repositories:
+</p>
+<pre class="wiki" xml:space="preserve">svn co https://www.opensc-project.org/svn/opensc/trunk/
+svn co https://www.opensc-project.org/svn/opensc/branches/opensc-0.10/
+svn co https://www.opensc-project.org/svn/opensc/releases/opensc-0.10.0/
+</pre><h2 id="Creatingdistributionpackages">Creating distribution packages</h2>
+<p>
+To package OpenSC as tar.gz file you only need to type "make dist". However building
+documentation etc. has been moved to scripts only called when you do this, so you might
+need to install these tools to create a fully functional release:
+</p>
+<pre class="wiki" xml:space="preserve">wget, xsltproc, docbook-xsl, w3c-dtd-xhtml, doxygen
+</pre>
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

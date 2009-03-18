@@ -675,12 +675,6 @@ static int sc_pkcs15_bind_internal(sc_pkcs15_card_t *p15card)
 	p15card->seInfo          = tokeninfo.seInfo;
 	p15card->num_seInfo      = tokeninfo.num_seInfo;
 
-	/* for cardos cards initialized by Siemens: sign with decrypt */
-	if (strcmp(p15card->card->driver->short_name,"cardos") == 0
-                && ( strcmp(p15card->manufacturer_id,"Siemens AG (C)") == 0
-			|| strcmp(p15card->manufacturer_id,"Prime") == 0 ))
-		p15card->flags |= SC_PKCS15_CARD_FLAG_SIGN_WITH_DECRYPT;
-
 	ok = 1;
 end:
 	if(buf != NULL)
@@ -752,6 +746,45 @@ int sc_pkcs15_bind(sc_card_t *card,
 			goto error;
 	}
 done:
+	/* for cardos cards initialized by Siemens: sign with decrypt */
+	if (strcmp(p15card->card->driver->short_name,"cardos") == 0
+		&& scconf_get_bool(conf_block, "enable_sign_with_decrypt_workaround", 1)
+                && ( strcmp(p15card->manufacturer_id,"Siemens AG (C)") == 0
+			|| strcmp(p15card->manufacturer_id,"Prime") == 0 ))
+		p15card->flags |= SC_PKCS15_CARD_FLAG_SIGN_WITH_DECRYPT;
+
+	/* set special flags based on card meta data */
+	if (strcmp(p15card->card->driver->short_name,"cardos") == 0) {
+
+		/* D-Trust cards (D-TRUST, D-SIGN) */
+		if (strstr(p15card->label,"D-TRUST") == 0
+			|| strstr(p15card->label,"D-SIGN") == 0) {
+
+			/* D-TRUST Card 2.0 2cc (standard cards, which always add 
+			 * SHA1 prefix itself */
+			if (strstr(p15card->label, "2cc") != NULL) {
+				p15card->card->caps |= SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED;
+				p15card->flags &= ~SC_PKCS15_CARD_FLAG_SIGN_WITH_DECRYPT;
+				sc_debug(p15card->card->ctx, "D-TRUST 2cc card detected, only SHA1 works with this card\n");
+				/* XXX: add detection when other hash than SHA1 is used with
+				 *      such a card, as this produces invalid signatures.
+				 */
+			}
+
+			/* D-SIGN multicard 2.0 2ca (cards working with all types of hashes 
+			 * and no addition of prefix) */
+			else if (strstr(p15card->label, "2ca") != NULL) {
+				p15card->card->caps |= SC_CARD_CAP_ONLY_RAW_HASH;
+				p15card->flags &= ~SC_PKCS15_CARD_FLAG_SIGN_WITH_DECRYPT;
+				sc_debug(p15card->card->ctx, "D-TRUST 2ca card detected\n");
+			}
+
+			/* XXX: probably there are more D-Trust card in the wild, 
+			 *      which also need these flags to produce valid signatures
+			 */
+		}
+	}
+
 	*p15card_out = p15card;
 	sc_unlock(card);
 	return 0;
@@ -972,6 +1005,17 @@ static int compare_obj_path(sc_pkcs15_object_t *obj, const sc_path_t *path)
 	return 0;
 }
 
+static int compare_obj_data_name(sc_pkcs15_object_t *obj, const char *app_label, const char *label)
+{
+	struct sc_pkcs15_data_info *cinfo = (struct sc_pkcs15_data_info *) obj->data;
+
+	if (obj->type != SC_PKCS15_TYPE_DATA_OBJECT)
+		return 0;
+	
+	return !strcmp(cinfo->app_label, app_label) &&
+		!strcmp(obj->label, label);
+}
+
 static int compare_obj_key(struct sc_pkcs15_object *obj, void *arg)
 {
 	struct sc_pkcs15_search_key *sk = (struct sc_pkcs15_search_key *) arg;
@@ -988,6 +1032,13 @@ static int compare_obj_key(struct sc_pkcs15_object *obj, void *arg)
 		return 0;
 	if (sk->path && !compare_obj_path(obj, sk->path))
 		return 0;
+	if (
+		sk->app_label && sk->label &&
+		!compare_obj_data_name(obj, sk->app_label, sk->label)
+	) {
+		return 0;
+	}
+
 	return 1;
 }
 
@@ -1102,6 +1153,28 @@ int sc_pkcs15_find_data_object_by_app_oid(struct sc_pkcs15_card *p15card,
 
 	memset(&sk, 0, sizeof(sk));
 	sk.app_oid = app_oid;
+
+	r = __sc_pkcs15_search_objects(p15card, 0, SC_PKCS15_TYPE_DATA_OBJECT,
+				compare_obj_key, &sk,
+				out, 1);
+	if (r < 0)
+		return r;
+	if (r == 0)
+		return SC_ERROR_OBJECT_NOT_FOUND;
+	return 0;
+}
+
+int sc_pkcs15_find_data_object_by_name(struct sc_pkcs15_card *p15card,
+				const char *app_label,
+				const char *label,
+				struct sc_pkcs15_object **out)
+{
+	sc_pkcs15_search_key_t sk;
+	int	r;
+
+	memset(&sk, 0, sizeof(sk));
+	sk.app_label = app_label;
+	sk.label = label;
 
 	r = __sc_pkcs15_search_objects(p15card, 0, SC_PKCS15_TYPE_DATA_OBJECT,
 				compare_obj_key, &sk,

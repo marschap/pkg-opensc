@@ -118,6 +118,10 @@ static int asepcos_erase(struct sc_profile *profile, sc_card_t *card)
 	 *       - use EF(DIR) to get the DF of the OpenSC
 	 *         pkcs15 application.
 	 */
+	/* Check wether a transport exists and verify it if present */
+	r = asepcos_check_verify_tpin(profile, card);
+	if (r != SC_SUCCESS)
+		return r;
 	/* EF(DIR) */
 	sc_format_path("3f002f00", &path);
 	r = asepcos_cond_delete(profile, card, &path);
@@ -359,7 +363,7 @@ static int asepcos_create_pin(sc_profile_t *profile, sc_card_t *card,
 	const u8 *pin, size_t pin_len, const u8 *puk, size_t puk_len)
 {
 	sc_pkcs15_pin_info_t *pinfo = (sc_pkcs15_pin_info_t *) pin_obj->data;
-	int       r, pid;
+	int       r, pid, puk_id;
 	sc_path_t tpath = df->path;
 	sc_file_t *tfile = NULL;
 
@@ -413,12 +417,14 @@ static int asepcos_create_pin(sc_profile_t *profile, sc_card_t *card,
 		/* If a PUK we use "file id of the PIN" + 1  as the file id
 		 * of the PUK.
 		 */
-		r = asepcos_do_store_pin(profile, card, &puk_info, puk, puk_len, 0, pid+1);
+		puk_id = pid + 1;
+		r = asepcos_do_store_pin(profile, card, &puk_info, puk, puk_len, 0, puk_id);
 		if (r != SC_SUCCESS) 
 			return r;
-	}
+	} else
+		puk_id = 0;
 
-	r = asepcos_do_store_pin(profile, card, pinfo, pin, pin_len, pid+1, pid);
+	r = asepcos_do_store_pin(profile, card, pinfo, pin, pin_len, puk_id, pid);
 	if (r != SC_SUCCESS)
 		return r;
 

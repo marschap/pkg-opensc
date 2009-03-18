@@ -46,7 +46,7 @@
 #include <strings.h>
 #endif
 #include <assert.h>
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 #include <openssl/bn.h>
 #include <openssl/evp.h>
 #include <openssl/pem.h>
@@ -61,7 +61,7 @@
 #include "pkcs15-init.h"
 #include <opensc/cardctl.h>
 #include <opensc/log.h>
-#include "strlcpy.h"
+#include <compat_strlcpy.h>
 
 #define OPENSC_INFO_FILEPATH		"3F0050154946"
 #define OPENSC_INFO_FILEID		0x4946
@@ -149,6 +149,7 @@ static struct profile_operations {
 	const char *name;
 	void *func;
 } profile_operations[] = {
+	{ "rutoken", (void *) sc_pkcs15init_get_rutoken_ops },
 	{ "gpk", (void *) sc_pkcs15init_get_gpk_ops },
 	{ "miocos", (void *) sc_pkcs15init_get_miocos_ops },
 	{ "flex", (void *) sc_pkcs15init_get_cryptoflex_ops },
@@ -162,6 +163,7 @@ static struct profile_operations {
 	{ "incrypto34", (void *) sc_pkcs15init_get_incrypto34_ops },
 	{ "muscle", (void*) sc_pkcs15init_get_muscle_ops },
 	{ "asepcos", (void*) sc_pkcs15init_get_asepcos_ops },
+	{ "entersafe",(void*) sc_pkcs15init_get_entersafe_ops },
 	{ NULL, NULL },
 };
 
@@ -2108,7 +2110,7 @@ prkey_fixup_rsa(sc_pkcs15_card_t *p15card, struct sc_pkcs15_prkey_rsa *key)
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 
-#ifdef HAVE_OPENSSL
+#ifdef ENABLE_OPENSSL
 #define GETBN(dst, src, mem) \
 	do {	dst.len = BN_num_bytes(src); \
 		assert(dst.len <= sizeof(mem)); \
@@ -2337,7 +2339,10 @@ static int select_object_path(sc_pkcs15_card_t *p15card, sc_profile_t *profile,
 		name = "certificate";
 		break;
 	case SC_PKCS15_TYPE_DATA_OBJECT:
-		name = "data";
+		if (obj->flags & SC_PKCS15_CO_FLAG_PRIVATE) 
+			name = "privdata";
+		else
+			name = "data";
 		break;
 	default:
 		return 0;
@@ -2792,9 +2797,13 @@ sc_pkcs15init_change_attrib(struct sc_pkcs15_card *p15card,
 
 	r = sc_pkcs15_encode_df(card->ctx, p15card, df, &buf, &bufsize);
 	if (r >= 0) {
+		 sc_file_t *file;
+		 r = sc_profile_get_file_by_path(profile, &df->path, &file);
+		 if(r<0) return r;
 		r = sc_pkcs15init_update_file(profile, card,
-				df->file, buf, bufsize);
+				file, buf, bufsize);
 		free(buf);
+		sc_file_free(file);
 	}
 
 	return r < 0 ? r : 0;
@@ -3268,15 +3277,25 @@ sc_pkcs15init_authenticate(struct sc_profile *pro, sc_card_t *card,
 	else
 		acl = sc_file_get_acl_entry(file, op);
 
+	sc_debug(card->ctx, "r:[0x%08x]\n",r);
+	sc_debug(card->ctx, "acl:[0x%08x]\n",acl);
+
 	for (; r == 0 && acl; acl = acl->next) {
 		if (acl->method == SC_AC_NEVER)
+		{
+			sc_debug(card->ctx, "never\n");
 			return SC_ERROR_SECURITY_STATUS_NOT_SATISFIED;
+		}
 		if (acl->method == SC_AC_NONE)
+		{
+			sc_debug(card->ctx, "none\n");
 			break;
+		}
 		if (acl->method == SC_AC_UNKNOWN) {
 			sc_debug(card->ctx, "unknown acl method\n");
 			break;
 		}
+		sc_debug(card->ctx, "verify\n");
 		r = do_verify_pin(pro, card, file_tmp ? file_tmp : file,
 			acl->method, acl->key_ref);
 	}
