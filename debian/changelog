@@ -2,8 +2,11 @@ opensc (0.11.7-1) unstable; urgency=low
 
   * New upstream release. Fixes CVE-2009-0368.
   * debian/rules: New location for the ChangeLog.
+  * debian/opensc.install:
+    - cardos-tool.1 replaces cardos-info.1.
+    - Install cardos-tool and rutoken-tool.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sun, 29 Mar 2009 03:45:32 -0400
 
 opensc (0.11.4-5) unstable; urgency=high
 
