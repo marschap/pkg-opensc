@@ -5,8 +5,9 @@ opensc (0.11.7-1) unstable; urgency=low
   * debian/opensc.install:
     - cardos-tool.1 replaces cardos-info.1.
     - Install cardos-tool and rutoken-tool.
+  * debian/opensc.docs, libopensc2-dev.docs: New html documentation location.
 
- -- Eric Dorland <eric@debian.org>  Sun, 29 Mar 2009 03:45:32 -0400
+ -- Eric Dorland <eric@debian.org>  Sun, 29 Mar 2009 03:56:10 -0400
 
 opensc (0.11.4-5) unstable; urgency=high
 
