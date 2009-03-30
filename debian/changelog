@@ -1,7 +1,9 @@
 opensc (0.11.7-1) unstable; urgency=low
 
   * New upstream release. Fixes CVE-2009-0368.
-  * debian/rules: New location for the ChangeLog.
+  * debian/rules: 
+    - New location for the ChangeLog.
+    - Add --enable-signer to get the signer back.
   * debian/opensc.install:
     - cardos-tool.1 replaces cardos-info.1.
     - Install cardos-tool and rutoken-tool.
