@@ -1,8 +1,11 @@
 opensc (0.11.7-2) unstable; urgency=low
 
   * debian/rules: Explicitly enable openct and pcsc. (Closes: #522077)
+  * debian/control:
+    - Update Standards-Version to 3.8.1.
+    - Add ${misc:Depends} everywhere.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 04 Apr 2009 17:46:05 -0400
 
 opensc (0.11.7-1) unstable; urgency=low
 
