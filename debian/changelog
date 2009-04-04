@@ -1,3 +1,9 @@
+opensc (0.11.7-2) unstable; urgency=low
+
+  * debian/rules: Explicitly enable openct and pcsc. (Closes: #522077)
+
+ --
+
 opensc (0.11.7-1) unstable; urgency=low
 
   * New upstream release. Fixes CVE-2009-0368.
