@@ -56,7 +56,7 @@ Description: SmartCard library with support for PKCS#15 compatible smart cards
  Card initialization can be performed by utilities in the opensc package.
 
 Package: libopensc2-dbg
-Section: devel
+Section: debug
 Priority: extra
 Architecture: any
 Depends: libopensc2 (= ${binary:Version}), ${misc:Depends}
