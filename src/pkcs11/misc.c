@@ -233,7 +233,7 @@ CK_RV attr_extract(CK_ATTRIBUTE_PTR pAttr, void *ptr, size_t *sizep)
 		case CKA_PRIVATE:
 			size = sizeof(CK_BBOOL); break;
 		case CKA_CERTIFICATE_TYPE:
-			size = sizeof(CKA_CERTIFICATE_TYPE); break;
+			size = sizeof(CK_CERTIFICATE_TYPE); break;
 		case CKA_MODULUS_BITS:
 			size = sizeof(CK_ULONG); break;
 		case CKA_OBJECT_ID:
@@ -314,8 +314,7 @@ CK_RV attr_find_var(CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount,
 void load_pkcs11_parameters(struct sc_pkcs11_config *conf, sc_context_t *ctx)
 {
 	scconf_block *conf_block = NULL;
-	int i;
-	
+
 	/* Set defaults */
 	conf->plug_and_play = 1;
 	conf->max_virtual_slots = 16;

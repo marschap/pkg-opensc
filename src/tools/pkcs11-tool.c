@@ -31,7 +31,6 @@
 #include "openssl/evp.h"
 #include "openssl/x509.h"
 #include "openssl/rsa.h"
-#include "openssl/engine.h"
 #include "openssl/bn.h"
 #include "openssl/err.h"
 #endif
@@ -1036,19 +1035,20 @@ static int gen_keypair(CK_SLOT_ID slot, CK_SESSION_HANDLE session,
 {
 	CK_MECHANISM mechanism = {CKM_RSA_PKCS_KEY_PAIR_GEN, NULL_PTR, 0};
 	CK_ULONG modulusBits = 1024;
-	CK_BYTE publicExponent[] = { 65537 };
+	CK_BYTE publicExponent[] = { 0x01, 0x00, 0x01 }; /* 65537 in bytes */
 	CK_BBOOL _true = TRUE;
 	CK_OBJECT_CLASS pubkey_class = CKO_PUBLIC_KEY;
 	CK_OBJECT_CLASS privkey_class = CKO_PRIVATE_KEY;
 	CK_ATTRIBUTE publicKeyTemplate[20] = {
 		{CKA_CLASS, &pubkey_class, sizeof(pubkey_class)},
+		{CKA_TOKEN, &_true, sizeof(_true)},
 		{CKA_ENCRYPT, &_true, sizeof(_true)},
 		{CKA_VERIFY, &_true, sizeof(_true)},
 		{CKA_WRAP, &_true, sizeof(_true)},
 		{CKA_MODULUS_BITS, &modulusBits, sizeof(modulusBits)},
 		{CKA_PUBLIC_EXPONENT, publicExponent, sizeof(publicExponent)}
 	};
-	int n_pubkey_attr = 6;
+	int n_pubkey_attr = 7;
 	CK_ATTRIBUTE privateKeyTemplate[20] = {
 		{CKA_CLASS, &privkey_class, sizeof(privkey_class)},
 		{CKA_TOKEN, &_true, sizeof(_true)},

@@ -1,22 +1,267 @@
-2009-02-26 08:57  aj
+2009-05-07 13:10  aj
 
-	* releases/opensc-0.11.7/NEWS,
-	  releases/opensc-0.11.7/configure.ac: Create final release.
+	* releases/opensc-0.11.8/configure.ac: prepare new release.
 
-2009-02-04 18:26  alonbl
+2009-05-07 13:09  aj
 
-	* releases/opensc-0.11.7/configure.ac: Default PCSC CFLAGS from
-	  pkg-config
+	* releases/opensc-0.11.8: New OpenSC release.
+	* trunk/configure.ac: prep next release.
+
+2009-05-07 10:57  aj
+
+	* trunk/NEWS, trunk/src/tools/pkcs11-tool.c: Fix security issue.
+
+2009-05-06 16:25  ludovic.rousseau
+
+	* trunk/src/tools/cardos-tool.c: avoid a compilation failure with
+	  --disable-openssl
+
+2009-04-23 18:02  alonbl
+
+	* trunk/doc/Makefile.am: Fix --disable-man install from svn
+	  checkout, by Ludovic Rousseau
+
+2009-04-23 18:00  alonbl
+
+	* trunk/doc/Makefile.am: Fix --disable-man install from svn
+	  checkout, by Ludovic Rousseau
+
+2009-04-21 16:43  alonbl
+
+	* trunk/configure.ac: Fix GNU libiconv detection By Kalev Lember
+	  The attached patch fixes GNU libiconv detection by adding an
+	  additional libiconv symbol check to autoconf -liconv link test.
+	  Right now some iconv implementations have only iconv* symbols
+	  (GNU libc), some have only libiconv* (GNU libiconv), and some
+	  have both defined (Mac OS X's iconv), so it's necessary to check
+	  for both variants.
+
+2009-04-17 07:19  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: Fix SCardDisconnect reset
+	  parameter.
+
+2009-04-15 07:52  martin
+
+	* trunk/src/libopensc/internal.h, trunk/src/libopensc/opensc.h:
+	  Move sc_check_sw to opensc.h
+
+2009-04-15 06:18  martin
+
+	* trunk/src/libopensc/libopensc.exports: Export sc_check_sw,
+	  required by external drivers and utilities. Thanks to Marc Rios
+	  Vallès.
+
+2009-04-14 15:21  aj
+
+	* trunk/NEWS: Update news file too.
+
+2009-04-08 10:31  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: * Correctly set offsets for
+	  PINs for PIN modification operations with pinpads. Thanks to
+	  Robert Konklewski. * Only set messages if the reader has display
+	  capabilities. * Detect rejected pinpad commands * Whitespace
+	  fixes
+
+2009-04-08 09:40  martin
+
+	* trunk/src/tools/pkcs11-tool.c: Engine API is not used. Thanks to
+	  Robert Konklewski for noticing this.
+
+2009-04-03 19:54  alonbl
+
+	* trunk/src/libopensc/reader-pcsc.c: Actually print SCardControl
+	  result, thanks to martin
+
+2009-04-03 19:17  alonbl
+
+	* trunk/src/libopensc/reader-pcsc.c: reader-pcsc - minor cleanups
+	  in reader features 1. Indent fix. 2. Reorder conditions. 3. Do
+	  not print error if SCardControl fails.
+
+2009-04-02 10:33  aj
+
+	* trunk/NEWS: Document latest change.
+
+2009-04-02 10:32  aj
+
+	* trunk/src/libopensc/card-entersafe.c,
+	  trunk/src/libopensc/cardctl.h, trunk/src/libopensc/cards.h,
+	  trunk/src/pkcs15init/entersafe.profile,
+	  trunk/src/pkcs15init/pkcs15-entersafe.c: Entersafe changes by
+	  Weitao Sun: 1.Card type FTCOS/PK-01C added. (new) 2.Limit pin
+	  length in range [4,16). (bug fix) 3.Can not unblock PIN. (bug
+	  fix)
+
+2009-03-25 14:31  ludovic.rousseau
+
+	* trunk/src/libopensc/muscle.c: Do not use msc_crypt_process
+	  (OP_PROCESS). This operation is used to do multipart encryption
+	  when, for example, the data is too big to fit in one APDU. It
+	  basically calls the Cipher.update() method until all data has
+	  been processed. However, the Java Card API documentation advises
+	  against using update(): "This method requires temporary storage
+	  of intermediate results. In addition, if the input data length
+	  is not block aligned (multiple of block size) then additional
+	  internal storage may be allocated at this time to store a
+	  partial input data block. This may result in additional resource
+	  consumption and/or slow performance. This method should only be
+	  used if all the input data required for the cipher is not
+	  available in one byte array. If all the input data required for
+	  the cipher is located in a single byte array, use of the
+	  doFinal() method to process all of the input data is
+	  recommended." As the card's JVM was returning an internal
+	  exception when using OP_PROCESS, it was decided to implement an
+	  msc_crypt_final_object() function in OpenSC that uses the
+	  msc_object_*() functions to read/write all the data from the
+	  card. This way, it is possible to transmit/receive "arbitrarily"
+	  large data chunks to/from the card and use doFinal(). This is
+	  the fallback method when, for example, using 2048 bit keys and
+	  the card doesn't support extended APDUs. Thanks to Joao Poupino
+	  for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011978.html
+
+2009-03-25 14:22  ludovic.rousseau
+
+	* trunk/src/libopensc/reader-pcsc.c: pcsc_internal_transmit(): do
+	  not limit the size of the reception buffer to 258. This check is
+	  no more needed now that pcsc-lite can handle extended APDU.
+	  Thanks to Joao Poupino for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011978.html
+
+2009-03-25 13:55  ludovic.rousseau
+
+	* trunk/src/libopensc/card-muscle.c, trunk/src/libopensc/cards.h:
+	  Detect the eToken 72K and activate RSA 2048 and extended APDU
+	  for it. Thanks to Joao Poupino for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011978.html
+
+2009-03-25 13:50  ludovic.rousseau
+
+	* trunk/src/libopensc/muscle.h: Change MSC_MAX_APDU to make some
+	  buffers larger to support extended APDUs. The change was only
+	  from 256 to 512 bytes since it is more than enough for 2048 bit
+	  keys; Thanks to Joao Poupino for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011978.html
+
+2009-03-25 13:47  ludovic.rousseau
+
+	* trunk/src/libopensc/muscle.c: msc_get_challenge(): return
+	  SC_SUCCESS instead of dataLength in case of success Thanks to
+	  Joao Poupino for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011978.html
+
+2009-03-25 13:42  ludovic.rousseau
+
+	* trunk/src/libopensc/muscle.c: msc_get_challenge(): use 0x62
+	  instead of 0x72 for GET CHALLENGE as it is the value used by the
+	  Muscle applet (INS_GET_CHALLENGE) Thanks to João Poupino for the
+	  patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011978.html
+
+2009-03-21 11:17  martin
+
+	* trunk/src/libopensc/reader-ctapi.c: Fix typo
+
+2009-03-21 11:09  martin
+
+	* trunk/src/libopensc/internal-winscard.h,
+	  trunk/src/libopensc/reader-pcsc.c: Add support for LCD detection
+	  on pinpad devices. * Update IOCTL definitions to PC/SC part 10
+	  v2.02.05 * Return SC_SUCCESS instead of 0 if returning SC_
+	  codes. * Detect the presence of a display with
+	  FEATURE_IFD_PIN_PROPERTIES Tested with patched CCID driver on OS
+	  X, with SPR532 (no display) and OK3821 (with display) Known CCID
+	  reader with a display: ATMEL_AT91SO.txt: wLcdLayout: 0x0210
+	  CardMan3821.txt: wLcdLayout: 0x0210 Kobil_EMV_CAP.txt:
+	  wLcdLayout: 0x0210 Xiring_XI-SIGN.txt: wLcdLayout: 0x020C
+	  Xiring_XI-SIGN_6000.txt: wLcdLayout: 0x020C
+
+2009-03-19 17:54  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: * Display the default CCID
+	  message for PIN verification if the reader has a display * Part
+	  10 -> PC/SC v2
+
+2009-03-18 10:18  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: Fix Global Platform PINs with
+	  CCID pinpads. Thanks to François Leblanc for the report:
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011947.html
+
+2009-03-12 08:33  ludovic.rousseau
+
+	* trunk/src/tools/pkcs11-tool.c: store the generated public key on
+	  the token. Thanks to Rickard Bondesson for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-February/011884.html
+
+2009-03-07 21:55  alonbl
+
+	* trunk/src/libopensc/internal-winscard.h: Fix Windows PINPAD
+	  mingw issue Thanks to François Leblanc
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-March/011932.html
+
+2009-03-06 09:30  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: check if len or p is 0/NULL
+	  and return.
+
+2009-03-06 09:26  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: fix typo.
+
+2009-03-05 18:37  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: Improve this function even
+	  more.
+
+2009-03-05 15:28  aj
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: resolve an "undefined code"
+	  situation. the old code was undefined, but ok (variables where
+	  never used again in the "goto error" case). but the new code
+	  should be clearer on this.
+
+2009-03-05 15:15  aj
+
+	* trunk/src/pkcs15init/gpk.profile: change base id so it does not
+	  overlap with the next one.
+
+2009-02-26 08:58  aj
+
+	* trunk/NEWS: created final release.
+
+2009-02-25 09:13  ludovic.rousseau
+
+	* trunk/src/pkcs11/misc.c: removed unused variable misc.c:317:
+	  warning: unused variable 'i'
+
+2009-02-25 09:10  ludovic.rousseau
+
+	* trunk/src/pkcs11/misc.c: iattr_extract(): use
+	  sizeof(CK_CERTIFICATE_TYPE) for a CKA_CERTIFICATE_TYPE thanks to
+	  Wan-Teh Chang for the better patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-February/011892.html
+
+2009-02-24 17:15  ludovic.rousseau
+
+	* trunk/src/pkcs11/misc.c: attr_extract(): use sizeof(CK_ULONG)
+	  instead of sizeof(CKA_CERTIFICATE_TYPE) Thanks to Marc Rios
+	  Valles for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-February/011890.html
+
+2009-02-03 20:11  alonbl
+
+	* trunk/configure.ac: Default PCSC CFLAGS from pkg-config
 
 2009-02-01 08:26  aj
 
-	* releases/opensc-0.11.7/NEWS,
-	  releases/opensc-0.11.7/configure.ac: Document changes since
-	  0.11.6. Create first release candidate for 0.11.7.
+	* trunk/NEWS: update NEWS file from 0.11.7 branch.
 
 2009-02-01 08:19  aj
 
-	* releases/opensc-0.11.7: Branch new release 0.11.7
+	* trunk/configure.ac: trunk code is now working towards 0.11.8
 
 2009-01-30 11:59  martin
 

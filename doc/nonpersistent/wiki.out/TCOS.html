@@ -11,33 +11,30 @@
 <a style="padding:0; border:none" href="/opensc/attachment/wiki/TCOS/Card-Images.gif" shape="rect"><img src="/opensc/raw-attachment/wiki/TCOS/Card-Images.gif" alt="Images of TCOS cards" title="Images of TCOS cards"></img></a>
 </p>
 <p>
-TeleSec (part of T-Systems), Deutsche Post and DATEV are german companies that sell TCOS based preformatted cards, i.e NetKey E4 cards, SignTrust cards and DATEV-cards. All these cards used to have a TCOS 2.03 operating system and an almost PKCS#15 compatible file-layout. OpenSC has read-only support for these kind of cards.
+TeleSec (part of T-Systems), Deutsche Post and DATEV are german companies that sold TCOS 2 based preformatted cards until 2007, i.e NetKey E4 cards, SignTrust 1024bit cards and DATEV-cards. All these cards have a TCOS 2.03 operating system and an almost PKCS#15 compatible file-layout. OpenSC has read-only support for these kind of cards.
 </p>
 <p>
 If OpenSC would fully support TCOS, one could erase the preformatted card and initialize the card with a PKCS#15 filesystem. This is not possible right now as OpenSC lacks support for initializing a PKCS#15 layout on an empty card with TCOS operation system.
 </p>
 <p>
-The good news are: With the help of an emulation layer OpenSC can use cards that are almost PKCS#15 compatible. For the above mentioned cards such an emulation layer exists. The emulation cannot store certificates, keys or pins on the card, but you can use whatever is visible through the emulation layer. 
+The good news are: With the help of an emulation layer OpenSC can use cards that are almost PKCS#15 compatible. For the above mentioned cards such an emulation layer exists. The emulation cannot store certificates, keys or pins on the card, but you can use whatever is visible through the emulation layer.
 </p>
 <p>
-If you know of other TCOS based cards and are willing to help, please post information on the mailing list. You might also send <tt>opensc-tool -f</tt> output to me, maybe I can extend the emulation such that it works with your card as well.
+Since late 2006 TCOS 3.0 cards are available from TeleSec and a test card plus excellent doku reached me in december 2006. Besides 2048 bit keys TCOS 3.0 has some other new features. In december 2007 the TCOS 2.0 driver was extended such that it supports TCOS 3.0 cards as well. OpenSC 0.11.5 was the first version that had TCOS3 support.
 </p>
 <p>
-Since late 2006 TCOS 3.0 cards are available from TeleSec and a test card plus excellent doku reached me in december 2006. Besides 2048 bit keys TCOS 3.0 has some other new features. In december 2007 the TCOS 2.0 driver was extended such that it supports TCOS 3.0 cards as well. This support is not included in version 0.11.4. If you want to use TCOS 3 cards you must either wait until the next OpenSC version is out or use a nightly snapshot or get the latest version from our repositiry.
-</p>
-<p>
-The 2048 bit NetKey cards will be TCOS 3.0 based. The signature key of this new card can be used only with secure messaging. Since OpenSC does not have support for secure messaging the signature key will not be supported soon.
+The 2048 bit NetKey E4 V3 cards are TCOS 3.0 based. The signature key of this new card can be used only with secure messaging. Since OpenSC does not have support for secure messaging the signature key will not be supported soon.
 </p>
 <p>
 All other trust center that were using TCOS2 cards until the end of 2007 do not offer TCOS based cards anymore. SignTrust now uses a StartCos 3.0 based card and Datev is out of business.
 </p>
 <h2 id="NetKeyE4filesystemlayout">NetKey E4 filesystem layout</h2>
 <p>
-NetKey E4 cards contain different applications. Two of them, namely application NKS and application SIGG, are made visible through the NetKey emulation layer. The NKS application contains 3 keypairs (4 on TCOS3-cards), 3 read only certificates, 6 empty certificate files, 2 PINs and one signature-counter. The SigG application contains one keypair that can be used according to german signature law, 1 certificate and 1 PIN. The NetKey emulation layer will show you all these keys and certs. With TCOS2-cards you can use all of them, with TCOS3-cards you can only use the keys within the NKS application. To use the signature key on TCOS3-cards a secure channel MUST be created and this is something OpenSC does not support yet. I'm working on a workaround, which will temporarily create a secure channel before the signature key is used and closes this channel immediately after the key was used. Let me know if you want to use the signature key of TCOS3 based cards with OpenSC. If nobody is interested I will work on other thinks.
+NetKey E4 cards contain different applications. Two of them, namely application NKS and application SIGG, are made visible through the NetKey emulation layer. The NKS application contains 3 keypairs (4 on TCOS3-cards), 3 read only certificates, 6 empty certificate files, 2 PINs and one signature-counter. The SigG application contains one keypair that can be used according to german signature law, 1 certificate and 1 PIN. The NetKey emulation layer will show you all these keys and certificates. With TCOS2-cards you can use all of them, with TCOS3-cards you can only use the keys within the NKS application. To use the signature key on TCOS3-cards a secure channel MUST be created and this is something OpenSC does not support yet. I'm working on a workaround, which will temporarily create a secure channel before the signature key is used and closes this channel immediately after the key was used. Let me know if you want to use the signature key of TCOS3 based cards with OpenSC. If nobody is interested I will work on other thinks.
 </p>
 <pre class="wiki" xml:space="preserve">  pkcs15-tool -c
 </pre><p>
-will list all certificates. It will not list empty certificate files. Here's the output for a new NetKey E4 card (TCOS3 version):
+will list all certificates. It will not list empty certificate files. Here's the output for my NetKey E4 V3 card:
 </p>
 <pre class="wiki" xml:space="preserve">$ pkcs15-tool -c
 X.509 Certificate [Telesec Signatur Zertifikat]
@@ -77,13 +74,13 @@ The Signature-Key can do signature-operations only. All other private keys can b
 </p>
 <h3 id="HowdoIstoreadditionalcertificatesintotheabovementionedemptycertificate-files">How do I store additional certificates into the above mentioned empty certificate-files?</h3>
 <p>
-You (and OpenSC) dont see the empty certificate files through the emulation layer. One consequence is that you cannot store your own certificates into these files with pkcs11-tool or pkcs15-init.
+You (and OpenSC) don't see the empty certificate files through the emulation layer. One consequence is that you cannot store your own certificates into these files with pkcs11-tool or pkcs15-init.
 </p>
 <p>
-You must use opensc-explorer and store the certificate directly into the right position or use netkey-tool, a small program, that I wrote exactly for that purpose. Since version 0.7 of SCB netkey-tool is contained in the Windows version too. As of april 2008 netkey-tool was not changed such that it supports both TCOS2 and TCOS3 cards.
+You must use opensc-explorer and store the certificate directly into the right position or use netkey-tool, a small program, that I wrote exactly for that purpose. Since version 0.7 of SCB netkey-tool is contained in the Windows version too. As of march 2009 netkey-tool does support NetKey E4 cards only. Let me know if you want to use netkey-tool with NetKey E4 V3 cards.
 </p>
 <p>
-In general (and in particular with TCOS-cards) it's a lot more complicated to create a new file on a smartcard than updating an existing one. That's the reason why there are empty certificate files on a NetKey card. They contain 1536 0xFF-bytes and you can overwrite them with your own certificate (if your certificate has at most 1536 bytes).
+In general (and in particular with TCOS-cards) it's a lot more complicated to create a new file on a smartcard than updating an existing one. That's the reason why there are empty certificate files on a NetKey E4 card. They contain 1536 0xFF-bytes and you can overwrite them with your own certificate (if your certificate has at most 1536 bytes).
 </p>
 <p>
 There is one problem with many PKCS#11 or PKCS#15 smartcard-applications. They assume that the ID of a certificate uniquely identifies the certificate itself. This is wrong as the ID only identifies the private/public keypair that belongs to the certificate. So if you have more than one certificate for the same keypair all these certificates will share the same ID-value. OpenSC has this problem with NetKey cards too. Have a look at the -r option of pkcs15-tool. In order to select a certificate you can only specify its ID and pkcs15-tool will output the first certificate from the card that has such an ID-value.
@@ -91,7 +88,7 @@ There is one problem with many PKCS#11 or PKCS#15 smartcard-applications. They a
 <p>
 If you have stored a certificate on your NetKey card, you most likely want to use this certificate (and not the readonly-one). Therefore the emulation will add the user-certificates first into its internal list.
 </p>
-<h3 id="SomeremarksaboutthepinsofaTCOS2-basedNetkeycard">Some remarks about the pins of a TCOS2-based Netkey card</h3>
+<h3 id="SomeremarksaboutthepinsofaTCOS2-basedNetKeycard">Some remarks about the pins of a TCOS2-based NetKey card</h3>
 <p>
 There are two global pins on a TCOS2 based NetKey-card and some of the directories contain further pins. TCOS3-based cards are slightly different buth since netkey-tool does not support TCOS3-cards yet I will not explain the differences.
 </p>
@@ -121,7 +118,7 @@ One more hint: Your global PUK was set to an 8-digit random number at production
 </p>
 <h2 id="SignTrustlayout">SignTrust layout</h2>
 <p>
-The following information applies to 1024 bit SignTrust cards only. 2048 bit SignTrust cards do not contain a TCOS chip but are StarCos 3.0 based. They layout is very similar, but this information won't help OpenSC-users as OpenSC does not support StarCos 3.0 as of april 2008.
+The following information applies to 1024 bit SignTrust cards only. 2048 bit SignTrust cards do not contain a TCOS chip but are StarCos 3.0 based. They layout is very similar, but this information won't help OpenSC-users as OpenSC does not support StarCos 3.0 as of march 2009.
 </p>
 <p>
 SignTrust cards contain three applications (i.e. directories). Each of them contain one certificate, one private key and one pin.
@@ -135,7 +132,7 @@ Neither the CA-certificate nor the Root-Certificate is stored on the card but yo
 <a class="ext-link" href="http://www.deutschepost.de/dpag?tab=1&amp;skin=hi&amp;check=&amp;lang=de_DE&amp;xmlFile=link1015298_1007978" shape="rect"><span class="icon">here</span></a>.
 </p>
 <p>
-Here's some output that shows the SigG-certificate of my SignTrust card:
+Here's some output that shows the SigG-certificate of my 1024bit SignTrust card, which expired in 2007:
 </p>
 <pre class="wiki" xml:space="preserve">$ pkcs15-tool -r 45 | openssl x509 -noout -text -certopt no_pubkey,no_sigdump
 Certificate:
@@ -171,7 +168,7 @@ a selfsigned Root-certificate from Deutsche Post.
 There are two universities in germany (that I know of) which use TCOS2-cards. These cards have their own layout and the emulation tries its best to support them. One card is the <a class="ext-link" href="http://www.tu-darmstadt.de/hrz/chipkarte" shape="rect"><span class="icon">student card of the Technical University of Darmstadt</span></a> and the other on is the <a class="ext-link" href="http://www.uni-giessen.de/uni/chipkarte" shape="rect"><span class="icon">student card of the University of Giessen</span></a>. Both cards contain one application with one private key, one public key file and one certificate, protected by one global PIN and PUK.
 </p>
 <p>
-Here' some output that shows the layout of a TUD-card:
+Here's some output that shows the layout of a TUD-card:
 </p>
 <pre class="wiki" xml:space="preserve">$ pkcs15-tool -D
 PKCS#15 Card [TUD Card]:
@@ -219,7 +216,7 @@ X.509 Certificate [Zertifikat 1]
         Path     : 41014352
         ID       : 45
 </pre><p>
-If you are using a similar card that OpenSC does not yet support please let me know.
+Since TCOS2-cards are not produced anymore both universities are planning to use a different card.
 </p>
 <h2 id="DATEVcards">DATEV cards</h2>
 <p>

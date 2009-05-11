@@ -4,7 +4,7 @@ AC_PREREQ(2.60)
 
 define([PACKAGE_VERSION_MAJOR], [0])
 define([PACKAGE_VERSION_MINOR], [11])
-define([PACKAGE_VERSION_FIX], [7])
+define([PACKAGE_VERSION_FIX], [8])
 define([PACKAGE_SUFFIX], [])
 
 AC_INIT([opensc],[PACKAGE_VERSION_MAJOR.PACKAGE_VERSION_MINOR.PACKAGE_VERSION_FIX[]PACKAGE_SUFFIX])
@@ -464,7 +464,15 @@ else
 				[
 					ac_cv_lib_iconv="yes"
 					ICONV_LIBS="-liconv"
-				]
+				],
+				[AC_CHECK_LIB(
+					[iconv],
+					[libiconv],
+					[
+						ac_cv_lib_iconv="yes"
+						ICONV_LIBS="-liconv"
+					]
+				)]
 			)
 		]
 	)

@@ -12,26 +12,27 @@ Germany has several laws for smart cards. Until 2006 most ID cards conforming to
 system. One exception was the 1024bit D-Trust card which was Micardo based.
 </p>
 <p>
-Until the end of 2007 the german government (i.e. the Bundesnetzagentur) required a minimal keylength of 1024 bit. Since the beginning of 2008 this requirement was raised to 1280 bit. Therefore all german trust centers now offer 2048 bit cards.
+Until the end of 2007 the german government (i.e. the Bundesnetzagentur) required a minimal keylength of 1024 bit. Since the beginning of 2008/2009 this requirement was raised to 1280/1536 bit. Therefore all german trust centers now offer 2048 bit cards. 2048 bit fulfills Bundesnetzagentur-requirements at least until 2015.
 </p>
 <p>
-The german government was using the RipeMD 160 hash algorithm within their 1024 bit root-certificates ignoring the fact that the rest of the world was using MD5, SHA-1 or SHA-256 instead. One consequence was that you were not able to store the german 1024bit root certificates within the trusted keystore of almost all popular signature aware products like IE, Outlook, Mozilla, Thunderbird, Acrobat, etc. This changed when the keylength of the german root certificates was increased from 1024 bit to 2048 bit. Now the Bundesnetzagentur uses SHA-512 within their 2048 bit root-certificates (12R-CA 1:PN and 13R-CA 1:PN) wich is supported by recent versions of some of the above mentioned signature aware products.
+The german government was using the RipeMD 160 hash algorithm within their 1024 bit root-certificates ignoring the fact that the rest of the world was using MD5, SHA-1 or SHA-256 instead. One consequence was that you were not able to store the RipeMD160-based german 1024bit root certificate within the trusted keystore of almost all popular signature aware products like IE, Outlook, Mozilla, Thunderbird, Acrobat, etc. This changed when the keylength of the german root certificates was increased from 1024 bit to 2048 bit. Now the Bundesnetzagentur uses SHA-512 within their 2048 bit root-certificates (12R-CA 1:PN and 13R-CA 1:PN) which is supported by recent versions of some of the above products.
 </p>
 <p>
-Since july 2008 german signature cards must not use SHA-1 anymore but must use RIPEMD160, SHA-224, SHA-256, SHA-384 or SHA-512. This forced some trust center to replace all of their signature card in the middle of 2008 (of course after they had to replaced all their signature cards at the beginning of 2008 due to the increased keylength - Trust center in germany love the Bundesnetzagentur).
+Since july 2008 german signature cards must not use SHA-1 anymore but must use RIPEMD160, SHA-224, SHA-256, SHA-384 or SHA-512. This forced some trust center to replace all of their signature card in the middle of 2008 (of course after they had replaced all of their signature cards at the beginning of 2008 due to the increased keylength).
 </p>
 <p>
-You find the 2008-regulations <a class="ext-link" href="http://www.bundesnetzagentur.de/media/archive/12198.pdf" shape="rect"><span class="icon">here</span></a>.
+You find the 2009-regulations <a class="ext-link" href="http://www.bundesnetzagentur.de/media/archive/15549.pdf" shape="rect"><span class="icon">here</span></a>.
 </p>
 <p>
-As of august 2008 you may get signature cards from the following Trust center in germany:
+As of March 2009 you may get signature cards from the following Trust center in germany:
 </p>
 <ul><li>TeleSec GmbH (akkreditiert seit 22.12.1998).
+</li><li>D-Trust GmbH (akkreditiert seit 8.3.2002).
 </li><li>Deutsche Post (akkreditiert seit 17.9.2004).
-</li><li>D-Trust GmbH (akkreditiert seit 17.12.2004).
-</li><li>Deutscher Sparkassen Verlag GmbH (Anbieter ohne Akkreditierung, angezeigt seit 12.9.2005).
-</li><li>TC Trust CenterGmbH (akkreditiert seit 24.5.2006).
+</li><li>TC Trust Center GmbH (akkreditiert seit 24.5.2006).
 </li><li>DGN Deutsches Gesundheitsnetz Service GmbH (akkreditiert seit 9.8.2007).
+</li><li>medisign GmbH (akkreditiert seit 28.8.2008)
+</li><li>Deutscher Sparkassen Verlag GmbH (akkreditiert seit 12.11.2008).
 </li></ul><h2 id="TeleSecNetKeycards">TeleSec, NetKey cards</h2>
 <p>
 TeleSec GmbH is the manufacturer of TCOS cards and they offer TCOS based signature cards, i.e. NetKey E4 cards. Until the end of 2007 theses card were TCOS2 based with a miximal keylength of 1024 bit. Since october 2007 TeleSec offers 2048 bit signature cards which are TCOS3 based.
@@ -40,7 +41,7 @@ TeleSec GmbH is the manufacturer of TCOS cards and they offer TCOS based signatu
 TCOS2 cards work well with OpenSC 0.10.0 or later. TCOS3 support was added in december 2007 and is included in OpenSC 0.11.5. Unfortunately the 2048 bit NetKey card contains one key (the one that conforms to the german signature law) that can be used only over a secure channel. So if you want to use this particular key with OpenSC you must wait until OpenSC supports Secure Messaging. NetKeyV3Sign is a (non-free) library that creates signatures with NetKey cards. Let me know if you are interested.
 </p>
 <p>
-You will find more information about NetKey cards an a <a class="wiki" href="TCOS.html" shape="rect">separate Wikipage on TCOS based cards</a>.
+You will find more information about NetKey cards on a <a class="wiki" href="TCOS.html" shape="rect">separate Wikipage on TCOS based cards</a>.
 </p>
 <h2 id="DeutschePostSignTrustcard">Deutsche Post, SignTrust card</h2>
 <p>
@@ -123,42 +124,8 @@ I don't have informations about this Trust center. If you do - please add them!
 Datev had a Trustcenter in Germany that was closed in 2007. Their 1024 bit cards were TCOS 2.0 based and are
 described on a <a class="wiki" href="TCOS.html" shape="rect">separate Wikipage on TCOS based cards</a>.
 </p>
-<h1 id="GermaneHBAeGK">German eHBA, eGK</h1>
-<p>
-<a style="padding:0; border:none" href="/opensc/attachment/wiki/GermanEid/HPC-Image.gif" shape="rect"><img src="/opensc/raw-attachment/wiki/GermanEid/HPC-Image.gif" alt="HPC-Image" title="HPC-Image"></img></a>
-</p>
-<p>
-Sometime in the future all german physicians and apothecaries will be equipped with a smartcard, the so called eHBA (elektronischer Heilberufeausweis). And all german citizens that are a member of a public health insurance company (gesetzliche Krankenkasse) will get a similar card, the so called eGK (elektronische Gesundheitskarte). This means that virtually every german citizen will have a smartcard soon (actually I wrote this sentence in 2006, so be carefull when interpreting the word "soon").
-</p>
-<p>
-We do have eHBA test cards and they are StarCos 3.0 based. So in order to support these kind of eHBA we do need a StarCos 3.0 driver first. If you have information about eHBAs, please let us know or add a link to the list below:
-</p>
-<p>
-We also got eGK test cards but so far I had no time to test them. If you are interested, please contact me.
-</p>
-<p>
-Information about the future german eHBA / eGK:
-</p>
-<ul><li><a class="ext-link" href="http://www.gesundheitskarte-sh.de" shape="rect"><span class="icon">Informations about the "elektronische Gesundheitskarte Schleswig-Holstein"</span></a>
-</li><li><a class="ext-link" href="http://www.heilberufeausweis.de" shape="rect"><span class="icon">Informations about the "Heilberufeausweis"</span></a>
-</li><li><a class="ext-link" href="http://www.baek.de/downloads/HPC_P1_COS_V2_1_1.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.1 Part1: Commands, Algorithms and Functions of the COS Platform</span></a>
-</li><li><a class="ext-link" href="http://www.baek.de/downloads/HPC_P2_HPC_V2_1_1.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.1 Part2: HPC Applications and Functions</span></a>
-</li><li><a class="ext-link" href="http://www.baek.de/downloads/HPC_P3_SMC_V2_1_1.pdf" shape="rect"><span class="icon">HPC-Specification V2.1.1 Part3: SMC Applications and Functions</span></a>
-</li><li><a class="ext-link" href="http://www.baek.de/downloads/usecases.pdf" shape="rect"><span class="icon">HPC Use-Cases</span></a>
-</li><li><a class="ext-link" href="http://www.gematik.de/upload/gematik_eGK_Spezifikation_Teil1_V2_2_1_3804.pdf" shape="rect"><span class="icon">eGK-Specification V2.2.1 Part1: eGK Spezifikation</span></a>
-</li><li><a class="ext-link" href="http://www.gematik.de/upload/gematik_eGK_Spezifikation_Teil2_V2_2_1_3805.pdf" shape="rect"><span class="icon">eGK-Specification V2.2.1 Part2: eGK Anwendungen</span></a>
-</li><li><a class="ext-link" href="http://www.gematik.de/upload/gematik_eGK_Spezifikation_Teil3_V2_2_0_3806.pdf" shape="rect"><span class="icon">eGK-Specification V2.2.0 Part3: äußere Gestaltung</span></a>
-</li></ul>
+
         
         
       </div>
-          <h3>Attachments</h3>
-          <ul>
-              <li>
-      <a href="/opensc/attachment/wiki/GermanEid/HPC-Image.gif" title="View attachment" shape="rect">HPC-Image.gif</a>
-      (<span title="18570 bytes">18.1 KB</span>) - added by <em>pk</em>
-      <a class="timeline" href="/opensc/timeline?from=2006-11-02T17%3A44%3A00Z%2B0000&amp;precision=second" title="2006-11-02T17:44:00Z+0000 in Timeline" shape="rect">2 years</a> ago.
-                <q>HPC-Image</q>
-              </li>
-          </ul>
     </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>
