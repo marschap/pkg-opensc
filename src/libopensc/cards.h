@@ -126,6 +126,7 @@ enum {
 	/* Muscle cards */
 	SC_CARD_TYPE_MUSCLE_BASE = 15000,
 	SC_CARD_TYPE_MUSCLE_GENERIC,
+	SC_CARD_TYPE_MUSCLE_ETOKEN_72K,
 
 	/* ACOS5 driver */
 	SC_CARD_TYPE_ACOS5_BASE = 16000,
@@ -143,6 +144,7 @@ enum {
 	/* EnterSafe cards */
 	SC_CARD_TYPE_ENTERSAFE_BASE = 19000,
 	SC_CARD_TYPE_ENTERSAFE_3K,
+	SC_CARD_TYPE_ENTERSAFE_FTCOS_PK_01C,
 };
 
 extern sc_card_driver_t *sc_get_rutoken_driver(void);

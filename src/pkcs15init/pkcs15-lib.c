@@ -3708,6 +3708,11 @@ set_info_string(char **strp, const u8 *p, size_t len)
 /*
  * Parse OpenSC Info file. We rudely clobber any information
  * given on the command line.
+ *
+ * passed is a pointer (p) to (len) bytes. Those bytes contain
+ * one or several tag-length-value constructs, where tag and
+ * length are both single bytes. a final 0x00 or 0xff byte
+ * (with or without len byte) is ok.
  */
 static int
 sc_pkcs15init_parse_info(sc_card_t *card,
@@ -3719,11 +3724,21 @@ sc_pkcs15init_parse_info(sc_card_t *card,
 	unsigned int	nopts = 0;
 	size_t		n;
 
-	end = p + len;
-	while (p < end && (tag = *p++) != 0 && tag != 0xFF) {
+	if ((p == NULL) || (len == 0))
+		return 0;
+
+	end = p + (len - 1); 
+	while (p < end) {	/* more bytes to look at */
 		int	r = 0;
 
-		if (p >= end || p + (n = *p++) > end)
+		tag = *p; p++;
+		if ((tag == 0) || (tag == 0xff) || (p >= end))
+			break;
+
+		n = *p;
+		p++;
+
+		if (p >= end || p + n > end) /* invalid length byte n */
 			goto error;
 
 		switch (tag) {

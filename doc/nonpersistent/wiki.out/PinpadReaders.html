@@ -8,17 +8,18 @@
         
           <h1 id="PinpadReaders">Pinpad Readers</h1>
 <p>
-Pinpad support with OpenCT is still under development. If you want to test it you'll have to use development snapshots of OpenSC and will most probably run into difficulties and/or outright bugs. 
-Reporting those bugs on the mailinglist may be a good way to get them fixed.
+OpenSC supports two types of pinpad readers: PC/SC and CT-API. 
 </p>
 <p>
-Currently Win32 and Unix versions follow quite different approaches, mainly due to availability of different drivers.
+PC/SC functionality is based on <a class="ext-link" href="http://www.pcscworkgroup.com/specifications/files/pcsc10_v2.02.05.pdf" shape="rect"><span class="icon">PC/SC v2 part 10 v2.02.05</span></a> and is supported by drivers on Windows (check your hardware manufacturer for latest drivers), Linux and Mac OS X Leopard with the <a class="ext-link" href="http://pcsclite.alioth.debian.org/ccid.html" shape="rect"><span class="icon">open source CCID driver</span></a> (<a class="ext-link" href="http://www.usb.org/developers/devclass_docs/DWG_Smart-Card_CCID_Rev110.pdf" shape="rect"><span class="icon">CCID spec</span></a>). Make sure that you have the latest released versions (or SVN snapshots) of all relevant software: operating system, pcsc-lite, reader driver, reader firmware. 
 </p>
 <p>
-The Unix approach using CCID compliant readers is discribed in the <a class="wiki" href="CardReaders/SPR532.html" shape="rect">CardReaders/SPR532</a> document, I'll have a word about <a class="wiki" href="CardReaders/CTAPI.html" shape="rect">CT-API Readers</a> which are common on Win32 (if you have one on a Unix system please tell me!).
-(martin: The 'ccid' in the spec is misleading - every ifdhandler can be changed to implement the teletrust spec - it uses a control block similar to CCID pin block but is <i>not</i> pure ccid up to the lowest levels of the driver. And: the latest spr532 drivers for windows should follow the same spec and thus it <i>should</i> work on windows. it is more tied to pcsc than it is tied to pure ccid)
+CT-API drivers are most used and available on Windows.
 </p>
-<h2 id="Knownandtestedpinpadreaders">Known and tested pinpad readers</h2>
+<p>
+Pinpads tend to be buggy and not all combinations of cards and readers and PIN formats or pinpad reader features (such as displays) have been tested so far, so make sure you report issues to the <a class="wiki" href="MailingLists.html" shape="rect">MailingLists</a> (opensc-devel)
+</p>
+<h2 id="KnownandtestedpinpadreaderswithCT-APIdriversonWindows">Known and tested pinpad readers with  <a class="wiki" href="CardReaders/CTAPI.html" shape="rect">CT-API</a> drivers on Windows</h2>
 <p>
 Please feel free to add your hardware and experiences here.
 </p>
