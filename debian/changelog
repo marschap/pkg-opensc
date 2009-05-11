@@ -1,3 +1,11 @@
+opensc (0.11.8-1) unstable; urgency=low
+
+  * New upstream release. Fixes a security problem with pkcs11-tool
+    generating insecure public keypairs. This problem was only with the
+    0.11.7 release, which was only part of unstable. (Closes: #527640)
+
+ -- Eric Dorland <eric@debian.org>  Sun, 10 May 2009 22:03:06 -0400
+
 opensc (0.11.7-2) unstable; urgency=low
 
   * debian/rules: Explicitly enable openct and pcsc. (Closes: #522077)
