@@ -74,14 +74,14 @@ am__libpkcs15init_la_SOURCES_DIST = pkcs15-lib.c profile.c keycache.c \
 	pkcs15-jcop.c pkcs15-starcos.c pkcs15-oberthur.c \
 	pkcs15-setcos.c pkcs15-incrypto34.c pkcs15-muscle.c \
 	pkcs15-asepcos.c pkcs15-rutoken.c pkcs15-entersafe.c \
-	pkcs15init.exports versioninfo.rc
+	pkcs15-rtecp.c pkcs15init.exports versioninfo.rc
 @WIN32_TRUE@am__objects_1 = versioninfo.lo
 am_libpkcs15init_la_OBJECTS = pkcs15-lib.lo profile.lo keycache.lo \
 	pkcs15-gpk.lo pkcs15-miocos.lo pkcs15-cflex.lo \
 	pkcs15-cardos.lo pkcs15-jcop.lo pkcs15-starcos.lo \
 	pkcs15-oberthur.lo pkcs15-setcos.lo pkcs15-incrypto34.lo \
 	pkcs15-muscle.lo pkcs15-asepcos.lo pkcs15-rutoken.lo \
-	pkcs15-entersafe.lo $(am__objects_1)
+	pkcs15-entersafe.lo pkcs15-rtecp.lo $(am__objects_1)
 libpkcs15init_la_OBJECTS = $(am_libpkcs15init_la_OBJECTS)
 libpkcs15init_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -301,7 +301,8 @@ dist_pkgdata_DATA = \
 	muscle.profile \
 	rutoken.profile \
 	asepcos.profile \
-	entersafe.profile
+	entersafe.profile \
+	rutoken_ecp.profile
 
 AM_CPPFLAGS = -DSC_PKCS15_PROFILE_DIRECTORY=\"$(pkgdatadir)\"
 AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(LTLIB_CFLAGS)
@@ -311,7 +312,7 @@ libpkcs15init_la_SOURCES = pkcs15-lib.c profile.c keycache.c \
 	pkcs15-jcop.c pkcs15-starcos.c pkcs15-oberthur.c \
 	pkcs15-setcos.c pkcs15-incrypto34.c pkcs15-muscle.c \
 	pkcs15-asepcos.c pkcs15-rutoken.c pkcs15-entersafe.c \
-	pkcs15init.exports $(am__append_1)
+	pkcs15-rtecp.c pkcs15init.exports $(am__append_1)
 @WIN32_FALSE@dist_noinst_DATA = versioninfo.rc
 libpkcs15init_la_LIBADD = $(OPTIONAL_OPENSSL_LIBS) $(LTLIB_LIBS) \
 	$(top_builddir)/src/libopensc/libopensc.la \
@@ -408,6 +409,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-miocos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-muscle.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-oberthur.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-rtecp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-rutoken.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-setcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-starcos.Plo@am__quote@

@@ -206,7 +206,9 @@ static int gemsafe_get_cert_len(sc_card_t *card, sc_path_t *path,
 
 static int gemsafe_detect_card( sc_pkcs15_card_t *p15card)
 {
-    sc_debug(p15card->card->ctx, "In gemsafe_detect_card\n");
+	if (strcmp(p15card->card->name, "GemSAFE V1"))
+		return SC_ERROR_WRONG_CARD;
+
     return SC_SUCCESS;
 }
 
@@ -388,7 +390,7 @@ sc_pkcs15emu_add_object(sc_pkcs15_card_t *p15card, int type,
 	sc_pkcs15_object_t *obj;
 	int		df_type;
 
-	obj = (sc_pkcs15_object_t *) calloc(1, sizeof(*obj));
+	obj = calloc(1, sizeof(*obj));
 
 	obj->type  = type;
 	obj->data  = data;
@@ -416,6 +418,7 @@ sc_pkcs15emu_add_object(sc_pkcs15_card_t *p15card, int type,
 	default:
 		sc_error(p15card->card->ctx,
 			"Unknown PKCS15 object type %d\n", type);
+		free(obj);
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -435,7 +438,7 @@ sc_pkcs15emu_add_pin(sc_pkcs15_card_t *p15card,
 {
 	sc_pkcs15_pin_info_t *info;
 
-	info = (sc_pkcs15_pin_info_t *) calloc(1, sizeof(*info));
+	info = calloc(1, sizeof(*info));
 	info->auth_id           = *id;
 	info->min_length        = min_length;
 	info->max_length        = max_length;
@@ -464,7 +467,7 @@ sc_pkcs15emu_add_cert(sc_pkcs15_card_t *p15card,
 {
 	/* const char *label = "Certificate"; */
 	sc_pkcs15_cert_info_t *info;
-	info = (sc_pkcs15_cert_info_t *) calloc(1, sizeof(*info));
+	info = calloc(1, sizeof(*info));
 	info->id		= *id;
 	info->authority		= authority;
 	if (path)
@@ -483,7 +486,7 @@ sc_pkcs15emu_add_prkey(sc_pkcs15_card_t *p15card,
 {
 	sc_pkcs15_prkey_info_t *info;
 
-	info = (sc_pkcs15_prkey_info_t *) calloc(1, sizeof(*info));
+	info = calloc(1, sizeof(*info));
 	info->id                = *id;
 	info->modulus_length    = modulus_length;
 	info->usage             = usage;
@@ -512,7 +515,7 @@ sc_pkcs15emu_add_pubkey(sc_pkcs15_card_t *p15card,
 {
 	sc_pkcs15_pubkey_info_t *info;
 
-	info = (sc_pkcs15_pubkey_info_t *) calloc(1, sizeof(*info));
+	info = calloc(1, sizeof(*info));
 	info->id		= *id;
 	info->modulus_length	= modulus_length;
 	info->usage		= usage;

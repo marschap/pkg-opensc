@@ -9,29 +9,33 @@
           <h1 id="QuickStartwithOpenSC">Quick Start with OpenSC</h1>
 <p>
 If you haven't already, please first take a look at our <a class="wiki" href="OverView.html" shape="rect">OverView</a> page, the
-<a class="wiki" href="OperatingSystems.html" shape="rect">OperatingSystems</a> page and the <a class="wiki" href="CompilingInstalling.html" shape="rect">CompilingInstalling</a> page. For the rest of this
-document we assume you have installed OpenSC. We will show you how you
-can test if it works, and what you can do with it.
+<a class="wiki" href="OperatingSystems.html" shape="rect">OperatingSystems</a> page and the <a class="wiki" href="CompilingInstalling.html" shape="rect">CompilingInstalling</a> page. 
+</p>
+<h2 id="Beforewestart">Before we start…</h2>
+<p>
+A word of warning: these experiments can destroy your card (e.g. if we
+have a bug. there is <strong>_NO WARRANTY_</strong> on opensc of any kind).  Also
+be sure to make notes of everything you do, <i>especially</i> the pin and
+puk and so-pin and so-puk you set, as it is not possible to erase some
+cards without these!
+</p>
+<h2 id="Installtherequiredmiddleware">Install the required middleware</h2>
+<p>
+Many card readers (or standalone USB tokens) use a nonstandard wire format for communicating between the computer and the device.  You will need to get the corresponding (often proprietary) software up and running first.  For USB tokens see the respective page on this Wiki (eg for <a class="wiki" href="AladdinEtokenPro.html" shape="rect">Aladdin EToken</a>, <a class="wiki" href="RainbowIkeyThree.html" shape="rect">Rainbow IKey 3000</a>).  For card readers, you should get to the point where the LED turns on when you plug it into the USB socket.
+</p>
+<h2 id="InstallOpenSC">Install OpenSC</h2>
+<p>
+For Mac OS X, download and install <a href="http://www.opensc-project.org/sca/" shape="rect">SCA</a>.
 </p>
 <p>
-Please note that OpenSC 0.10 does not include the pam module and the openssl
-engine any more. We suggest you install <a href="http://www.opensc-project.org/libp11/" shape="rect">libp11</a>
-and <a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">engine_pkcs11</a> and if you want
-to login with your smart card or crypto token, you might want to install
-either <a href="http://www.opensc-project.org/pam_p11/" shape="rect">pam_p11</a> (a simple authentication
-module) or <a href="http://www.opensc-project.org/pam_pkcs11/" shape="rect">pam_pkcs11</a> (a full featured
-authentication module).
+For Windows, visit the <a href="http://www.opensc-project.org/build" shape="rect">build project</a>.
 </p>
 <p>
-Before we start a word of warning: these experiments can destroy your card
-(e.g. if we have a bug. there is _NO WARRANTY_ on opensc of any kind).
-Also be sure to make notes of everything you do, for example the pin and puk
-and so-pin and so-puk you set, as it is for example not possible to erase
-some cards.
+For Linux, either use your distribution's package manager or <a class="wiki" href="CompilingInstalling.html" shape="rect">install from source</a>.
 </p>
+<h2 id="TestOpenSC">Test OpenSC</h2>
 <p>
-But lets start. First test if OpenSC works: check if your smart card
-reader is found:
+First check if your smart card reader is found:
 </p>
 <pre class="wiki" xml:space="preserve">$ opensc-tool --list-readers
 Readers known about:
@@ -125,14 +129,37 @@ Please enter User PIN:
 Security officer PIN required.
 Please enter Security officer PIN: 
 </pre><p>
-If <a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">engine_pkcs11</a> is installed we can use openssl to create
-a self signed certificate. 
+You can list the keys on the token with
 </p>
+<pre class="wiki" xml:space="preserve">$ pkcs15-tool --list-keys
+Private RSA Key [Private Key]
+        Com. Flags  : 3
+        Usage       : [0x4], sign
+        Access Flags: [0x1D], sensitive, alwaysSensitive, neverExtract, local
+        ModLength   : 1024
+        Key ref     : 16
+        Native      : yes
+        Path        : 3F005015
+        Auth ID     : 01
+        ID          : 45
+</pre><h2 id="TestingusingOpenSSL">Testing using OpenSSL</h2>
+<p>
+If you followed thus far, your token is now fitted with a private RSA key that it generated itself and never divulged to anybody (not even the host computer).  Assuming <a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">engine_pkcs11</a> is installed, we can use this key and openssl to create
+a self signed certificate, still without divulging the key; the necessary cryptographic computations will occur on-token.
+</p>
+<p>
+Let's start the OpenSSL interactive shell and load the <a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">engine pkcs11</a> so that OpenSSL can ask the token to do the crypto (as opposed to doing it from your computer's CPU).
+</p>
+<ul><li><strong>Linux</strong>: open a terminal and type this (skipping the prompts):
 <pre class="wiki" xml:space="preserve">$ openssl
-OpenSSL&gt; engine dynamic -pre SO_PATH:/usr/lib/engines/engine_pkcs11.so \
-	-pre ID:pkcs11 -pre LIST_ADD:1 -pre LOAD \
-        -pre MODULE_PATH:opensc-pkcs11.so
-(dynamic) Dynamic engine loading support
+OpenSSL&gt; engine dynamic -pre SO_PATH:/usr/lib/engines/engine_pkcs11.so -pre ID:pkcs11 -pre LIST_ADD:1 -pre LOAD -pre MODULE_PATH:opensc-pkcs11.so
+</pre></li></ul><ul><li><strong>Mac OS X</strong>: open a terminal and type this (skipping the prompts):
+<pre class="wiki" xml:space="preserve">$ /Library/OpenSC/bin/openssl
+OpenSSL&gt; engine dynamic -pre SO_PATH:/Library/OpenSC/lib/engines/engine_pkcs11.so -pre ID:pkcs11 -pre LIST_ADD:1 -pre LOAD -pre MODULE_PATH:/usr/lib/opensc-pkcs11.so
+</pre></li></ul><p>
+In both cases, OpenSSL should respond with something like
+</p>
+<pre class="wiki" xml:space="preserve">(dynamic) Dynamic engine loading support
 [Success]: SO_PATH:/usr/lib/engines/engine_pkcs11.so
 [Success]: ID:pkcs11
 [Success]: LIST_ADD:1
@@ -142,10 +169,12 @@ OpenSSL&gt;
 </pre><p>
 It is important to enter the whole long command in one single command
 line. I usually copy&amp;paste the command, to make sure I don't mistype
-anything. This command loads the opensc engine, so openssl can delegate
-some work from your computers cpu to the smart card.
+anything.
 </p>
-<pre class="wiki" xml:space="preserve">OpenSSL&gt; req -engine pkcs11 -new -key id_45 -keyform engine -out req.pem -text -x509
+<p>
+Staying at the OpenSSL prompt, now type:
+</p>
+<pre class="wiki" xml:space="preserve">OpenSSL&gt; req -engine pkcs11 -new -key id_45 -keyform engine -x509 -out cert.pem -text
 SmartCard PIN: 
 You are about to be asked to enter information that will be incorporated
 into your certificate request.
@@ -168,18 +197,19 @@ A challenge password []:
 An optional company name []:
 OpenSSL&gt; 
 </pre><p>
-So now I have a signed certificate. Remove the final "-x509" if you want
-a certificate signing request only. In that case, send the request
-to the CA, wait till you get it back, signed, and proceed as normal.
+This creates a signed certificate as file <tt>cert.pem</tt> (again, without divulging the private key).  You can verify that it is indeed self-signed (the private key is not required for this): exit OpenSSL and type
+</p>
+<pre class="wiki" xml:space="preserve">$ openssl verify -CAfile cert.pem cert.pem
+cert.pem: OK
+</pre><p>
+If instead you remove the "-x509" flag in the <tt>req</tt> OpenSSL command, you get a certificate signing request.  Send it to the CA, wait till you get it back, signed, and
+proceed.
 </p>
 <p>
-For more details on the openssl engine, please see the
-<a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">engine pkcs11 documentation</a>.
-</p>
-<p>
-Now store the certificate side by side with the key. It is important
-to save the certificate under the same ID as the key. You can get
-a list of all keys and their details (including the ID) with:
+Now we can store the certificate side by side with the key on the
+token, as a piece of public (but read-only) data. It is important to
+save the certificate under the same ID as the key, so that applications wanting to use that certificate on your behalf can find the private key as well. You can get a list
+of all keys and their details (including the ID) with:
 </p>
 <pre class="wiki" xml:space="preserve">$ pkcs15-tool --list-keys
 Private RSA Key [Private Key]
@@ -193,22 +223,34 @@ Private RSA Key [Private Key]
         Auth ID     : 01
         ID          : 45
 </pre><p>
-So lets store the key:
+So lets store the certificate that we created:
 </p>
-<pre class="wiki" xml:space="preserve">$ pkcs15-init --store-certificate req.pem --auth-id 01 --id 45 --format pem 
+<pre class="wiki" xml:space="preserve">$ pkcs15-init --store-certificate cert.pem --auth-id 01 --id 45 --format pem 
 Security officer PIN required.
 Please enter Security officer PIN: 
 </pre><p>
 Now we are ready to go. If you want to add more certificates (e.g. the root
 certificate of the CA that signed your key, or some intermediate certificates
 in the chain to the root CA) simply put those into pem files, and add them
-to id 46, 47 and so on. 
+to id 46, 47 and so on.  You don't need the private key for these obviously.
+</p>
+<h1 id="Nowwhat">Now what?</h1>
+<p>
+You probably want to make your token work with other applications than
+<tt>pkcs15-init</tt> and OpenSSL: see <a class="wiki" href="WikiStart#ApplicationSupport.html" shape="rect">Application Support</a> on the main page.
+</p>
+<p>
+If you want to login to your computer with your smart card or crypto
+token, please note that OpenSC 0.10 does not include the pam module
+and the openssl engine any more. We suggest you install
+<a href="http://www.opensc-project.org/libp11/" shape="rect">libp11</a>,
+<a href="http://www.opensc-project.org/engine_pkcs11/" shape="rect">engine_pkcs11</a> and one
+of <a href="http://www.opensc-project.org/pam_p11/" shape="rect">pam_p11</a> (a simple
+authentication module) or <a href="http://www.opensc-project.org/pam_pkcs11/" shape="rect">pam_pkcs11</a> (a full featured authentication module).
 </p>
 <h1 id="Links">Links</h1>
-<p>
-* <a class="ext-link" href="http://daniel.benoy.name/?p=76" shape="rect"><span class="icon">eToken PRO initial setup tutorial</span></a>
-</p>
-
+<ul><li><a class="ext-link" href="http://daniel.benoy.name/?p=76" shape="rect"><span class="icon">eToken PRO initial setup tutorial</span></a>
+</li></ul>
         
         
       </div>

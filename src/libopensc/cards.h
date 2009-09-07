@@ -127,6 +127,7 @@ enum {
 	SC_CARD_TYPE_MUSCLE_BASE = 15000,
 	SC_CARD_TYPE_MUSCLE_GENERIC,
 	SC_CARD_TYPE_MUSCLE_ETOKEN_72K,
+	SC_CARD_TYPE_MUSCLE_JCOP241,
 
 	/* ACOS5 driver */
 	SC_CARD_TYPE_ACOS5_BASE = 16000,
@@ -147,7 +148,6 @@ enum {
 	SC_CARD_TYPE_ENTERSAFE_FTCOS_PK_01C,
 };
 
-extern sc_card_driver_t *sc_get_rutoken_driver(void);
 extern sc_card_driver_t *sc_get_default_driver(void);
 extern sc_card_driver_t *sc_get_emv_driver(void);
 extern sc_card_driver_t *sc_get_cardos_driver(void);
@@ -172,6 +172,8 @@ extern sc_card_driver_t *sc_get_acos5_driver(void);
 extern sc_card_driver_t *sc_get_asepcos_driver(void);
 extern sc_card_driver_t *sc_get_akis_driver(void);
 extern sc_card_driver_t *sc_get_entersafe_driver(void);
+extern sc_card_driver_t *sc_get_rutoken_driver(void);
+extern sc_card_driver_t *sc_get_rtecp_driver(void);
 
 #ifdef __cplusplus
 }

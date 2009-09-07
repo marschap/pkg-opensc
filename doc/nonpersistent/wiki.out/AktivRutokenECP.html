@@ -1,0 +1,43 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      AktivRutokenECP – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="AktivCo.RutokenECP">Aktiv Co. Rutoken ECP</h1>
+<p>
+<a class="ext-link" href="http://www.aktiv-company.ru/" shape="rect"><span class="icon">Aktiv Co.</span></a> offers the <a class="ext-link" href="http://rutoken.ru/products/rutokends/" shape="rect"><span class="icon">Rutoken ECP</span></a>, an USB crypto token with 64K memory and support for RSA keys up to 2048bit key length.
+</p>
+<h3 id="RutokenECP">Rutoken ECP</h3>
+<ul><li><strong>USB IDs:</strong> 0a89:0030
+</li><li><strong>Memory:</strong> 64K
+</li></ul><h2 id="On-boardcryptographicfunctions">On-board cryptographic functions</h2>
+<ul><li>RSA (with RSA keys up to 2048 bits)
+</li><li>GOST R 34.10-2001
+</li><li>GOST 34.11-94
+</li><li>GOST 28147-89
+</li><li>Key generation: <a class="missing wiki" shape="rect">ElGamal?</a> and Diffie-Hellman schemes
+</li></ul><h2 id="Authentication">Authentication</h2>
+<ul><li>3 categories of owners: Administrator, User, Guest
+</li><li>2 Global PIN-codes: Administrator and User
+</li><li>Local PIN-codes
+</li><li>Combined authentication
+</li><li>The possibility of simultaneous control of the access rights by the 7 Local PIN-codes
+</li></ul><h2 id="Filesystemfeatures">File system features</h2>
+<ul><li>File structure of ISO/IEC 7816-4
+</li><li>The level of subdirectory - limited by space available for file system
+</li><li>Number of file objects inside directory - up to 255, inclusive
+</li><li>Using files Rutoken Special File (RSF-files) to store keys and PIN-codes
+</li><li>Storage of private and symmetric keys, without the possibility of exports from device
+</li><li>Predefined directory for storing different kinds of key information (RSF-files) and automatic selection of the predefined directories
+</li><li>The total amount of memory for file structure - 64 kB
+</li></ul><h2 id="Initialize">Initialize</h2>
+<pre class="wiki" xml:space="preserve">$ pkcs15-init --erase-card --create-pkcs15 --so-pin "87654321" --so-puk ""
+$ pkcs15-init --store-pin --label "User PIN" --auth-id 02 --pin "12345678" --puk "" --so-pin "87654321" --finalize
+</pre>
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

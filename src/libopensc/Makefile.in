@@ -86,11 +86,11 @@ am__libopensc_la_SOURCES_DIST = sc.c ctx.c ui.c log.c errors.c asn1.c \
 	card-jcop.c card-oberthur.c card-belpic.c card-atrust-acos.c \
 	card-entersafe.c card-incrypto34.c card-piv.c card-muscle.c \
 	card-acos5.c card-asepcos.c card-akis.c card-gemsafeV1.c \
-	card-rutoken.c pkcs15-openpgp.c pkcs15-infocamere.c \
-	pkcs15-starcert.c pkcs15-tcos.c pkcs15-esteid.c \
-	pkcs15-postecert.c pkcs15-gemsafeGPK.c pkcs15-actalis.c \
-	pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c \
-	pkcs15-esinit.c compression.c p15card-helper.c \
+	card-rutoken.c card-rtecp.c pkcs15-openpgp.c \
+	pkcs15-infocamere.c pkcs15-starcert.c pkcs15-tcos.c \
+	pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafeGPK.c \
+	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c \
+	pkcs15-piv.c pkcs15-esinit.c compression.c p15card-helper.c \
 	libopensc.exports versioninfo.rc
 @WIN32_TRUE@am__objects_1 = versioninfo.lo
 am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo asn1.lo \
@@ -106,12 +106,12 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo ui.lo log.lo errors.lo asn1.lo \
 	card-oberthur.lo card-belpic.lo card-atrust-acos.lo \
 	card-entersafe.lo card-incrypto34.lo card-piv.lo \
 	card-muscle.lo card-acos5.lo card-asepcos.lo card-akis.lo \
-	card-gemsafeV1.lo card-rutoken.lo pkcs15-openpgp.lo \
-	pkcs15-infocamere.lo pkcs15-starcert.lo pkcs15-tcos.lo \
-	pkcs15-esteid.lo pkcs15-postecert.lo pkcs15-gemsafeGPK.lo \
-	pkcs15-actalis.lo pkcs15-atrust-acos.lo pkcs15-tccardos.lo \
-	pkcs15-piv.lo pkcs15-esinit.lo compression.lo \
-	p15card-helper.lo $(am__objects_1)
+	card-gemsafeV1.lo card-rutoken.lo card-rtecp.lo \
+	pkcs15-openpgp.lo pkcs15-infocamere.lo pkcs15-starcert.lo \
+	pkcs15-tcos.lo pkcs15-esteid.lo pkcs15-postecert.lo \
+	pkcs15-gemsafeGPK.lo pkcs15-actalis.lo pkcs15-atrust-acos.lo \
+	pkcs15-tccardos.lo pkcs15-piv.lo pkcs15-esinit.lo \
+	compression.lo p15card-helper.lo $(am__objects_1)
 libopensc_la_OBJECTS = $(am_libopensc_la_OBJECTS)
 libopensc_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -344,11 +344,11 @@ libopensc_la_SOURCES = sc.c ctx.c ui.c log.c errors.c asn1.c base64.c \
 	card-oberthur.c card-belpic.c card-atrust-acos.c \
 	card-entersafe.c card-incrypto34.c card-piv.c card-muscle.c \
 	card-acos5.c card-asepcos.c card-akis.c card-gemsafeV1.c \
-	card-rutoken.c pkcs15-openpgp.c pkcs15-infocamere.c \
-	pkcs15-starcert.c pkcs15-tcos.c pkcs15-esteid.c \
-	pkcs15-postecert.c pkcs15-gemsafeGPK.c pkcs15-actalis.c \
-	pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c \
-	pkcs15-esinit.c compression.c p15card-helper.c \
+	card-rutoken.c card-rtecp.c pkcs15-openpgp.c \
+	pkcs15-infocamere.c pkcs15-starcert.c pkcs15-tcos.c \
+	pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafeGPK.c \
+	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c \
+	pkcs15-piv.c pkcs15-esinit.c compression.c p15card-helper.c \
 	libopensc.exports $(am__append_1)
 @WIN32_FALSE@dist_noinst_DATA = versioninfo.rc
 libopensc_la_LIBADD = $(OPTIONAL_OPENSSL_LIBS) $(OPTIONAL_OPENCT_LIBS) \
@@ -483,6 +483,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-oberthur.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-openpgp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-piv.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-rtecp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-rutoken.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-setcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-starcos.Plo@am__quote@
