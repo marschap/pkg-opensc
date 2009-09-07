@@ -1,8 +1,12 @@
 opensc (0.11.9-2) unstable; urgency=low
 
   * debian/libopensc2.symbols: Add symbols file.
+  * debian/compat: Use debhelper version 7.
+  * debian/control: Drop build-deps on cdbs and build-depend on debhelper
+    >= 7.0.50.
+  * debian/rules: Convert to dh instead of debhelper.
 
- --
+ -- Eric Dorland <eric@debian.org>  Mon, 07 Sep 2009 19:00:53 -0400
 
 opensc (0.11.9-1) unstable; urgency=low
 
