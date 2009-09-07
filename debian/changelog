@@ -1,8 +1,9 @@
 opensc (0.11.9-1) unstable; urgency=low
 
   * New upstream release.
+  * debian/control: Update Standards-Version to 3.8.3.
 
- --
+ -- Eric Dorland <eric@debian.org>  Mon, 07 Sep 2009 17:38:19 -0400
 
 opensc (0.11.8-1) unstable; urgency=low
 
