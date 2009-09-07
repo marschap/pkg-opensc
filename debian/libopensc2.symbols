@@ -242,6 +242,7 @@ libpkcs15init.so.2 libopensc2 #MINVER#
  sc_pkcs15init_get_muscle_ops@Base 0.11.4
  sc_pkcs15init_get_oberthur_ops@Base 0.11.4
  sc_pkcs15init_get_pin_info@Base 0.11.4
+ sc_pkcs15init_get_rtecp_ops@Base 0.11.9
  sc_pkcs15init_get_rutoken_ops@Base 0.11.7
  sc_pkcs15init_get_serial@Base 0.11.4
  sc_pkcs15init_get_setcos_ops@Base 0.11.4
