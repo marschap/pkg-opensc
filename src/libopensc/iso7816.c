@@ -446,11 +446,9 @@ static int iso7816_select_file(sc_card_t *card,
 		apdu.resp = buf;
 		apdu.resplen = sizeof(buf);
 		apdu.le = 256;
-	} else {
-		apdu.resplen = 0;
-		apdu.le = 0;
-		apdu.cse = SC_APDU_CASE_3_SHORT;
-	}
+	} else
+		apdu.cse = (apdu.lc == 0) ? SC_APDU_CASE_1 : SC_APDU_CASE_3_SHORT;
+
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
 	if (file_out == NULL) {
@@ -463,6 +461,8 @@ static int iso7816_select_file(sc_card_t *card,
 	if (r)
 		SC_FUNC_RETURN(card->ctx, 2, r);
 
+	if (apdu.resplen < 2)
+		SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_UNKNOWN_DATA_RECEIVED);
 	switch (apdu.resp[0]) {
 	case 0x6F:
 		file = sc_file_new();
@@ -473,7 +473,7 @@ static int iso7816_select_file(sc_card_t *card,
 			sc_file_free(file);
 			SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_NOT_SUPPORTED);
 		}
-		if (apdu.resp[1] <= apdu.resplen)
+		if ((size_t)apdu.resp[1] + 2 <= apdu.resplen)
 			card->ops->process_fci(card, file, apdu.resp+2, apdu.resp[1]);
 		*file_out = file;
 		break;
@@ -519,17 +519,21 @@ static int iso7816_construct_fci(sc_card_t *card, const sc_file_t *file,
 {
 	u8 *p = out;
 	u8 buf[64];
-	
+
+	if (*outlen < 2)
+		return SC_ERROR_BUFFER_TOO_SMALL;
 	*p++ = 0x6F;
 	p++;
 	
 	buf[0] = (file->size >> 8) & 0xFF;
 	buf[1] = file->size & 0xFF;
-	sc_asn1_put_tag(0x81, buf, 2, p, 16, &p);
+	sc_asn1_put_tag(0x81, buf, 2, p, *outlen - (p - out), &p);
 
 	if (file->type_attr_len) {
+		assert(sizeof(buf) >= file->type_attr_len);
 		memcpy(buf, file->type_attr, file->type_attr_len);
-		sc_asn1_put_tag(0x82, buf, file->type_attr_len, p, 16, &p);
+		sc_asn1_put_tag(0x82, buf, file->type_attr_len,
+				p, *outlen - (p - out), &p);
 	} else {
 		buf[0] = file->shareable ? 0x40 : 0;
 		switch (file->type) {
@@ -544,19 +548,23 @@ static int iso7816_construct_fci(sc_card_t *card, const sc_file_t *file,
 		default:
 			return SC_ERROR_NOT_SUPPORTED;
 		}
-		sc_asn1_put_tag(0x82, buf, 1, p, 16, &p);
+		sc_asn1_put_tag(0x82, buf, 1, p, *outlen - (p - out), &p);
 	}
 	buf[0] = (file->id >> 8) & 0xFF;
 	buf[1] = file->id & 0xFF;
-	sc_asn1_put_tag(0x83, buf, 2, p, 16, &p);
+	sc_asn1_put_tag(0x83, buf, 2, p, *outlen - (p - out), &p);
 	/* 0x84 = DF name */
 	if (file->prop_attr_len) {
+		assert(sizeof(buf) >= file->prop_attr_len);
 		memcpy(buf, file->prop_attr, file->prop_attr_len);
-		sc_asn1_put_tag(0x85, buf, file->prop_attr_len, p, 18, &p);
+		sc_asn1_put_tag(0x85, buf, file->prop_attr_len,
+				p, *outlen - (p - out), &p);
 	}
 	if (file->sec_attr_len) {
+		assert(sizeof(buf) >= file->prop_attr_len);
 		memcpy(buf, file->sec_attr, file->sec_attr_len);
-		sc_asn1_put_tag(0x86, buf, file->sec_attr_len, p, 18, &p);
+		sc_asn1_put_tag(0x86, buf, file->sec_attr_len,
+				p, *outlen - (p - out), &p);
 	}
 	out[1] = p - out - 2;
 
@@ -664,20 +672,17 @@ static int iso7816_set_security_env(sc_card_t *card,
 	int r, locked = 0;
 
 	assert(card != NULL && env != NULL);
-	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0, 0);
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0x41, 0);
 	switch (env->operation) {
 	case SC_SEC_OPERATION_DECIPHER:
-		apdu.p1 = 0x81;
 		apdu.p2 = 0xB8;
 		break;
 	case SC_SEC_OPERATION_SIGN:
-		apdu.p1 = 0x41;
 		apdu.p2 = 0xB6;
 		break;
 	default:
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
-	apdu.le = 0;
 	p = sbuf;
 	if (env->flags & SC_SEC_ENV_ALG_REF_PRESENT) {
 		*p++ = 0x80;	/* algorithm reference */
@@ -687,6 +692,7 @@ static int iso7816_set_security_env(sc_card_t *card,
 	if (env->flags & SC_SEC_ENV_FILE_REF_PRESENT) {
 		*p++ = 0x81;
 		*p++ = env->file_ref.len;
+		assert(sizeof(sbuf) - (p - sbuf) >= env->file_ref.len);
 		memcpy(p, env->file_ref.value, env->file_ref.len);
 		p += env->file_ref.len;
 	}
@@ -696,6 +702,7 @@ static int iso7816_set_security_env(sc_card_t *card,
 		else
 			*p++ = 0x84;
 		*p++ = env->key_ref_len;
+		assert(sizeof(sbuf) - (p - sbuf) >= env->key_ref_len);
 		memcpy(p, env->key_ref, env->key_ref_len);
 		p += env->key_ref_len;
 	}
@@ -703,7 +710,6 @@ static int iso7816_set_security_env(sc_card_t *card,
 	apdu.lc = r;
 	apdu.datalen = r;
 	apdu.data = sbuf;
-	apdu.resplen = 0;
 	if (se_num > 0) {
 		r = sc_lock(card);
 		SC_TEST_RET(card->ctx, r, "sc_lock() failed");

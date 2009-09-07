@@ -1,0 +1,32 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      AktivRutokenS – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="AktivCo.RutokenS">Aktiv Co. Rutoken S</h1>
+<p>
+<a class="ext-link" href="http://www.aktiv-company.ru/" shape="rect"><span class="icon">Aktiv Co.</span></a> offers the Rutoken S, an USB crypto token with 8K, 32K, 64K or 128K memory.
+</p>
+<h3 id="RutokenS">Rutoken S</h3>
+<ul><li><strong>USB IDs:</strong> 0a89:0020
+</li><li><strong>Memory:</strong> 8K, 32K, 64K or 128K
+</li></ul><h2 id="On-boardcryptographicfunctions">On-board cryptographic functions</h2>
+<ul><li>GOST 28147-89
+</li></ul><h2 id="Authentication">Authentication</h2>
+<ul><li>3 categories of owners: Administrator, User, Guest
+</li><li>2 Global PIN-codes: Administrator and User
+</li></ul><h2 id="Filesystemfeatures">File system features</h2>
+<ul><li>File structure of ISO/IEC 7816-4
+</li><li>Storage of symmetric keys, without the possibility of exports from device
+</li></ul><h2 id="Initialize">Initialize</h2>
+<pre class="wiki" xml:space="preserve">$ pkcs15-init --erase-card
+$ pkcs15-init --create-pkcs15 --so-pin "87654321" --so-puk ""
+$ pkcs15-init --store-pin --label "User PIN" --auth-id 02 --pin "12345678" --puk ""
+</pre>
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

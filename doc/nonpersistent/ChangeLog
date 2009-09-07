@@ -1,10 +1,179 @@
-2009-05-07 13:10  aj
+2009-07-29 07:03  aj
 
-	* releases/opensc-0.11.8/configure.ac: prepare new release.
+	* releases/opensc-0.11.9: Create new release.
+
+2009-07-29 07:02  aj
+
+	* trunk/NEWS, trunk/configure.ac: Prepare for new release
+
+2009-07-23 08:56  aj
+
+	* trunk/src/pkcs15init/pkcs15-entersafe.c: Weitao Sun: no one can
+	  create more than 15 files under 5015 df. I increase it from 15
+	  to 48, and all are OK.
+
+2009-07-23 08:30  aj
+
+	* trunk/src/pkcs11/pkcs11.h: Latest version from scute svn with
+	  this change: Stef Walter: Make all constants UL that should be.
+
+2009-07-22 12:24  aj
+
+	* trunk/src/pkcs15init/pkcs15-rtecp.c,
+	  trunk/src/pkcs15init/pkcs15-rutoken.c: Aktiv Co./Aleksey
+	  Samsonov: fix a bug in rutoken driver.
+
+2009-07-22 10:09  aj
+
+	* trunk/src/libopensc/card-piv.c,
+	  trunk/src/libopensc/pkcs15-piv.c: Douglas E. Engert: major
+	  update for the PIV smartcard. The major issue is with getting
+	  the length of an object or the cert contained in an object. The
+	  PIV card does not have a directory on the card, So the previous
+	  version tried to put off as long as possible the reading of
+	  objects for performance so as to avoid having to read objects
+	  that would not be used. The first standard, NIST 800-73, set
+	  maximum sizes for objects. 800-73-2 removed this for
+	  certificates. A certificate object can contain a certificate
+	  which might be compressed. The only way to get the length of the
+	  compressed certificate is to decompress it. Thus the
+	  decompressed certificate could be larger then the container
+	  object, so even if the PIV card had a directory, one would still
+	  need to decompress the certificate to find its length. OpenSC
+	  sc_read_binary will use the length obtained by using
+	  sc_select_file(...,&file_out), and thus the lengths must be
+	  determined in sc_select_file. Change are to card-piv.c and
+	  pkcs15-piv.c and include: * The old cache code which was not
+	  working was removed. * New cache code was added which caches all
+	  object read from the card * If an object has a cert, the cert is
+	  decompressed and also cached. * As part of reading an object the
+	  first 8 bytes are read and this is then used to allocate a large
+	  buffer to read in the object. * If pkcs15 or pkcs11 asks about a
+	  certificate, the cert object will be read, and the cert
+	  decompressed, to get the actual length. * If piv_select_file is
+	  called with the file_out != NULL the object will be read to get
+	  the length If called with NULL it will not be read. * The
+	  enumeration of the objects now starts with 0. *
+	  sc_ctx_suppress_errors_on and off are used to avoid file not
+	  found messages which are are a by product of not having a
+	  directory. * "Unsigned Card Holder Unique Identifier" object in
+	  card-piv and pkcs15-piv.c had conflicting paths, as NIST
+	  800-72-1 had two tables with different paths. The enumtag for it
+	  in card-piv.c was also wrong.
+
+2009-07-22 10:06  aj
+
+	* trunk/src/libopensc/pkcs15-gemsafeV1.c: Douglas E. Engert: The
+	  pkcs15-gemsafeV1.c does not detect of the card present is in
+	  fact a gemsafeV1 card, and thus it can end up issuing commands
+	  to the wrong cards.
+
+2009-07-02 13:59  jps
+
+	* trunk/src/libopensc/card-muscle.c, trunk/src/libopensc/cards.h:
+	  Add support for JCOP31 v2.4.1 with the modified muscle
+	  applet[1]. This add support for 2048bit key and extended APDU.
+	  [1]
+	  http://www.opensc-project.org/pipermail/opensc-user/2009-June/003147.html
+
+2009-06-28 10:08  aj
+
+	* trunk/src/pkcs11/Makefile.mak: Kalev Lember: fix
+	  onepin-opensc-pkcs11.dll manifest embedding with Microsoft
+	  compilers.
+
+2009-06-28 07:26  aj
+
+	* trunk/src/libopensc/card-rtecp.c: Aktiv Co. / Aleksey Samsonov:
+	  use generic code instead of identical funciton (now that the
+	  generic code was fixed).
+
+2009-06-28 07:25  aj
+
+	* trunk/src/libopensc/card-gemsafeV1.c: Aktiv Co. / Aleksey
+	  Samsonov: use generic set_security_env code, remove duplicate
+	  code.
+
+2009-06-28 07:23  aj
+
+	* trunk/src/libopensc/iso7816.c: Aktiv Co. / Aleksey Samsonov:
+	  Remove dead code.
+
+2009-06-28 07:22  aj
+
+	* trunk/src/libopensc/iso7816.c: Aktiv Co. / Aleksey Samsonov: Add
+	  assert() calls to check constant buffer size.
+
+2009-06-28 07:20  aj
+
+	* trunk/src/libopensc/iso7816.c: Aktiv Co. / Aleksey Samsonov:
+	  Check buffer length (*outlen)
+
+2009-06-28 07:19  aj
+
+	* trunk/src/libopensc/iso7816.c: Aktiv Co. / Aleksey Samsonov: Fix
+	  for the case when "apdu.resplen < 2" and checked buffer length.
+
+2009-06-28 07:17  aj
+
+	* trunk/src/libopensc/iso7816.c: Aktiv Co. / Aleksey Samsonov: fix
+	  case depending on length. also no need to null resplen or le
+	  (done by sc_format_apdu).
+
+2009-06-28 07:11  aj
+
+	* trunk/src/libopensc/ctx.c: Move emv driver to the end.
+
+2009-06-25 08:45  ludovic.rousseau
+
+	* trunk/src/libopensc/iso7816.c: iso7816_set_security_env():
+	  correctly set P1 parameter in case of SC_SEC_OPERATION_DECIPHER
+	  Thanks to Aleksey Samsonov for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-June/012263.html
+
+2009-06-24 15:29  aj
+
+	* trunk/NEWS: add a NEWS entry too.
+
+2009-06-24 15:26  aj
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/card-rtecp.c, trunk/src/libopensc/cardctl.h,
+	  trunk/src/libopensc/cards.h, trunk/src/libopensc/ctx.c,
+	  trunk/src/pkcs15init/Makefile.am,
+	  trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-rtecp.c,
+	  trunk/src/pkcs15init/pkcs15init.exports,
+	  trunk/src/pkcs15init/rutoken_ecp.profile: Add new rutoken_ecp
+	  driver by Aktiv Co. / Aleksey Samsonov
+
+2009-06-16 09:17  ludovic.rousseau
+
+	* trunk/src/tools/opensc-tool.c: print_file(): inverse "write" and
+	  "erase" Thanks to Aleksey Samsonov for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-June/012212.html
+
+2009-05-12 14:35  ludovic.rousseau
+
+	* trunk/src/tools/cardos-tool.c: cardos_sm4h(): fix memory leaks.
+	  Thanks to cppckeck(1)
+
+2009-05-12 14:29  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-gemsafeV1.c:
+	  sc_pkcs15emu_add_object(): fix a memory leak. thanks to
+	  cppcheck(1) [pkcs15-gemsafeV1.c:419]: (error) Memory leak: obj
+
+2009-05-12 14:27  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-gemsafeV1.c: do not cast calloc()
+	  return value
 
 2009-05-07 13:09  aj
 
-	* releases/opensc-0.11.8: New OpenSC release.
 	* trunk/configure.ac: prep next release.
 
 2009-05-07 10:57  aj
