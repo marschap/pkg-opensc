@@ -4,6 +4,7 @@ opensc (0.11.12-1) unstable; urgency=low
   * debian/source/format, debian/source/options,
     debian/source/patch-header: Convert to v3 quilt format, with
     single-debian-patch.
+  * debian/rules: Enable documentation installation.
 
  --
 
