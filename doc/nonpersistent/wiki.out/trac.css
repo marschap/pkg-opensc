@@ -33,6 +33,7 @@ h1 :link, h1 :visited ,h2 :link, h2 :visited, h3 :link, h3 :visited,
 h4 :link, h4 :visited, h5 :link, h5 :visited, h6 :link, h6 :visited {
  color: inherit;
 }
+.trac-rawlink { border-bottom: none }
 
 /* Heading anchors */
 .anchor:link, .anchor:visited {
@@ -51,12 +52,12 @@ h4:hover .anchor, h5:hover .anchor, h6:hover .anchor {
 
 @media screen {
  a.ext-link .icon {
-  background: url(../extlink.gif) left center no-repeat;
-  padding-left: 16px;
+  background: url(../extlink.gif) center center no-repeat;
+  padding-left: 12px;
  }
  a.mail-link .icon {
-  background: url(../envelope.png) left center no-repeat;
-  padding-left: 16px;
+  background: url(../envelope.png) center center no-repeat;
+  padding-left: 14px;
  }
 }
 
@@ -347,6 +348,8 @@ table.wiki {
 table.wiki td { border: 1px solid #ccc;  padding: .1em .25em; }
 
 .wikitoolbar {
+ margin-top: 0.3em;
+ margin-left: 2px;
  border: solid #d7d7d7;
  border-width: 1px 1px 1px 0;
  height: 18px;
@@ -478,10 +481,10 @@ table.listing tbody tr.focus { background: #ddf !important }
 div.system-message p { margin: 0; }
 div.system-message p.system-message-title { font-weight: bold; }
 
-#warning.system-message { background: #ffa; border: 2px solid #886; }
+#warning.system-message { background: #ffb; border: 1px solid #000; }
 #warning.system-message li { list-style-type: square; }
 
-#notice.system-message { background: #bfb; border: 2px solid #484; }
+#notice.system-message { background: #dfd; border: 1px solid #000; }
 #notice.system-message li { list-style-type: square; }
 
 #content.error form.newticket { display: inline; }
@@ -565,7 +568,8 @@ div.system-message p.system-message-title { font-weight: bold; }
 
 @media print {
  #header, #altlinks, #footer, #help { display: none }
- .nav, form, .buttons form, form .buttons, form .inlinebuttons {
+ .nav, form, .buttons form, form .buttons, form .inlinebuttons,
+ .noprint, .trac-rawlink {
    display: none;
  }
  form.printableform { display: block }

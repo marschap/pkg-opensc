@@ -15,7 +15,7 @@ Those cards work well with OpenSC.
 Newer versions however are pure JavaCards and will not work without a JavaApplet.
 </p>
 <p>
-<a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon">MuscleCard</span></a> is an open source software containing a Java Cardlet for several smart cards
+<a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon"> </span>MuscleCard</a> is an open source software containing a Java Cardlet for several smart cards
 implementing the JavaCard standard. Starting with OpenSC 0.11.2 support for MuscleCard has been added. 
 </p>
 <p>
@@ -27,7 +27,7 @@ If you have an e-gate token, you need to <a class="wiki" href="e-gate.html" shap
 </p>
 <h2 id="InstallingGlobalPlatformtools">Installing GlobalPlatform tools</h2>
 <p>
-First you need to install gpshell from the <a class="ext-link" href="http://sourceforge.net/projects/globalplatform/" shape="rect"><span class="icon">GlobalPlatform open source project</span></a>:
+First you need to install gpshell from the <a class="ext-link" href="http://sourceforge.net/projects/globalplatform/" shape="rect"><span class="icon"> </span>GlobalPlatform open source project</a>:
 </p>
 <pre class="wiki" xml:space="preserve">wget http://heanet.dl.sourceforge.net/sourceforge/globalplatform/globalplatform-5.0.0.tar.gz
 tar xfvz globalplatform-5.0.0.tar.gz
@@ -53,11 +53,11 @@ Wrapped command --&gt; 84E602002305A00000000107A0000000030000000AEF08C6023100C80
 Response &lt;-- 6A80
 install_for_load() returns 0x80206A80 (6A80: Wrong data / Incorrect values in command data.)
 </pre><p>
-Bug @ sf.net: <a class="ext-link" href="https://sourceforge.net/tracker2/?func=detail&amp;aid=2406176&amp;group_id=143343&amp;atid=755201" shape="rect"><span class="icon">https://sourceforge.net/tracker2/?func=detail&amp;aid=2406176&amp;group_id=143343&amp;atid=755201</span></a>
+Bug @ sf.net: <a class="ext-link" href="https://sourceforge.net/tracker2/?func=detail&amp;aid=2406176&amp;group_id=143343&amp;atid=755201" shape="rect"><span class="icon"> </span>https://sourceforge.net/tracker2/?func=detail&amp;aid=2406176&amp;group_id=143343&amp;atid=755201</a>
 </p>
 <h2 id="LoadingMuscleCardApplet">Loading MuscleCard Applet</h2>
 <p>
-The Muscle Web page is at <a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon">http://www.musclecard.com/</span></a> but you can download the Applet directly from <a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon">http://www.identityalliance.com/CardEdgeII.ijc</span></a>. A recent copy is also attached to this wiki <a class="attachment" href="/opensc/attachment/wiki/Cyberflex/CardEdgeII.ijc" title="Attachment 'CardEdgeII.ijc' in Cyberflex" shape="rect">attachment:CardEdgeII.ijc</a>
+The Muscle Web page is at <a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon"> </span>http://www.musclecard.com/</a> but you can download the Applet directly from <a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon"> </span>http://www.identityalliance.com/CardEdgeII.ijc</a>. A recent copy is also attached to this wiki <a class="attachment" href="/opensc/attachment/wiki/Cyberflex/CardEdgeII.ijc" title="Attachment 'CardEdgeII.ijc' in Cyberflex" shape="rect">attachment:CardEdgeII.ijc</a><span class="noprint"> <a class="trac-rawlink" href="/opensc/raw-attachment/wiki/Cyberflex/CardEdgeII.ijc" title="Download" shape="rect"><img src="/opensc/chrome/common/download.png" alt="Download"></img></a></span>
 </p>
 <p>
 You need to run gpshell with these commands:
@@ -118,20 +118,20 @@ PIN [User PIN]
 </pre><h1 id="FAQ">FAQ</h1>
 <h3 id="WhattodoonWindows">What to do on Windows ?</h3>
 <p>
-<a class="ext-link" href="http://sourceforge.net/projects/globalplatform" shape="rect"><span class="icon">http://sourceforge.net/projects/globalplatform</span></a> has a download package of GPShell.exe for windows, so no need to compile it on your own.
+<a class="ext-link" href="http://sourceforge.net/projects/globalplatform" shape="rect"><span class="icon"> </span>http://sourceforge.net/projects/globalplatform</a> has a download package of GPShell.exe for windows, so no need to compile it on your own.
 </p>
 <p>
 Download
 </p>
-<ul><li><a class="ext-link" href="http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip" shape="rect"><span class="icon">http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip</span></a>
-</li><li><a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon">http://www.identityalliance.com/CardEdgeII.ijc</span></a>
+<ul><li><a class="ext-link" href="http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip" shape="rect"><span class="icon"> </span>http://mesh.dl.sourceforge.net/sourceforge/globalplatform/GPShell-1.3.1.zip</a>
+</li><li><a class="ext-link" href="http://www.identityalliance.com/CardEdgeII.ijc" shape="rect"><span class="icon"> </span>http://www.identityalliance.com/CardEdgeII.ijc</a>
 </li></ul><p>
 and unzip both in the current directory. Run the same commands mentioned above and you should be fine. Note however that this is 100% untested,
 please report back if it works (or not) on the opensc-user or opensc-devel <a class="wiki" href="MailingLists.html" shape="rect">MailingLists</a>. Thanks for your feedback!
 </p>
 <h3 id="Isthereatoolforit">Is there a tool for it?</h3>
 <p>
-A small tool to get some information about the cards can be found here: <a class="ext-link" href="http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz" shape="rect"><span class="icon">http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz</span></a>
+A small tool to get some information about the cards can be found here: <a class="ext-link" href="http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz" shape="rect"><span class="icon"> </span>http://www.contrib.andrew.cmu.edu/~cg2v/jcop-opensc-0.2.tar.gz</a>
 It was written for IBM JCop cards but should work as well with Cyberflex cards. Note: Does not work with latest OpenSC as sc_check_sw symbol is not exported from libopensc.
 </p>
 <h3 id="HowcanIformatorupdatecardswiththeoldapplet">How can I format or update cards with the old applet?</h3>
@@ -164,8 +164,9 @@ Both need to be send in one go - without card reset in between. The first select
           <ul>
               <li>
       <a href="/opensc/attachment/wiki/Cyberflex/CardEdgeII.ijc" title="View attachment" shape="rect">CardEdgeII.ijc</a>
+      <a href="/opensc/raw-attachment/wiki/Cyberflex/CardEdgeII.ijc" title="Download" class="trac-rawlink" shape="rect"><img src="/trac/download.png" alt="Download"></img></a>
       (<span title="12532 bytes">12.2 KB</span>) - added by <em>martin</em>
-      <a class="timeline" href="/opensc/timeline?from=2008-12-07T10%3A52%3A01Z%2B0000&amp;precision=second" title="2008-12-07T10:52:01Z+0000 in Timeline" shape="rect">8 months</a> ago.
+      <a class="timeline" href="/opensc/timeline?from=2008-12-07T10%3A52%3A01Z&amp;precision=second" title="2008-12-07T10:52:01Z in Timeline" shape="rect">13 months</a> ago.
                 <q>Applet to load onto the card</q>
               </li>
           </ul>

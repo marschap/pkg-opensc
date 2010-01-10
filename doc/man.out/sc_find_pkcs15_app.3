@@ -1,29 +1,41 @@
+'\" t
 .\"     Title: sc_find_pkcs15_app
-.\"    Author: 
-.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 07/29/2009
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
+.\"      Date: 12/18/2009
 .\"    Manual: OpenSC API reference
 .\"    Source: opensc
+.\"  Language: English
 .\"
-.TH "SC_FIND_PKCS15_APP" "3" "07/29/2009" "opensc" "OpenSC API reference"
+.TH "SC_FIND_PKCS15_APP" "3" "12/18/2009" "opensc" "OpenSC API reference"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
 sc_find_pkcs15_app \- Find a PKCS#15 application on a card
 .SH "SYNOPSIS"
 .PP
 
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
 #include <opensc\&.h>
 
 const sc_app_info_t *sc_find_pkcs15_app(sc_card_t *card);
 		
 .fi
+.if n \{\
 .RE
+.\}
 .sp
 .SH "DESCRIPTION"
 .PP

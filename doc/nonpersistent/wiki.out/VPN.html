@@ -10,18 +10,18 @@
 <p>
 The common standard for Virtual Private Networks is IPSEC. For linux there are four implementations of IPSEC:
 </p>
-<ul><li><a class="ext-link" href="http://www.freeswan.org/" shape="rect"><span class="icon">FreeS/WAN</span></a> has no support for smart cards, unless patched with the X.509 patch.
+<ul><li><a class="ext-link" href="http://www.freeswan.org/" shape="rect"><span class="icon"> </span>FreeS/WAN</a> has no support for smart cards, unless patched with the X.509 patch.
 That patch comes with documentation how to use smart cards. FreeS/WAN project has ended, you might want to
 use Openswan or strongSwan instead.
-</li><li><a class="ext-link" href="http://www.openswan.org/" shape="rect"><span class="icon">Openswan</span></a> supports OpenSC natively and must be compiled with OpenSC support.
+</li><li><a class="ext-link" href="http://www.openswan.org/" shape="rect"><span class="icon"> </span>Openswan</a> supports OpenSC natively and must be compiled with OpenSC support.
 If that is done, you can find more details in the Openswan documentation:
-<a class="ext-link" href="http://www.openswan.org/docs/local/README.x509" shape="rect"><span class="icon">README.x509</span></a> has a chapter 8  about Smartcard support.
-</li><li><a class="ext-link" href="http://www.strongswan.org/" shape="rect"><span class="icon">strongSwan</span></a> supports smart card authentication using PKCS#11 API. It should
+<a class="ext-link" href="http://www.openswan.org/docs/local/README.x509" shape="rect"><span class="icon"> </span>README.x509</a> has a chapter 8  about Smartcard support.
+</li><li><a class="ext-link" href="http://www.strongswan.org/" shape="rect"><span class="icon"> </span>strongSwan</a> supports smart card authentication using PKCS#11 API. It should
 work fine with <tt>opensc-pkcs11.so</tt>, please report your results. Detailed documentation is part of the 
-<a class="ext-link" href="http://www.strongswan.org/docs/install.htm#chapter_2.3" shape="rect"><span class="icon">strongSwan documentation</span></a>.
-</li><li><a class="ext-link" href="http://ipsec-tools.sourceforge.net/" shape="rect"><span class="icon">Racoon</span></a> does currently not support smart card authentication.
-</li><li><a class="ext-link" href="http://www.openvpn.net/" shape="rect"><span class="icon">OpenVPN</span></a> does support PKCS#11 in current devel version. Successfuly 
-tested OpenSC with OpenVPN 2.1beta.7. They have a howto with details on it at <a class="ext-link" href="http://openvpn.net/howto.html" shape="rect"><span class="icon">http://openvpn.net/howto.html</span></a>
+<a class="ext-link" href="http://www.strongswan.org/docs/install.htm#chapter_2.3" shape="rect"><span class="icon"> </span>strongSwan documentation</a>.
+</li><li><a class="ext-link" href="http://ipsec-tools.sourceforge.net/" shape="rect"><span class="icon"> </span>Racoon</a> does currently not support smart card authentication.
+</li><li><a class="ext-link" href="http://www.openvpn.net/" shape="rect"><span class="icon"> </span>OpenVPN</a> does support PKCS#11 in current devel version. Successfuly 
+tested OpenSC with OpenVPN 2.1beta.7. They have a howto with details on it at <a class="ext-link" href="http://openvpn.net/howto.html" shape="rect"><span class="icon"> </span>http://openvpn.net/howto.html</a>
 </li></ul>
         
         

@@ -7,7 +7,7 @@
       <div class="wikipage searchable">
         
           <p>
-The <a class="ext-link" href="http://www.nist.gov/" shape="rect"><span class="icon">National Institute of Standards and Technology</span></a>, U.S. Department of Commerce has defined a 
+The <a class="ext-link" href="http://www.nist.gov/" shape="rect"><span class="icon"> </span>National Institute of Standards and Technology</a>, U.S. Department of Commerce has defined a 
 smart card application. Although not a "national ID card", it is expected to be used widely in the 
 U.S.federal government and its contractors. Cards with this application are commonly referred to as PIV cards. 
 </p>
@@ -52,6 +52,13 @@ OpenSC 0.11.4 added support to read all the objects on the card via PKCS#11, pkc
 OpenSC 0.11.5 added support for 800-73-2. 
 </p>
 <p>
+OpenSC 0.11.9 fixed bug: highly compressed certificates were only being partially read. If any problems are found in previous versions, please update to at least this version. 
+</p>
+<p>
+OpenSC 0.11.10 fixed bug when using piv-tool to authenticate to card using 3DES key.  
+               
+</p>
+<p>
 No changes are needed to the opensc.conf file when using 0.11.4 and above, but here are sample changes needed for 0.11.1 in the opensc.conf file to use some GemAalto and Oberthur PIV cards. If other vendors produce PIV cards, you may have to add their ATRs:
 </p>
 <pre class="wiki" xml:space="preserve">...
@@ -84,13 +91,13 @@ No changes are needed to the opensc.conf file when using 0.11.4 and above, but h
 <h2 id="PIVOverview">PIV Overview</h2>
 <blockquote>
 <p>
-<a class="ext-link" href="http://csrc.ncsl.nist.gov/piv-program/" shape="rect"><span class="icon">http://csrc.ncsl.nist.gov/piv-program/</span></a>  
+<a class="ext-link" href="http://csrc.ncsl.nist.gov/piv-program/" shape="rect"><span class="icon"> </span>http://csrc.ncsl.nist.gov/piv-program/</a>  
 </p>
 </blockquote>
 <h2 id="NISTSpecialPublications-800-73-2">NIST Special Publications - 800-73-2</h2>
 <blockquote>
 <p>
-<a class="ext-link" href="http://csrc.nist.gov/publications/PubsSPs.html" shape="rect"><span class="icon">http://csrc.nist.gov/publications/PubsSPs.html</span></a>
+<a class="ext-link" href="http://csrc.nist.gov/publications/PubsSPs.html" shape="rect"><span class="icon"> </span>http://csrc.nist.gov/publications/PubsSPs.html</a>
 </p>
 </blockquote>
 <p>
@@ -98,13 +105,13 @@ Look for 800-73-2. Part 2 has the ADPU commands. All four parts:
 </p>
 <blockquote>
 <p>
-<a class="ext-link" href="http://csrc.nist.gov/publications/nistpubs/800-73-2/sp800-73-2_4parts.zip" shape="rect"><span class="icon">http://csrc.nist.gov/publications/nistpubs/800-73-2/sp800-73-2_4parts.zip</span></a>
+<a class="ext-link" href="http://csrc.nist.gov/publications/nistpubs/800-73-2/sp800-73-2_4parts.zip" shape="rect"><span class="icon"> </span>http://csrc.nist.gov/publications/nistpubs/800-73-2/sp800-73-2_4parts.zip</a>
 </p>
 </blockquote>
 <h2 id="PIVApprovedCardsReadersMiddlewareetc">PIV Approved Cards, Readers, Middleware etc</h2>
 <blockquote>
 <p>
-<a class="ext-link" href="http://fips201ep.cio.gov/apl.php" shape="rect"><span class="icon">http://fips201ep.cio.gov/apl.php</span></a>
+<a class="ext-link" href="http://fips201ep.cio.gov/apl.php" shape="rect"><span class="icon"> </span>http://fips201ep.cio.gov/apl.php</a>
 </p>
 </blockquote>
 

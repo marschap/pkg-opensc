@@ -4,7 +4,7 @@ AC_PREREQ(2.60)
 
 define([PACKAGE_VERSION_MAJOR], [0])
 define([PACKAGE_VERSION_MINOR], [11])
-define([PACKAGE_VERSION_FIX], [9])
+define([PACKAGE_VERSION_FIX], [12])
 define([PACKAGE_SUFFIX], [])
 
 AC_INIT([opensc],[PACKAGE_VERSION_MAJOR.PACKAGE_VERSION_MINOR.PACKAGE_VERSION_FIX[]PACKAGE_SUFFIX])
@@ -587,7 +587,7 @@ if test "${enable_pcsc}" = "yes"; then
 				DEFAULT_PCSC_PROVIDER="winscard.dll"
 			;;
 			*)
-				DEFAULT_PCSC_PROVIDER="/usr/lib${libdir##*/lib}/libpcsclite.so"
+				DEFAULT_PCSC_PROVIDER="/usr/lib${libdir##*/lib}/libpcsclite.so.1"
 			;;
 		esac
 	else

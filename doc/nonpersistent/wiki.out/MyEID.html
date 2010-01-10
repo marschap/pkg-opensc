@@ -1,0 +1,117 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      MyEID – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="AventraMyEIDPKIcard">Aventra MyEID PKI card</h1>
+<p>
+Aventra MyEID PKI Card is a cryptographic smart card conforming to common Public Key Infrastructure standards like ISO7816 and PKCS#15. It can be used for various tasks requiring strong cryptography, e. g. logging securely to Windows, encrypting e-mail, authentication, and electronic signatures. The card is also available as a Dual Interface version, compatible with T=CL protocol and also emulating Mifare™.
+</p>
+<p>
+The card material is PVC as standard, making it suitable for visual personalisation using thermal transfer or dye sublimation printers. Customer specific layouts can be delivered in offset and silk screen printing. Optional features include magnetic stripe, signature panel, holograms, security printing etc. 
+</p>
+<p>
+The cards can be personalised both visually and electrically by Aventra according to customer specifications, or the customers can personalise the cards themselves using ActivePerso Manager developed by Aventra, or software from other parties. 
+</p>
+<h2 id="AventraMyEIDapplet">Aventra MyEID applet</h2>
+<p>
+The MyEID applet implements all the basic functionality of a Public Key Infrastructure (PKI) token specified in the most common international PKI standards, such as PKCS#15.  The users optionally have a choice between different authentication methods to the token. Besides the standard PIN number, there are currently two other authentication mechanisms available. The GrIDsure® one time PIN is based on a pop-up challenge grid that is used to form a onetime PIN that cannot be used by outsiders watching the authentication. MyEID tokens are also compatible with PalmSecure™ biometric technology, which is based on the unique blood vein patterns in the palm of the user’s hand replacing the PIN. The MyEID applet is compatible with the Aventra ActiveSecurity Client Suite.
+</p>
+<h3 id="Technicaldetails">Technical details</h3>
+<p>
+<strong>Platform</strong>
+</p>
+<ul><li>JavaCard™ from 2.2.1 and above, Global Platform 2.1.1
+</li></ul><p>
+<strong>Supported standards and specifications</strong>
+</p>
+<ul><li>ISO/IEC 7816-4 to 7816-9
+</li><li>ISO/IEC 14443 T=CL and Mifare™
+</li><li>PKCS#15
+</li><li>FINEID S4-1 and S4-2
+</li></ul><p>
+<strong>Other features</strong>
+</p>
+<ul><li>512 bit to 2048 bit RSA cryptographic operations with on card key generation
+</li><li>Secure random number generator (FIPS 140-2)
+</li><li>DES, 3DES, AES128, AES256 symmetric encryption algorithms
+</li><li>72K EEPROM memory
+</li></ul><p>
+<strong>Compatible software</strong>
+</p>
+<ul><li>Aventra ActiveSecurity™ MyClient Suite
+</li><li>Fujitsu mPollux DigiSign™ middleware
+</li><li>OpenSC
+</li><li>Large number of third party software products that support CSP for Microsoft™ CryptoAPI or PKCS#11 Token Interface
+</li></ul><h2 id="OpenSCsupport">OpenSC support</h2>
+<p>
+OpenSC 0.11.4 was the first version that had support for the MyEID card. At that time the patch required was provided by Aventra when requested. Since the version 0.11.10 support for the MyEID card is included to the official release. PKCS#15 initialization is not supported.
+</p>
+<p>
+In OpenSC only normal PIN codes can be used. GrIDsure® and PalmSecure technologies are not supported. These require our ActiveSecurity MyClient software.
+</p>
+<h3 id="Smartcardreaderconfiguration">Smart card reader configuration</h3>
+<p>
+MyEID card uses T=1 protocol. This basically means that the response data is sent with the answer to the command/request. In T=0 protocol the smart card will first answer to the command and tell how much data it will send. Data is then sent separately. 
+</p>
+<p>
+Most readers don't support sending the default amount of data (254). Problems will only appear when reading larger files from the card (e.g. certificates). So if you have problems with reading the card with no apparent reason, try set this to 192, be on the safe side. You can then try to iterate to find the maximum for your card reader. 
+</p>
+<p>
+The setting in the opensc.conf (usually in /etc) config file is the following for the used reader:
+</p>
+<pre class="wiki" xml:space="preserve">...
+	reader_driver pcsc {
+		# This sets the maximum send and receive sizes.
+		# Some reader drivers have limitations, so you need
+		# to set these values. For usb devices check the
+		# properties with lsusb -vv for dwMaxIFSD
+		#
+		# max_send_size = 254;
+		# max_recv_size = 254;
+		max_recv_size = 192;
+...		
+	}
+
+	reader_driver openct {
+...
+		# max_send_size = 252;
+		# max_recv_size = 252;
+		max_recv_size = 192;
+...
+	};
+</pre><h2 id="Linksotherinformation">Links &amp; other information</h2>
+<p>
+Cards can be bought from Aventra Ltd. as blank cards or according to customer specifications regarding appearance etc.
+</p>
+<p>
+<a class="ext-link" href="http://www.aventra.fi/English/index_E.php" shape="rect"><span class="icon"> </span>Aventra Ltd.</a>
+</p>
+<h3 id="AboutAventra">About Aventra</h3>
+<p>
+Aventra is a high tech company specialising in information security products and services. We are especially focusing on Public Key Infrastructure technologies. Most of our products are developed in house.
+</p>
+<p>
+Aventra offers a complete portfolio of card products ranging from simple plastic cards to high security smart cards and tokens. Our most recent product line features security solutions for mobile applications.  We also provide complete services and systems for issuing and managing cards and secure tokens, including card printers and materials.
+</p>
+<p>
+<img src="/opensc/raw-attachment/wiki/MyEID/aventra_logo_white.PNG" alt="Aventra Ltd. logo" title="Aventra Ltd. logo"></img>
+</p>
+
+        
+        
+      </div>
+          <h3>Attachments</h3>
+          <ul>
+              <li>
+      <a href="/opensc/attachment/wiki/MyEID/aventra_logo_white.PNG" title="View attachment" shape="rect">aventra_logo_white.PNG</a>
+      <a href="/opensc/raw-attachment/wiki/MyEID/aventra_logo_white.PNG" title="Download" class="trac-rawlink" shape="rect"><img src="/trac/download.png" alt="Download"></img></a>
+      (<span title="6265 bytes">6.1 KB</span>) - added by <em>aventra</em>
+      <a class="timeline" href="/opensc/timeline?from=2009-09-21T09%3A07%3A10Z&amp;precision=second" title="2009-09-21T09:07:10Z in Timeline" shape="rect">3 months</a> ago.
+                <q>Aventra Ltd. logo</q>
+              </li>
+          </ul>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

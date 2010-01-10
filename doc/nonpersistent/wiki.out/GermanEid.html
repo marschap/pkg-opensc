@@ -21,7 +21,7 @@ The german government was using the RipeMD 160 hash algorithm within their 1024 
 Since july 2008 german signature cards must not use SHA-1 anymore but must use RIPEMD160, SHA-224, SHA-256, SHA-384 or SHA-512. This forced some trust center to replace all of their signature card in the middle of 2008 (of course after they had replaced all of their signature cards at the beginning of 2008 due to the increased keylength).
 </p>
 <p>
-You find the 2009-regulations <a class="ext-link" href="http://www.bundesnetzagentur.de/media/archive/15549.pdf" shape="rect"><span class="icon">here</span></a>.
+You find the 2009-regulations <a class="ext-link" href="http://www.bundesnetzagentur.de/media/archive/15549.pdf" shape="rect"><span class="icon"> </span>here</a>.
 </p>
 <p>
 As of March 2009 you may get signature cards from the following Trust center in germany:
@@ -84,7 +84,7 @@ Certificate:
             X509v3 Key Usage: critical
                 Non Repudiation
 </pre><p>
-You may download D-Trust CA certificates <a class="ext-link" href="http://www.d-trust.net/internet/content/d-trust-roots.html" shape="rect"><span class="icon">here</span></a>. All CA-certificates that D-Trust uses were signed by a self generated root certificates from D-Trust. The following output lists the verifiction chain of the above 2048 bit qualified "SigG signature certificate". Despite the fact that D-Trust is an accredited trust center they do not use CA-certificates that were signed by the root-certificates of the Bundesnetzagentur.
+You may download D-Trust CA certificates <a class="ext-link" href="http://www.d-trust.net/internet/content/d-trust-roots.html" shape="rect"><span class="icon"> </span>here</a>. All CA-certificates that D-Trust uses were signed by a self generated root certificates from D-Trust. The following output lists the verifiction chain of the above 2048 bit qualified "SigG signature certificate". Despite the fact that D-Trust is an accredited trust center they do not use CA-certificates that were signed by the root-certificates of the Bundesnetzagentur.
 </p>
 <p>
 Here's what D-Trust told me on 2008 Cebit (sorry, but I cannot translate this, I'm not even sure wether I understand it):
@@ -108,8 +108,7 @@ notAfter= Apr 27 12:40:54 2011 GMT
 Sparkassenverlag is another trust center in germany.
 </p>
 <p>
-A first test showed that OpenSC does not support the S-Trust card of Sparkassenverlag. I don't even
-know what card operation system is used.
+OpenSC does not support the S-Trust card of Sparkassenverlag. There cards are <a class="wiki" href="Seccos.html" shape="rect">SECCOS</a> based, and can also contain 'Geldkarte' and 'HBCI' Applications. They are comparably inexpensive, my card was €9, plus 'qualified certificate' at about €20 per year. 
 </p>
 <h2 id="TCTrustCenter">TC Trust Center</h2>
 <p>

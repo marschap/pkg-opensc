@@ -11,7 +11,7 @@
 <a style="padding:0; border:none" href="/opensc/attachment/wiki/AladdinEtokenPro/eToken.gif" shape="rect"><img src="/opensc/raw-attachment/wiki/AladdinEtokenPro/eToken.gif" alt="Image of eToken PRO 32K" title="Image of eToken PRO 32K"></img></a>
 </p>
 <p>
-<a class="ext-link" href="http://www.ealaddin.com/" shape="rect"><span class="icon">Aladdin</span></a> offers the <a class="ext-link" href="http://www.aladdin.com/etoken/devices/pro-usb.aspx" shape="rect"><span class="icon">eToken PRO</span></a>, an USB crypto token with 32k or 64k memory and support for RSA keys up to 2048bit key length.
+<a class="ext-link" href="http://www.ealaddin.com/" shape="rect"><span class="icon"> </span>Aladdin</a> offers the <a class="ext-link" href="http://www.aladdin.com/etoken/devices/pro-usb.aspx" shape="rect"><span class="icon"> </span>eToken PRO</a>, an USB crypto token with 32k or 64k memory and support for RSA keys up to 2048bit key length.
 </p>
 <p>
 The eToken PRO is fully supported by OpenSC and is well tested.
@@ -23,6 +23,9 @@ The precise model of your token can be determined from the text moulded in the p
 <h3 id="Unsupportedmodels">Unsupported models</h3>
 <p>
 There is a rare version of the Aladdin eToken PRO with a G&amp;D Starcos smart card inside. This version never went into mass production as far as we know, and  is not supported by OpenSC.
+</p>
+<p>
+Also there are some smart cards with the "Aladdin eToken" Name on them too. These cards are too old, they are not supported by OpenSC, as they lack some required features.
 </p>
 <h3 id="eTokenR1andR2">eToken R1 and R2</h3>
 <p>
@@ -44,7 +47,7 @@ This is the second public release of the device, that use a proprietary protocol
 </li><li><strong>On-Chip OS:</strong> Siemens CardOS M4.2B
 </li></ul><h3 id="eTokenNG-OTP">eToken NG-OTP</h3>
 <p>
-This device (and the others below) are compliant with the USB CCID (Chip/Smart Card Interface Devices) standard (see section “Smart Card Class” on <a class="ext-link" href="http://www.usb.org/developers/devclass_docs" shape="rect"><span class="icon">http://www.usb.org/developers/devclass_docs</span></a>).  As such, they don't require a proprietary driver to work with OpenSC.
+This device (and the others below) are compliant with the USB CCID (Chip/Smart Card Interface Devices) standard (see section “Smart Card Class” on <a class="ext-link" href="http://www.usb.org/developers/devclass_docs" shape="rect"><span class="icon"> </span>http://www.usb.org/developers/devclass_docs</a>).  As such, they don't require a proprietary driver to work with OpenSC.
 </p>
 <ul><li><strong>USB IDs:</strong> (?)
 </li><li><strong>Memory:</strong> (?)
@@ -71,18 +74,18 @@ Aladdin has an SDK with Documentation on their ftp server for public download, b
 </p>
 <h3 id="CardOS-basedversions">CardOS-based versions</h3>
 <p>
-CardOS versions up to and including M4.20 are supported. (Is CardOS M4.3b also working?)  This includes all the CardOS-based token versions listed above except the evaluation boards.  In order to make these work with OpenSC, one has to install the proprietary middleware; the proprietary key manager is not needed.  See <a href="AladdinEtokenPro#InstallationNotes.html" shape="rect">below</a>.
+CardOS versions up to and including M4.20 are supported. (Is CardOS M4.3b also working?)  This includes all the CardOS-based token versions listed above except the evaluation boards.  In order to make these work with OpenSC, one has to install the proprietary middleware; the proprietary key manager is not needed.  See <a class="wiki" href="AladdinEtokenPro#InstallationNotes.html" shape="rect">below</a>.
 </p>
 <p>
 One minor misfeature of the Siemens CardOS M4 is that an RSA key cannot be used for both signing and decryption. OpenSC has implemented a workaround: software key generation and storing that key twice, once marked as decryption key and once marked as signing key. To enable this workaround specify "--split-key" on the command line, when creating the key.
 </p>
 <h2 id="InstallationNotes">Installation Notes</h2>
 <p>
-Aladdin provides their own software, which comprises both the middleware (necessary for all CardOS-based tokens) and the key-management tool (<a class="ext-link" href="http://www.etokenonlinux.org" shape="rect"><span class="icon">also for Linux</span></a>) which is not compatible with PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a>.  (However, as long as enough memory is available on the chip, it is possible to initialize the token with both OpenSC and this proprietary key manager, and thus install files and keys side by side - each software can then only handle their own structures.)
+Aladdin provides their own software, which comprises both the middleware (necessary for all CardOS-based tokens) and the key-management tool (<a class="ext-link" href="http://www.etokenonlinux.org" shape="rect"><span class="icon"> </span>also for Linux</a>) which is not compatible with PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a>.  (However, as long as enough memory is available on the chip, it is possible to initialize the token with both OpenSC and this proprietary key manager, and thus install files and keys side by side - each software can then only handle their own structures.)
 </p>
 <h3 id="MacOSX">Mac OS X</h3>
 <p>
-Download the <a class="ext-link" href="ftp://ftp.aladdin.com/pub/etoken/PKI%20Client/PKI_Client_4_55_Mac/eToken_PKI_Client_4_55_Mac.zip" shape="rect"><span class="icon">PKIClient 4.55 software package</span></a>.  If you are only interested in the middleware (and not the proprietary key manager), don't install everything at once; rather, follow these steps:
+Download the <a class="ext-link" href="ftp://ftp.aladdin.com/pub/etoken/PKI%20Client/PKI_Client_4_55_Mac/eToken_PKI_Client_4_55_Mac.zip" shape="rect"><span class="icon"> </span>PKIClient 4.55 software package</a>.  If you are only interested in the middleware (and not the proprietary key manager), don't install everything at once; rather, follow these steps:
 </p>
 <ol><li>unpack and mount the <tt>pkiclient.4.55.41.dmg</tt> file
 </li><li>explore the <tt>eToken PKI Client 4.55.mpkg</tt> directory on it (Ctrl-click then “Show package contents”), then open “Contents” and “Packages”
@@ -103,22 +106,22 @@ it means that the middleware is corectly installed, but <tt>etokenframework.pkg<
 </p>
 <h3 id="Linux">Linux</h3>
 <p>
-The middleware for Linux is available here:  <a class="ext-link" href="ftp://ftp.ealaddin.com/pub/etoken/Linux" shape="rect"><span class="icon">ftp://ftp.ealaddin.com/pub/etoken/Linux</span></a> ; and a third party provides the the <a class="ext-link" href="http://www.etokenonlinux.org" shape="rect"><span class="icon">key-management tool for Linux</span></a> (you don't need the latter if you just want your token to work with OpenSC).
+The middleware for Linux is available here:  <a class="ext-link" href="ftp://ftp.ealaddin.com/pub/etoken/Linux" shape="rect"><span class="icon"> </span>ftp://ftp.ealaddin.com/pub/etoken/Linux</a> ; and a third party provides the the <a class="ext-link" href="http://www.etokenonlinux.org" shape="rect"><span class="icon"> </span>key-management tool for Linux</a> (you don't need the latter if you just want your token to work with OpenSC).
 </p>
 <h2 id="Thanks">Thanks</h2>
 <p>
-Big thanks to <a class="ext-link" href="http://www.aladdin.com" shape="rect"><span class="icon">Aladdin</span></a>, they sponsored an OpenSC workshop in 2003 by donating 30 Aladdin eToken PRO!
+Big thanks to <a class="ext-link" href="http://www.aladdin.com" shape="rect"><span class="icon"> </span>Aladdin</a>, they sponsored an OpenSC workshop in 2003 by donating 30 Aladdin eToken PRO!
 </p>
 <p>
-Big thanks to <a class="ext-link" href="http://www.startcom.org/" shape="rect"><span class="icon">Startcom</span></a> and Eddy Nigg for lots of time and support in adding support
+Big thanks to <a class="ext-link" href="http://www.startcom.org/" shape="rect"><span class="icon"> </span>Startcom</a> and Eddy Nigg for lots of time and support in adding support
 for the Aladdin eToken PRO 64, for lots of testing and for donating one to us. 
 </p>
 <p>
-Big thanks to <a class="ext-link" href="http://www.aswsyst.cz/" shape="rect"><span class="icon">ASW</span></a>, they donated two Aladdin eToken PRO 64, so we could test our support for
+Big thanks to <a class="ext-link" href="http://www.aswsyst.cz/" shape="rect"><span class="icon"> </span>ASW</a>, they donated two Aladdin eToken PRO 64, so we could test our support for
 those Tokens (not yet released, will be included in the next release).
 </p>
 <p>
-Big thanks to Josef Gillhuber from <a class="ext-link" href="http://www.aladdin.com" shape="rect"><span class="icon">Aladdin</span></a>. He donated two eToken PRO (32k and 64k) on <a href="http://www.opensc-project.org/history.html#LinuxTag2006" shape="rect">LinuxTag 2006</a>.
+Big thanks to Josef Gillhuber from <a class="ext-link" href="http://www.aladdin.com" shape="rect"><span class="icon"> </span>Aladdin</a>. He donated two eToken PRO (32k and 64k) on <a href="http://www.opensc-project.org/history.html#LinuxTag2006" shape="rect">LinuxTag 2006</a>.
 </p>
 <p>
 Thanks to Roman Stahl, he donated two Aladdin eToken PRO 32k (4.2B), so we could verify: they work fine too.
@@ -131,8 +134,9 @@ Thanks to Roman Stahl, he donated two Aladdin eToken PRO 32k (4.2B), so we could
           <ul>
               <li>
       <a href="/opensc/attachment/wiki/AladdinEtokenPro/eToken.gif" title="View attachment" shape="rect">eToken.gif</a>
+      <a href="/opensc/raw-attachment/wiki/AladdinEtokenPro/eToken.gif" title="Download" class="trac-rawlink" shape="rect"><img src="/trac/download.png" alt="Download"></img></a>
       (<span title="3597 bytes">3.5 KB</span>) - added by <em>pk</em>
-      <a class="timeline" href="/opensc/timeline?from=2006-10-18T15%3A56%3A09Z%2B0000&amp;precision=second" title="2006-10-18T15:56:09Z+0000 in Timeline" shape="rect">3 years</a> ago.
+      <a class="timeline" href="/opensc/timeline?from=2006-10-18T15%3A56%3A09Z&amp;precision=second" title="2006-10-18T15:56:09Z in Timeline" shape="rect">3 years</a> ago.
                 <q>Image of eToken PRO 32K</q>
               </li>
           </ul>

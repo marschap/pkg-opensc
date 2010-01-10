@@ -1,22 +1,32 @@
+'\" t
 .\"     Title: sc_format_apdu
-.\"    Author: 
-.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 07/29/2009
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
+.\"      Date: 12/18/2009
 .\"    Manual: OpenSC API reference
 .\"    Source: opensc
+.\"  Language: English
 .\"
-.TH "SC_FORMAT_APDU" "3" "07/29/2009" "opensc" "OpenSC API reference"
+.TH "SC_FORMAT_APDU" "3" "12/18/2009" "opensc" "OpenSC API reference"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
 sc_format_apdu \- Populate an APDU structure
 .SH "SYNOPSIS"
 .PP
 
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
 #include <opensc\&.h>
 
@@ -24,7 +34,9 @@ void sc_format_apdu(struct sc_card *card, sc_apdu_t *apdu,
                     int cse, int ins, int p1, int p2);
 		
 .fi
+.if n \{\
 .RE
+.\}
 .sp
 .SH "DESCRIPTION"
 .PP
