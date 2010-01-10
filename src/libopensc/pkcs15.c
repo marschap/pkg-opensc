@@ -753,6 +753,11 @@ done:
 			|| strcmp(p15card->manufacturer_id,"Prime") == 0 ))
 		p15card->flags |= SC_PKCS15_CARD_FLAG_SIGN_WITH_DECRYPT;
 
+	/* for starcos cards only: fix asn1 integers */
+	if (strcmp(p15card->card->driver->short_name,"starcos") == 0
+		&& scconf_get_bool(conf_block, "enable_fix_asn1_integers", 1))
+		p15card->flags |= SC_PKCS15_CARD_FLAG_FIX_INTEGERS;
+
 	/* set special flags based on card meta data */
 	if (strcmp(p15card->card->driver->short_name,"cardos") == 0) {
 
@@ -911,9 +916,11 @@ static int compare_obj_id(struct sc_pkcs15_object *obj, const sc_pkcs15_id_t *id
 		return sc_pkcs15_compare_id(&((struct sc_pkcs15_cert_info *) data)->id, id);
 	case SC_PKCS15_TYPE_PRKEY_RSA:
 	case SC_PKCS15_TYPE_PRKEY_DSA:
+	case SC_PKCS15_TYPE_PRKEY_GOSTR3410:
 		return sc_pkcs15_compare_id(&((struct sc_pkcs15_prkey_info *) data)->id, id);
 	case SC_PKCS15_TYPE_PUBKEY_RSA:
 	case SC_PKCS15_TYPE_PUBKEY_DSA:
+	case SC_PKCS15_TYPE_PUBKEY_GOSTR3410:
 		return sc_pkcs15_compare_id(&((struct sc_pkcs15_pubkey_info *) data)->id, id);
 	case SC_PKCS15_TYPE_AUTH_PIN:
 		return sc_pkcs15_compare_id(&((struct sc_pkcs15_pin_info *) data)->auth_id, id);
@@ -938,10 +945,12 @@ static int compare_obj_usage(sc_pkcs15_object_t *obj, unsigned int mask, unsigne
 	switch (obj->type) {
 	case SC_PKCS15_TYPE_PRKEY_RSA:
 	case SC_PKCS15_TYPE_PRKEY_DSA:
+	case SC_PKCS15_TYPE_PRKEY_GOSTR3410:
 		usage = ((struct sc_pkcs15_prkey_info *) data)->usage;
 		break;
 	case SC_PKCS15_TYPE_PUBKEY_RSA:
 	case SC_PKCS15_TYPE_PUBKEY_DSA:
+	case SC_PKCS15_TYPE_PUBKEY_GOSTR3410:
 		usage = ((struct sc_pkcs15_pubkey_info *) data)->usage;
 		break;
 	default:
@@ -976,6 +985,7 @@ static int compare_obj_reference(sc_pkcs15_object_t *obj, int value)
 		break;
 	case SC_PKCS15_TYPE_PRKEY_RSA:
 	case SC_PKCS15_TYPE_PRKEY_DSA:
+	case SC_PKCS15_TYPE_PRKEY_GOSTR3410:
 		reference = ((struct sc_pkcs15_prkey_info *) data)->key_reference;
 		break;
 	default:
@@ -993,9 +1003,11 @@ static int compare_obj_path(sc_pkcs15_object_t *obj, const sc_path_t *path)
 		return sc_compare_path(&((struct sc_pkcs15_cert_info *) data)->path, path);
 	case SC_PKCS15_TYPE_PRKEY_RSA:
 	case SC_PKCS15_TYPE_PRKEY_DSA:
+	case SC_PKCS15_TYPE_PRKEY_GOSTR3410:
 		return sc_compare_path(&((struct sc_pkcs15_prkey_info *) data)->path, path);
 	case SC_PKCS15_TYPE_PUBKEY_RSA:
 	case SC_PKCS15_TYPE_PUBKEY_DSA:
+	case SC_PKCS15_TYPE_PUBKEY_GOSTR3410:
 		return sc_compare_path(&((struct sc_pkcs15_pubkey_info *) data)->path, path);
 	case SC_PKCS15_TYPE_AUTH_PIN:
 		return sc_compare_path(&((struct sc_pkcs15_pin_info *) data)->path, path);

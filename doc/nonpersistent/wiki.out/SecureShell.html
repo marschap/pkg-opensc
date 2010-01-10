@@ -9,7 +9,7 @@
           <h1 id="SSHSecureShell">SSH Secure Shell</h1>
 <p>
 On Windows you can use putty to establish secure shell connections with smart card authentication.
-The normal putty doesn't have smart card support, but if you install the <a class="ext-link" href="http://www.joebar.ch/puttysc/" shape="rect"><span class="icon">PuTTY SC</span></a>,
+The normal putty doesn't have smart card support, but if you install the <a class="ext-link" href="http://www.joebar.ch/puttysc/" shape="rect"><span class="icon"> </span>PuTTY SC</a>,
 it contains PKCS#11 support for Putty.
 </p>
 <p>
@@ -17,10 +17,10 @@ On Linux and Mac OS X you can use OpenSSH. OpenSSH does support smart card authe
 two alternatives:
 </p>
 <ul><li>Mainline - only if the support for OpenSC is enabled during compile time. Most distributions however ship a binary package that does not include OpenSC support. You can simply download the source code or source rpm package, and recompile it using "configure --with-opensc=/usr". 
-</li></ul><ul><li>PKCS#11 - external patch available from <a class="ext-link" href="http://alon.barlev.googlepages.com/openssh-pkcs11" shape="rect"><span class="icon">here</span></a>, this works with most smartcards, even ones that are not supported directly by OpenSC project.
+</li></ul><ul><li>PKCS#11 - external patch available from <a class="ext-link" href="http://alon.barlev.googlepages.com/openssh-pkcs11" shape="rect"><span class="icon"> </span>here</a>, this works with most smartcards, even ones that are not supported directly by OpenSC project.
 </li></ul><p>
 Note that OpenSSH has a small issue: the "ssh" command does not ask for the smart card pin.
-This is known to the OpenSSH developers as <a class="ext-link" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect"><span class="icon">bug 608</span></a>.
+This is known to the OpenSSH developers as <a class="ext-link" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect"><span class="icon"> </span>bug 608</a>.
 OpenSC includes a patch to fix OpenSSH in src/openssh/ask-for-pin.diff, we suggest to patch
 openssh source code with this file before compiling OpenSSH.
 </p>
@@ -60,7 +60,7 @@ with smart cards. Ssh-add will ask for a pin, and thus ssh plus ssh-agent will w
 adds code so that ssh will ask for the smartcard pin, too. This patch was not accepted upstream so
 far, the openssh development team has a concept for a rewrite towards a cleaner solution, but this
 is still pending. So for now the patch is our best option.
-Seel also: <a class="ext-link" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect"><span class="icon">OpenSSH bug 608</span></a>
+Seel also: <a class="ext-link" href="http://bugzilla.mindrot.org/show_bug.cgi?id=608" shape="rect"><span class="icon"> </span>OpenSSH bug 608</a>
 </p>
 <h2 id="UsingOpenSSHwithasmartcard">Using OpenSSH with a smartcard</h2>
 <pre class="wiki" xml:space="preserve">ssh -I 0 root@somehost
@@ -87,7 +87,7 @@ the default reader is 0 and the default id is 45, so typically you don't need th
 </p>
 <p>
 The OpenSSH public key format is defined at
-<a class="ext-link" href="http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt" shape="rect"><span class="icon">http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt</span></a>
+<a class="ext-link" href="http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt" shape="rect"><span class="icon"> </span>http://www.ietf.org/internet-drafts/draft-ietf-secsh-publickeyfile-09.txt</a>
 </p>
 <p>
 TODO: it would be propably nicer to have one --read-public-key parameter, and a second optional parameter

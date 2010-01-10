@@ -175,6 +175,27 @@ enum {
 	SC_CARDCTL_RTECP_INIT,
 	SC_CARDCTL_RTECP_INIT_END,
 	SC_CARDCTL_RTECP_GENERATE_KEY,
+
+	/*
+	* Westcos specific
+	*/
+	SC_CARDCTL_WESTCOS_FREEZE = _CTL_PREFIX('W', 'T', 'C'),
+	SC_CARDCTL_WESTCOS_CREATE_MF,
+	SC_CARDCTL_WESTCOS_COMMIT,
+	SC_CARDCTL_WESTCOS_ROLLBACK,
+	SC_CARDCTL_WESTCOS_AUT_KEY,
+	SC_CARDCTL_WESTCOS_CHANGE_KEY,
+	SC_CARDCTL_WESTCOS_SET_DEFAULT_KEY,
+	SC_CARDCTL_WESTCOS_LOAD_DATA,
+
+	/*
+	 * MyEID specific calls
+	 */
+	SC_CARDCTL_MYEID_BASE = _CTL_PREFIX('M', 'Y', 'E'),
+	SC_CARDCTL_MYEID_PUTDATA,
+	SC_CARDCTL_MYEID_GETDATA,
+	SC_CARDCTL_MYEID_GENERATE_KEY,
+	SC_CARDCTL_MYEID_ACTIVATE_CARD,
 };
 
 enum {
@@ -462,6 +483,22 @@ typedef struct sc_cardctl_asepcos_activate_file {
 #define OP_TYPE_STORE		1
 
 /*
+ * Westcos
+ */
+
+typedef struct {
+	int key_reference;
+	size_t key_len; //8, 16 or 24
+	u8 key_value[24];
+}sc_autkey_t;
+
+typedef struct {
+	sc_autkey_t master_key;
+	sc_autkey_t new_key;
+	u8 key_template[7];
+}sc_changekey_t;
+
+/*
  *  RuToken types and constants
  */
 
@@ -478,7 +515,7 @@ typedef struct sc_cardctl_asepcos_activate_file {
 
 #define SC_RUTOKEN_DO_ALL_MIN_ID       0x1         /*  MIN ID value of All DOs  */
 #define SC_RUTOKEN_DO_CHV_MAX_ID       0x1F        /*  MAX ID value of CHV-objects  */
-#define SC_RUTOKEN_DO_NOCHV_MAX_ID     0xFE        /*  MAX ID value of All Other DOs  */
+#define SC_RUTOKEN_DO_NOCHV_MAX_ID     0x7F        /*  MAX ID value of All Other DOs  */
 
 /*  DO Default Lengths  */
 #define SC_RUTOKEN_DEF_LEN_DO_GOST         32
@@ -654,12 +691,55 @@ typedef struct sc_entersafe_gen_key_data_st {
  * Rutoken ECP stuff
  */
 typedef struct sc_rtecp_genkey_data {
+	unsigned int type;
 	unsigned int key_id;
-	unsigned char *exponent;
-	size_t exponent_len;
-	unsigned char *modulus;
-	size_t modulus_len;
+	union
+	{
+		struct
+		{
+			unsigned char *exponent;
+			size_t exponent_len;
+			unsigned char *modulus;
+			size_t modulus_len;
+		} rsa;
+		struct
+		{
+			unsigned char *x;
+			size_t x_len;
+			unsigned char *y;
+			size_t y_len;
+		} gostr3410;
+	} u;
 } sc_rtecp_genkey_data_t;
+
+/*
+* MyEID stuff
+*/
+	struct sc_cardctl_myeid_data_obj {
+		int     P1;
+		int     P2;
+		u8 *    Data;
+		size_t  DataLen;
+		int     LengthMax;
+	};
+
+	struct sc_cardctl_myeid_gen_store_key_info {
+	int             op_type;
+	unsigned int    mod_len;   
+	unsigned char  *mod;
+	unsigned int    pubexp_len;  
+	unsigned char  *pubexp;
+	unsigned int    primep_len;  
+	unsigned char  *primep;
+	unsigned int    primeq_len;  
+	unsigned char  *primeq;
+	unsigned int    dp1_len;  
+	unsigned char  *dp1;
+	unsigned int    dq1_len;  
+	unsigned char  *dq1;
+	unsigned int    invq_len;  
+	unsigned char  *invq;
+};
 
 #ifdef __cplusplus
 }

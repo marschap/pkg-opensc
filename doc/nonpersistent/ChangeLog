@@ -1,6 +1,352 @@
+2009-12-18 13:22  aj
+
+	* releases/opensc-0.11.12/WORKAROUND: remove temp. workaround.
+
+2009-12-18 13:21  aj
+
+	* releases/opensc-0.11.12/NEWS,
+	  releases/opensc-0.11.12/configure.ac: Create OpenSC 0.11.12
+	  Release.
+
+2009-12-18 13:20  aj
+
+	* releases/opensc-0.11.12/NEWS,
+	  releases/opensc-0.11.12/src/pkcs15init/entersafe.profile: Fix
+	  entersafe profile - by xiaoshuo from ftsafe, thanks to Marc for
+	  testing.
+
+2009-12-14 18:19  aj
+
+	* releases/opensc-0.11.12/configure.ac,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15-pin.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15-prkey.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15-pubkey.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15.h,
+	  releases/opensc-0.11.12/src/pkcs15init/pkcs15-lib.c: Fix integer
+	  workaround code. improve pkcs15 flags (p15_card->flags)
+	  situation: don't write our internal flags to the card.
+
+2009-12-14 15:50  aj
+
+	* releases/opensc-0.11.12/etc/opensc.conf.in,
+	  releases/opensc-0.11.12/src/libopensc/asn1.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15-pin.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15-prkey.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15-pubkey.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15.c,
+	  releases/opensc-0.11.12/src/libopensc/pkcs15.h: add workaround
+	  for OpenSC <= 0.11.4 with bad encoding of Integers in asn.1: fix
+	  starcos cards with negative keyReference or pinReference by
+	  adding 256.
+
+2009-12-14 15:25  aj
+
+	* releases/opensc-0.11.12/NEWS,
+	  releases/opensc-0.11.12/WORKAROUND,
+	  releases/opensc-0.11.12/configure.ac: document changes so far.
+
+2009-12-14 14:47  aj
+
+	* releases/opensc-0.11.12: We need a new 0.11.12 release with the
+	  integer fix / workaround.
+
+2009-10-26 19:49  aj
+
+	* releases/opensc-0.11.11/NEWS,
+	  releases/opensc-0.11.11/configure.ac: create final release.
+
+2009-10-24 06:29  aj
+
+	* releases/opensc-0.11.11/NEWS,
+	  releases/opensc-0.11.11/configure.ac: New rc2, should compile
+	  with openssl 1.0.0 too.
+
+2009-10-24 06:28  aj
+
+	* releases/opensc-0.11.11/src/pkcs11/openssl.c: fix: compile with
+	  openssl-1.0 beta3
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-October/012702.html
+	  Thanks to Kalev Lember, Patch by Aleksey Samsonov
+
+2009-10-23 13:10  aj
+
+	* releases/opensc-0.11.11: Prepare release candidate.
+
+2009-10-23 13:09  aj
+
+	* trunk/NEWS, trunk/configure.ac: Prepare release candidate.
+
+2009-10-23 13:08  aj
+
+	* trunk/src/libopensc/card-myeid.c,
+	  trunk/src/pkcs15init/myeid.profile,
+	  trunk/src/pkcs15init/pkcs15-myeid.c: Improved myeid driver (by
+	  Aventra)
+
+2009-10-23 12:12  ludovic.rousseau
+
+	* trunk/configure.ac: Default PCSC provider is libpcsclite.so.1
+	  instead of libpcsclite.so See Debian bug #511344
+
+2009-10-22 18:28  aj
+
+	* trunk/src/libopensc/card-westcos.c,
+	  trunk/src/libopensc/cardctl.h,
+	  trunk/src/libopensc/p15emu-westcos.c,
+	  trunk/src/pkcs15init/pkcs15-westcos.c,
+	  trunk/src/tools/westcos-tool.c: Cleanup westcos driver to remove
+	  warnings - by François Leblanc.
+
+2009-10-21 09:23  aj
+
+	* trunk/NEWS: latest changes.
+
+2009-10-21 09:08  aj
+
+	* trunk/src/pkcs15init/pkcs15-westcos.c,
+	  trunk/src/tools/westcos-tool.c: rewrite code to support openssl
+	  0.9.7 so rsa variable is properly set.
+
+2009-10-21 07:27  aj
+
+	* trunk/src/pkcs15init/pkcs15-westcos.c,
+	  trunk/src/tools/westcos-tool.c: Make opensc / westcos driver
+	  compile with openssl 0.9.7: It tests the version of openssl and
+	  uses the old RSA_gererate_key if older the 0.9.8. By Douglas E.
+	  Engert.
+
+2009-10-21 07:24  aj
+
+	* trunk/src/libopensc/card-piv.c: remove the variable not
+	  initialized error for "tag", and to fix another error when
+	  loading a 3des key when the string passed to sc_hex_to_bin is
+	  not terminated. By Douglas E. Engert
+
+2009-10-21 07:22  aj
+
+	* trunk/src/libopensc/muscle.c, trunk/src/libopensc/muscle.h: Fix
+	  warnings in muscle code - by João Poupino.
+
+2009-10-20 12:27  aj
+
+	* trunk/NEWS, trunk/configure.ac: next release could be 0.11.11,
+	  trunk is "-svn" preview.
+
+2009-10-20 12:25  aj
+
+	* trunk/NEWS, trunk/configure.ac: Create new release 0.11.10
+
+2009-10-13 14:20  s
+
+	* trunk/src/pkcs11/framework-pkcs15.c: fix misprint
+
+2009-10-09 13:03  martin
+
+	* trunk/src/libopensc/Makefile.mak: Fix windows/nmake build
+
+2009-10-09 05:46  s
+
+	* trunk/src/pkcs15init/keycache.c: rollback: "fix pkcs11 access
+	  with multiple PINs"
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-October/012607.html
+
+2009-10-06 13:46  s
+
+	* trunk/src/pkcs11/framework-pkcs15.c: framework-pkcs15.c:683:
+	  warning: comparison of distinct pointer types lacks a cast
+
+2009-10-06 13:32  s
+
+	* trunk/src/pkcs11/framework-pkcs15.c: fix OpenSC PKCS#11 object
+	  grouping Thanks to Pierre Ossman
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-October/012553.html
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-October/012580.html
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-October/012582.html
+
+2009-10-06 11:17  s
+
+	* trunk/src/libopensc/cardctl.h: fix: key id for automatic
+	  selection of the predefined directory (for rutoken-tool)
+
+2009-10-06 10:59  s
+
+	* trunk/src/libopensc/card-rutoken.c,
+	  trunk/src/libopensc/opensc.h,
+	  trunk/src/pkcs11/framework-pkcs15.c,
+	  trunk/src/pkcs11/pkcs11-opensc.h, trunk/src/tools/pkcs11-tool.c:
+	  remove dead code
+
+2009-10-06 08:22  s
+
+	* trunk/src/pkcs15init/rutoken.profile: correct options "small"
+	  and "default" in rutoken.profile
+
+2009-10-06 07:36  aj
+
+	* trunk/src/libopensc/card-entersafe.c,
+	  trunk/src/libopensc/card-myeid.c,
+	  trunk/src/libopensc/card-piv.c, trunk/src/libopensc/card-tcos.c,
+	  trunk/src/libopensc/card-westcos.c,
+	  trunk/src/libopensc/pkcs15-esinit.c,
+	  trunk/src/libopensc/reader-pcsc.c,
+	  trunk/src/pkcs11/pkcs11-global.c,
+	  trunk/src/pkcs15init/keycache.c,
+	  trunk/src/pkcs15init/pkcs15-cardos.c,
+	  trunk/src/pkcs15init/pkcs15-myeid.c,
+	  trunk/src/pkcs15init/pkcs15-westcos.c,
+	  trunk/src/tools/opensc-explorer.c, trunk/src/tools/util.c: kill
+	  lots of warnings (unused variables, unsigned/signed comparison
+	  etc.)
+
+2009-10-06 07:25  aj
+
+	* trunk/NEWS, trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/card-gemsafeV2.c,
+	  trunk/src/libopensc/cards.h, trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/dir.c, trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h:
+	  remove gemsafeV2 code - not working properly, not maintained.
+
+2009-10-06 06:40  aj
+
+	* trunk/NEWS: Add more NEWS entries.
+
+2009-10-06 06:36  aj
+
+	* trunk/src/libopensc/card-westcos.c: westcos: use generic
+	  select_file function (Aleksey Samsonov).
+
+2009-10-06 06:34  aj
+
+	* trunk/src/libopensc/card-westcos.c,
+	  trunk/src/pkcs15init/pkcs15-westcos.c: Allow building westcos
+	  without openssl. (François Leblanc)
+
+2009-10-06 06:32  aj
+
+	* trunk/NEWS, trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/card-gemsafeV2.c,
+	  trunk/src/libopensc/cards.h, trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/dir.c, trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h: New
+	  GemsafeV2 Emulation code by Georges Bart
+
+2009-10-05 18:40  s
+
+	* trunk/src/libopensc/card-rtecp.c, trunk/src/libopensc/cardctl.h,
+	  trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/pkcs15-algo.c,
+	  trunk/src/libopensc/pkcs15-prkey.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h,
+	  trunk/src/pkcs11/framework-pkcs15.c,
+	  trunk/src/pkcs11/mechanism.c, trunk/src/pkcs11/openssl.c,
+	  trunk/src/pkcs11/pkcs11.h, trunk/src/pkcs11/sc-pkcs11.h,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-rtecp.c: add GOST R 34.10-2001
+	  algorithm (only PKCS#11) by Aktiv Co.
+
+2009-10-02 10:56  ludovic.rousseau
+
+	* trunk/src/libopensc/card-entersafe.c: Move the declaration of
+	  sbuff[] to avoid a compiler warning card-entersafe.c: In
+	  function &#8216;entersafe_write_rsa_key_factor&#8217;:
+	  card-entersafe.c:1131: warning: declaration of &#8216;sbuff&#8217; shadows a
+	  previous local card-entersafe.c:1126: warning: shadowed
+	  declaration is here
+
+2009-10-02 10:54  ludovic.rousseau
+
+	* trunk/src/libopensc/card-entersafe.c: comment out 2 unused
+	  static functions card-entersafe.c:1591: warning:
+	  &#8216;entersafe_card_ctl_1024&#8217; defined but not used
+	  card-entersafe.c:1378: warning: &#8216;entersafe_preinstall_rsa_1024&#8217;
+	  defined but not used
+
+2009-10-02 10:52  ludovic.rousseau
+
+	* trunk/src/libopensc/card-entersafe.c: remove unused variables
+	  card-entersafe.c: In function &#8216;entersafe_cipher_apdu&#8217;:
+	  card-entersafe.c:172: warning: unused variable &#8216;r&#8217;
+	  card-entersafe.c:172: warning: unused variable &#8216;i&#8217;
+	  card-entersafe.c: In function &#8216;entersafe_process_fci&#8217;:
+	  card-entersafe.c:434: warning: unused variable &#8216;len&#8217;
+	  card-entersafe.c:434: warning: unused variable &#8216;taglen&#8217;
+	  card-entersafe.c:433: warning: unused variable &#8216;p&#8217;
+	  card-entersafe.c:433: warning: unused variable &#8216;tag&#8217;
+	  card-entersafe.c: In function &#8216;entersafe_create_file&#8217;:
+	  card-entersafe.c:775: warning: unused variable &#8216;r&#8217;
+
+2009-10-02 10:49  ludovic.rousseau
+
+	* trunk/src/libopensc/card-entersafe.c: card-entersafe.c:226:
+	  warning: &#8216;tmp_rounded&#8217; may be used uninitialized in this
+	  function card-entersafe.c:226: note: &#8216;tmp_rounded&#8217; was declared
+	  here
+
+2009-10-02 10:48  ludovic.rousseau
+
+	* trunk/src/libopensc/card-entersafe.c: card-entersafe.c:496:
+	  warning: &#8216;r&#8217; may be used uninitialized in this function
+	  card-entersafe.c:496: note: &#8216;r&#8217; was declared here
+
+2009-09-21 11:59  ludovic.rousseau
+
+	* trunk/src/scconf/README.scconf: remove spaces at end of line
+
+2009-09-18 11:54  ludovic.rousseau
+
+	* trunk/src/pkcs15init/keycache.c: fix pkcs11 access with multiple
+	  PINs Thanks to Roman Himmes for the patch
+	  http://www.opensc-project.org/pipermail/opensc-devel/2009-September/012426.html
+
+2009-09-17 07:50  aj
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/card-myeid.c, trunk/src/libopensc/cardctl.h,
+	  trunk/src/libopensc/cards.h, trunk/src/libopensc/ctx.c,
+	  trunk/src/pkcs15init/Makefile.am,
+	  trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/pkcs15init/myeid.profile,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-myeid.c: Add myeid driver by Aventra.
+
+2009-09-16 11:29  martin
+
+	* trunk/src/libopensc/card-rtecp.c: Fix "serial->len is used
+	  uninitialized", By Aleksey Samsonov
+
+2009-09-12 07:04  aj
+
+	* trunk/src/libopensc/card-westcos.c: More Westcos cleanups by
+	  Aleksey Samsonov
+
+2009-09-11 09:48  aj
+
+	* trunk/NEWS, trunk/doc/tools/tools.xml,
+	  trunk/doc/tools/westcos-tool.xml,
+	  trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/card-westcos.c,
+	  trunk/src/libopensc/cardctl.h, trunk/src/libopensc/cards.h,
+	  trunk/src/libopensc/ctx.c, trunk/src/libopensc/p15emu-westcos.c,
+	  trunk/src/libopensc/pkcs15-syn.c,
+	  trunk/src/pkcs15init/Makefile.am,
+	  trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-westcos.c,
+	  trunk/src/pkcs15init/westcos.profile,
+	  trunk/src/tools/Makefile.am, trunk/src/tools/Makefile.mak,
+	  trunk/src/tools/westcos-tool.c: New westcos driver by François
+	  Leblanc.
+
 2009-07-29 07:03  aj
 
-	* releases/opensc-0.11.9: Create new release.
+	* trunk/configure.ac: trunk is now post release.
 
 2009-07-29 07:02  aj
 

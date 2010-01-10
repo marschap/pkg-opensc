@@ -1,0 +1,130 @@
+'\" t
+.\"     Title: westcos-tool
+.\"    Author: [see the "Authors" section]
+.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
+.\"      Date: 12/18/2009
+.\"    Manual: OpenSC tools
+.\"    Source: opensc
+.\"  Language: English
+.\"
+.TH "WESTCOS\-TOOL" "1" "12/18/2009" "opensc" "OpenSC tools"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+westcos-tool \- utility for manipulating data structure on westcos smart card and similar security tokens
+.SH "SYNOPSIS"
+.PP
+
+\fBwestcos\-tool\fR
+[OPTIONS]
+.SH "DESCRIPTION"
+.PP
+The
+\fBwestcos\-tool\fR
+utility is used to manipulate the westcos data structures on 2 Ko smart cards\&. Users can create PINs, keys and certificates stored on the token\&. User PIN authentication is performed for those operations that require it\&.
+.SH "OPTIONS"
+.PP
+.PP
+\fB\-G\fR
+.RS 4
+Generate a private key on smart card\&. The smart card must be not finalized and pin installed (ig\&. file for pin must be created, see option \-i)\&. By default key length is 1536 bits\&. User authentication is required for this operation\&.
+.RE
+.PP
+\fB\-L\fR \fIlength\fR
+.RS 4
+Change the length of private key, use with
+\fB\-G\fR\&.
+.RE
+.PP
+\fB\-i\fR
+.RS 4
+Install pin file in token, you must provide pin value with
+\fB\-pin\fR\&.
+.RE
+.PP
+\fB\-pin\fR \fIvalue\fR
+.RS 4
+set value of pin\&.
+.RE
+.PP
+\fB\-puk\fR \fIvalue\fR
+.RS 4
+set value of puk (or value of new pin for change pin command see
+\fB\-n\fR)\&.
+.RE
+.PP
+\fB\-n\fR
+.RS 4
+Changes a PIN stored on the token\&. User authentication is required for this operation\&.
+.RE
+.PP
+\fB\-u\fR
+.RS 4
+Unblocks a PIN stored on the token\&. Knowledge of the Pin Unblock Key (PUK) is required for this operation\&.
+.RE
+.PP
+\fB\-cert\fR \fIfile\fR
+.RS 4
+Write certificate
+\fIfile\fR
+in pem format on the card\&. User authentication is required for this operation\&.
+.RE
+.PP
+\fB\-F\fR
+.RS 4
+Finalize the card, once finalize default key is invalidate so pin and puk can\'be changed anymore without user authentification\&. Warning, smart cards not finalized are unsecure because pin can be changed without user authentification (knowledge of default key is enougth)\&.
+.RE
+.PP
+\fB\-r\fR \fIn\fR
+.RS 4
+Forces
+\fBwestcos\-tool\fR
+to use reader number
+\fIn\fR
+for operations\&.
+.RE
+.PP
+\fB\-gf\fR \fIpath\fR
+.RS 4
+Get the file
+\fIpath\fR
+the file is written on disk with
+\fIpath\fR
+name\&. User authentication is required for this operation\&.
+.RE
+.PP
+\fB\-pf\fR \fIpath\fR
+.RS 4
+Put the file with name
+\fIpath\fR
+from disk to card the file is written in
+\fIpath\fR\&. User authentication is required for this operation\&.
+.RE
+.PP
+\fB\-v\fR
+.RS 4
+Causes
+\fBwestcos\-tool\fR
+to be more verbose\&. Specify this flag several times to enable debug output in the OpenSC library\&.
+.RE
+.PP
+\fB\-h\fR
+.RS 4
+Print help message on screen\&.
+.RE
+.SH "SEE ALSO"
+.PP
+opensc(7)
+.SH "AUTHORS"
+.PP
+\fBwestcos\-tool\fR
+was written by Francois Leblanc
+francois\&.leblanc@cev\-sa\&.com\&.

@@ -13,15 +13,91 @@ OpenSC is the official software for the Estonian eID card for non-WinCSP platfor
 <p>
 Resources:
 </p>
-<ul><li>The official home page for the Estonian eID card is <a class="ext-link" href="http://www.id.ee" shape="rect"><span class="icon">http://www.id.ee</span></a>.
-</li><li>Martin Paljak has more information (in Estonian) and binary and source downloads: <a class="ext-link" href="http://ideelabor.ee/id-kaart/" shape="rect"><span class="icon">http://ideelabor.ee/id-kaart/</span></a>. Contact him with any issues and questions regarding EstEID
-</li><li>A nice movie in English that explains the solution: <a class="ext-link" href="http://www.openxades.org/files/id_movie_eng.mpeg" shape="rect"><span class="icon">http://www.openxades.org/files/id_movie_eng.mpeg</span></a>
-</li><li>And some paperwork: <a class="ext-link" href="http://www.infosec.co.uk/ExhibitorLibrary/168/EstoniaID_CaseStudy.pdf" shape="rect"><span class="icon">http://www.infosec.co.uk/ExhibitorLibrary/168/EstoniaID_CaseStudy.pdf</span></a>
-</li><li>The eID card and surrounding infrastructure is a key component in the e-voting system. General overview of the system can be found from here: <a class="ext-link" href="http://www.vvk.ee/elektr/docs/Yldkirjeldus-eng.pdf" shape="rect"><span class="icon">http://www.vvk.ee/elektr/docs/Yldkirjeldus-eng.pdf</span></a>. OpenSC PKCS#11 is used for card access on non-windows platforms (Linux, OS X). 
+<ul><li>The official home page for the Estonian eID card is <a class="ext-link" href="http://www.id.ee" shape="rect"><span class="icon"> </span>http://www.id.ee</a>.
+</li><li>Martin Paljak has more information (in Estonian) and binary and source downloads: <a class="ext-link" href="http://ideelabor.ee/id-kaart/" shape="rect"><span class="icon"> </span>http://ideelabor.ee/id-kaart/</a>. Contact him with any issues and questions regarding EstEID
+</li><li>A nice movie in English that explains the solution: <a class="ext-link" href="http://www.openxades.org/files/id_movie_eng.mpeg" shape="rect"><span class="icon"> </span>http://www.openxades.org/files/id_movie_eng.mpeg</a>
+</li><li>And some paperwork: <a class="ext-link" href="http://www.infosec.co.uk/ExhibitorLibrary/168/EstoniaID_CaseStudy.pdf" shape="rect"><span class="icon"> </span>http://www.infosec.co.uk/ExhibitorLibrary/168/EstoniaID_CaseStudy.pdf</a>
+</li><li>The eID card and surrounding infrastructure is a key component in the e-voting system. General overview of the system can be found from here: <a class="ext-link" href="http://www.vvk.ee/elektr/docs/Yldkirjeldus-eng.pdf" shape="rect"><span class="icon"> </span>http://www.vvk.ee/elektr/docs/Yldkirjeldus-eng.pdf</a>. OpenSC PKCS#11 is used for card access on non-windows platforms (Linux, OS X). 
 </li></ul><p>
-Estonian eID card uses <a class="wiki" href="Micardo.html" shape="rect">Micardo</a> card driver.
+Estonian eID card uses <a class="wiki" href="Micardo.html" shape="rect">Micardo</a> card driver or a similar MULTOS application. This is what is available on the card (Isikutuvastus = authentication, allkirjastamine = digital signature):
 </p>
+<pre class="wiki" xml:space="preserve">martin$ pkcs15-tool -D
+Using reader with a card: SCM SPR 532 00 00
+PKCS#15 Card [MARTIN PALJAK]:
+	Version        : 2
+	Serial number  : A1528610
+	Manufacturer ID: AS Sertifitseerimiskeskus
+	Flags          : Read-only, PRN generation, EID compliant
 
+PIN [PIN1]
+	Com. Flags: 0x0
+	ID        : 01
+	Flags     : [0x00]
+	Length    : min_len:4, max_len:12, stored_len:12
+	Pad char  : 0x00
+	Reference : 1
+	Type      : ascii-numeric
+	Path      : 
+	Tries left: 3
+
+PIN [PIN2]
+	Com. Flags: 0x0
+	ID        : 02
+	Flags     : [0x00]
+	Length    : min_len:5, max_len:12, stored_len:12
+	Pad char  : 0x00
+	Reference : 2
+	Type      : ascii-numeric
+	Path      : 
+	Tries left: 3
+
+PIN [PUK]
+	Com. Flags: 0x40
+	ID        : 03
+	Flags     : [0x40], unblockingPin
+	Length    : min_len:8, max_len:12, stored_len:12
+	Pad char  : 0x00
+	Reference : 0
+	Type      : ascii-numeric
+	Path      : 
+	Tries left: 3
+
+Private RSA Key [Isikutuvastus]
+	Com. Flags  : 1
+	User consent: no
+	Usage       : [0x3F], encrypt, decrypt, sign, signRecover, wrap, unwrap
+	Access Flags: [0x1D], sensitive, alwaysSensitive, neverExtract, local
+	ModLength   : 1024
+	Key ref     : 1
+	Native      : yes
+	Path        : 
+	Auth ID     : 01
+	ID          : 01
+
+Private RSA Key [Allkirjastamine]
+	Com. Flags  : 1
+	User consent: yes
+	Usage       : [0x200], nonRepudiation
+	Access Flags: [0x1D], sensitive, alwaysSensitive, neverExtract, local
+	ModLength   : 1024
+	Key ref     : 2
+	Native      : yes
+	Path        : 
+	Auth ID     : 02
+	ID          : 02
+
+X.509 Certificate [Isikutuvastus]
+	Flags    : 0
+	Authority: no
+	Path     : 3f00eeeeaace
+	ID       : 01
+
+X.509 Certificate [Allkirjastamine]
+	Flags    : 0
+	Authority: no
+	Path     : 3f00eeeeddce
+	ID       : 02
+</pre>
         
         
       </div>

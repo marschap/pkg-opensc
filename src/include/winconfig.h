@@ -84,7 +84,7 @@
 #define PATH_MAX _MAX_PATH
 
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.11.9"
+#define PACKAGE_VERSION "0.11.12"
 #endif
 
 #ifndef PACKAGE_NAME
