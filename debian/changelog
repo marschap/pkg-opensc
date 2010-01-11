@@ -7,6 +7,7 @@ opensc (0.11.12-1) unstable; urgency=low
   * debian/rules: Enable documentation installation.
   * debian/control: Update description with advice from Andreas
     Jellinghaus, with some editing. (Closes: #552516)
+  * debian/libopensc2.symbols: Update for new symbols.
 
  -- Eric Dorland <eric@debian.org>  Sun, 10 Jan 2010 18:35:17 -0500
 

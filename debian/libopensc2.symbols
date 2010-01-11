@@ -110,6 +110,7 @@ libopensc.so.2 libopensc2 #MINVER#
  sc_pkcs15_decode_prkey@Base 0.11.4
  sc_pkcs15_decode_pubkey@Base 0.11.4
  sc_pkcs15_decode_pubkey_dsa@Base 0.11.4
+ sc_pkcs15_decode_pubkey_gostr3410@Base 0.11.12
  sc_pkcs15_decode_pubkey_rsa@Base 0.11.4
  sc_pkcs15_decode_pukdf_entry@Base 0.11.4
  sc_pkcs15_encode_aodf_entry@Base 0.11.4
@@ -122,6 +123,7 @@ libopensc.so.2 libopensc2 #MINVER#
  sc_pkcs15_encode_prkey@Base 0.11.4
  sc_pkcs15_encode_pubkey@Base 0.11.4
  sc_pkcs15_encode_pubkey_dsa@Base 0.11.4
+ sc_pkcs15_encode_pubkey_gostr3410@Base 0.11.12
  sc_pkcs15_encode_pubkey_rsa@Base 0.11.4
  sc_pkcs15_encode_pukdf_entry@Base 0.11.4
  sc_pkcs15_encode_tokeninfo@Base 0.11.4
