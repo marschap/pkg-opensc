@@ -1,0 +1,335 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      FrequentlyAskedQuestions – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <p>
+Frequently Asked Questions
+</p>
+<p>
+State of OpenSC
+</p>
+<p>
+I believe that security software should be simple, well designed, well writen and actively maintained by a dedicated team.
+</p>
+<p>
+I'm sad to inform you that OpenSC is a rather large and complex software, the design shows that is clearly grown over the years. Most developers stopped being interested in smart cards many years ago, only few are left, of those nearly noone actually uses smart cards day to day. Time for improving OpenSC is scarce if it exists at all, and not a single developer knows the OpenSC core code in detail.
+</p>
+<p>
+OpenSC is working fine for some applications, like using it with openssh for smart card authenticated ssh login, or for console login with a pam module, or testing and learning about smart cards. But in general you need to judge yourself if the state of OpenSC is compatible with your requirements.
+</p>
+<p>
+The projects needs more developers and a new project maintainer. If you are interested in spending your free time to work with smart cards, we would like to welcome you to the project, and will try to help you and support your work.
+</p>
+<p>
+Concepts
+</p>
+<p>
+PKCS Standards
+</p>
+<p>
+PKCS is the Public Key Cryptography Standard - a series of standards created by RSA Labs. Each standard is about a different topic, they complement each other. See the RSA Labs page for details.
+</p>
+<p>
+PKCS<a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a> - Cryptoki
+</p>
+<p>
+PKCS<a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a> is also known as Cryptoki or as "RSA Security Inc. PKCS <a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a> Cryptographic Token Interface (Cryptoki)". It is an API and ABI standard for writing software that uses smart cards or other way to provide cryptography. This standard is implemented for example by Mozilla, Firefox and Thunderbird on the application side and OpenSC and Muscle on the token side.
+</p>
+<p>
+Mozilla and friends have implemented the standard, so they can load modules in PKCS<a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a> format (DLLs under Windows, shared objects under Linux / Unix). OpenSC and Muscle implement the standard to provide such a module that can be loaded by these appications.
+</p>
+<p>
+The standard defines the module interface (ABI and API), for example functions for signing, decrypting, listing keys and certificates, pin handling and so on.
+</p>
+<p>
+PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> - Cryptographic Token Information Format Standard
+</p>
+<p>
+PKCS<a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a> can be implemented in any way - using smart cards, using normal files, using other special hardware. But what if several people implement PKCS<a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a>, even for the same smart card? Will the same card work with both implementations?
+</p>
+<p>
+The answer to that is: No, unless both implementations conform to PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a>. It defines a standard how to store keys, certificates (and other objects) on smaart cards, manage them and retrieve them again. It defines directory files that link file names to identifiers, labels and flags, so you can see what is on a smart card and what it can be used for and all that.
+</p>
+<p>
+OpenSC implements PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> and thus stores everything in the directory 5015, creates certain files in defined formats, subdirectories and so on. Most old software does not implement PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a>, for example Aladdin Knowledge System has an old Software that stores everything in the 6666 directory in a format only known to them. Even if we see there is something we are not sure what it is and how it is meant to be used - unless the format is well documented like PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a>.
+</p>
+<p>
+Note that many countries have electronic ID cards for their citizens with keys for digital signatures, and often those cards and not in PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> format. But OpenSC implements emulations for a number of other documented formats, so these cards can still be used.
+</p>
+<p>
+Also note that while all cards created with PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> compatible software can be used by each other software, that does not include changes to the card - only few small changes like changing the PIN code can be done with cards initialized with other software. Big changes like adding keys, removing keys, replacing certificates and so on will often need the software that was used to initilize it in PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> format in the first place. So PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> standard helps only for using cards, not for altering them.
+</p>
+<p>
+Middleware and Readers
+</p>
+<p>
+How do you talk to a smart card and the smart card reader? Using some software provided by the vendor of the smart card reader. But how do you exactly talk to it? Well, it needs to conform to one of the standards, so the application author knows how to access it.
+</p>
+<p>
+OpenSC on Linux uses all three alternatives provided here, but you can turn off the ones you don't need in the config file (see below).
+</p>
+<p>
+CT-API and CT-BCS
+</p>
+<p>
+CT-API was developed in the 1980ies for DOS. It defines a very simple API, so vendors can ship their smart card readers with some software, and applications authors can use that software, but don't need to know or care what kind of smart card reader he customer will use.
+</p>
+<p>
+CT-BCS is a sister standard to CT-API. With it application authors can send commands similar to the commands send to smart cards also to the smart card reader. Either the reader or the driver will interpret the command and send an answer. Typical commands would be "is a card in the reader?" or "please reset the card". Drivers in CT-API format implement both CT-API and CT-BCS at the same time, so don't worry if you see only CT-API.
+</p>
+<p>
+The CT-API is very limited and meant for machines with one user only and one application only and thus doesn't fit well into todays world with many applications running at the same time and maybe even several users running software on the same computer at the same time.
+</p>
+<p>
+PC/SC
+</p>
+<p>
+PC/SC is a modern alternative to CT-API and most important implemented and shipped with all modern versions of Windows. While CT-API is a flat standard between the Application and the Driver, with PC/SC there now is a middle ware: The application talks to the Middleware with PC/SC interface, and the middleware talks to the reader drivers in Ifdhandler format.
+</p>
+<p>
+The good thing about PC/SC is that all companies in the smart card reader business and Microsoft support it. Also it is a modern standard: designed for modern operating systems with many applications, users, drivers, smart cards and it manages all that.
+</p>
+<p>
+But implementing several drivers for PC/SC in ifdhandler format is no fun: authors were given maximum flexibility and thus they have maximum of work to do. The code for two drivers might differ in less then hundred lines of source code, all the rest can be the same, but needs to be there in each driver, so several copies of the same need to be maintained etc.
+</p>
+<p>
+From an application point of view there are also issues. For example an application cannot check if some reader is in use, and if that is the case skip it and look at the other readers. It can only try to connect some reader, and if that one is in use, it won't get any notification, but is blocked till the reader is idle again. Several applications using differnt readers is thus not practical.
+</p>
+<p>
+Finally some parts were added to the standard very late, like using smart card readers with display and/or pinpad. Only in version 2 of PC/SC that was added, and the only thing five companies could agree on was adding all five mechanism of each of them and call it a standard. As a result an application author needs to implement all these mechanism and then check at run time which one is supported by the driver of the smart card reader. Not very nice.
+</p>
+<p>
+OpenCT
+</p>
+<p>
+Some developers here didn't like CT-API and PC/SC too much, so we wrote our own code and our own middleware and called it OpenCT. It is no standard, but if you want to write a driver for a smart card reader to be used under Linux, adding a driver to OpenCT might be the best thing you can do. OpenCT has its own API and OpenSC uses it directly.
+</p>
+<p>
+But we also know that many other applications are written to for CT-API or PC/SC, and thus as a result OpenCT also implements those two alternatives, so applications can use it. But those interfaces are not as much tested as the OpenCT native interface itself.
+</p>
+<p>
+USB Standards
+</p>
+<p>
+CCID
+</p>
+<p>
+If you buy a smart card reader with usb interface, look out for the CCID standard. Readers implementing this don't need special drivers on Windows (XP and later), and for linux the excelent ccid driver for pcsc-lite or opensc with the ccid driver will work with those devices.
+</p>
+<p>
+Note however that using Displays and Pinpads on your readers is hard, currently works on linux only using the ccid driver with pcsc-lite (i.e. not with openct), and even then only some readers are supported/tested.
+</p>
+<p>
+ICCD
+</p>
+<p>
+Not sure what ICCD exactly is, I think it is a subset of CCID and meant for usb crypto tokens. Thus usb crypto tokens implementing that should work with normal ccid drivers on Windows and Linux and will not need special drivers either. But I'm not 100% sure.
+</p>
+<p>
+Application Guide
+</p>
+<p>
+OpenSC Error Messages
+</p>
+<p>
+Cannot open public shared file: /var/run/pcscd.pub
+</p>
+<p>
+OpenSC has support for three driver types below it: PCSC, OpenCT and CT-API. If you want to use OpenSC with OpenCT only, please edit opensc.conf, look for reader_drivers like and remove the pcsc driver.
+</p>
+<p>
+/var/run/openct/status: No such file or directory
+</p>
+<p>
+OpenSC has support for three driver types below it: PCSC, OpenCT and CT-API. If you want to use OpenSC with PC/SC-Lite only, please edit opensc.conf, look for reader_drivers like and remove the openct driver.
+</p>
+<p>
+If you get this message, but want to use OpenSC with OpenCT, then you have not properly installed OpenCT. Please have a look at the <a class="wiki" href="QuickStart.html" shape="rect">QuickStart</a> docucument in OpenCT, most likely you didn't start the init script or it was not properly installed or something like that.
+</p>
+<p>
+OpenSSH
+</p>
+<p>
+Can I store my ssh private key on a smart card?
+</p>
+<p>
+Most people prefer to use a smart card with a key that was generated on the card and cannot ever leave it. In fact everyone seems to do that. So while it might be technically possible to convert a private key in ssh format into pem format and then store it on a smart card, until now no one wrote such a code, so you can't. If you really need it, please ask on the mailing list, maybe it is only a few hours work. Please also remember that nearly all software using smart cards works with X.509 certificates, so you might need to generate a dummy X.509 certificate for that key and store it next to the key before being able to use it.
+</p>
+<p>
+Engine PKCS<a class="closed ticket" href="/opensc/ticket/11" title="defect: gcc4 build failure (closed: worksforme)" shape="rect">#11</a>
+</p>
+<p>
+... doesn't work for some reason?
+</p>
+<p>
+Known issue right now, please edit opensc.conf and set lock_login to true.
+</p>
+<p>
+GnuPG
+</p>
+<p>
+Can I store my gnupg key on a smart card? Can I use gnupg with OpenSC?
+</p>
+<p>
+As far as we know the stable version of GnuPG has not support for smart cards at all. The unstable development tree had support for smart cards based on OpenSC for a while, but at some point it was rewritten to not use OpenSC and do everything themself. Thus currently GnuPG (development version) has its own smart card code and doesn't use OpenSC. And vice versa.
+</p>
+<p>
+If you are interested in the topic, as far as we know we can add support for GnuPG by writting a GPG-Agent that uses OpenSC to talk to smart cards. It doesn't look very difficult, but that could be wrong. Anyone who is interested, please contact us using the opensc-devel mailing list.
+</p>
+<p>
+I want to use my OpenPGP smart card / FSFE fellowship smart card with OpenSC
+</p>
+<p>
+Unfortunatly the OpenPGP card is very limited: to our knowledge it can only contain three RSA keys of only 1024 bit size on it, and it cannot contain X.509 certificates. Nearly all smart card software expects keys and X.509 certificates on a smart card, so most of that software will not work with this card. Also the OpenSC support for this card is read/use-only, i.e. you need to use GnuPG to initialize and modify the card, after that is done you can use OpenSC to look at it and use the keys.
+</p>
+<p>
+Card related problems
+</p>
+<p>
+2048 bit RSA problems
+</p>
+<p>
+We found out that some smart cards that only support T=0 procol (such as the Schlumberger/Axalto/Gemalto Cryptoflex) in some readers don't work when signatures with 2048 bit rsa keys are created. The problem is, the card creates a signature of 256 byte size, but the card readers do not allow to download it in one go. So OpenSC needs to download the signature from the card in several chunks. With OpenSC 0.11.2-pre3 we added code to do that, but it is not turned on by default. Instead you need to edit opensc.conf and set max_send_size and max_recv_size to a lower value (like 240). This can be done in all reader drivers (the example is only in the pcsc driver, but it can be done in the openct driver too).
+</p>
+<p>
+Gemplus smart cards (<a class="missing wiki" shape="rect">GemSafe?</a>)
+</p>
+<p>
+The GemSAFE profile is proprietary and not publicly documented. The OpenSC support for GemSAFE cards should be considered very experimental and as Gemplus is not willing to give the documentation without signing an NDA it is very unlikely that this will change. We recommend you make sure to buy blank smart cards instead (e.g. Gemplus GPK 16k) or cards from a different vendor.
+</p>
+<p>
+Buyers Guide
+</p>
+<p>
+Lawfull Signature Cards
+</p>
+<p>
+Germany
+</p>
+<p>
+Every company certified by the Bundesnetzagentur can issue lawfull smart cards (for "qualified signature" as the highest security level is called in Germany). As a result lawyers, notary and tax advisors can ask their regional organisation to issue a card (tax advisors can also ask DATEV). Everyone else has the option of Signtrust, Telesec, DTRUST, S-Trust, TC Trustcenter.
+</p>
+<p>
+The result is always the same (a card with a key and certificates for lawfull "qualified" signatures), even though there are small technical differences. OpenSC support for german signature cards is described on a separate page in the OpenSC-Wiki.
+</p>
+<p>
+All other countries
+</p>
+<p>
+No idea, please send feedback to opensc-devel mailing list.
+</p>
+<p>
+Blank Smart Cards
+</p>
+<p>
+OpenSC supports a big number of smart cards, but does not support initializing all of them.
+</p>
+<p>
+Siemens CardOS M4
+</p>
+<p>
+Initializing is supported, except for the latest 4.3B version. Documentation is only available under NDA. Cards are usualy sold in "Manufacturing" state so you need some proprietory software first to get it into "operational mode" (i.e. format the card, update firmware or add firmware add-on packages etc.).
+</p>
+<p>
+Gieseke &amp; Devrient Starcos
+</p>
+<p>
+Cards should work fine and at least version 2.3 SPK is supported by OpenSC (FIXME: 2.4? 3.0?). Documentation is open (simply send a mail to them asking for the manual) and as a plus the normal software used with those cards (Starsign by A.E.T.) also creates PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> structures, so you can use the cards with either software no matter who initialized it (but changes other than pin changes need to be done with the same software). Note however the license of that other software might now allow you to use cards created with it with OpenSC or vice verse. That is silly of course, and a hidden recommendation to use OpenSC everywhere :)
+</p>
+<p>
+Schlumberger/Axalto Cryptoflex 16k, 32k, 32k egate
+</p>
+<p>
+Great cards, cheap and fast, and completely open documented (manual as PDF on the web). The egate card is the fastest card we know, as it implements USB directly on card. Highly recommended and used by very many happy users.
+</p>
+<p>
+Schlumberger/Axalto Cyberflex
+</p>
+<p>
+Javacards. Older versions work like Cryptoflex and thus are supported. Newer cards are pure Javacards and thus don't work without a java cardlet. With the recent musclecard support added to OpenSC they will work too (untest, work in progress).
+</p>
+<p>
+Gemplus PK cards
+</p>
+<p>
+Work fine, but so far only tested with one old Gemplus PK 16k card. There is no manual (or only available via NDA?), if there is a newer version it was not tested so far.
+</p>
+<p>
+Smart Card Readers
+</p>
+<p>
+Unless stated otherwise all recommendations are for linux only.
+</p>
+<p>
+simple serial or ps2 readers
+</p>
+<p>
+Towitoko readers (serial, or serial+ps2) work fine. There are drivers both in OpenCT as well for PC/SC-Lite.
+</p>
+<p>
+USB readers without Display or Pinpad
+</p>
+<p>
+SCM 332 is the classic USB simple reader and works well with both OpenCT or CCID driver for PC/SC-Lite.
+</p>
+<p>
+USB readers with Display or Pinpad
+</p>
+<p>
+SCM 532 has a pinpad and with latest firmware and a recent CCID driver for a recent PC/SC-Lite and OpenSC the pinpad can be used.
+</p>
+<p>
+Other readers
+Omnikey Cardman 4040 works fine as pcmcia reader (requires linux kernel 2.6.16.17 or higher and recent OpenCT).
+</p>
+<p>
+USB Crypto Tokens
+</p>
+<p>
+All recommendations are for linux only, unless stated otherwise.
+</p>
+<p>
+Schlumberger/Axalto Cryptoflex 32k e-gate card (pre-cut) plus an e-gate token adapter
+</p>
+<p>
+make a cheap, but very fast usb crypto token. The trick is that the card speaks USB itself and that is fast. The adapter is a pure passive device.
+</p>
+<p>
+Problem 1) The adapter seems to be not available at the moment, but that should change soon, we hope. Update: no change in the last two months :(
+</p>
+<p>
+Problem 2) The adapter seems to break easily. But we still recommend it (simply buy a few extra and handle with care). The good part is: if the adapter breaks, you can remove the card, put it into a new adapter, and it works again. If a solid usb token breaks, the smart card/keys/certificates are usualy lost.
+</p>
+<p>
+E-gate is also supported by the SCA package for Mac OS X (we include a driver for those devices), and there are drivers for Windows where it also works well.
+</p>
+<p>
+Aladdin eToken PRO
+</p>
+<p>
+are working very fine with OpenCT and OpenSC. (Aladdin also has their own software if you prefer.) However only the normal 32k version and now also the 64k version are supported. The NG-OTP variant however is not supported by OpenCT and OpenSC.
+</p>
+<p>
+Where to buy
+</p>
+<p>
+This is a short list of shops we know and where we successfully bought cards without trouble, so we hope the stores will be good to you to. Whatever you buy, remember to make sure it is supported by OpenCT/OpenSC first. Don't only look at the main page, also check the detailed page for each card/reader and check if it was recently tested with success.
+</p>
+<p>
+<a class="ext-link" href="http://www.market.axalto.com/" shape="rect"><span class="icon"> </span>http://www.market.axalto.com/</a> is the online shop of Schlumberger/Axalto/Gemalto in Texas/USA, and sells Reflex readers and Cryptoflex and Cyberflex cards.
+</p>
+<p>
+<a class="ext-link" href="http://www.cardomatic.de/" shape="rect"><span class="icon"> </span>http://www.cardomatic.de/</a> is a german online store with Omnikey Readers, ACR Readers, Chipdrive Readers, ACOS5 and JCop Cards.
+</p>
+<p>
+<a class="ext-link" href="http://www.cryptoshop.com/" shape="rect"><span class="icon"> </span>http://www.cryptoshop.com/</a> is an austrian online store with a big selection or Readers (Omnikey, SCM, Rainer, ACS, Cherry, Gemplus, Todos), Cards (CardOS, Starcos, TCOS) and Tokens (Gem e-Seal).
+</p>
+
+        
+        
+      </div>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

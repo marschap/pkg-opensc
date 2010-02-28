@@ -1,3 +1,71 @@
+2010-02-16 09:02  aj
+
+	* releases/opensc-0.11.13/NEWS,
+	  releases/opensc-0.11.13/configure.ac: Prepare final release
+	  0.11.13.
+
+2010-02-15 20:57  s
+
+	* releases/opensc-0.11.13/src/pkcs11/framework-pkcs15.c: backport
+	  r4032: fix SIGABRT
+
+2010-02-15 20:10  s
+
+	* releases/opensc-0.11.13/src/libopensc/pkcs15-prkey.c,
+	  releases/opensc-0.11.13/src/pkcs11/framework-pkcs15.c: backport
+	  r4027 r4028: fix leaks
+
+2010-02-15 15:17  aj
+
+	* releases/opensc-0.11.13/src/libopensc/sc.c: backport of revision
+	  r3999 Fix bebytes2ushort function, reported by Roland Schwarz.
+	  (The broken code causes musclecard to fail in some situations...)
+
+2010-02-12 15:40  s
+
+	* releases/opensc-0.11.13/NEWS: update on NEWS
+
+2010-02-12 14:38  s
+
+	* releases/opensc-0.11.13/src/libopensc/sc.c: backport r3925
+
+2010-02-12 14:36  s
+
+	* releases/opensc-0.11.13/src/libopensc/card-rtecp.c,
+	  releases/opensc-0.11.13/src/libopensc/card-rutoken.c,
+	  releases/opensc-0.11.13/src/libopensc/cardctl.h,
+	  releases/opensc-0.11.13/src/pkcs15init/pkcs15-rutoken.c,
+	  releases/opensc-0.11.13/src/tools/rutoken-tool.c: backport r3811
+	  r3863 r3865: fix Rutoken S ABI
+
+2010-02-12 14:22  s
+
+	* releases/opensc-0.11.13/src/libopensc/card-rtecp.c,
+	  releases/opensc-0.11.13/src/libopensc/cardctl.h,
+	  releases/opensc-0.11.13/src/libopensc/errors.h,
+	  releases/opensc-0.11.13/src/libopensc/pkcs15-algo.c,
+	  releases/opensc-0.11.13/src/libopensc/pkcs15-pubkey.c,
+	  releases/opensc-0.11.13/src/libopensc/pkcs15.h,
+	  releases/opensc-0.11.13/src/pkcs11/framework-pkcs15.c,
+	  releases/opensc-0.11.13/src/pkcs11/openssl.c,
+	  releases/opensc-0.11.13/src/pkcs15init/pkcs15-rtecp.c: backport
+	  r3800 r3845 r3859 r3868: fix leak and GOSTR3410 pub_key
+
+2010-02-12 14:12  s
+
+	* releases/opensc-0.11.13/src/pkcs11/framework-pkcs15.c: backport
+	  r3798 r3799: fix leaks
+
+2010-02-11 14:12  aj
+
+	* releases/opensc-0.11.13/NEWS,
+	  releases/opensc-0.11.13/configure.ac: 0.11.13 release will be
+	  created here.
+
+2010-02-11 14:07  aj
+
+	* releases/opensc-0.11.13: prepare for 0.11.13 release.
+
 2009-12-18 13:22  aj
 
 	* releases/opensc-0.11.12/WORKAROUND: remove temp. workaround.

@@ -557,10 +557,8 @@ typedef struct {
 #define SC_RUTOKEN_DO_CHV_MAX_ID_V2       SC_RUTOKEN_DEF_ID_GCHV_USER	/*  MAX ID value of CHV-objects  */
 #define SC_RUTOKEN_DO_NOCHV_MAX_ID_V2     SC_RUTOKEN_DO_NOCHV_MAX_ID	/*  MAX ID value of All Other DOs  */
 
-#define SEC_ATTR_SIZE 15
-	
 #pragma pack(push, 1)
-typedef u8 sc_SecAttrV2_t[SEC_ATTR_SIZE];
+typedef u8 sc_SecAttrV2_t[40];
 
 typedef struct sc_ObjectTypeID{
 	u8    byObjectType;
@@ -690,6 +688,9 @@ typedef struct sc_entersafe_gen_key_data_st {
 /*
  * Rutoken ECP stuff
  */
+
+#define SC_RTECP_SEC_ATTR_SIZE 15
+
 typedef struct sc_rtecp_genkey_data {
 	unsigned int type;
 	unsigned int key_id;
@@ -704,10 +705,8 @@ typedef struct sc_rtecp_genkey_data {
 		} rsa;
 		struct
 		{
-			unsigned char *x;
-			size_t x_len;
-			unsigned char *y;
-			size_t y_len;
+			unsigned char *xy;
+			size_t xy_len;
 		} gostr3410;
 	} u;
 } sc_rtecp_genkey_data_t;

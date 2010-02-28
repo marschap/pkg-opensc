@@ -6,41 +6,27 @@
           </style></head><body><div id="content" class="wiki">
       <div class="wikipage searchable">
         
-          <h1 id="AboutOpenPGPCard">About OpenPGP Card</h1>
+          <h1 id="OpenPGPcard">OpenPGP card</h1>
 <p>
-OpenPGP 1.0 cards should work fine with OpenSC.
+OpenPGP card <a class="ext-link" href="http://www.g10code.de/docs/openpgp-card-1.0.pdf" shape="rect"><span class="icon"> </span>v1.0</a>/<a class="ext-link" href="http://www.g10code.de/docs/openpgp-card-1.1.pdf" shape="rect"><span class="icon"> </span>1.1</a> should work with OpenSC.
 </p>
 <p>
-However right now the openpgp card can only be modified with gnupg.
-So you need to use gnupg to use it / create keys / store keys etc.
+However the card can only be modified with GnuPG. So you need to use GnuPG to create/store keys etc.
 </p>
 <p>
-In theory opensc has an emulation that can be used so we can
-use those keys on the card, too, but in practice I haven't heard
-of anyone using it successfully for a long time. If you find time
-to test, please report back, both success or failure, so we can
-have a look.
+Related code existing in OpenSC has not been tested lately and there has not been any feedback from users for a long time. Feedback is most welcome.
 </p>
 <p>
-Also I'm not sure how good the other applications will work with that card.
-nearly every app (except gnupg) expects some x.509 certificate on the
-card and I have no idea if those can be created and/or stored with gnupg
-on the card. But I think they can - at linuxtag I saw diagrams at the bsi
-booth that indicate gnupg can do both pgp and smime so I guess it can
-handle it.
+OpenPGP v1 cards can contain only 3 (three) 1024b keys.
 </p>
 <p>
 Latest information indicates the card cannot store X.509 certificates.
-Thus most applications will not be able to use it. Also remember the
-card is limited to a maximum of three RSA keys, and the keys are limited
-to 1024 bit size. 
 </p>
-<h1 id="Links">Links</h1>
 <p>
-<a class="ext-link" href="http://www.g10code.de/p-card.html" shape="rect"><span class="icon"> </span>http://www.g10code.de/p-card.html</a>
+OpenPGP card <a class="ext-link" href="http://www.g10code.de/docs/openpgp-card-2.0.pdf" shape="rect"><span class="icon"> </span>v2.0</a> is not currently supported by OpenSC.
 </p>
 
         
         
-      </div>
+      </div><ul class="tags"><li class="header">Tags</li><li><a href="/opensc/tags/%27readonly%27" rel="tag" shape="rect">readonly</a> </li><li><a href="/opensc/tags/%27shouldwork%27" rel="tag" shape="rect">shouldwork</a> </li><li><a href="/opensc/tags/%27unmaintained%27" rel="tag" shape="rect">unmaintained</a> </li><li><a href="/opensc/tags/%27unsupported%27" rel="tag" shape="rect">unsupported</a> </li></ul>
     </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

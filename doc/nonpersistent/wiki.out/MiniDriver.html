@@ -1,0 +1,89 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      MiniDriver – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="MSBaseCSPMiniDriver">MS BaseCSP <a class="wiki" href="MiniDriver.html" shape="rect">MiniDriver</a></h1>
+<blockquote>
+<p>
+<a style="padding:0; border:none" href="/opensc/attachment/wiki/MiniDriver/OpenSCCardMod.png" shape="rect"><img src="/opensc/raw-attachment/wiki/MiniDriver/OpenSCCardMod.png" alt="Description of BaseCSP/CardMod architecture." title="Description of BaseCSP/CardMod architecture."></img></a>
+</p>
+</blockquote>
+<h1 id="Build">Build</h1>
+<p>
+Now Minidriver is added to opensc for experimental and improvement.
+</p>
+<p>
+To build use build tool provided :
+</p>
+<p>
+<a href="http://www.opensc-project.org/build/" shape="rect">http://www.opensc-project.org/build/</a>
+</p>
+<p>
+I use the command:
+</p>
+<p>
+<strong>CHOST=i386-mingw32 CBUILD=i686-pc-linux CFLAGS=-I"/XXXX/trunk/include" EXTRA_OPENSC_CONFIG=--enable-cardmod build</strong>
+</p>
+<p>
+where XXX is the PATH where you install opens sc build system
+</p>
+<p>
+<i>for mingw32 some include file can missings, you should add them from the SDK WINDOWS<br></br>
+</i></p>
+<p>
+Winscard.h, SCardErr.h and Winsmcr.h put all them in include directory in build system<i>
+</i></p>
+<h1 id="Testing">Testing</h1>
+<p>
+For testing install opensc tree on your systeme (prefer c:\Program Files\opensc)
+you must absolutly add opensc directory on PATH environnement. <br></br>
+</p>
+<p>
+Prefer the install way, if you have makensis installed you should have after <br></br>
+building an opensc-setup-XXX.exe ready to install. 
+</p>
+<h1 id="XPVISTA"><i>XP &amp; VISTA</i></h1>
+<p>
+in opensc/bin copy cardmod-westcos.reg to cardmod-<i>yourcardname</i>.reg
+edit it change ATR and ATRmask for yours card
+</p>
+<h1 id="a7"><i>7</i></h1>
+<p>
+Plug your card and have a look on device manager you should have a device not installed due
+to the lacks of driver. You have to read the device id give by windows to your card start
+like CID_0066xxxxxxxxxxxxxxx
+</p>
+<p>
+You have to add this to cardmod.inf and make windows update driver point to cardmod.inf.
+</p>
+<p>
+To test if it's working you can run :
+</p>
+<p>
+certutil.exe -SCinfo
+</p>
+<p>
+You should be asked for pin code and can view certificats on card...
+</p>
+<p>
+<i>Warning: certutil.exe not present on XP system</i>
+</p>
+
+        
+        
+      </div><ul class="tags"><li class="header">Tags</li><li><a href="/opensc/tags/%27unsupported%27" rel="tag" shape="rect">unsupported</a> </li><li><a href="/opensc/tags/%27windows%27" rel="tag" shape="rect">windows</a> </li></ul>
+          <h3>Attachments</h3>
+          <ul>
+              <li>
+      <a href="/opensc/attachment/wiki/MiniDriver/OpenSCCardMod.png" title="View attachment" shape="rect">OpenSCCardMod.png</a>
+      <a href="/opensc/raw-attachment/wiki/MiniDriver/OpenSCCardMod.png" title="Download" class="trac-rawlink" shape="rect"><img src="/trac/download.png" alt="Download"></img></a>
+      (<span title="36537 bytes">35.7 KB</span>) - added by <em>martin</em>
+      <a class="timeline" href="/opensc/timeline?from=2010-02-03T13%3A58%3A41Z&amp;precision=second" title="2010-02-03T13:58:41Z in Timeline" shape="rect">13 days</a> ago.
+                <q>Description of BaseCSP/CardMod architecture.</q>
+              </li>
+          </ul>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

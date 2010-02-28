@@ -131,8 +131,8 @@ static void set_acl_from_sec_attr(sc_card_t *card, sc_file_t *file)
 	unsigned long key_ref;
 
 	assert(card && card->ctx && file);
-	assert(file->sec_attr  &&  file->sec_attr_len == SEC_ATTR_SIZE);
-	assert(1 + 6 < SEC_ATTR_SIZE);
+	assert(file->sec_attr  &&  file->sec_attr_len == SC_RTECP_SEC_ATTR_SIZE);
+	assert(1 + 6 < SC_RTECP_SEC_ATTR_SIZE);
 
 	sc_file_add_acl_entry(file, SC_AC_OP_SELECT, SC_AC_NONE, SC_AC_KEY_REF_NONE);
 	if (file->sec_attr[0] & 0x40) /* if AccessMode.6 */
@@ -180,7 +180,7 @@ static void set_acl_from_sec_attr(sc_card_t *card, sc_file_t *file)
 static int set_sec_attr_from_acl(sc_card_t *card, sc_file_t *file)
 {
 	const sc_acl_entry_t *entry;
-	u8 sec_attr[SEC_ATTR_SIZE] = { 0 };
+	u8 sec_attr[SC_RTECP_SEC_ATTR_SIZE] = { 0 };
 	int r;
 
 	assert(card && card->ctx && file);
@@ -316,7 +316,7 @@ static int rtecp_select_file(sc_card_t *card,
 	}
 	if (apdu.resplen > 1  &&  apdu.resplen >= (size_t)apdu.resp[1] + 2)
 		r = card->ops->process_fci(card, file, apdu.resp+2, apdu.resp[1]);
-	if (file->sec_attr && file->sec_attr_len == SEC_ATTR_SIZE)
+	if (file->sec_attr && file->sec_attr_len == SC_RTECP_SEC_ATTR_SIZE)
 		set_acl_from_sec_attr(card, file);
 	else
 		r = SC_ERROR_UNKNOWN_DATA_RECEIVED;
@@ -686,19 +686,10 @@ static int rtecp_card_ctl(sc_card_t *card, unsigned long request, void *data)
 			genkey_data->u.rsa.exponent_len = 3;
 		}
 		else if (genkey_data->type == SC_ALGORITHM_GOSTR3410 &&
-				genkey_data->u.gostr3410.x_len <= apdu.resplen &&
-				genkey_data->u.gostr3410.x_len +
-				genkey_data->u.gostr3410.y_len >= apdu.resplen)
+				genkey_data->u.gostr3410.xy_len >= apdu.resplen)
 		{
-			memcpy(genkey_data->u.gostr3410.x, apdu.resp,
-					genkey_data->u.gostr3410.x_len);
-			memcpy(genkey_data->u.gostr3410.y, apdu.resp +
-					genkey_data->u.gostr3410.x_len,
-					genkey_data->u.gostr3410.y_len);
-			reverse(genkey_data->u.gostr3410.x,
-					genkey_data->u.gostr3410.x_len);
-			reverse(genkey_data->u.gostr3410.y,
-					genkey_data->u.gostr3410.y_len);
+			memcpy(genkey_data->u.gostr3410.xy, apdu.resp, apdu.resplen);
+			genkey_data->u.gostr3410.xy_len = apdu.resplen;
 		}
 		else
 			r = SC_ERROR_BUFFER_TOO_SMALL;

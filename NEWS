@@ -6,6 +6,12 @@ http://www.opensc-project.org/opensc/wiki/WhatsNew
 Also see the svn changelog using svn command
 or doc/nonpersistent/ChangeLog.
 
+New in 0.11.13; 2010-02-16; Andreas Jellinghaus
+* Modify Rutoken S binary interfaces by Aktiv Co.
+* Muscle driver fixed (acl reading issue)
+* Many small fixes (e.g. mem leaks)
+* Compiling with openssl 1.0.0-beta fixed
+
 New in 0.11.12; 2009-12-18; Andreas Jellinghaus
 * Document integer problem in OpenSC and implement workaround
 * Improve entersafe profile to support private data objects

@@ -1,16 +1,17 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>
-      Seccos – OpenSC
+      EMV – OpenSC
     </title><style type="text/css">
            @import url(trac.css);
           </style></head><body><div id="content" class="wiki">
       <div class="wikipage searchable">
         
-          <p>
-Seccos is not supported by OpenSC at the moment. Seccos cards are recognized as "Unidentified card".
+          <h1 id="EMVEuropayMastercardVISA">EMV (Europay, Mastercard, VISA)</h1>
+<p>
+OpenSC versions before v0.12 included a dummy EMV driver. EMV cards (bank cards with a chip) are usually not capable of doing crypto operations, unless they have support for DDA (Dynamic Data Authentication). Not many cards, even if issued recently, support DDA.
 </p>
 <p>
-SECCOS is a product of Giesecke &amp; Devrient, a company whose core business is printing paper money. Opening up specifications is not something they believe in. About the only public information about the OS is that the name stands for 'Secure Chip Card Operating System'. 
+Also note that the EMV "Chip and PIN" is broken: <a class="ext-link" href="http://www.cl.cam.ac.uk/research/security/banking/nopin/oakland10chipbroken.pdf" shape="rect"><span class="icon"> </span>http://www.cl.cam.ac.uk/research/security/banking/nopin/oakland10chipbroken.pdf</a>
 </p>
 
         

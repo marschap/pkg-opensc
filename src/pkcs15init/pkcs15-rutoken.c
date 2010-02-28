@@ -41,10 +41,32 @@ typedef unsigned __int32 uint32_t;
 #include "pkcs15-init.h"
 #include "profile.h"
 
-static const sc_SecAttrV2_t pr_sec_attr = {0x43, 1, 1, 0, 0, 0, 0, 1, 2, 2, 0, 0, 0, 0, 2};
-static const sc_SecAttrV2_t wn_sec_attr = {0x43, 1, 1, 0, 0, 0, 0,-1, 2, 2, 0, 0, 0, 0, 0};
-static const sc_SecAttrV2_t p2_sec_attr = {0x43, 1, 1, 0, 0, 0, 0,-1, 1, 2, 0, 0, 0, 0, 0};
-static const sc_SecAttrV2_t p1_sec_attr = {0x43, 1, 1, 0, 0, 0, 0,-1, 1, 1, 0, 0, 0, 0, 0};
+static const sc_SecAttrV2_t pr_sec_attr = {
+	0x43, 1, 1, 0, 0, 0, 0, 1,
+	2, 0, 0, 0,
+	2, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	0, 0, 0, 0,
+	2, 0, 0, 0,
+	0, 0, 0, 0 /* reserve */
+};
+static const sc_SecAttrV2_t wn_sec_attr = {
+	0x43, 1, 1, 0, 0, 0, 0, -1,
+	2, 0, 0, 0,
+	2
+};
+static const sc_SecAttrV2_t p2_sec_attr = {
+	0x43, 1, 1, 0, 0, 0, 0, -1,
+	1, 0, 0, 0,
+	2
+};
+static const sc_SecAttrV2_t p1_sec_attr = {
+	0x43, 1, 1, 0, 0, 0, 0, -1,
+	1, 0, 0, 0,
+	1
+};
 
 static const struct
 {
@@ -317,7 +339,7 @@ rutoken_store_key(sc_profile_t *profile, sc_card_t *card,
 			file->id = key_info->path.value[key_info->path.len - 2] << 8
 				| key_info->path.value[key_info->path.len - 1];
 			file->size = prsize;
-			sc_file_set_sec_attr(file, (u8*)&pr_sec_attr, SEC_ATTR_SIZE);
+			sc_file_set_sec_attr(file, pr_sec_attr, sizeof(pr_sec_attr));
 
 			ret = sc_pkcs15init_update_file(profile, card,
 					file, prkeybuf, prsize);
@@ -375,7 +397,7 @@ static int create_typical_fs(sc_card_t *card)
 	df->type = SC_FILE_TYPE_DF;
 	do
 	{
-		r = sc_file_set_sec_attr(df, wn_sec_attr, SEC_ATTR_SIZE);
+		r = sc_file_set_sec_attr(df, wn_sec_attr, sizeof(wn_sec_attr));
 		if (r != SC_SUCCESS) break;
 
 		/* Create MF  3F00 */

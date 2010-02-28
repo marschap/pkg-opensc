@@ -45,8 +45,47 @@ Kobil and OmniKey also offer pinpad readers, if someone could test one of those 
 </p>
 <h2 id="TestingPinpad">Testing Pinpad</h2>
 <p>
-In opensc source you will find src/tools/pintest tool. It allows you to test if your card+reader combination
-support pinpad. FIXME: add more details.
+In opensc source you will find src/tests/pintest tool. It allows you to test if your card+reader combination
+support pinpad. 
+</p>
+<p>
+Before testing pinpad, you may need to erase and initialise pin. Make sure you understand what you are doing, as these commands will erase your smart card:
+</p>
+<pre class="wiki" xml:space="preserve">pkcs15-init -E
+pkcs15-init --create-pkcs15 --profile pkcs15+onepin \
+            --use-default-transport-key --pin 0000 --puk 111111 \
+            --label "Test"
+
+</pre><p>
+Then run the pin test:
+</p>
+<pre class="wiki" xml:space="preserve">cd opensc/src/tests;
+./pintest
+</pre><p>
+The following messages are displayed:
+</p>
+<pre class="wiki" xml:space="preserve">Using libopensc version 0.12.0-svn.
+Card detected in reader 'Feitian SCR301 00 00'
+Connecting... connected.
+ATR = 3b:9f:95:81:31:fe:9f:00:65:46:53:05:30:06:71:df:00:00:00:81:61:10:c6
+Looking for a PKCS#15 compatible Smart Card... found.
+Enumerating PIN codes...
+PIN [User PIN]
+	Com. Flags  : private, modifiable
+	Auth ID     : 01
+	Flags       : [0x30], initialized, needs-padding
+	Length      : min_len:4, max_len:16, stored_len:16
+	Pad char    : 0x00
+	Reference   : 1
+	Encoding    : ASCII-numeric
+	Path        : 3f005015
+Please enter PIN code [User PIN]: 
+</pre><p>
+Enter pin code. You should read:
+</p>
+<pre class="wiki" xml:space="preserve">PIN code correct.
+</pre><p>
+When using a smart card reader with pinpad, you may need to hit return on the computer keyboard and then enter pin on the pinpad reader.
 </p>
 
         
