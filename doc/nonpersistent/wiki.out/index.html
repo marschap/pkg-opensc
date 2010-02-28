@@ -32,29 +32,33 @@ with all other existing smart cards. Thus please check these lists below, and re
 each page to find out which specific smart card is supported by opensc.
 </p>
 <p>
-For programmable java cards: the support is for the card with the specific applet -
-if you have a different applet on your card, it might not be supported.
+For programmable <a class="missing wiki" shape="rect">JavaCards?</a>: only certain pre-loaded applets and blank <a class="missing wiki" shape="rect">JavaCards?</a> are supported (after you load a supported applet to the card). If you can't load applets to the card and your applet is not supported, OpenSC won't work for you.
 </p>
 <h2 id="NationalIDCards">National ID Cards</h2>
 <p>
-These are pre-initialized read-only cards.
+These are usually pre-initialized read-only cards.
+Supported eID cards:
+<ul class="taglist"><li><a href="EstonianEid.html" shape="rect">EstonianEid</a> Estonian eID  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27maintained%27" shape="rect">maintained</a> <a href="/opensc/tags/%27martin%27" shape="rect">martin</a> <a href="/opensc/tags/%27readonly%27" shape="rect">readonly</a> <a href="/opensc/tags/%27supported%27" shape="rect">supported</a>)</li>
+<li><a href="ItalianCNS.html" shape="rect">ItalianCNS</a> Italian CNS and CIE  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27supported%27" shape="rect">supported</a>)</li>
+<li><a href="ItalianEid.html" shape="rect">ItalianEid</a> Italian Infocamere  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27readonly%27" shape="rect">readonly</a> <a href="/opensc/tags/%27supported%27" shape="rect">supported</a>)</li>
+<li><a href="PortugueseEid.html" shape="rect">PortugueseEid</a> Portuguese eID  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27fork%27" shape="rect">fork</a> <a href="/opensc/tags/%27supported%27" shape="rect">supported</a>)</li>
+<li><a href="SpanishEid.html" shape="rect">SpanishEid</a> Spanish Ceres  (<a href="/opensc/tags/%27binaryonly%27" shape="rect">binaryonly</a> <a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27fork%27" shape="rect">fork</a> <a href="/opensc/tags/%27supported%27" shape="rect">supported</a>)</li>
+<li><a href="UnitedStatesPIV.html" shape="rect">UnitedStatesPIV</a> US PIV  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27supported%27" shape="rect">supported</a>)</li>
+</ul>
 </p>
-<ul><li><a class="wiki" href="FinnishEid.html" shape="rect">Finnish ID Card FINEID</a>
-</li><li><a class="wiki" href="SwedishEid.html" shape="rect">Swedish Posten eID</a>
-</li><li><a class="wiki" href="EstonianEid.html" shape="rect">Estonian ID Card EstEID</a>
-</li><li><a class="wiki" href="ItalianEid.html" shape="rect">Italian Infocamere</a>
-</li><li><a class="wiki" href="ItalianPostecert.html" shape="rect">Italian Postecert</a>
-</li><li><a class="wiki" href="ItalianCNS.html" shape="rect">Italian CNS/CIE (eID)</a>
-</li><li><a class="wiki" href="BelgianEid.html" shape="rect">Belgian eID</a>
-</li><li><a class="wiki" href="SpanishEid.html" shape="rect">Spanish Ceres</a>
-</li><li><a class="wiki" href="GermanEid.html" shape="rect">German ID Cards</a>, <a class="wiki" href="GermanApi.html" shape="rect">ePass, ePA</a>, <a class="wiki" href="GermanEGK.html" shape="rect">eHBA, eGK</a>
-</li><li><a class="wiki" href="TaiwanEid.html" shape="rect">Taiwan</a>
-</li><li><a class="wiki" href="AustrianEid.html" shape="rect">Austrian Bürgerkarte, e-card</a>
-</li><li><a class="wiki" href="Australia.html" shape="rect">Australian national ID card</a>
-</li><li><a class="wiki" href="UnitedStatesPIV.html" shape="rect">United States PIV card applet</a>
-</li><li><a class="wiki" href="AKIS.html" shape="rect">Turkish EID Card</a>
-</li><li><a class="wiki" href="PortugueseEid.html" shape="rect">Portuguese eID Card</a>
-</li></ul><h2 id="SmartCards">Smart Cards</h2>
+<p>
+Unclear/unsupported eID cards:
+<ul class="taglist"><li><a href="Australia.html" shape="rect">Australia</a> Australian national ID card  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="AustrianEid.html" shape="rect">AustrianEid</a> Austrian "Bürgerkarte"  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27signaturecard%27" shape="rect">signaturecard</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="BelgianEid.html" shape="rect">BelgianEid</a> Belgian Belpic  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a>)</li>
+<li><a href="FinnishEid.html" shape="rect">FinnishEid</a> Finnish FINEID  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a>)</li>
+<li><a href="GermanEid.html" shape="rect">GermanEid</a> German ID Cards  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unclear%27" shape="rect">unclear</a>)</li>
+<li><a href="ItalianPostecert.html" shape="rect">ItalianPostecert</a> Italian Postecert  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="SwedishEid.html" shape="rect">SwedishEid</a> Swedish ePosten card  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="TaiwanEid.html" shape="rect">TaiwanEid</a> Taiwan  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unclear%27" shape="rect">unclear</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+</ul>
+</p>
+<h2 id="SmartCards">Smart Cards</h2>
 <p>
 Each entry on this list represents a whole family of cards. See each page to find out which modells are supported.
 </p>
@@ -87,12 +91,28 @@ Each entry on this list represents a whole family of cards. See each page to fin
 </li><li><a class="wiki" href="ASEPCOS.html" shape="rect">Athena ASEKey</a>
 </li><li><a class="wiki" href="AktivRutokenS.html" shape="rect">Aktiv Co. Rutoken S</a>
 </li><li><a class="wiki" href="AktivRutokenECP.html" shape="rect">Aktiv Co. Rutoken ECP</a>
-</li></ul><h2 id="Miscellaneous">Miscellaneous</h2>
-<ul><li><a class="wiki" href="Emv.html" shape="rect">EMV cards</a> (not supported)
-</li></ul><h3 id="OpenSCforks">OpenSC forks</h3>
-<ul><li><a class="wiki" href="PortugueseEid.html" shape="rect">PortugueseEid</a>
-</li><li><a class="wiki" href="BelgianEid.html" shape="rect">BelgianEid</a>
-</li></ul><h2 id="StartingPoints">Starting Points</h2>
+</li></ul><h2 id="Unsupportedstuff">Unsupported stuff</h2>
+<p>
+Things that we have (some) code for but which are known to be incomplete, broken or largely useless
+<ul class="taglist"><li><a href="Australia.html" shape="rect">Australia</a> Australian national ID card  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="AustrianEid.html" shape="rect">AustrianEid</a> Austrian "Bürgerkarte"  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27signaturecard%27" shape="rect">signaturecard</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="EMV.html" shape="rect">EMV</a> EMV (Europay, Mastercard, VISA)  (<a href="/opensc/tags/%27card%27" shape="rect">card</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="ItalianPostecert.html" shape="rect">ItalianPostecert</a> Italian Postecert  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="JavaCard.html" shape="rect">JavaCard</a> JavaCards  (<a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="MiniDriver.html" shape="rect">MiniDriver</a> MS BaseCSP MiniDriver  (<a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a> <a href="/opensc/tags/%27windows%27" shape="rect">windows</a>)</li>
+<li><a href="OpenPgp.html" shape="rect">OpenPgp</a> OpenPGP card  (<a href="/opensc/tags/%27readonly%27" shape="rect">readonly</a> <a href="/opensc/tags/%27shouldwork%27" shape="rect">shouldwork</a> <a href="/opensc/tags/%27unmaintained%27" shape="rect">unmaintained</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="RainbowIkeyFour.html" shape="rect">RainbowIkeyFour</a> iKey 4000  (<a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a> <a href="/opensc/tags/%27usbtoken%27" shape="rect">usbtoken</a>)</li>
+<li><a href="Seccos.html" shape="rect">Seccos</a>  (<a href="/opensc/tags/%27card%27" shape="rect">card</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="SwedishEid.html" shape="rect">SwedishEid</a> Swedish ePosten card  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+<li><a href="TaiwanEid.html" shape="rect">TaiwanEid</a> Taiwan  (<a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27unclear%27" shape="rect">unclear</a> <a href="/opensc/tags/%27unsupported%27" shape="rect">unsupported</a>)</li>
+</ul>
+</p>
+<h3 id="OpenSCforks">OpenSC forks</h3>
+<p>
+<ul class="taglist"><li><a href="SpanishEid.html" shape="rect">SpanishEid</a> Spanish Ceres  (<a href="/opensc/tags/%27binaryonly%27" shape="rect">binaryonly</a> <a href="/opensc/tags/%27eID%27" shape="rect">eID</a> <a href="/opensc/tags/%27fork%27" shape="rect">fork</a> <a href="/opensc/tags/%27supported%27" shape="rect">supported</a>)</li>
+</ul>
+</p>
+<h2 id="StartingPoints">Starting Points</h2>
 <ul><li><a class="wiki" href="OverView.html" shape="rect">OverView</a> - A short introduction what OpenSC is and how it fits into the big picture.
 </li><li><a class="wiki" href="WhatsNew.html" shape="rect">WhatsNew</a> - What is new, what has changed since the last major release?
 </li><li><a class="wiki" href="OperatingSystems.html" shape="rect">OperatingSystems</a> - What your operating system needs to have for OpenSC to work.

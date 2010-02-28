@@ -45,7 +45,29 @@ This is the second public release of the device, that use a proprietary protocol
 </li><li><strong>Maximum RSA key size:</strong> 2048 bits (it takes a long while to generate one such key, and the LED turns black while it does.  Don't panic!)
 </li><li><strong>Crypto chip:</strong> Infineon
 </li><li><strong>On-Chip OS:</strong> Siemens CardOS M4.2B
-</li></ul><h3 id="eTokenNG-OTP">eToken NG-OTP</h3>
+</li></ul><h3 id="eToken64">eToken 64</h3>
+<ul><li><strong>Memory:</strong> 64k
+</li><li><strong>Maximum RSA key size:</strong> (?)
+</li><li><strong>Crypto chip:</strong> (?)
+</li><li><strong>On-Chip OS:</strong> CardOS M4.20 (?) or CardOS M4.3b (?)
+</li></ul><h3 id="eTokenPROJavav4.29"><a class="ext-link" href="http://www.aladdin.com/etoken/devices/pro-usb.aspx" shape="rect"><span class="icon"> </span>eToken PRO (Java)</a> v4.29</h3>
+<ul><li><strong>Microcontroller:</strong> <a class="ext-link" href="http://www.atmel.com/dyn/products/Product_card.asp?part_id=3727" shape="rect"><span class="icon"> </span>Atmel AT90SC25672RCT-USB Revision D</a>
+</li><li><strong>Memory:</strong> 72KB EEPROM (64~67KB usable?; ~8KB reserved for firmware/patches?)
+</li><li><strong>Software (default):</strong> GlobalPlatform v2.1.1, Java Card v2.2.2, <a class="ext-link" href="http://www.athena-scs.com/pdf/Athena_OS755_IDProtect_datasheet.pdf" shape="rect"><span class="icon"> </span>Athena OS755 IDProtect</a> v0106.x.x, Aladdin eToken Applet v1.x
+</li><li><strong>USB IDs:</strong> 0529:0620
+</li><li><strong>ATR:</strong> 3B D5 18 00 81 31 3A 7D 80 73 C8 21 10 30
+</li><li><strong>FIPS:</strong> <a class="ext-link" href="http://csrc.nist.gov/groups/STM/cmvp/documents/140-1/1401val2009.htm#1135" shape="rect"><span class="icon"> </span>140-2 Level 2</a> for USB and smart card versions. <a class="ext-link" href="http://csrc.nist.gov/groups/STM/cmvp/documents/140-1/1401val2009.htm#1136" shape="rect"><span class="icon"> </span>Level 3</a> for HD (hardened) USB versions. 
+</li></ul><h4 id="SupportedCryptographicServices">Supported Cryptographic Services</h4>
+<ul><li><strong>Random Number Generator:</strong> DRNG (ANSI X9.31 two key TDES deterministic RNG seeded with the hardware RNG)
+</li><li><strong>Message Digests:</strong> SHA-1, SHA-256
+</li><li><strong>Signatures:</strong> RSA PKCS#1 (1024- to 2048-bit in 32-bit increments)
+</li><li><strong>Ciphers:</strong> TDES (112- and 168-bit ECB and CBC), TDES MAC (vendor affirmed), AES (128-, 192- and 256-bit ECB and CBC), RSA (1024- to 2048-bit in 32-bit increments)
+</li><li><strong>On-Card Key Generation:</strong> RSA PKCS#1 (1024- to 2048-bit in 32-bit increments)
+</li><li><strong>Key Establishment:</strong> RSA (1024- to 2048-bit in 32-bit increments [strength 80-bits for RSA 1024 to 112-bits for RSA 2048])
+</li></ul><p>
+There seems to be three different physical versions available: the regular PRO, the PRO HD (a hardened version offering additional physical security compliant with FIPS 140-1 Level 3 requirements), and the PRO SC (a smart card). However, differentiating between the PRO and PRO HD is difficult, as there is little info specific to the HD version available online, and the image used in the FIPS Security Policy documents is identical for the PRO and PRO HD.
+</p>
+<h3 id="eTokenNG-OTP"><a class="ext-link" href="http://www.aladdin.com/etoken/devices/ng-otp.aspx" shape="rect"><span class="icon"> </span>eToken NG-OTP</a></h3>
 <p>
 This device (and the others below) are compliant with the USB CCID (Chip/Smart Card Interface Devices) standard (see section “Smart Card Class” on <a class="ext-link" href="http://www.usb.org/developers/devclass_docs" shape="rect"><span class="icon"> </span>http://www.usb.org/developers/devclass_docs</a>).  As such, they don't require a proprietary driver to work with OpenSC.
 </p>
@@ -54,17 +76,6 @@ This device (and the others below) are compliant with the USB CCID (Chip/Smart C
 </li><li><strong>Maximum RSA key size:</strong> (?)
 </li><li><strong>Crypto chip:</strong> (?)
 </li><li><strong>On-Chip OS:</strong> Siemens CardOS M4.20 (?)
-</li></ul><h3 id="eToken64">eToken 64</h3>
-<ul><li><strong>Memory:</strong> 64k
-</li><li><strong>Maximum RSA key size:</strong> (?)
-</li><li><strong>Crypto chip:</strong> (?)
-</li><li><strong>On-Chip OS:</strong> CardOS M4.20 (?) or CardOS M4.3b (?)
-</li></ul><h3 id="eTokenPROnewestversion">eToken PRO (newest version)</h3>
-<ul><li><strong>USB IDs:</strong> (?)
-</li><li><strong>Memory:</strong> 72k
-</li><li><strong>Maximum RSA key size:</strong> 2048
-</li><li><strong>Crypto chip:</strong> (?)
-</li><li><strong>On-Chip OS:</strong> JavaCard
 </li></ul><h2 id="Support">Support</h2>
 <p>
 Aladdin is maybe the oldest player in the USB token field, and their hardware and software predates the standards such as CCID and  PKCS#15, so you can't really blame them for not conforming to these standards (especially for older token hardware).   See also the <i>Thanks</i> section below, they are a fair player!

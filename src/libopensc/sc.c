@@ -131,7 +131,7 @@ unsigned long bebytes2ulong(const u8 *buf)
 
 unsigned short bebytes2ushort(const u8 *buf)
 {
-    return (unsigned short) (buf[0] << 24 | buf[1] << 16);
+    return (unsigned short) (buf[0] << 8 | buf[1]);
 }
 
 int sc_format_oid(struct sc_object_id *oid, const char *in)
@@ -718,7 +718,9 @@ int _sc_parse_atr(sc_context_t *ctx, sc_slot_info_t *slot)
 void sc_mem_clear(void *ptr, size_t len)
 {
 #ifdef ENABLE_OPENSSL
-	OPENSSL_cleanse(ptr, len);
+	/* FIXME: Bug in 1.0.0-beta series crashes with 0 length */
+	if (len > 0)
+		OPENSSL_cleanse(ptr, len);
 #else
 	memset(ptr, 0, len);
 #endif

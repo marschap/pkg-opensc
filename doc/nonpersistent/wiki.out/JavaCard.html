@@ -1,0 +1,46 @@
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:html="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>
+      JavaCard – OpenSC
+    </title><style type="text/css">
+           @import url(trac.css);
+          </style></head><body><div id="content" class="wiki">
+      <div class="wikipage searchable">
+        
+          <h1 id="JavaCards"><a class="missing wiki" shape="rect">JavaCards?</a></h1>
+<p>
+OpenSC (including initialization) works with <a class="missing wiki" shape="rect">JavaCards?</a> if you have a supported applet on the card.
+<a class="missing wiki" shape="rect">JavaCards?</a> can come in different flavors: empty, pre-loaded with an applet in EEPROM, with an applet in ROM, with a pre-loaded applet in a finalized state (can't be deleted).
+</p>
+<p>
+Some <a class="missing wiki" shape="rect">JavaCards?</a> come with a pre-loaded filesystem applet like IBM BlueZ PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> applet found on some JCOP and older Cyberflex cards. OpenSC 0.11.2 and later support the open source <a class="ext-link" href="http://www.musclecard.com/" shape="rect"><span class="icon"> </span>MuscleApplet</a> applet which can be loaded to any blank <a class="wiki" href="JavaCard.html" shape="rect">JavaCard</a>.
+</p>
+<p>
+OpenSC only works with <strong>contact interface</strong>.
+</p>
+<h2 id="Supportedcards">Supported cards</h2>
+<p>
+Things to consider when buying <a class="missing wiki" shape="rect">JavaCards?</a>
+</p>
+<ul><li>EEPROM size. 32K, 64K, 72K and 128K sizes are common. Bigger is better.
+</li><li><a class="wiki" href="JavaCard.html" shape="rect">JavaCard</a> version: 2.1.1, 2.2.1, 2.2.2. Older API versions don't support fancier features. Bigger is better.
+</li><li><a class="missing wiki" shape="rect">GlobalPlatform?</a> version: 2.0.1 and 2.1.1 GP deals with loading applets onto cards.
+</li></ul><h2 id="Obtaininganapplet">Obtaining an applet</h2>
+<p>
+Some open source applets usable with OpenSC
+</p>
+<ul><li><a class="missing wiki" shape="rect">MuscleApplet?</a>: <a class="ext-link" href="http://svn.debian.org/viewsvn/muscleplugins/trunk/MCardApplet/" shape="rect"><span class="icon"> </span>http://svn.debian.org/viewsvn/muscleplugins/trunk/MCardApplet/</a>
+</li><li><a class="missing wiki" shape="rect">JavaCardSign?</a> PKCS<a class="closed ticket" href="/opensc/ticket/15" title="defect: opensc 0.9.6: --with-openssl doesn't work right (closed: fixed)" shape="rect">#15</a> applet: <a class="ext-link" href="http://sourceforge.net/projects/javacardsign/" shape="rect"><span class="icon"> </span>http://sourceforge.net/projects/javacardsign/</a>
+</li><li>OpenPGP applet: <a class="ext-link" href="http://sourceforge.net/projects/jopenpgpcard/" shape="rect"><span class="icon"> </span>http://sourceforge.net/projects/jopenpgpcard/</a>
+</li></ul><p>
+Other interesting applets:
+</p>
+<ul><li>MRTD (biometric passport) applet, from JMRTD: <a class="ext-link" href="http://sourceforge.net/projects/jmrtd/" shape="rect"><span class="icon"> </span>http://sourceforge.net/projects/jmrtd/</a>
+</li><li><a class="ext-link" href="http://github.com/costan/tem_fw" shape="rect"><span class="icon"> </span>http://github.com/costan/tem_fw</a>
+</li></ul><h2 id="Loadingtheapplet">Loading the applet</h2>
+<ul><li><a class="missing wiki" shape="rect">GlobalPlatform?</a> C library + GPShell: <a class="ext-link" href="http://sourceforge.net/projects/globalplatform/" shape="rect"><span class="icon"> </span>http://sourceforge.net/projects/globalplatform/</a>
+</li><li>GPJ: <a class="ext-link" href="http://sourceforge.net/projects/gpj/" shape="rect"><span class="icon"> </span>http://sourceforge.net/projects/gpj/</a>
+</li></ul>
+        
+        
+      </div><ul class="tags"><li class="header">Tags</li><li><a href="/opensc/tags/%27unsupported%27" rel="tag" shape="rect">unsupported</a> </li></ul>
+    </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>

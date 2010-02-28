@@ -6,7 +6,8 @@
           </style></head><body><div id="content" class="wiki">
       <div class="wikipage searchable">
         
-          <p>
+          <h1 id="USPIV">US PIV</h1>
+<p>
 The <a class="ext-link" href="http://www.nist.gov/" shape="rect"><span class="icon"> </span>National Institute of Standards and Technology</a>, U.S. Department of Commerce has defined a 
 smart card application. Although not a "national ID card", it is expected to be used widely in the 
 U.S.federal government and its contractors. Cards with this application are commonly referred to as PIV cards. 
@@ -56,7 +57,9 @@ OpenSC 0.11.9 fixed bug: highly compressed certificates were only being partiall
 </p>
 <p>
 OpenSC 0.11.10 fixed bug when using piv-tool to authenticate to card using 3DES key.  
-               
+</p>
+<p>
+OpenSC (commited for 0.12) The card serial number is derived from the CHUID using the FASC-N. If the Agency Code = 9999, and a GUID is present, it is used as the serial number. Piv-tool can now write any object to the card. (Piv-tool continues to be for creating test cards only.)                
 </p>
 <p>
 No changes are needed to the opensc.conf file when using 0.11.4 and above, but here are sample changes needed for 0.11.1 in the opensc.conf file to use some GemAalto and Oberthur PIV cards. If other vendors produce PIV cards, you may have to add their ATRs:
@@ -94,20 +97,25 @@ No changes are needed to the opensc.conf file when using 0.11.4 and above, but h
 <a class="ext-link" href="http://csrc.ncsl.nist.gov/piv-program/" shape="rect"><span class="icon"> </span>http://csrc.ncsl.nist.gov/piv-program/</a>  
 </p>
 </blockquote>
-<h2 id="NISTSpecialPublications-800-73-2">NIST Special Publications - 800-73-2</h2>
+<h2 id="PIVPIVInteroperableandPIVCompatible">PIV, PIV Interoperable and PIV Compatible</h2>
+<blockquote>
+<p>
+<a class="ext-link" href="http://www.idmanagement.gov/documents/PIV_IO_NonFed_Issuers_May2009.pdf" shape="rect"><span class="icon"> </span>http://www.idmanagement.gov/documents/PIV_IO_NonFed_Issuers_May2009.pdf</a>
+</p>
+</blockquote>
+<p>
+Recomendations on how PIV cards can used outside of the U.S. Goverenment. 
+  
+</p>
+<h2 id="NISTSpecialPublications-800-73-3">NIST Special Publications - 800-73-3</h2>
 <blockquote>
 <p>
 <a class="ext-link" href="http://csrc.nist.gov/publications/PubsSPs.html" shape="rect"><span class="icon"> </span>http://csrc.nist.gov/publications/PubsSPs.html</a>
 </p>
 </blockquote>
 <p>
-Look for 800-73-2. Part 2 has the ADPU commands. All four parts:
+Look for 800-73-3 (draft). Part 2 has the ADPU commands. All four parts:
 </p>
-<blockquote>
-<p>
-<a class="ext-link" href="http://csrc.nist.gov/publications/nistpubs/800-73-2/sp800-73-2_4parts.zip" shape="rect"><span class="icon"> </span>http://csrc.nist.gov/publications/nistpubs/800-73-2/sp800-73-2_4parts.zip</a>
-</p>
-</blockquote>
 <h2 id="PIVApprovedCardsReadersMiddlewareetc">PIV Approved Cards, Readers, Middleware etc</h2>
 <blockquote>
 <p>
@@ -117,5 +125,5 @@ Look for 800-73-2. Part 2 has the ADPU commands. All four parts:
 
         
         
-      </div>
+      </div><ul class="tags"><li class="header">Tags</li><li><a href="/opensc/tags/%27eID%27" rel="tag" shape="rect">eID</a> </li><li><a href="/opensc/tags/%27supported%27" rel="tag" shape="rect">supported</a> </li></ul>
     </div><div class="footer"><hr></hr><p><a href="index.html">Back to Index</a></p></div></body></html>
