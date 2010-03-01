@@ -1,3 +1,9 @@
+opensc (0.11.13-1) unstable; urgency=low
+
+  * New upstream release. (Closes: #570107, #505404)
+
+ --
+
 opensc (0.11.12-1) unstable; urgency=low
 
   * New upstream release. (Closes: #563671)
