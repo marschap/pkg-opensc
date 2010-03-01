@@ -1,8 +1,9 @@
 opensc (0.11.13-1) unstable; urgency=low
 
   * New upstream release. (Closes: #570107, #505404)
+  * libtool.m4: Delete spurious libtool.m4 that was picked up somewhere.
 
- --
+ -- Eric Dorland <eric@debian.org>  Mon, 01 Mar 2010 00:58:01 -0500
 
 opensc (0.11.12-1) unstable; urgency=low
 
