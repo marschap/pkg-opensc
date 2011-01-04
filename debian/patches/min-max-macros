@@ -1,0 +1,38 @@
+Description: move MIN/MAX macros from muscle.c to internal.h (needed for
+ patch CVE-2010-4523)
+Origin: https://www.opensc-project.org/opensc/changeset/4912
+Forwarded: not-needed
+Last-Update: 2010-12-22
+
+--- opensc-0.11.13.orig/src/libopensc/internal.h
++++ opensc-0.11.13/src/libopensc/internal.h
+@@ -50,6 +50,13 @@
+ #define sleep(t)	Sleep((t) * 1000)
+ #endif
+ 
++#ifndef MAX
++#define MAX(x, y) (((x) > (y)) ? (x) : (y))
++#endif
++#ifndef MIN
++#define MIN(x, y) (((x) < (y)) ? (x) : (y))
++#endif
++
+ struct sc_atr_table {
+ 	/* The atr fields are required to
+ 	 * be in aa:bb:cc hex format. */
+--- opensc-0.11.13.orig/src/libopensc/muscle.c
++++ opensc-0.11.13/src/libopensc/muscle.c
+@@ -28,13 +28,6 @@
+ #define MSC_DSA_PUBLIC		0x04
+ #define MSC_DSA_PRIVATE 	0x05
+ 
+-#ifndef MAX
+-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+-#endif
+-#ifndef MIN
+-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+-#endif
+-
+ static msc_id inputId = { { 0xFF, 0xFF, 0xFF, 0xFF } };
+ static msc_id outputId = { { 0xFF, 0xFF, 0xFF, 0xFE } };
+ 
