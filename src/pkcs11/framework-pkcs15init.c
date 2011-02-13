@@ -18,11 +18,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
+
 #include "sc-pkcs11.h"
 #ifdef USE_PKCS15_INIT
-#include "opensc/pkcs15-init.h"
+#include "pkcs15init/pkcs15-init.h"
 
 /*
  * Deal with uninitialized cards
@@ -33,12 +36,10 @@ static CK_RV pkcs15init_bind(struct sc_pkcs11_card *p11card)
 	struct sc_profile *profile;
 	int		rc;
 
-	sc_ctx_suppress_errors_on(card->ctx);
 	rc = sc_pkcs15init_bind(card, "pkcs15", NULL, &profile);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (rc == 0)
 		p11card->fw_data = profile;
-	return sc_to_cryptoki_error(rc, p11card->reader);
+	return sc_to_cryptoki_error(rc, NULL);
 }
 
 static CK_RV pkcs15init_unbind(struct sc_pkcs11_card *p11card)
@@ -98,7 +99,7 @@ pkcs15init_release_token(struct sc_pkcs11_card *p11card, void *ptr)
 }
 
 static CK_RV
-pkcs15init_login(struct sc_pkcs11_card *p11card, void *ptr,
+pkcs15init_login(struct sc_pkcs11_slot *slot,
 		CK_USER_TYPE user, CK_CHAR_PTR pin, CK_ULONG pinLength)
 {
 	return CKR_CRYPTOKI_NOT_INITIALIZED;
@@ -111,7 +112,7 @@ pkcs15init_logout(struct sc_pkcs11_card *p11card, void *ptr)
 }
 
 static CK_RV
-pkcs15init_change_pin(struct sc_pkcs11_card *p11card, void *ptr,
+pkcs15init_change_pin(struct sc_pkcs11_card *p11card, void *ptr, int login_user,
 			CK_CHAR_PTR oldPin, CK_ULONG oldPinLength,
 			CK_CHAR_PTR newPin, CK_ULONG newPinLength)
 {
@@ -136,7 +137,7 @@ pkcs15init_initialize(struct sc_pkcs11_card *p11card, void *ptr,
 	args.label = (const char *) pLabel;
 	rc = sc_pkcs15init_add_app(p11card->card, profile, &args);
 	if (rc < 0)
-		return sc_to_cryptoki_error(rc, p11card->reader);
+		return sc_to_cryptoki_error(rc, NULL);
 
 	/* Change the binding from the pkcs15init framework
 	 * to the pkcs15 framework on the fly.
@@ -176,15 +177,24 @@ struct sc_pkcs11_framework_ops framework_pkcs15init = {
 	NULL, /* init_pin */
 	NULL, /* create_object */
 	NULL, /* gen_keypair */
-	NULL, /* seed_random */
-	NULL, /* get_random */
+	NULL  /* get_random */
 };
 
 #else /* ifdef USE_PKCS15_INIT */
 
 struct sc_pkcs11_framework_ops framework_pkcs15init = {
-	NULL,
-	NULL,
+	NULL,	/* bind */
+	NULL,	/* unbind */
+	NULL,	/* create_tokens */
+	NULL,	/* release_tokens */
+	NULL,	/* login */
+	NULL,	/* logout */
+	NULL,	/* change_pin */
+	NULL,	/* inti_token */
+	NULL,	/* init_pin */
+	NULL,	/* create_object */
+	NULL,	/* gen_keypair */
+	NULL	/* get_random */
 };
 
 #endif

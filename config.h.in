@@ -6,8 +6,11 @@
 /* Default PC/SC provider */
 #undef DEFAULT_PCSC_PROVIDER
 
-/* Use iconv libraries and header files */
-#undef ENABLE_ICONV
+/* Enable cardmod support */
+#undef ENABLE_CARDMOD
+
+/* Enable CT-API support */
+#undef ENABLE_CTAPI
 
 /* Have OpenCT libraries and header files */
 #undef ENABLE_OPENCT
@@ -42,20 +45,17 @@
 /* Define to 1 if you have the `getopt_long' function. */
 #undef HAVE_GETOPT_LONG
 
+/* Define to 1 if you have the `getopt_long_only' function. */
+#undef HAVE_GETOPT_LONG_ONLY
+
 /* Define to 1 if you have the `getpass' function. */
 #undef HAVE_GETPASS
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
-/* Define to 1 if you have the <iconv.h> header file. */
-#undef HAVE_ICONV_H
-
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
-
-/* Define to 1 if you have the <locale.h> header file. */
-#undef HAVE_LOCALE_H
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
@@ -74,12 +74,6 @@
 
 /* Define to 1 if you have the <readline/readline.h> header file. */
 #undef HAVE_READLINE_READLINE_H
-
-/* Define to 1 if you have the `setlocale' function. */
-#undef HAVE_SETLOCALE
-
-/* Define to 1 if you have the `setutent' function. */
-#undef HAVE_SETUTENT
 
 /* Define to 1 if `stat' has the bug that it succeeds when given the
    zero-length file name argument. */
@@ -103,8 +97,14 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the `strlcat' function. */
+#undef HAVE_STRLCAT
+
 /* Define to 1 if you have the `strlcpy' function. */
 #undef HAVE_STRLCPY
+
+/* Define to 1 if you have the <sys/mman.h> header file. */
+#undef HAVE_SYS_MMAN_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
@@ -124,9 +124,6 @@
 /* Define to 1 if you have the `vprintf' function. */
 #undef HAVE_VPRINTF
 
-/* Define to 1 if you have the `vsyslog' function. */
-#undef HAVE_VSYSLOG
-
 /* Define to 1 if you have the <winscard.h> header file. */
 #undef HAVE_WINSCARD_H
 
@@ -140,6 +137,9 @@
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #undef LT_OBJDIR
+
+/* Define to 1 if assertions should be disabled. */
+#undef NDEBUG
 
 /* Enabled OpenSC features */
 #undef OPENSC_FEATURES
@@ -174,12 +174,12 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-/* PIN-entry program for OpenSC Signer */
-#undef PIN_ENTRY
-
 /* Define to necessary symbol if this constant uses a non-standard name on
    your system. */
 #undef PTHREAD_CREATE_JOINABLE
+
+/* The size of `void *', as computed by sizeof. */
+#undef SIZEOF_VOID_P
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

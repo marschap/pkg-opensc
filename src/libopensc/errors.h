@@ -26,13 +26,12 @@ extern "C" {
 #endif
 
 #define SC_SUCCESS				0
-#define SC_NO_ERROR				0
 
 /* Errors related to reader operation */
 #define SC_ERROR_READER				-1100
 #define SC_ERROR_NO_READERS_FOUND		-1101
-#define SC_ERROR_SLOT_NOT_FOUND			-1102
-#define SC_ERROR_SLOT_ALREADY_CONNECTED		-1103
+/* Unused: -1102 */
+/* Unused: -1103 */
 #define SC_ERROR_CARD_NOT_PRESENT		-1104
 #define SC_ERROR_CARD_REMOVED			-1105
 #define SC_ERROR_CARD_RESET			-1106
@@ -45,6 +44,7 @@ extern "C" {
 #define SC_ERROR_CARD_UNRESPONSIVE		-1113
 #define SC_ERROR_READER_DETACHED		-1114
 #define SC_ERROR_READER_REATTACHED		-1115
+#define SC_ERROR_READER_LOCKED			-1116
 
 /* Resulting from a card command or related to the card*/
 #define SC_ERROR_CARD_CMD_FAILED		-1200
@@ -64,11 +64,12 @@ extern "C" {
 #define SC_ERROR_PIN_CODE_INCORRECT		-1214
 #define SC_ERROR_FILE_ALREADY_EXISTS		-1215
 #define SC_ERROR_DATA_OBJECT_NOT_FOUND		-1216
+#define SC_ERROR_NOT_ENOUGH_MEMORY		-1217
 
 /* Returned by OpenSC library when called with invalid arguments */
 #define SC_ERROR_INVALID_ARGUMENTS		-1300
-#define SC_ERROR_CMD_TOO_SHORT			-1301
-#define SC_ERROR_CMD_TOO_LONG			-1302
+/* Unused: -1301 */
+/* Unused: -1302 */
 #define SC_ERROR_BUFFER_TOO_SMALL		-1303
 #define SC_ERROR_INVALID_PIN_LENGTH		-1304
 #define SC_ERROR_INVALID_DATA			-1305
@@ -84,7 +85,7 @@ extern "C" {
 #define SC_ERROR_OBJECT_NOT_FOUND		-1407
 #define SC_ERROR_NOT_SUPPORTED			-1408
 #define SC_ERROR_PASSPHRASE_REQUIRED		-1409
-#define SC_ERROR_EXTRACTABLE_KEY		-1410
+/* Unused: -1410 */
 #define SC_ERROR_DECRYPT_FAILED			-1411
 #define SC_ERROR_WRONG_PADDING			-1412
 #define SC_ERROR_WRONG_CARD			-1413
@@ -98,12 +99,12 @@ extern "C" {
 #define SC_ERROR_INCONSISTENT_PROFILE		-1502
 #define SC_ERROR_INCOMPATIBLE_KEY		-1503
 #define SC_ERROR_NO_DEFAULT_KEY			-1504
-#define SC_ERROR_ID_NOT_UNIQUE			-1505
-#define SC_ERROR_CANNOT_LOAD_KEY		-1006
-#define SC_ERROR_INCOMPATIBLE_OBJECT		-1007
-#define SC_ERROR_TEMPLATE_NOT_FOUND		-1008
-#define SC_ERROR_INVALID_PIN_REFERENCE		-1009
-#define SC_ERROR_FILE_TOO_SMALL			-1010
+/* Unused: -1505 */
+#define SC_ERROR_CANNOT_LOAD_KEY		-1506
+/* Unused: -1007 */
+#define SC_ERROR_TEMPLATE_NOT_FOUND		-1508
+#define SC_ERROR_INVALID_PIN_REFERENCE		-1509
+#define SC_ERROR_FILE_TOO_SMALL			-1510
 
 /* Errors that do not fit the categories above */
 #define SC_ERROR_UNKNOWN			-1900

@@ -21,7 +21,7 @@
 #ifndef _OPENSC_CARDCTL_H
 #define _OPENSC_CARDCTL_H
 
-#include <opensc/types.h>
+#include "libopensc/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,7 +92,6 @@ enum {
 	 * JCOP specific calls
 	 */
 	SC_CARDCTL_JCOP_BASE = _CTL_PREFIX('J', 'C', 'P'),
-	SC_CARDCTL_JCOP_LOCK,
 	SC_CARDCTL_JCOP_GENERATE_KEY,
 
 	/*
@@ -194,8 +193,17 @@ enum {
 	SC_CARDCTL_MYEID_BASE = _CTL_PREFIX('M', 'Y', 'E'),
 	SC_CARDCTL_MYEID_PUTDATA,
 	SC_CARDCTL_MYEID_GETDATA,
-	SC_CARDCTL_MYEID_GENERATE_KEY,
+	SC_CARDCTL_MYEID_GENERATE_STORE_KEY,
 	SC_CARDCTL_MYEID_ACTIVATE_CARD,
+
+	/*
+	 * PIV specific calls
+	 */
+	SC_CARDCTL_PIV_BASE = _CTL_PREFIX('P', 'I', 'V'),
+	SC_CARDCTL_PIV_AUTHENTICATE,
+	SC_CARDCTL_PIV_GENERATE_KEY,
+	SC_CARDCTL_PIV_PIN_PREFERENCE,
+	SC_CARDCTL_PIV_OBJECT_PRESENT,
 };
 
 enum {
@@ -488,7 +496,7 @@ typedef struct sc_cardctl_asepcos_activate_file {
 
 typedef struct {
 	int key_reference;
-	size_t key_len; //8, 16 or 24
+	size_t key_len; /* 8, 16 or 24 */
 	u8 key_value[24];
 }sc_autkey_t;
 
@@ -557,7 +565,11 @@ typedef struct {
 #define SC_RUTOKEN_DO_CHV_MAX_ID_V2       SC_RUTOKEN_DEF_ID_GCHV_USER	/*  MAX ID value of CHV-objects  */
 #define SC_RUTOKEN_DO_NOCHV_MAX_ID_V2     SC_RUTOKEN_DO_NOCHV_MAX_ID	/*  MAX ID value of All Other DOs  */
 
+#if defined(__APPLE__) || defined(sun)
+#pragma pack(1)
+#else
 #pragma pack(push, 1)
+#endif
 typedef u8 sc_SecAttrV2_t[40];
 
 typedef struct sc_ObjectTypeID{
@@ -640,17 +652,6 @@ typedef struct sc_entersafe_create_data_st {
 			   u8 lock_ac;
 			   u8 aid[16];
 			   u8 init_key[16];
-		  } mf;
-		  struct {
-			   u8 file_id[2];
-			   u8 file_count;
-			   u8 flag;
-			   u8 ikf_size[2];
-			   u8 create_ac;
-			   u8 append_ac;
-			   u8 lock_ac;
-			   u8 aid[16];
-			   u8 init_key[16];
 		  } df;
 		  struct {
 			   u8 file_id[2];	
@@ -683,7 +684,11 @@ typedef struct sc_entersafe_gen_key_data_st {
 	u8	*modulus;
 } sc_entersafe_gen_key_data;
 
+#if defined(__APPLE__) || defined(sun)
+#pragma pack()
+#else
 #pragma pack(pop)
+#endif
 
 /*
  * Rutoken ECP stuff
@@ -739,6 +744,23 @@ typedef struct sc_rtecp_genkey_data {
 	unsigned int    invq_len;  
 	unsigned char  *invq;
 };
+
+/*
+ * PIV info
+ */
+typedef struct sc_cardctl_piv_genkey_info_st {
+	unsigned int	key_num;
+	unsigned int	key_algid;	/* RSA 5, 6, 7; EC 11, 14 */ 
+	unsigned int	key_bits;	/* RSA */
+	unsigned long	exponent;	/* RSA */
+	unsigned char *	pubkey;		/* RSA */
+	unsigned int	pubkey_len;	/* RSA */
+	unsigned char * ecparam;        /* EC */
+	unsigned int    ecparam_len;    /* EC */
+	unsigned char * ecpoint;        /* EC */
+	unsigned int    ecpoint_len;    /* EC */
+
+} sc_cardctl_piv_genkey_info_t;
 
 #ifdef __cplusplus
 }

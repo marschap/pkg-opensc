@@ -1,22 +1,20 @@
 TOPDIR = ..\..
 
-HEADERS			= pkcs11-opensc.h pkcs11.h sc-pkcs11.h
-
-HEADERSDIR		= $(TOPDIR)\src\include\opensc
-
 TARGET0                 = onepin-opensc-pkcs11.dll
 TARGET                  = opensc-pkcs11.dll
 TARGET2			= libpkcs11.lib
 TARGET3			= pkcs11-spy.dll
 
 OBJECTS			= pkcs11-global.obj pkcs11-session.obj pkcs11-object.obj misc.obj slot.obj \
-			  mechanism.obj openssl.obj secretkey.obj framework-pkcs15.obj \
-			  framework-pkcs15init.obj debug.obj \
-			  versioninfo.res
-OBJECTS2		= libpkcs11.obj versioninfo.res
-OBJECTS3		= pkcs11-spy.obj pkcs11-display.obj libpkcs11.obj versioninfo.res
+			  mechanism.obj openssl.obj framework-pkcs15.obj \
+			  framework-pkcs15init.obj debug.obj pkcs11-display.obj \
+				$(TOPDIR)\win32\versioninfo.res
+OBJECTS2		= libpkcs11.obj \
+				$(TOPDIR)\win32\versioninfo.res
+OBJECTS3		= pkcs11-spy.obj pkcs11-display.obj libpkcs11.obj \
+				$(TOPDIR)\win32\versioninfo.res
 
-all: install-headers $(TARGET0) $(TARGET) $(TARGET2) $(TARGET3) 
+all: $(TOPDIR)\win32\versioninfo.res $(TARGET0) $(TARGET) $(TARGET2) $(TARGET3) 
 
 !INCLUDE $(TOPDIR)\win32\Make.rules.mak
 

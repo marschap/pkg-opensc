@@ -18,11 +18,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "muscle-filesystem.h"
-#include <opensc/errors.h>
+#include "config.h"
+
 #include <memory.h>
 #include <stdio.h>
 #include <assert.h>
+
+#include "libopensc/muscle-filesystem.h"
+#include "libopensc/errors.h"
 
 #define MSCFS_NO_MEMORY  	SC_ERROR_OUT_OF_MEMORY
 #define MSCFS_INVALID_ARGS 	SC_ERROR_INVALID_ARGUMENTS
@@ -38,7 +41,7 @@ static const u8* ignoredFiles[] = {
 };
 
 mscfs_t *mscfs_new(void) {
-	mscfs_t *fs = (mscfs_t*)malloc(sizeof(mscfs_t));
+	mscfs_t *fs = malloc(sizeof(mscfs_t));
 	memset(fs, 0, sizeof(mscfs_t));
 	memcpy(fs->currentPath, "\x3F\x00", 2);
 	return fs;

@@ -18,17 +18,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include "cardctl.h"
+#include "config.h"
+
 #include <string.h>
 #include <stdlib.h>
 
+#include "internal.h"
+#include "cardctl.h"
+
 static struct sc_atr_table jcop_atrs[] = {
 	{ "3B:E6:00:FF:81:31:FE:45:4A:43:4F:50:33:31:06", NULL, NULL, SC_CARD_TYPE_JCOP_GENERIC, 0, NULL },
-#if 0
-	/* Requires secure messaging */
-	{ "3B:E6:00:FF:81:31:FE:45:4A:43:4F:50:32:31:06", NULL, NULL, SC_CARD_TYPE_JCOP_GENERIC, 0, NULL },
-#endif
 	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
@@ -98,7 +97,7 @@ static int jcop_init(sc_card_t *card)
      sc_file_t *f;
      int flags;
      
-     drvdata=(struct jcop_private_data *) malloc(sizeof(struct jcop_private_data));
+     drvdata=malloc(sizeof(struct jcop_private_data));
      if (!drvdata)
 	  return SC_ERROR_OUT_OF_MEMORY;
      memset(drvdata, 0, sizeof(struct jcop_private_data));
@@ -328,9 +327,7 @@ static int jcop_read_binary(sc_card_t *card, unsigned int idx,
 	  if (idx + count > 128) {
 	       count=128-idx;
 	  }
-          sc_ctx_suppress_errors_on(card->ctx);
 	  r = iso_ops->select_file(card, &drvdata->aid, &tfile);
-	  sc_ctx_suppress_errors_off(card->ctx);
 	  if (r < 0) { /* no pkcs15 app, so return empty DIR. */
 	       memset(buf, 0, count);
 	  } else {
@@ -356,9 +353,7 @@ static int jcop_list_files(sc_card_t *card, u8 *buf, size_t buflen) {
 	  if (buflen < 4)
 	       return 2;
 	  /* AppDF only exists if applet is selectable */
-	  sc_ctx_suppress_errors_on(card->ctx);
 	  r = iso_ops->select_file(card, &drvdata->aid, &tfile);
-	  sc_ctx_suppress_errors_off(card->ctx);
 	  if (r < 0) { 
 	       return 2;
 	  } else {
@@ -473,7 +468,7 @@ static int jcop_process_fci(sc_card_t *card, sc_file_t *file,
 	       u8 *filelist;
 	       nfiles=file->prop_attr[4];
 	       if (nfiles) {
-		    filelist=(u8 *) malloc(2*nfiles);
+		    filelist=malloc(2*nfiles);
 		    if (!filelist)
 			 return SC_ERROR_OUT_OF_MEMORY;
 		    memcpy(filelist, &file->prop_attr[5], 2*nfiles);
@@ -557,25 +552,6 @@ static int jcop_create_file(sc_card_t *card, sc_file_t *file) {
      return r;
 }
 
-/* no record oriented file services */
-static int jcop_read_record_unsupp(sc_card_t *card,
-                               unsigned int rec_nr, u8 *buf, 
-			      size_t count, unsigned long flags) {
-     return SC_ERROR_NOT_SUPPORTED;
-}
-
-static int jcop_wrupd_record_unsupp(sc_card_t *card,
-                               unsigned int rec_nr, const u8 *buf, 
-			      size_t count, unsigned long flags) {
-     return SC_ERROR_NOT_SUPPORTED;
-}
-
-static int jcop_append_record_unsupp(sc_card_t *card,
-                                 const u8 *buf, size_t count,
-                                 unsigned long flags) {
-     return SC_ERROR_NOT_SUPPORTED;
-}
-
 
 /* We need to trap these functions so that proper errors can be returned
    when one of the virtual files is selected */
@@ -636,7 +612,7 @@ static int jcop_set_security_env(sc_card_t *card,
 
         assert(card != NULL && env != NULL);
 	if (se_num) 
-	     SC_FUNC_RETURN(card->ctx, 1, SC_ERROR_INVALID_ARGUMENTS);
+	     SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ARGUMENTS);
 	if (drvdata->selected == SELECT_MF || 
 	    drvdata->selected == SELECT_EFDIR) {
 	     drvdata->invalid_senv=1;
@@ -650,11 +626,11 @@ static int jcop_set_security_env(sc_card_t *card,
                 tmp.flags &= ~SC_SEC_ENV_ALG_PRESENT;
                 tmp.flags |= SC_SEC_ENV_ALG_REF_PRESENT;
                 if (tmp.algorithm != SC_ALGORITHM_RSA) {
-                        sc_error(card->ctx, "Only RSA algorithm supported.\n");
+                        sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Only RSA algorithm supported.\n");
                         return SC_ERROR_NOT_SUPPORTED;
                 }
                 if (!(env->algorithm_flags & SC_ALGORITHM_RSA_PAD_PKCS1)){
-                        sc_error(card->ctx, "Card requires RSA padding\n");
+                        sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Card requires RSA padding\n");
                         return SC_ERROR_NOT_SUPPORTED;
                 }
                 tmp.algorithm_ref = 0x02;
@@ -706,12 +682,14 @@ static int jcop_set_security_env(sc_card_t *card,
         apdu.resplen = 0;
 	r = sc_transmit_apdu(card, &apdu);
 	if (r) {
-	     sc_perror(card->ctx, r, "APDU transmit failed");
+	     sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+		"%s: APDU transmit failed", sc_strerror(r));
 	     return r;
 	}
 	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 	if (r) {
-	     sc_perror(card->ctx, r, "Card returned error");
+	     sc_debug(card->ctx,  SC_LOG_DEBUG_NORMAL,
+		"%s: Card returned error", sc_strerror(r));
 	     return r;
 	}
 	drvdata->invalid_senv=0;
@@ -730,7 +708,7 @@ static int jcop_compute_signature(sc_card_t *card,
 
         assert(card != NULL && data != NULL && out != NULL);
         if (datalen > 256)
-                SC_FUNC_RETURN(card->ctx, 4, SC_ERROR_INVALID_ARGUMENTS);
+                SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_INVALID_ARGUMENTS);
 
 	if (drvdata->invalid_senv)
 	     return sc_check_sw(card, 0x69, 0x88);
@@ -755,16 +733,15 @@ static int jcop_compute_signature(sc_card_t *card,
 	}
 
         apdu.data = sbuf;
-        apdu.sensitive = 1;
         r = sc_transmit_apdu(card, &apdu);
-        SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+        SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
         if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
                 int len = apdu.resplen > outlen ? outlen : apdu.resplen;
 
                 memcpy(out, apdu.resp, len);
-                SC_FUNC_RETURN(card->ctx, 4, len);
+                SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, len);
         }
-        SC_FUNC_RETURN(card->ctx, 4, sc_check_sw(card, apdu.sw1, apdu.sw2));
+        SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
  
 
@@ -780,9 +757,9 @@ static int jcop_decipher(sc_card_t *card,
 	struct jcop_private_data *drvdata=DRVDATA(card);
 
         assert(card != NULL && crgram != NULL && out != NULL);
-        SC_FUNC_CALLED(card->ctx, 2);
+        SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_NORMAL);
         if (crgram_len > 256)
-                SC_FUNC_RETURN(card->ctx, 2, SC_ERROR_INVALID_ARGUMENTS);
+                SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_INVALID_ARGUMENTS);
 	if (drvdata->invalid_senv)
 	     return sc_check_sw(card, 0x69, 0x88);
 
@@ -793,7 +770,6 @@ static int jcop_decipher(sc_card_t *card,
         apdu.resp = rbuf;
         apdu.resplen = sizeof(rbuf); /* FIXME */
         apdu.le = crgram_len;
-        apdu.sensitive = 1;
         
 	if (crgram_len == 256) {
 	     apdu.p2 = crgram[0];
@@ -809,14 +785,14 @@ static int jcop_decipher(sc_card_t *card,
 	
         apdu.data = sbuf;
         r = sc_transmit_apdu(card, &apdu);
-        SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+        SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
         if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
                 int len = apdu.resplen > outlen ? outlen : apdu.resplen;
 
                 memcpy(out, apdu.resp, len);
-                SC_FUNC_RETURN(card->ctx, 2, len);
+                SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, len);
         }
-        SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2));
+        SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
  
 static int jcop_generate_key(sc_card_t *card, struct sc_cardctl_jcop_genkey *a) {
@@ -837,7 +813,8 @@ static int jcop_generate_key(sc_card_t *card, struct sc_cardctl_jcop_genkey *a) 
      if (a->exponent == 0x10001) {
 	  is_f4=1;
      } else if (a->exponent != 3) {
-	  sc_perror(card->ctx, SC_ERROR_NOT_SUPPORTED, "Invalid exponent");
+	  sc_debug(card->ctx,  SC_LOG_DEBUG_NORMAL,
+		"%s: Invalid exponent", sc_strerror(SC_ERROR_NOT_SUPPORTED));
 	  return SC_ERROR_NOT_SUPPORTED;
      }
      
@@ -866,12 +843,14 @@ static int jcop_generate_key(sc_card_t *card, struct sc_cardctl_jcop_genkey *a) 
      apdu.resplen = 0;
      r = sc_transmit_apdu(card, &apdu);
      if (r) {
-	  sc_perror(card->ctx, r, "APDU transmit failed");
+	  sc_debug(card->ctx,  SC_LOG_DEBUG_NORMAL,
+		"%s: APDU transmit failed", sc_strerror(r));
 	  return r;
      }
      r = sc_check_sw(card, apdu.sw1, apdu.sw2);
      if (r) {
-	  sc_perror(card->ctx, r, "Card returned error");
+	  sc_debug(card->ctx,  SC_LOG_DEBUG_NORMAL,
+	  	"%s: Card returned error", sc_strerror(r));
 	  return r;
      }
 
@@ -883,12 +862,14 @@ static int jcop_generate_key(sc_card_t *card, struct sc_cardctl_jcop_genkey *a) 
      
      r = sc_transmit_apdu(card, &apdu);
      if (r) {
-	  sc_perror(card->ctx, r, "APDU transmit failed");
+	  sc_debug(card->ctx,  SC_LOG_DEBUG_NORMAL,
+		"%s: APDU transmit failed", sc_strerror(r));
 	  return r;
      }
      r = sc_check_sw(card, apdu.sw1, apdu.sw2);
      if (r) {
-	  sc_perror(card->ctx, r, "Card returned error");
+	  sc_debug(card->ctx,  SC_LOG_DEBUG_NORMAL,
+		"%s: Card returned error", sc_strerror(r));
 	  return r;
      }
 
@@ -910,9 +891,6 @@ static int jcop_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
         case SC_CARDCTL_GET_DEFAULT_KEY:
                 return jcop_get_default_key(card,
                                 (struct sc_cardctl_default_key *) ptr);
-        case SC_CARDCTL_JCOP_LOCK:
-	     /* XXX implement me */
-	     return SC_ERROR_NOT_SUPPORTED;
         case SC_CARDCTL_JCOP_GENERATE_KEY:
                 return jcop_generate_key(card,
                                 (struct sc_cardctl_jcop_genkey *) ptr);
@@ -920,12 +898,6 @@ static int jcop_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
 
         return SC_ERROR_NOT_SUPPORTED;
 }
-
-/* "The PINs are "global" in a PKCS#15 sense, meaning that they remain valid
- *  until card reset! Selecting another applet doesn't invalidate the PINs, 
- *  you need to reset the card." - javacard@zurich.ibm.com, when asked about 
- *  how to invalidate logged in pins.
- */
 
 static struct sc_card_driver * sc_get_driver(void)
 {
@@ -935,11 +907,12 @@ static struct sc_card_driver * sc_get_driver(void)
      jcop_ops.match_card = jcop_match_card;
      jcop_ops.init = jcop_init;
      jcop_ops.finish = jcop_finish;
+     /* no record oriented file services */
+     jcop_ops.read_record = NULL;
+     jcop_ops.write_record = NULL;
+     jcop_ops.append_record = NULL;
+     jcop_ops.update_record = NULL;
      jcop_ops.read_binary = jcop_read_binary;
-     jcop_ops.read_record = jcop_read_record_unsupp;
-     jcop_ops.write_record = jcop_wrupd_record_unsupp;
-     jcop_ops.append_record = jcop_append_record_unsupp;
-     jcop_ops.update_record = jcop_wrupd_record_unsupp;
      jcop_ops.write_binary = jcop_write_binary;
      jcop_ops.update_binary = jcop_update_binary;
      jcop_ops.select_file = jcop_select_file;
@@ -955,10 +928,8 @@ static struct sc_card_driver * sc_get_driver(void)
      return &jcop_drv;
 }
 
-#if 1
 struct sc_card_driver * sc_get_jcop_driver(void)
 {
      return sc_get_driver();
 }
-#endif
 

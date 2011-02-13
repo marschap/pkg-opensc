@@ -4,8 +4,11 @@
  * Copyright (C) 2002 Olaf Kirch <okir@lst.de>
  */
 
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
+
 #include "sc-pkcs11.h"
 
 /* Also used for verification data */
@@ -52,7 +55,7 @@ sc_pkcs11_register_mechanism(struct sc_pkcs11_card *p11card,
  * Look up a mechanism
  */
 sc_pkcs11_mechanism_type_t *
-sc_pkcs11_find_mechanism(struct sc_pkcs11_card *p11card, CK_MECHANISM_TYPE mech, int flags)
+sc_pkcs11_find_mechanism(struct sc_pkcs11_card *p11card, CK_MECHANISM_TYPE mech, unsigned int flags)
 {
 	sc_pkcs11_mechanism_type_t *mt;
 	unsigned int n;
@@ -83,7 +86,7 @@ sc_pkcs11_get_mechanism_list(struct sc_pkcs11_card *p11card,
 	for (n = 0; n < p11card->nmechanisms; n++) {
 		if (!(mt = p11card->mechanisms[n]))
 			continue;
-		if (count < *pulCount && pList)
+		if (pList && count < *pulCount)
 			pList[count] = mt->mech;
 		count++;
 	}
@@ -117,7 +120,7 @@ sc_pkcs11_new_operation(sc_pkcs11_session_t *session,
 {
 	sc_pkcs11_operation_t *res;
 
-	res = (sc_pkcs11_operation_t *) calloc(1, type->obj_size);
+	res = calloc(1, type->obj_size);
 	if (res) {
 		res->session = session;
 		res->type = type;
@@ -196,7 +199,7 @@ sc_pkcs11_md_final(struct sc_pkcs11_session *session,
 			CK_BYTE_PTR pData, CK_ULONG_PTR pulDataLen)
 {
 	sc_pkcs11_operation_t *op;
-	int rv;
+	CK_RV rv;
 
 	rv = session_get_operation(session, SC_PKCS11_OPERATION_DIGEST, &op);
 	if (rv != CKR_OK)
@@ -343,7 +346,7 @@ sc_pkcs11_signature_init(sc_pkcs11_operation_t *operation,
 	struct signature_data *data;
 	int rv;
 
-	if (!(data = (struct signature_data *) calloc(1, sizeof(*data))))
+	if (!(data = calloc(1, sizeof(*data))))
 		return CKR_HOST_MEMORY;
 
 	data->info = NULL;
@@ -432,16 +435,34 @@ sc_pkcs11_signature_size(sc_pkcs11_operation_t *operation, CK_ULONG_PTR pLength)
 	CK_RV rv;
 
 	key = ((struct signature_data *) operation->priv_data)->key;
-	rv = key->ops->get_attribute(operation->session, key, &attr);
-
-	/* convert bits to bytes */
-	if (rv == CKR_OK)
-		*pLength = (*pLength + 7) / 8;
-
-	if (rv == CKR_OK) {
-		rv = key->ops->get_attribute(operation->session, key, &attr_key_type);
-		if (rv == CKR_OK && key_type == CKK_GOSTR3410)
-			*pLength *= 2;
+	/*
+	 * EC and GOSTR do not have CKA_MODULUS_BITS attribute.
+	 * But other code in framework treats them as if they do. 
+	 * So should do switch(key_type)
+	 * and then get what ever attributes are needed. 
+	 */
+	rv = key->ops->get_attribute(operation->session, key, &attr_key_type);
+	if (rv == CKR_OK) { 
+		switch(key_type) {
+			case CKK_RSA:
+				rv = key->ops->get_attribute(operation->session, key, &attr); 
+				/* convert bits to bytes */
+				if (rv == CKR_OK)
+					*pLength = (*pLength + 7) / 8;
+				break;
+			case CKK_EC:
+				/* TODO: -DEE we should use something other then CKA_MODULUS_BITS... */
+				rv = key->ops->get_attribute(operation->session, key, &attr);
+				*pLength = ((*pLength + 7)/8) * 2 ; /* 2*nLen in bytes */ 
+				break;
+			case CKK_GOSTR3410:
+				rv = key->ops->get_attribute(operation->session, key, &attr);
+				if (rv == CKR_OK)
+					*pLength = (*pLength + 7) / 8 * 2;
+				break;
+			default:
+				rv = CKR_MECHANISM_INVALID;
+		}
 	}
 
 	return rv;
@@ -560,7 +581,7 @@ sc_pkcs11_verify_init(sc_pkcs11_operation_t *operation,
 	struct signature_data *data;
 	int rv;
 
-	if (!(data = (struct signature_data *) calloc(1, sizeof(*data))))
+	if (!(data = calloc(1, sizeof(*data))))
 		return CKR_HOST_MEMORY;
 
 	data->info = NULL;
@@ -633,7 +654,7 @@ sc_pkcs11_verify_final(sc_pkcs11_operation_t *operation,
 	rv = key->ops->get_attribute(operation->session, key, &attr);
 	if (rv != CKR_OK)
 		return rv;
-	pubkey_value = (unsigned char *) malloc(attr.ulValueLen);
+	pubkey_value = malloc(attr.ulValueLen);
 	attr.pValue = pubkey_value;
 	rv = key->ops->get_attribute(operation->session, key, &attr);
 	if (rv != CKR_OK)
@@ -729,7 +750,7 @@ sc_pkcs11_decrypt_init(sc_pkcs11_operation_t *operation,
 {
 	struct signature_data *data;
 
-	if (!(data = (struct signature_data *) calloc(1, sizeof(*data))))
+	if (!(data = calloc(1, sizeof(*data))))
 		return CKR_HOST_MEMORY;
 
 	data->key = key;
@@ -767,7 +788,7 @@ sc_pkcs11_new_fw_mechanism(CK_MECHANISM_TYPE mech,
 {
 	sc_pkcs11_mechanism_type_t *mt;
 
-	mt = (sc_pkcs11_mechanism_type_t *) calloc(1, sizeof(*mt));
+	mt = calloc(1, sizeof(*mt));
 	if (mt == NULL)
 		return mt;
 	mt->mech = mech;
@@ -790,7 +811,10 @@ sc_pkcs11_new_fw_mechanism(CK_MECHANISM_TYPE mech,
 #endif
 	}
 	if (pInfo->flags & CKF_UNWRAP) {
-		/* ... */
+		/* TODO */
+	}
+	if (pInfo->flags & CKF_DERIVE) {
+		/* TODO: -DEE  CKM_ECDH1_COFACTOR_DERIVE for PIV */
 	}
 	if (pInfo->flags & CKF_DECRYPT) {
 		mt->decrypt_init = sc_pkcs11_decrypt_init;
@@ -809,7 +833,6 @@ sc_pkcs11_register_generic_mechanisms(struct sc_pkcs11_card *p11card)
 #ifdef ENABLE_OPENSSL
 	sc_pkcs11_register_openssl_mechanisms(p11card);
 #endif
-
 	return CKR_OK;
 }
 
@@ -833,16 +856,16 @@ sc_pkcs11_register_sign_and_hash_mechanism(struct sc_pkcs11_card *p11card,
 	/* These hash-based mechs can only be used for sign/verify */
 	mech_info.flags &= (CKF_SIGN | CKF_SIGN_RECOVER | CKF_VERIFY | CKF_VERIFY_RECOVER);
 
-	info = (struct hash_signature_info *) calloc(1, sizeof(*info));
+	info = calloc(1, sizeof(*info));
 	info->mech = mech;
 	info->sign_type = sign_type;
 	info->hash_type = hash_type;
 	info->sign_mech = sign_type->mech;
 	info->hash_mech = hash_mech;
 
-	new_type = sc_pkcs11_new_fw_mechanism(mech, &mech_info,
-				sign_type->key_type, info);
-	if (new_type)
-		sc_pkcs11_register_mechanism(p11card, new_type);
-	return CKR_OK;
+	new_type = sc_pkcs11_new_fw_mechanism(mech, &mech_info, sign_type->key_type, info);
+		
+	if (!new_type)
+		return CKR_HOST_MEMORY;	
+	return sc_pkcs11_register_mechanism(p11card, new_type);
 }

@@ -1,11 +1,6 @@
 /*
  * Netkey-Tool for Telesec Netkey E4 cards.
  *
- * compile with:
- *   gcc -I<opensc-path>/include -I<openssl-path>/include \
- *       -L<opensc-path>/lib -L<openssl-path>/lib \
- *       -o netkey-tool netkey-tool.c -lopensc -lcrypto
- *
  * Copyright (C) 2005, Peter Koch <pk_opensc@web.de>
  *
  * This library is free software; you can redistribute it and/or
@@ -23,23 +18,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <compat_getopt.h>
 #include <string.h>
 #include <errno.h>
-#include <opensc/opensc.h>
 #include <openssl/x509v3.h>
 #include <openssl/pem.h>
 
+#include "common/compat_getopt.h"
+#include "libopensc/opensc.h"
+
 static struct {
-	char *path;
+	const char *path;
 	int   readonly;
-	char *label;
+	const char *label;
 } certlist[]={
 	{"DF01C000", 1, "Telesec Signatur Zertifikat"},
 	{"DF014331", 0, "User Signatur Zertifikat1"},
@@ -53,9 +47,9 @@ static struct {
 };
 
 static struct {
-	char *path;
-	char *name;
-	char *label;
+	const char *path;
+	const char *name;
+	const char *label;
 	int   p1, p2;
 	int   tries;
 	int   len;
@@ -235,7 +229,7 @@ static void show_card(sc_card_t    *card)
 	printf("%X\n\n", buf[11]>>4);
 
 	for(i=0;i<4;++i) show_pin(card, i);
-	// printf("%s: %u tries left, %u tries max, %s\n", pinlist[i].label, pinlist[i].tries, max, status);
+	/* printf("%s: %u tries left, %u tries max, %s\n", pinlist[i].label, pinlist[i].tries, max, status); */
 
 	if(pinlist[0].len) show_initial_puk(card);
 }
@@ -548,7 +542,10 @@ int main(
 		fprintf(stderr,"Establish-Context failed: %s\n", sc_strerror(r));
 		exit(1);
 	}
-	ctx->debug=debug;
+	if (debug > 1) {
+		ctx->debug = debug;
+		ctx->debug_file = stderr;
+	}
 	if(ctx->debug>0)
 		printf("Context for application \"%s\" created, Debug=%d\n", ctx->app_name, ctx->debug);
 
@@ -559,19 +556,13 @@ int main(
 		exit(1);
 	}
 
-	printf("%d Reader detected\n", sc_ctx_get_reader_count(ctx));
-	for(i=0; i < sc_ctx_get_reader_count(ctx); ++i){
-		sc_reader_t *myreader = sc_ctx_get_reader(ctx, i);
-		printf("%lu: %s, Driver: %s, %d Slot(s)\n",
-			(unsigned long) i, myreader->name,
-			myreader->driver->name, myreader->slot_count);
-	}
+	printf("%d Readers detected\n", sc_ctx_get_reader_count(ctx));
 	if(reader < 0 || reader >= (int)sc_ctx_get_reader_count(ctx)){
 		fprintf(stderr,"Cannot open reader %d\n", reader);
 		exit(1);
 	}
 
-	if((r = sc_connect_card(sc_ctx_get_reader(ctx, 0), 0, &card))<0){
+	if((r = sc_connect_card(sc_ctx_get_reader(ctx, 0), &card))<0){
 		fprintf(stderr,"Connect-Card failed: %s\n", sc_strerror(r));
 		exit(1);
 	}
@@ -621,7 +612,7 @@ int main(
 	if(do_unblock+do_change+do_nullpin+do_readcert==0) show_certs(card);
 
 	sc_unlock(card);
-	sc_disconnect_card(card,0);
+	sc_disconnect_card(card);
 	sc_release_context(ctx);
 
 	exit(0);

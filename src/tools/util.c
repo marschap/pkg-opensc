@@ -1,80 +1,80 @@
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#ifndef _WIN32
+#include <termios.h>
+#else
+#include <conio.h>
+#endif
 #include <ctype.h>
 #include "util.h"
 
 int util_connect_card(sc_context_t *ctx, sc_card_t **cardp,
-		 int reader_id, int slot_id, int wait, int verbose)
+		 const char *reader_id, int do_wait, int verbose)
 {
-	sc_reader_t *reader;
+	sc_reader_t *reader, *found;
 	sc_card_t *card;
-	int r;
+	int r, tmp_reader_num;
 
-	if (wait) {
-		sc_reader_t *readers[16];
-		int slots[16];
-		unsigned int i;
-		int j, k, found;
+	if (do_wait) {
 		unsigned int event;
 
-		for (i = k = 0; i < sc_ctx_get_reader_count(ctx); i++) {
-			if (reader_id >= 0 && (unsigned int)reader_id != i)
-				continue;
-			reader = sc_ctx_get_reader(ctx, i);
-			for (j = 0; j < reader->slot_count; j++, k++) {
-				readers[k] = reader;
-				slots[k] = j;
+		if (sc_ctx_get_reader_count(ctx) == 0) {
+			fprintf(stderr, "Waiting for a reader to be attached...\n");
+			r = sc_wait_for_event(ctx, SC_EVENT_READER_ATTACHED, &found, &event, -1, NULL);
+			if (r < 0) {
+				fprintf(stderr, "Error while waiting for a reader: %s\n", sc_strerror(r));
+				return 3;
+			}
+			r = sc_ctx_detect_readers(ctx);
+			if (r < 0) {
+				fprintf(stderr, "Error while refreshing readers: %s\n", sc_strerror(r));
+				return 3;
 			}
 		}
-
-		printf("Waiting for card to be inserted...\n");
-		r = sc_wait_for_event(readers, slots, k,
-				SC_EVENT_CARD_INSERTED,
-				&found, &event, -1);
+		fprintf(stderr, "Waiting for a card to be inserted...\n");
+		r = sc_wait_for_event(ctx, SC_EVENT_CARD_INSERTED, &found, &event, -1, NULL);
 		if (r < 0) {
-			fprintf(stderr,
-				"Error while waiting for card: %s\n",
-				sc_strerror(r));
+			fprintf(stderr, "Error while waiting for a card: %s\n", sc_strerror(r));
 			return 3;
 		}
-
-		reader = readers[found];
-		slot_id = slots[found];
+		reader = found;
 	} else {
 		if (sc_ctx_get_reader_count(ctx) == 0) {
 			fprintf(stderr,
 				"No smart card readers found.\n");
 			return 1;
 		}
-		if (reader_id < 0) {
+		if (!reader_id) {
 			unsigned int i;
 			/* Automatically try to skip to a reader with a card if reader not specified */
 			for (i = 0; i < sc_ctx_get_reader_count(ctx); i++) {
 				reader = sc_ctx_get_reader(ctx, i);
-				if (sc_detect_card_presence(reader, 0) & SC_SLOT_CARD_PRESENT) {
-					reader_id = i;
+				if (sc_detect_card_presence(reader) & SC_READER_CARD_PRESENT) {
 					fprintf(stderr, "Using reader with a card: %s\n", reader->name);
 					goto autofound;
 				}
 			}
-			reader_id = 0;
+			/* If no reader had a card, default to the first reader */
+			reader = sc_ctx_get_reader(ctx, 0);
+		} else {
+			/* Get the reader by name if possible */
+			if (!sscanf(reader_id, "%d", &tmp_reader_num)) {
+				reader = sc_ctx_get_reader_by_name(ctx, reader_id);
+			} else {
+				reader = sc_ctx_get_reader(ctx, tmp_reader_num);
+			}
 		}
 autofound:
-		if ((unsigned int)reader_id >= sc_ctx_get_reader_count(ctx)) {
+		if (!reader) {
 			fprintf(stderr,
-				"Illegal reader number. "
-				"Only %d reader(s) configured.\n",
-				sc_ctx_get_reader_count(ctx));
+				"Reader \"%s\" not found (%d reader(s) detected)\n", reader_id, sc_ctx_get_reader_count(ctx));
 			return 1;
 		}
 
-		reader = sc_ctx_get_reader(ctx, reader_id);
-		slot_id = 0;
-		if (sc_detect_card_presence(reader, 0) <= 0) {
+		if (sc_detect_card_presence(reader) <= 0) {
 			fprintf(stderr, "Card not present.\n");
 			return 3;
 		}
@@ -82,7 +82,7 @@ autofound:
 
 	if (verbose)
 		printf("Connecting to card in reader %s...\n", reader->name);
-	if ((r = sc_connect_card(reader, slot_id, &card)) < 0) {
+	if ((r = sc_connect_card(reader, &card)) < 0) {
 		fprintf(stderr,
 			"Failed to connect to card: %s\n",
 			sc_strerror(r));
@@ -96,7 +96,7 @@ autofound:
 		fprintf(stderr,
 			"Failed to lock card: %s\n",
 			sc_strerror(r));
-		sc_disconnect_card(card, 0);
+		sc_disconnect_card(card);
 		return 1;
 	}
 
@@ -107,7 +107,7 @@ autofound:
 void util_print_binary(FILE *f, const u8 *buf, int count)
 {
 	int i;
-	
+
 	for (i = 0; i < count; i++) {
 		unsigned char c = buf[i];
 		const char *format;
@@ -123,7 +123,7 @@ void util_print_binary(FILE *f, const u8 *buf, int count)
 void util_hex_dump(FILE *f, const u8 *in, int len, const char *sep)
 {
 	int i;
-	
+
 	for (i = 0; i < len; i++) {
 		if (sep != NULL && i)
 			fprintf(f, "%s", sep);
@@ -138,7 +138,7 @@ void util_hex_dump_asc(FILE *f, const u8 *in, size_t count, int addr)
  	while (count) {
 		char ascbuf[17];
 		size_t i;
-		
+
 		if (addr >= 0) {
 			fprintf(f, "%08X: ", addr);
 			addr += 16;
@@ -169,7 +169,7 @@ void util_print_usage_and_die(const char *app_name, const struct option options[
 	while (options[i].name) {
 		char buf[40], tmp[5];
 		const char *arg_str;
-		
+
 		/* Skip "hidden" options */
 		if (option_help[i] == NULL) {
 			i++;
@@ -206,7 +206,7 @@ const char * util_acl_to_str(const sc_acl_entry_t *e)
 {
 	static char line[80], buf[10];
 	unsigned int acl;
-	
+
 	if (e == NULL)
 		return "N/A";
 	line[0] = 0;
@@ -283,5 +283,66 @@ util_warn(const char *fmt, ...)
 	vfprintf(stderr, fmt, ap);
 	fprintf(stderr, "\n");
 	va_end(ap);
+}
+
+int 
+util_getpass (char **lineptr, size_t *len, FILE *stream)
+{
+#define MAX_PASS_SIZE	128
+	char *buf;
+	int i;
+#ifndef _WIN32
+	struct termios old, new;
+
+	fflush(stdout);
+	if (tcgetattr (fileno (stdout), &old) != 0)
+		return -1;
+	new = old;
+	new.c_lflag &= ~ECHO;
+	if (tcsetattr (fileno (stdout), TCSAFLUSH, &new) != 0)
+		return -1;
+#endif
+
+	buf = calloc(1, MAX_PASS_SIZE);
+	if (!buf)
+		return -1;
+
+	for (i = 0; i < MAX_PASS_SIZE - 1; i++) {
+#ifndef _WIN32
+		buf[i] = getchar();
+#else
+		buf[i] = _getch();
+#endif
+		if (buf[i] == 0 || buf[i] == 3)
+			break;
+		if (buf[i] == '\n' || buf[i] == '\r')
+			break;
+	}
+#ifndef _WIN32
+	tcsetattr (fileno (stdout), TCSAFLUSH, &old);
+	fputs("\n", stdout);
+#endif
+	if (buf[i] == 0 || buf[i] == 3)   {
+		free(buf);
+		return -1;
+	}
+
+	buf[i] = 0;
+
+	if (*lineptr && (!len || *len < i+1))   {
+		free(*lineptr);
+		*lineptr = NULL;
+	}
+
+	if (*lineptr) {
+		memcpy(*lineptr,buf,i+1);
+		memset(buf, 0, MAX_PASS_SIZE);
+		free(buf);
+	} else {
+		*lineptr = buf;
+		if (len)
+			*len = MAX_PASS_SIZE;
+	}
+	return i;
 }
 

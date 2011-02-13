@@ -18,11 +18,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include "ctbcs.h"
+#include "config.h"
+
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "internal.h"
+#include "ctbcs.h"
 
 static void
 ctbcs_init_apdu(sc_apdu_t *apdu, int cse, int ins, int p1, int p2)
@@ -77,7 +80,7 @@ ctbcs_build_output_apdu(sc_apdu_t *apdu, const char *message)
 #endif
 
 static int
-ctbcs_build_perform_verification_apdu(sc_apdu_t *apdu, struct sc_pin_cmd_data *data, sc_slot_info_t *slot)
+ctbcs_build_perform_verification_apdu(sc_apdu_t *apdu, struct sc_pin_cmd_data *data)
 {
 	const char *prompt;
 	size_t buflen, count = 0, j = 0, len;
@@ -87,7 +90,7 @@ ctbcs_build_perform_verification_apdu(sc_apdu_t *apdu, struct sc_pin_cmd_data *d
 	ctbcs_init_apdu(apdu,
 			SC_APDU_CASE_3_SHORT,
 			CTBCS_INS_PERFORM_VERIFICATION,
-			CTBCS_P1_INTERFACE1 + (slot ? slot->id : 0),
+			CTBCS_P1_INTERFACE1,
 			0);
 
 	buflen = sizeof(buf);
@@ -145,15 +148,76 @@ ctbcs_build_perform_verification_apdu(sc_apdu_t *apdu, struct sc_pin_cmd_data *d
 }
 
 static int
-ctbcs_build_modify_verification_apdu(sc_apdu_t *apdu, struct sc_pin_cmd_data *data, sc_slot_info_t *slot)
+ctbcs_build_modify_verification_apdu(sc_apdu_t *apdu, struct sc_pin_cmd_data *data)
 {
-	/* to be implemented */
-	return SC_ERROR_NOT_SUPPORTED;
+	const char *prompt;
+	size_t buflen, count = 0, j = 0, len;
+	static u8 buf[254];
+	u8 control;
+
+	ctbcs_init_apdu(apdu,
+			SC_APDU_CASE_3_SHORT,
+			CTBCS_INS_MODIFY_VERIFICATION,
+			CTBCS_P1_INTERFACE1,
+			0);
+
+	buflen = sizeof(buf);
+	prompt = data->pin1.prompt;
+	if (prompt && *prompt) {
+		len = strlen(prompt);
+		if (count + len + 2 > buflen || len > 255)
+			return SC_ERROR_BUFFER_TOO_SMALL;
+		buf[count++] = CTBCS_TAG_PROMPT;
+		buf[count++] = len;
+		memcpy(buf + count, prompt, len);
+		count += len;
+	}
+
+	/* card apdu must be last in packet */
+	if (!data->apdu)
+		return SC_ERROR_INTERNAL;
+	if (count + 8 > buflen)
+		return SC_ERROR_BUFFER_TOO_SMALL;
+
+	j = count;
+	buf[j++] = CTBCS_TAG_VERIFY_CMD;
+	buf[j++] = 0x00;
+
+	/* Control byte - length of PIN, and encoding */
+	control = 0x00;
+	if (data->pin1.encoding == SC_PIN_ENCODING_ASCII)
+		control |= CTBCS_PIN_CONTROL_ENCODE_ASCII;
+	else if (data->pin1.encoding != SC_PIN_ENCODING_BCD)
+		return SC_ERROR_INVALID_ARGUMENTS;
+	if (data->pin1.min_length == data->pin1.max_length)
+		control |= data->pin1.min_length << CTBCS_PIN_CONTROL_LEN_SHIFT;
+	buf[j++] = control;
+	buf[j++] = data->pin1.offset+1; /* Looks like offset is 1-based in CTBCS */
+	buf[j++] = data->pin2.offset+1;
+	buf[j++] = data->apdu->cla;
+	buf[j++] = data->apdu->ins;
+	buf[j++] = data->apdu->p1;
+	buf[j++] = data->apdu->p2;
+
+	if (data->flags & SC_PIN_CMD_NEED_PADDING) {
+		len = data->pin1.pad_length + data->pin2.pad_length;
+		if (j + len > buflen || len > 256)
+			return SC_ERROR_BUFFER_TOO_SMALL;
+		buf[j++] = len;
+		memset(buf+j, data->pin1.pad_char, len);
+		j += len;
+	}
+	buf[count+1] = j - count - 2;
+	count = j;
+
+	apdu->lc = apdu->datalen = count;
+	apdu->data = buf;
+
+	return 0;
 }
 
 int
-ctbcs_pin_cmd(sc_reader_t *reader, sc_slot_info_t *slot,
-	      struct sc_pin_cmd_data *data)
+ctbcs_pin_cmd(sc_reader_t *reader, struct sc_pin_cmd_data *data)
 {
 	sc_card_t dummy_card, *card;
 	sc_apdu_t apdu;
@@ -162,21 +226,24 @@ ctbcs_pin_cmd(sc_reader_t *reader, sc_slot_info_t *slot,
 
 	switch (data->cmd) {
 	case SC_PIN_CMD_VERIFY:
-		r = ctbcs_build_perform_verification_apdu(&apdu, data, slot);
+		r = ctbcs_build_perform_verification_apdu(&apdu, data);
+		if (r != SC_SUCCESS)
+			return r;
 		break;
 	case SC_PIN_CMD_CHANGE:
 	case SC_PIN_CMD_UNBLOCK:
-		r = ctbcs_build_modify_verification_apdu(&apdu, data, slot);
+		r = ctbcs_build_modify_verification_apdu(&apdu, data);
+		if (r != SC_SUCCESS)
+			return r;
 		break;
 	default:
-		sc_error(reader->ctx, "Unknown PIN command %d", data->cmd);
+		sc_debug(reader->ctx, SC_LOG_DEBUG_NORMAL, "Unknown PIN command %d", data->cmd);
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 
 	memset(&ops, 0, sizeof(ops));
 	memset(&dummy_card, 0, sizeof(dummy_card));
 	dummy_card.reader = reader;
-	dummy_card.slot = slot;
 	dummy_card.ctx = reader->ctx;
 	r = sc_mutex_create(reader->ctx, &dummy_card.mutex);
 	if (r != SC_SUCCESS)
@@ -187,10 +254,10 @@ ctbcs_pin_cmd(sc_reader_t *reader, sc_slot_info_t *slot,
 	r = sc_transmit_apdu(card, &apdu);
 	s = sc_mutex_destroy(reader->ctx, card->mutex);
 	if (s != SC_SUCCESS) {
-		sc_error(reader->ctx, "unable to destroy mutex\n");
+		sc_debug(reader->ctx, SC_LOG_DEBUG_NORMAL, "unable to destroy mutex\n");
 		return s;
 	}
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	
 	/* Check CTBCS status word */
 	switch (((unsigned int) apdu.sw1 << 8) | apdu.sw2) {
@@ -213,7 +280,7 @@ ctbcs_pin_cmd(sc_reader_t *reader, sc_slot_info_t *slot,
 		r = SC_ERROR_CARD_CMD_FAILED;
 		break;
 	}
-	SC_TEST_RET(card->ctx, r, "PIN command failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "PIN command failed");
 
 	/* Calling Function may expect SW1/SW2 in data-apdu set... */
 	if (data->apdu) {

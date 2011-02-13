@@ -5,22 +5,28 @@
  * Copyright (C) 2002 Olaf Kirch <okir@lst.de>
  */
 
-#include <string.h>
-#include "sc-pkcs11.h"
+#include "config.h"
 
-#ifdef ENABLE_OPENSSL
+#ifdef ENABLE_OPENSSL		/* empty file without openssl */
+#include <string.h>
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/rsa.h>
 #include <openssl/opensslv.h>
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L
 #include <openssl/conf.h>
-#include <openssl/opensslconf.h> /* for OPENSSL_NO_EC */
+#include <openssl/opensslconf.h> /* for OPENSSL_NO_* */
 #ifndef OPENSSL_NO_EC
 #include <openssl/ec.h>
 #endif /* OPENSSL_NO_EC */
+#ifndef OPENSSL_NO_ENGINE
+#include <openssl/engine.h>
+#endif /* OPENSSL_NO_ENGINE */
 #include <openssl/asn1.h>
+#include <openssl/crypto.h>
 #endif /* OPENSSL_VERSION_NUMBER >= 0x10000000L */
+
+#include "sc-pkcs11.h"
 
 static CK_RV	sc_pkcs11_openssl_md_init(sc_pkcs11_operation_t *);
 static CK_RV	sc_pkcs11_openssl_md_update(sc_pkcs11_operation_t *,
@@ -31,85 +37,195 @@ static void	sc_pkcs11_openssl_md_release(sc_pkcs11_operation_t *);
 
 static sc_pkcs11_mechanism_type_t openssl_sha1_mech = {
 	CKM_SHA_1,
-	{ 0, 0, CKF_DIGEST }, 0,
+	{ 0, 0, CKF_DIGEST },
+	0,
 	sizeof(struct sc_pkcs11_operation),
 	sc_pkcs11_openssl_md_release,
 	sc_pkcs11_openssl_md_init,
 	sc_pkcs11_openssl_md_update,
-	sc_pkcs11_openssl_md_final
+	sc_pkcs11_openssl_md_final,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 #if OPENSSL_VERSION_NUMBER >= 0x00908000L
 static sc_pkcs11_mechanism_type_t openssl_sha256_mech = {
 	CKM_SHA256,
-	{ 0, 0, CKF_DIGEST }, 0,
+	{ 0, 0, CKF_DIGEST },
+	0,
 	sizeof(struct sc_pkcs11_operation),
 	sc_pkcs11_openssl_md_release,
 	sc_pkcs11_openssl_md_init,
 	sc_pkcs11_openssl_md_update,
-	sc_pkcs11_openssl_md_final
+	sc_pkcs11_openssl_md_final,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 static sc_pkcs11_mechanism_type_t openssl_sha384_mech = {
 	CKM_SHA384,
-	{ 0, 0, CKF_DIGEST }, 0,
+	{ 0, 0, CKF_DIGEST },
+	0,
 	sizeof(struct sc_pkcs11_operation),
 	sc_pkcs11_openssl_md_release,
 	sc_pkcs11_openssl_md_init,
 	sc_pkcs11_openssl_md_update,
-	sc_pkcs11_openssl_md_final
+	sc_pkcs11_openssl_md_final,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 static sc_pkcs11_mechanism_type_t openssl_sha512_mech = {
 	CKM_SHA512,
-	{ 0, 0, CKF_DIGEST }, 0,
+	{ 0, 0, CKF_DIGEST },
+	0,
 	sizeof(struct sc_pkcs11_operation),
 	sc_pkcs11_openssl_md_release,
 	sc_pkcs11_openssl_md_init,
 	sc_pkcs11_openssl_md_update,
-	sc_pkcs11_openssl_md_final
+	sc_pkcs11_openssl_md_final,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 #endif
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L
 static sc_pkcs11_mechanism_type_t openssl_gostr3411_mech = {
 	CKM_GOSTR3411,
-	{ 0, 0, CKF_DIGEST }, 0,
+	{ 0, 0, CKF_DIGEST },
+	0,
 	sizeof(struct sc_pkcs11_operation),
 	sc_pkcs11_openssl_md_release,
 	sc_pkcs11_openssl_md_init,
 	sc_pkcs11_openssl_md_update,
-	sc_pkcs11_openssl_md_final
+	sc_pkcs11_openssl_md_final,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 #endif
 
 static sc_pkcs11_mechanism_type_t openssl_md5_mech = {
 	CKM_MD5,
-	{ 0, 0, CKF_DIGEST }, 0,
+	{ 0, 0, CKF_DIGEST },
+	0,
 	sizeof(struct sc_pkcs11_operation),
 	sc_pkcs11_openssl_md_release,
 	sc_pkcs11_openssl_md_init,
 	sc_pkcs11_openssl_md_update,
-	sc_pkcs11_openssl_md_final
+	sc_pkcs11_openssl_md_final,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 static sc_pkcs11_mechanism_type_t openssl_ripemd160_mech = {
 	CKM_RIPEMD160,
-	{ 0, 0, CKF_DIGEST }, 0,
+	{ 0, 0, CKF_DIGEST },
+	0,
 	sizeof(struct sc_pkcs11_operation),
 	sc_pkcs11_openssl_md_release,
 	sc_pkcs11_openssl_md_init,
 	sc_pkcs11_openssl_md_update,
-	sc_pkcs11_openssl_md_final
+	sc_pkcs11_openssl_md_final,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 };
 
 void
 sc_pkcs11_register_openssl_mechanisms(struct sc_pkcs11_card *card)
 {
-#if OPENSSL_VERSION_NUMBER >= 0x10000000L
-	/* FIXME: see openssl-1.0.0-beta3/engines/ccgost/README.gost */
-	OPENSSL_config(NULL);
-#endif
+#if OPENSSL_VERSION_NUMBER >= 0x10000000L && !defined(OPENSSL_NO_ENGINE)
+	void (*locking_cb)(int, int, const char *, int);
+	ENGINE *e;
+
+	locking_cb = CRYPTO_get_locking_callback();
+	if (locking_cb)
+		CRYPTO_set_locking_callback(NULL);
+
+	e = ENGINE_by_id("gost");
+	if (!e)
+	{
+#if !defined(OPENSSL_NO_STATIC_ENGINE) && !defined(OPENSSL_NO_GOST)
+		ENGINE_load_gost();
+		e = ENGINE_by_id("gost");
+#else
+		/* try to load dynamic gost engine */
+		e = ENGINE_by_id("dynamic");
+		if (!e) {
+			ENGINE_load_dynamic();
+			e = ENGINE_by_id("dynamic");
+		}
+		if (e && (!ENGINE_ctrl_cmd_string(e, "SO_PATH", "gost", 0) ||
+					!ENGINE_ctrl_cmd_string(e, "LOAD", NULL, 0))) {
+			ENGINE_free(e);
+			e = NULL;
+		}
+#endif /* !OPENSSL_NO_STATIC_ENGINE && !OPENSSL_NO_GOST */
+	}
+	if (e) {
+		ENGINE_set_default(e, ENGINE_METHOD_ALL);
+		ENGINE_free(e);
+	}
+
+	if (locking_cb)
+		CRYPTO_set_locking_callback(locking_cb);
+#endif /* OPENSSL_VERSION_NUMBER >= 0x10000000L && !defined(OPENSSL_NO_ENGINE) */
+
 	openssl_sha1_mech.mech_data = EVP_sha1();
 	sc_pkcs11_register_mechanism(card, &openssl_sha1_mech);
 #if OPENSSL_VERSION_NUMBER >= 0x00908000L
@@ -146,7 +262,7 @@ static CK_RV sc_pkcs11_openssl_md_init(sc_pkcs11_operation_t *op)
 	if (!op || !(mt = op->type) || !(md = (EVP_MD *) mt->mech_data))
 		return CKR_ARGUMENTS_BAD;
 
-	if (!(md_ctx = (EVP_MD_CTX *) calloc(1, sizeof(*md_ctx))))
+	if (!(md_ctx = calloc(1, sizeof(*md_ctx))))
 		return CKR_HOST_MEMORY;
 	EVP_DigestInit(md_ctx, md);
 	op->priv_data = md_ctx;
@@ -164,9 +280,9 @@ static CK_RV sc_pkcs11_openssl_md_final(sc_pkcs11_operation_t *op,
 				CK_BYTE_PTR pDigest, CK_ULONG_PTR pulDigestLen)
 {
 	EVP_MD_CTX	*md_ctx = DIGEST_CTX(op);
-	CK_ULONG	len = *pulDigestLen;
+	unsigned int len = *pulDigestLen;
 
-	if (len < (CK_ULONG)EVP_MD_CTX_size(md_ctx)) {
+	if (len < EVP_MD_CTX_size(md_ctx)) {
 		*pulDigestLen = EVP_MD_CTX_size(md_ctx);
 		return CKR_BUFFER_TOO_SMALL;
 	}
@@ -183,73 +299,6 @@ static void sc_pkcs11_openssl_md_release(sc_pkcs11_operation_t *op)
 	if (md_ctx)
 		free(md_ctx);
 	op->priv_data = NULL;
-}
-
-static int
-do_convert_bignum(sc_pkcs15_bignum_t *dst, BIGNUM *src)
-{
-	if (src == 0)
-		return 0;
-	dst->len = BN_num_bytes(src);
-	dst->data = (u8 *) malloc(dst->len);
-	if (dst->data == NULL)
-		return 0;
-	BN_bn2bin(src, dst->data);
-	return 1;
-}
-
-CK_RV
-sc_pkcs11_gen_keypair_soft(CK_KEY_TYPE keytype, CK_ULONG keybits,
-	struct sc_pkcs15_prkey *privkey, struct sc_pkcs15_pubkey *pubkey)
-{
-	switch (keytype) {
-	case CKK_RSA: {
-		RSA	*rsa;
-		BIO	*err;
-		struct sc_pkcs15_prkey_rsa  *sc_priv = &privkey->u.rsa;
-		struct sc_pkcs15_pubkey_rsa *sc_pub  = &pubkey->u.rsa;
-
-		err = BIO_new(BIO_s_mem());
-		rsa = RSA_generate_key(keybits, 0x10001, NULL, err);
-		BIO_free(err);
-		if (rsa == NULL) {
-			sc_debug(context, "RSA_generate_key() failed\n");
-			return CKR_FUNCTION_FAILED;
-		}
-
-		privkey->algorithm = pubkey->algorithm = SC_ALGORITHM_RSA;
-
-		if (!do_convert_bignum(&sc_priv->modulus, rsa->n)
-		 || !do_convert_bignum(&sc_priv->exponent, rsa->e)
-		 || !do_convert_bignum(&sc_priv->d, rsa->d)
-		 || !do_convert_bignum(&sc_priv->p, rsa->p)
-		 || !do_convert_bignum(&sc_priv->q, rsa->q)) {
-		 	sc_debug(context, "do_convert_bignum() failed\n");
-		 	RSA_free(rsa);
-			return CKR_FUNCTION_FAILED;
-		}
-		if (rsa->iqmp && rsa->dmp1 && rsa->dmq1) {
-			do_convert_bignum(&sc_priv->iqmp, rsa->iqmp);
-			do_convert_bignum(&sc_priv->dmp1, rsa->dmp1);
-			do_convert_bignum(&sc_priv->dmq1, rsa->dmq1);
-		}
-
-		if (!do_convert_bignum(&sc_pub->modulus, rsa->n)
-		 || !do_convert_bignum(&sc_pub->exponent, rsa->e)) {
-		 	sc_debug(context, "do_convert_bignum() failed\n");
-		 	RSA_free(rsa);
-			return CKR_FUNCTION_FAILED;
-		}
-
-		RSA_free(rsa);
-
-		break;
-		}
-	default:
-		return CKR_MECHANISM_PARAM_INVALID;
-	}
-
-	return CKR_OK;
 }
 
 #if OPENSSL_VERSION_NUMBER >= 0x10000000L && !defined(OPENSSL_NO_EC)
@@ -379,7 +428,7 @@ CK_RV sc_pkcs11_verify_data(const unsigned char *pubkey, int pubkey_len,
 		else if (res == 0)
 			return CKR_SIGNATURE_INVALID;
 		else {
-			sc_debug(context, "EVP_VerifyFinal() returned %d\n", res);
+			sc_debug(context, SC_LOG_DEBUG_NORMAL, "EVP_VerifyFinal() returned %d\n", res);
 			return CKR_GENERAL_ERROR;
 		}
 	}
@@ -405,7 +454,7 @@ CK_RV sc_pkcs11_verify_data(const unsigned char *pubkey, int pubkey_len,
 		if (rsa == NULL)
 			return CKR_DEVICE_MEMORY;
 
-		rsa_out = (unsigned char *) malloc(RSA_size(rsa));
+		rsa_out = malloc(RSA_size(rsa));
 		if (rsa_out == NULL) {
 			RSA_free(rsa);
 			return CKR_DEVICE_MEMORY;
@@ -415,7 +464,7 @@ CK_RV sc_pkcs11_verify_data(const unsigned char *pubkey, int pubkey_len,
 		RSA_free(rsa);
 		if(rsa_outlen <= 0) {
 			free(rsa_out);
-			sc_debug(context, "RSA_public_decrypt() returned %d\n", rsa_outlen);
+			sc_debug(context, SC_LOG_DEBUG_NORMAL, "RSA_public_decrypt() returned %d\n", rsa_outlen);
 			return CKR_GENERAL_ERROR;
 		}
 

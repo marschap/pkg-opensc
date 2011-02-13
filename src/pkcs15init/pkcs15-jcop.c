@@ -19,20 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#include <opensc/opensc.h>
-#include <opensc/cardctl.h>
-#include <opensc/log.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/cardctl.h"
+#include "libopensc/log.h"
 #include "pkcs15-init.h"
 #include "profile.h"
-
 
 #define JCOP_MAX_PINS            3
 
@@ -40,11 +39,12 @@
  * Erase the card
  */
 static int
-jcop_erase_card(struct sc_profile *pro, sc_card_t *card) {
+jcop_erase_card(struct sc_profile *pro, sc_pkcs15_card_t *p15card) {
      /* later */
      return SC_ERROR_NOT_SUPPORTED;
 }
 
+#if 0
 /*
  * Create a new DF
  * This will usually be the application DF
@@ -57,11 +57,22 @@ jcop_init_app(sc_profile_t *profile, sc_card_t *card,
      return SC_ERROR_NOT_SUPPORTED;
 }
 
+#else
+
+static int 
+jcop_create_dir(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *file)
+{
+     return SC_ERROR_NOT_SUPPORTED;
+};
+
+#endif
+
+
 /*
  * Select a PIN reference
  */
 static int
-jcop_select_pin_reference(sc_profile_t *profile, sc_card_t *card,
+jcop_select_pin_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
                 sc_pkcs15_pin_info_t *pin_info) {
         int     preferred, current;
 
@@ -87,7 +98,7 @@ jcop_select_pin_reference(sc_profile_t *profile, sc_card_t *card,
  * Store a PIN
  */
 static int
-jcop_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
+jcop_create_pin(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *df,
                 sc_pkcs15_object_t *pin_obj,
                 const unsigned char *pin, size_t pin_len,
                 const unsigned char *puk, size_t puk_len)
@@ -111,7 +122,7 @@ jcop_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
         if (puk != NULL && puk_len > 0) {
 	     return SC_ERROR_NOT_SUPPORTED;
 	}
-	r = sc_select_file(card, &df->path, NULL);
+	r = sc_select_file(p15card->card, &df->path, NULL);
         if (r < 0)
 	     return r;
 
@@ -119,18 +130,13 @@ jcop_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
         memset(nulpin, 0, sizeof(nulpin));
         memset(padpin, 0, sizeof(padpin));
 	memcpy(padpin, pin, pin_len);
-        r = sc_change_reference_data(card, SC_AC_CHV,
+        r = sc_change_reference_data(p15card->card, SC_AC_CHV,
                         pin_info->reference,
                         nulpin, sizeof(nulpin),
                         padpin, sizeof(padpin), NULL);
         if (r < 0)
                 return r;
 
-
-	     
-        sc_keycache_set_pin_name(&df->path,
-                        pin_info->reference,
-                        type);
 	pin_info->flags &= ~SC_PKCS15_PIN_FLAG_LOCAL;
         return r;
 }
@@ -139,8 +145,7 @@ jcop_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
  * Create a new key file
  */
 static int
-jcop_create_key(sc_profile_t *profile, sc_card_t *card, sc_pkcs15_object_t *obj
-)
+jcop_create_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_pkcs15_object_t *obj)
 {
         sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
         sc_file_t  *keyfile = NULL;
@@ -148,7 +153,7 @@ jcop_create_key(sc_profile_t *profile, sc_card_t *card, sc_pkcs15_object_t *obj
         int             r;
 
 	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
-	     sc_error(card->ctx, "JCOP supports only RSA keys.");
+	     sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "JCOP supports only RSA keys.");
 	     return SC_ERROR_NOT_SUPPORTED;
 	}
         /* The caller is supposed to have chosen a key file path for us */
@@ -168,10 +173,10 @@ jcop_create_key(sc_profile_t *profile, sc_card_t *card, sc_pkcs15_object_t *obj
         keyfile->size = prv_len;
 
         /* Fix up PIN references in file ACL */
-        r = sc_pkcs15init_fixup_file(profile, keyfile);
+        r = sc_pkcs15init_fixup_file(profile, p15card, keyfile);
 
         if (r >= 0)
-                r = sc_pkcs15init_create_file(profile, card, keyfile);
+                r = sc_pkcs15init_create_file(profile, p15card, keyfile);
 
         if (keyfile)
                 sc_file_free(keyfile);
@@ -214,7 +219,7 @@ jcop_bn2bin(unsigned char *dest, sc_pkcs15_bignum_t *bn, unsigned int size)
  * Numbers are stored big endian.
  */
 static int
-jcop_store_key(sc_profile_t *profile, sc_card_t *card,
+jcop_store_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
                 sc_pkcs15_object_t *obj,
                 sc_pkcs15_prkey_t *key)
 {
@@ -225,7 +230,7 @@ jcop_store_key(sc_profile_t *profile, sc_card_t *card,
         int             r;
 
         if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
-                sc_error(card->ctx, "JCOP supports only RSA keys.");
+                sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "JCOP supports only RSA keys.");
                 return SC_ERROR_NOT_SUPPORTED;
         }
         r = sc_profile_get_file_by_path(profile, &key_info->path, &keyfile);
@@ -240,7 +245,7 @@ jcop_store_key(sc_profile_t *profile, sc_card_t *card,
 	jcop_bn2bin(&keybuf[2 + 2 * base], &key->u.rsa.dmp1, base);
 	jcop_bn2bin(&keybuf[2 + 3 * base], &key->u.rsa.dmq1, base);
 	jcop_bn2bin(&keybuf[2 + 4 * base], &key->u.rsa.iqmp, base);
-        r = sc_pkcs15init_update_file(profile, card, keyfile, keybuf, size);
+        r = sc_pkcs15init_update_file(profile, p15card, keyfile, keybuf, size);
 
 	sc_file_free(keyfile);
 	return r;
@@ -250,9 +255,10 @@ jcop_store_key(sc_profile_t *profile, sc_card_t *card,
  * Generate a keypair
  */
 static int
-jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
+jcop_generate_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 		  sc_pkcs15_object_t *obj,
-		  sc_pkcs15_pubkey_t *pubkey) {
+		  sc_pkcs15_pubkey_t *pubkey) 
+{
      sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
      struct sc_cardctl_jcop_genkey args;
      sc_file_t       *temppubfile=NULL, *keyfile=NULL;
@@ -261,7 +267,7 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
      int             r,delete_ok=0;
 
      if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
-	  sc_error(card->ctx, "JCOP supports only RSA keys.");
+	  sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "JCOP supports only RSA keys.");
 	  return SC_ERROR_NOT_SUPPORTED;
      }
 
@@ -269,7 +275,7 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
      if (r < 0)
 	  goto out;
 
-     r = sc_select_file(card, &key_info->path, &keyfile);
+     r = sc_select_file(p15card->card, &key_info->path, &keyfile);
      if (r < 0)
 	  goto out;
 
@@ -279,19 +285,19 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
      pub_len = 2 + mod_len + exp_len;
      temppubfile->size = pub_len;     
 
-     r = sc_pkcs15init_fixup_file(profile, temppubfile);
+     r = sc_pkcs15init_fixup_file(profile, p15card, temppubfile);
      if (r < 0)
 	  goto out;
 
-     r = sc_pkcs15init_create_file(profile, card, temppubfile);
+     r = sc_pkcs15init_create_file(profile, p15card, temppubfile);
      if (r < 0)
 	  goto out;
 
      delete_ok=1;
-     r = sc_pkcs15init_authenticate(profile, card, temppubfile, SC_AC_OP_UPDATE);
+     r = sc_pkcs15init_authenticate(profile, p15card, temppubfile, SC_AC_OP_UPDATE);
      if (r < 0)
 	  goto out;
-     r = sc_pkcs15init_authenticate(profile, card, keyfile, SC_AC_OP_UPDATE);
+     r = sc_pkcs15init_authenticate(profile, p15card, keyfile, SC_AC_OP_UPDATE);
      if (r < 0)
 	  goto out;
      
@@ -304,7 +310,7 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
      args.exponent = 0x10001;
      sc_append_file_id(&args.pub_file_ref, temppubfile->id);
      sc_append_file_id(&args.pri_file_ref, keyfile->id);
-     keybuf=(unsigned char *) malloc(keybits / 8);
+     keybuf = malloc(keybits / 8);
      if (!keybuf) {
 	  r=SC_ERROR_OUT_OF_MEMORY;
 	  goto out;
@@ -312,7 +318,7 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
      args.pubkey = keybuf;
      args.pubkey_len = keybits / 8;
      
-     r = sc_card_ctl(card, SC_CARDCTL_JCOP_GENERATE_KEY, (void *)&args);
+     r = sc_card_ctl(p15card->card, SC_CARDCTL_JCOP_GENERATE_KEY, (void *)&args);
      if (r < 0) 
 	  goto out;
 
@@ -321,7 +327,7 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
      pubkey->u.rsa.modulus.len   = keybits / 8;
      pubkey->u.rsa.modulus.data  = keybuf;
      pubkey->u.rsa.exponent.len  = 3;
-     pubkey->u.rsa.exponent.data = (u8 *) malloc(3);
+     pubkey->u.rsa.exponent.data = malloc(3);
      if (!pubkey->u.rsa.exponent.data) {
 	  pubkey->u.rsa.modulus.data = NULL;
 	  r=SC_ERROR_OUT_OF_MEMORY;
@@ -333,7 +339,7 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
      if (r < 0 && keybuf)
 	  free(keybuf);	
      if (delete_ok)
-	  sc_pkcs15init_rmdir(card, profile, temppubfile);
+	  sc_pkcs15init_rmdir(p15card, profile, temppubfile);
      if (keyfile)
 	  sc_file_free(keyfile);
      if (temppubfile)
@@ -346,7 +352,7 @@ jcop_generate_key(sc_profile_t *profile, sc_card_t *card,
 static struct sc_pkcs15init_operations sc_pkcs15init_jcop_operations = {
 	jcop_erase_card,
 	NULL,				/* init_card     */
-	NULL,				/* create_dir    */
+	jcop_create_dir,
 	NULL,				/* create_domain */
 	jcop_select_pin_reference,
 	jcop_create_pin,
@@ -356,9 +362,8 @@ static struct sc_pkcs15init_operations sc_pkcs15init_jcop_operations = {
 	jcop_generate_key,
 	NULL, NULL,			/* encode private/public key */
 	NULL,				/* finalize_card */
-	jcop_init_app,			/* old */
-	NULL, NULL, NULL, NULL,		/* rest of old style api */
-	NULL 				/* delete_object */
+	NULL, 				/* delete_object */
+	NULL, NULL, NULL, NULL, NULL  /* pkcs15init emulation */
 };
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_jcop_ops(void)

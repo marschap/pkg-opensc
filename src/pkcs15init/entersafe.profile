@@ -11,7 +11,7 @@ cardinfo {
 
 option default {
 	macros {
-		pin-flags		 = initialized, needs-padding;
+		pin-flags		 = local, initialized, needs-padding;
 		min-pin-length	 = 4;
 		df_acl			 = *=NEVER;
 		protected		 = *=$PIN,READ=NONE;
@@ -30,7 +30,7 @@ option default {
 
 option onepin {
 	macros {
-		pin-flags		 = initialized, needs-padding;
+		pin-flags		 = local, initialized, needs-padding;
 		df_acl			 = *=$PIN;
 		protected		 = *=$PIN,READ=NONE;
 		dir-size		 = 128;
@@ -145,10 +145,8 @@ filesystem {
 	    	}
 
 			template key-domain {
-				# This is a dummy entry - pkcs15-init insists that
-				# this is present
-				EF private-key {
-		    	    file-id	   = FFFF;
+				BSO private-key {
+					# here ACLs should be defined
 				}
         		EF public-key {
     	    	    file-id	  = 3000;

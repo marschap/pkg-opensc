@@ -19,14 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include "pkcs15.h"
-#include "asn1.h"
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
 #include <ltdl.h>
+
+#include "internal.h"
+#include "asn1.h"
+#include "pkcs15.h"
 
 extern int sc_pkcs15emu_westcos_init_ex(sc_pkcs15_card_t *p15card, 
 					sc_pkcs15emu_opt_t *opts);
@@ -52,9 +55,16 @@ extern int sc_pkcs15emu_actalis_init_ex(sc_pkcs15_card_t *p15card,
 					sc_pkcs15emu_opt_t *opts);
 extern int sc_pkcs15emu_atrust_acos_init_ex(sc_pkcs15_card_t *p15card,
 					sc_pkcs15emu_opt_t *opts);
-extern int sc_pkcs15emu_tccardos_init_ex(sc_pkcs15_card_t *, sc_pkcs15emu_opt_t *);
-
-extern int sc_pkcs15emu_entersafe_init_ex(sc_pkcs15_card_t *, sc_pkcs15emu_opt_t *);
+extern int sc_pkcs15emu_tccardos_init_ex(sc_pkcs15_card_t *,
+					sc_pkcs15emu_opt_t *);
+extern int sc_pkcs15emu_entersafe_init_ex(sc_pkcs15_card_t *,
+					sc_pkcs15emu_opt_t *);
+extern int sc_pkcs15emu_pteid_init_ex(sc_pkcs15_card_t *,
+					sc_pkcs15emu_opt_t *);
+extern int sc_pkcs15emu_oberthur_init_ex(sc_pkcs15_card_t *,
+					sc_pkcs15emu_opt_t *);
+extern int sc_pkcs15emu_itacns_init_ex(sc_pkcs15_card_t *,
+					sc_pkcs15emu_opt_t *);
 
 static struct {
 	const char *		name;
@@ -66,6 +76,7 @@ static struct {
 	{ "starcert",	sc_pkcs15emu_starcert_init_ex	},
 	{ "tcos",	sc_pkcs15emu_tcos_init_ex	},
 	{ "esteid",	sc_pkcs15emu_esteid_init_ex	},
+	{ "itacns",	sc_pkcs15emu_itacns_init_ex	},
 	{ "postecert",	sc_pkcs15emu_postecert_init_ex  },
 	{ "PIV-II",     sc_pkcs15emu_piv_init_ex        },
 	{ "gemsafeGPK",	sc_pkcs15emu_gemsafeGPK_init_ex	},
@@ -74,6 +85,8 @@ static struct {
 	{ "atrust-acos",sc_pkcs15emu_atrust_acos_init_ex},
 	{ "tccardos",	sc_pkcs15emu_tccardos_init_ex	},
 	{ "entersafe",  sc_pkcs15emu_entersafe_init_ex  },
+	{ "pteid",	sc_pkcs15emu_pteid_init_ex	},
+	{ "oberthur",   sc_pkcs15emu_oberthur_init_ex	},
 	{ NULL, NULL }
 };
 
@@ -89,7 +102,11 @@ static const char *exfunc_name  = "sc_pkcs15_init_func_ex";
 int sc_pkcs15_is_emulation_only(sc_card_t *card)
 {
 	switch (card->type) {
-		case SC_CARD_TYPE_MCRD_ESTEID:
+		case SC_CARD_TYPE_MCRD_ESTEID_V10:
+		case SC_CARD_TYPE_MCRD_ESTEID_V11:		
+		case SC_CARD_TYPE_MCRD_ESTEID_V30:
+		case SC_CARD_TYPE_IAS_PTEID:
+		case SC_CARD_TYPE_GEMSAFEV1_PTEID:
 			return 1;
 		default:
 			return 0;
@@ -104,7 +121,7 @@ sc_pkcs15_bind_synthetic(sc_pkcs15_card_t *p15card)
 	sc_pkcs15emu_opt_t	opts;
 	int			i, r = SC_ERROR_WRONG_CARD;
 
-	SC_FUNC_CALLED(ctx, 1);
+	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
 	memset(&opts, 0, sizeof(opts));
 	conf_block = NULL;
 
@@ -112,9 +129,9 @@ sc_pkcs15_bind_synthetic(sc_pkcs15_card_t *p15card)
 
 	if (!conf_block) {
 		/* no conf file found => try bultin drivers  */
-		sc_debug(ctx, "no conf file (or section), trying all builtin emulators\n");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "no conf file (or section), trying all builtin emulators\n");
 		for (i = 0; builtin_emulators[i].name; i++) {
-			sc_debug(ctx, "trying %s\n", builtin_emulators[i].name);
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying %s\n", builtin_emulators[i].name);
 			r = builtin_emulators[i].handler(p15card, &opts);
 			if (r == SC_SUCCESS)
 				/* we got a hit */
@@ -134,7 +151,7 @@ sc_pkcs15_bind_synthetic(sc_pkcs15_card_t *p15card)
 				/* go through the list of builtin drivers */
 				const char *name = item->data;
 
-				sc_debug(ctx, "trying %s\n", name);
+				sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying %s\n", name);
 				for (i = 0; builtin_emulators[i].name; i++)
 					if (!strcmp(builtin_emulators[i].name, name)) {
 						r = builtin_emulators[i].handler(p15card, &opts);
@@ -144,10 +161,10 @@ sc_pkcs15_bind_synthetic(sc_pkcs15_card_t *p15card)
 					}
 			}	
 		}
-		if (builtin_enabled) {
-			sc_debug(ctx, "no emulator list in config file, trying all builtin emulators\n");
+		else if (builtin_enabled) {
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "no emulator list in config file, trying all builtin emulators\n");
 			for (i = 0; builtin_emulators[i].name; i++) {
-				sc_debug(ctx, "trying %s\n", builtin_emulators[i].name);
+				sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying %s\n", builtin_emulators[i].name);
 				r = builtin_emulators[i].handler(p15card, &opts);
 				if (r == SC_SUCCESS)
 					/* we got a hit */
@@ -156,11 +173,11 @@ sc_pkcs15_bind_synthetic(sc_pkcs15_card_t *p15card)
 		}
 
 		/* search for 'emulate foo { ... }' entries in the conf file */
-		sc_debug(ctx, "searching for 'emulate foo { ... }' blocks\n");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "searching for 'emulate foo { ... }' blocks\n");
 		blocks = scconf_find_blocks(ctx->conf, conf_block, "emulate", NULL);
 		for (i = 0; blocks && (blk = blocks[i]) != NULL; i++) {
 			const char *name = blk->name->data;
-			sc_debug(ctx, "trying %s\n", name);
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying %s\n", name);
 			r = parse_emu_block(p15card, blk);
 			if (r == SC_SUCCESS) {
 				free(blocks);
@@ -178,20 +195,11 @@ out:	if (r == SC_SUCCESS) {
 		p15card->magic  = SC_PKCS15_CARD_MAGIC;
 		p15card->flags |= SC_PKCS15_CARD_FLAG_EMULATED;
 	} else if (r != SC_ERROR_WRONG_CARD) {
-		sc_error(ctx, "Failed to load card emulator: %s\n",
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Failed to load card emulator: %s\n",
 				sc_strerror(r));
 	}
 
 	return r;
-}
-
-static int emu_detect_card(sc_card_t *card, const scconf_block *blk, int *force)
-{
-	int ret = 0;
-
-	/* TBD */
-
-	return ret;
 }
 
 static int parse_emu_block(sc_pkcs15_card_t *p15card, scconf_block *conf)
@@ -206,10 +214,6 @@ static int parse_emu_block(sc_pkcs15_card_t *p15card, scconf_block *conf)
 	const char	*driver, *module_name;
 
 	driver = conf->name->data;
-
-	r = emu_detect_card(card, conf, &force);
-	if (r < 0)
-		return SC_ERROR_INTERNAL;
 
 	init_func    = NULL;
 	init_func_ex = NULL;
@@ -237,12 +241,12 @@ static int parse_emu_block(sc_pkcs15_card_t *p15card, scconf_block *conf)
 		const char *name = NULL;
 		void	*address;
 
-		sc_debug(ctx, "Loading %s\n", module_name);
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Loading %s\n", module_name);
 		
 		/* try to open dynamic library */
 		handle = lt_dlopen(module_name);
 		if (!handle) {
-			sc_debug(ctx, "unable to open dynamic library '%s': %s\n",
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "unable to open dynamic library '%s': %s\n",
 			         module_name, lt_dlerror());
 			return SC_ERROR_INTERNAL;
 		}
@@ -275,11 +279,11 @@ static int parse_emu_block(sc_pkcs15_card_t *p15card, scconf_block *conf)
 		r = SC_ERROR_WRONG_CARD;
 
 	if (r >= 0) {
-		sc_debug(card->ctx, "%s succeeded, card bound\n",
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "%s succeeded, card bound\n",
 				module_name);
 		p15card->dll_handle = handle;
-	} else if (ctx->debug >= 4) {
-		sc_debug(card->ctx, "%s failed: %s\n",
+	} else {
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "%s failed: %s\n",
 				module_name, sc_strerror(r));
 		/* clear pkcs15 card */
 		sc_pkcs15_card_clear(p15card);
@@ -324,6 +328,8 @@ int sc_pkcs15emu_add_pin_obj(sc_pkcs15_card_t *p15card,
 	sc_pkcs15_pin_info_t pin = *in_pin;
 
 	pin.magic = SC_PKCS15_PIN_MAGIC;
+	if(!pin.auth_method) /* or SC_AC_NONE */
+		pin.auth_method = SC_AC_CHV;
 
 	return sc_pkcs15emu_object_add(p15card, SC_PKCS15_TYPE_AUTH_PIN, obj, &pin);
 }
@@ -353,6 +359,30 @@ int sc_pkcs15emu_add_rsa_pubkey(sc_pkcs15_card_t *p15card,
 	return sc_pkcs15emu_object_add(p15card, SC_PKCS15_TYPE_PUBKEY_RSA, obj, &key);
 }
 
+int sc_pkcs15emu_add_ec_prkey(sc_pkcs15_card_t *p15card,
+	const sc_pkcs15_object_t *obj, const sc_pkcs15_prkey_info_t *in_key)
+{
+	sc_pkcs15_prkey_info_t key = *in_key;
+
+	if (key.access_flags == 0)
+		key.access_flags = SC_PKCS15_PRKEY_ACCESS_SENSITIVE
+				| SC_PKCS15_PRKEY_ACCESS_ALWAYSSENSITIVE
+				| SC_PKCS15_PRKEY_ACCESS_NEVEREXTRACTABLE
+				| SC_PKCS15_PRKEY_ACCESS_LOCAL;
+
+	return sc_pkcs15emu_object_add(p15card, SC_PKCS15_TYPE_PRKEY_EC, obj, &key);
+}
+int sc_pkcs15emu_add_ec_pubkey(sc_pkcs15_card_t *p15card,
+	const sc_pkcs15_object_t *obj, const sc_pkcs15_pubkey_info_t *in_key)
+{
+	sc_pkcs15_pubkey_info_t key = *in_key;
+	
+	if (key.access_flags == 0)
+		key.access_flags = SC_PKCS15_PRKEY_ACCESS_EXTRACTABLE;
+
+	return sc_pkcs15emu_object_add(p15card, SC_PKCS15_TYPE_PUBKEY_EC, obj, &key);
+}
+
 int sc_pkcs15emu_add_x509_cert(sc_pkcs15_card_t *p15card,
 	const sc_pkcs15_object_t *obj, const sc_pkcs15_cert_info_t *cert)
 {
@@ -372,7 +402,7 @@ int sc_pkcs15emu_object_add(sc_pkcs15_card_t *p15card, unsigned int type,
 	unsigned int	df_type;
 	size_t		data_len;
 
-	obj = (sc_pkcs15_object_t *) calloc(1, sizeof(*obj));
+	obj = calloc(1, sizeof(*obj));
 	if (!obj)
 		return SC_ERROR_OUT_OF_MEMORY;
 	memcpy(obj, in_obj, sizeof(*obj));
@@ -400,7 +430,7 @@ int sc_pkcs15emu_object_add(sc_pkcs15_card_t *p15card, unsigned int type,
 		data_len = sizeof(struct sc_pkcs15_data_info);
 		break;
 	default:
-		sc_error(p15card->card->ctx,
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL,
 			"Unknown PKCS15 object type %d\n", type);
 		free(obj);
 		return SC_ERROR_INVALID_ARGUMENTS;

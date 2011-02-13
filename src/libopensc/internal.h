@@ -23,25 +23,24 @@
 #define _SC_INTERNAL_H
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include "config.h"
 #endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include "opensc.h"
-#include "log.h"
-#include "ui.h"
-#include "cards.h"
 #include <assert.h>
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
+#include "common/simclist.h"
+#include "libopensc/opensc.h"
+#include "libopensc/log.h"
+#include "libopensc/cards.h"
+
 #define SC_FILE_MAGIC			0x14426950
-#define SC_CARD_MAGIC			0x27182818
-#define SC_CTX_MAGIC			0x0A550335
 
 #ifndef _WIN32
 #define msleep(t)	usleep((t) * 1000)
@@ -50,15 +49,22 @@ extern "C" {
 #define sleep(t)	Sleep((t) * 1000)
 #endif
 
+#ifndef MAX
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#endif
+#ifndef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
+
 struct sc_atr_table {
 	/* The atr fields are required to
 	 * be in aa:bb:cc hex format. */
-	char *atr;
+	const char *atr;
 	/* The atrmask is logically AND'd with an
 	 * card atr prior to comparison with the
 	 * atr reference value above. */
-	char *atrmask;
-	char *name;
+	const char *atrmask;
+	const char *name;
 	int type;
 	unsigned long flags;
 	/* Reference to card_atr configuration block,
@@ -68,8 +74,7 @@ struct sc_atr_table {
 
 /* Internal use only */
 int _sc_add_reader(struct sc_context *ctx, struct sc_reader *reader);
-int _sc_parse_atr(struct sc_context *ctx, struct sc_slot_info *slot);
-struct sc_slot_info *_sc_get_slot_info(struct sc_reader *reader, int slot_id);
+int _sc_parse_atr(struct sc_reader *reader);
 
 /* Add an ATR to the card driver's struct sc_atr_table */
 int _sc_add_atr(struct sc_context *ctx, struct sc_card_driver *driver, struct sc_atr_table *src);
@@ -109,13 +114,11 @@ scconf_block *_sc_match_atr_block(sc_context_t *ctx, struct sc_card_driver *driv
  * be null terminated. */
 int _sc_match_atr(struct sc_card *card, struct sc_atr_table *table, int *type_out);
 
-int _sc_check_forced_protocol(struct sc_context *ctx, u8 *atr, size_t atr_len, unsigned int *protocol);
-
 int _sc_card_add_algorithm(struct sc_card *card, const struct sc_algorithm_info *info);
 int _sc_card_add_rsa_alg(struct sc_card *card, unsigned int key_length,
 			 unsigned long flags, unsigned long exponent);
-struct sc_algorithm_info * _sc_card_find_rsa_alg(struct sc_card *card,
-						 unsigned int key_length);
+int _sc_card_add_ec_alg(struct sc_card *card, unsigned int key_length,
+			 unsigned long flags, unsigned long ext_flags);
 
 int sc_asn1_read_tag(const u8 ** buf, size_t buflen, unsigned int *cla_out,
 		     unsigned int *tag_out, size_t *taglen);
@@ -231,16 +234,18 @@ int sc_apdu_set_resp(sc_context_t *ctx, sc_apdu_t *apdu, const u8 *buf,
 /**
  * Logs APDU
  * @param  ctx          sc_context_t object
+ * @param  level	log if ctx->debug >= level
  * @param  buf          buffer with the APDU data
  * @param  len          length of the APDU
  * @param  is_outgoing  != 0 if the data is send to the card
  */
-void sc_apdu_log(sc_context_t *ctx, const u8 *data, size_t len,
+void sc_apdu_log(sc_context_t *ctx, int level, const u8 *data, size_t len,
 	int is_outgoing);
 
 extern struct sc_reader_driver *sc_get_pcsc_driver(void);
 extern struct sc_reader_driver *sc_get_ctapi_driver(void);
 extern struct sc_reader_driver *sc_get_openct_driver(void);
+extern struct sc_reader_driver *sc_get_cardmod_driver(void);
 
 #ifdef __cplusplus
 }

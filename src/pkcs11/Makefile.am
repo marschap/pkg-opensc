@@ -1,28 +1,26 @@
 include $(top_srcdir)/win32/ltrc.inc
 
-MAINTAINERCLEANFILES = \
-	$(srcdir)/Makefile.in $(srcdir)/versioninfo.rc
-CLEANFILES = versioninfo.rc
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 EXTRA_DIST = Makefile.mak
 
 dist_noinst_SCRIPTS = opensc_pkcs11_install.js
-openscinclude_HEADERS = pkcs11.h pkcs11-opensc.h
 lib_LTLIBRARIES = opensc-pkcs11.la pkcs11-spy.la onepin-opensc-pkcs11.la
 noinst_LTLIBRARIES = libpkcs11.la
 
 AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(LTLIB_CFLAGS) $(PTHREAD_CFLAGS)
-INCLUDES = -I$(top_srcdir)/src/pkcs15init -I$(top_builddir)/src/include
+INCLUDES = -I$(top_srcdir)/src
 
-OPENSC_PKCS11_INC = sc-pkcs11.h
+OPENSC_PKCS11_INC = sc-pkcs11.h pkcs11.h pkcs11-opensc.h
 OPENSC_PKCS11_SRC = pkcs11-global.c pkcs11-session.c pkcs11-object.c misc.c slot.c \
-	mechanism.c openssl.c secretkey.c framework-pkcs15.c \
-	framework-pkcs15init.c debug.c opensc-pkcs11.exports
+	mechanism.c openssl.c framework-pkcs15.c \
+	framework-pkcs15init.c debug.c opensc-pkcs11.exports \
+	pkcs11-display.c pkcs11-display.h
 OPENSC_PKCS11_LIBS = $(OPTIONAL_OPENSSL_LIBS) $(PTHREAD_LIBS) \
-	$(top_builddir)/src/pkcs15init/libpkcs15init.la \
-	$(top_builddir)/src/libopensc/libopensc.la \
-	$(top_builddir)/src/scconf/libscconf.la
+	$(top_builddir)/src/common/libcompat.la \
+	$(top_builddir)/src/libopensc/libopensc.la
 
 libpkcs11_la_SOURCES = libpkcs11.c
+libpkcs11_la_LIBADD = $(LTLIB_LIBS)
 
 opensc_pkcs11_la_SOURCES = $(OPENSC_PKCS11_SRC) $(OPENSC_PKCS11_INC) hack-disabled.c
 opensc_pkcs11_la_LIBADD = $(OPENSC_PKCS11_LIBS)
@@ -43,11 +41,9 @@ pkcs11_spy_la_LDFLAGS = $(AM_LDFLAGS) \
 	-module -shared -avoid-version -no-undefined
 
 if WIN32
-opensc_pkcs11_la_SOURCES += versioninfo.rc
-onepin_opensc_pkcs11_la_SOURCES += versioninfo.rc
-pkcs11_spy_la_SOURCES += versioninfo.rc
-else
-dist_noinst_DATA = versioninfo.rc
+opensc_pkcs11_la_SOURCES += $(top_builddir)/win32/versioninfo.rc
+onepin_opensc_pkcs11_la_SOURCES += $(top_builddir)/win32/versioninfo.rc
+pkcs11_spy_la_SOURCES += $(top_builddir)/win32/versioninfo.rc
 endif
 
 jar-dir:
@@ -79,7 +75,3 @@ install-exec-hook:	install-pkcs11DATA
 	done
 
 endif
-
-versioninfo.rc:
-	sed 's/@@FILE_DESCRIPTION@@/OpenSC PKCS#11 Provider/g' \
-		"$(top_builddir)/win32/versioninfo.rc.in" > versioninfo.rc

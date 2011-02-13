@@ -16,19 +16,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307,
  * USA
  */
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
-#define CRYPTOKI_EXPORTS
-#include "pkcs11-display.h"
 
 #ifdef _WIN32
 #include <windows.h>
 #include <winreg.h>
 #include <limits.h>
 #endif
+
+#define CRYPTOKI_EXPORTS
+#include "pkcs11-display.h"
 
 #define __PASTE(x,y)      x##y
 
@@ -59,8 +60,7 @@ static CK_RV init_spy(void)
 #endif
 
   /* Allocates and initializes the pkcs11_spy structure */
-  pkcs11_spy =
-    (CK_FUNCTION_LIST_PTR) malloc(sizeof(CK_FUNCTION_LIST));
+  pkcs11_spy = malloc(sizeof(CK_FUNCTION_LIST));
   if (pkcs11_spy) {
 	/* with our own pkcs11.h we need to maintain this ourself */
 	pkcs11_spy->version.major = 2;
@@ -151,10 +151,10 @@ static CK_RV init_spy(void)
 		/* try for the machine version first, as we may be runing 
 	     * without a user during login 
 		 */
-        rc = RegOpenKeyEx( HKEY_LOCAL_MACHINE, "Software\\PKCS11-Spy",
+        rc = RegOpenKeyEx( HKEY_LOCAL_MACHINE, "Software\\OpenSC Project\\PKCS11-Spy",
                 0, KEY_QUERY_VALUE, &hKey );
 		if (rc != ERROR_SUCCESS ) {
-        	rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\PKCS11-Spy",
+        	rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\OpenSC Project\\PKCS11-Spy",
                 	0, KEY_QUERY_VALUE, &hKey );
 		}
         if( rc == ERROR_SUCCESS ) {
@@ -179,10 +179,10 @@ static CK_RV init_spy(void)
 		/* try for the machine version first, as we may be runing
 		 * without a user during login 
 		 */
-        rc = RegOpenKeyEx( HKEY_LOCAL_MACHINE, "Software\\PKCS11-Spy",
+        rc = RegOpenKeyEx( HKEY_LOCAL_MACHINE, "Software\\OpenSC Project\\PKCS11-Spy",
                 0, KEY_QUERY_VALUE, &hKey );
 		if (rc != ERROR_SUCCESS ) {
-        	rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\PKCS11-Spy",
+        	rc = RegOpenKeyEx( HKEY_CURRENT_USER, "Software\\OpenSC Project\\PKCS11-Spy",
            	     0, KEY_QUERY_VALUE, &hKey );
 		}
         if( rc == ERROR_SUCCESS ) {
@@ -701,7 +701,7 @@ CK_RV C_FindObjects(CK_SESSION_HANDLE hSession,
     CK_ULONG          i;
     spy_dump_ulong_out("ulObjectCount", *pulObjectCount);
     for (i = 0; i < *pulObjectCount; i++) {
-      fprintf(spy_output, "Object %ld Matches\n", phObject[i]);
+      fprintf(spy_output, "Object 0x%lx matches\n", phObject[i]);
     }
   }
   return retne(rv);

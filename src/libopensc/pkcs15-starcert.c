@@ -18,12 +18,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <opensc/pkcs15.h>
-#include <opensc/cardctl.h>
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <compat_strlcpy.h>
+
+#include "common/compat_strlcpy.h"
+#include "pkcs15.h"
+#include "cardctl.h"
 
 #define MANU_ID		"Giesecke & Devrient GmbH"
 #define STARCERT	"StarCertV2201"
@@ -105,9 +108,7 @@ static int starcert_detect_card(sc_pkcs15_card_t *p15card)
 		return SC_ERROR_WRONG_CARD;
 	/* read EF_Info file */
 	sc_format_path("3F00FE13", &path);
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_select_file(card, &path, NULL);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (r != SC_SUCCESS)
 		return SC_ERROR_WRONG_CARD;
 	r = sc_read_binary(card, 0, buf, 64, 0);
@@ -164,21 +165,19 @@ static int sc_pkcs15emu_starcert_init(sc_pkcs15_card_t *p15card)
 	r = sc_bin_to_hex(serial.value, serial.len, buf, sizeof(buf), 0);
 	if (r != SC_SUCCESS)
 		return SC_ERROR_INTERNAL;
-	if (p15card->serial_number)
-		free(p15card->serial_number);
-	p15card->serial_number = (char *) malloc(strlen(buf) + 1);
-	if (!p15card->serial_number)
+	if (p15card->tokeninfo->serial_number)
+		free(p15card->tokeninfo->serial_number);
+	p15card->tokeninfo->serial_number = malloc(strlen(buf) + 1);
+	if (!p15card->tokeninfo->serial_number)
 		return SC_ERROR_INTERNAL;
-	strcpy(p15card->serial_number, buf);
-	/* the TokenInfo version number */
-	p15card->version = 0;
+	strcpy(p15card->tokeninfo->serial_number, buf);
 	/* the manufacturer ID, in this case Giesecke & Devrient GmbH */
-	if (p15card->manufacturer_id)
-		free(p15card->manufacturer_id);
-	p15card->manufacturer_id = (char *) malloc(strlen(MANU_ID) + 1);
-	if (!p15card->manufacturer_id)
+	if (p15card->tokeninfo->manufacturer_id)
+		free(p15card->tokeninfo->manufacturer_id);
+	p15card->tokeninfo->manufacturer_id = malloc(strlen(MANU_ID) + 1);
+	if (!p15card->tokeninfo->manufacturer_id)
 		return SC_ERROR_INTERNAL;
-	strcpy(p15card->manufacturer_id, MANU_ID);
+	strcpy(p15card->tokeninfo->manufacturer_id, MANU_ID);
 
 	/* set certs */
 	for (i = 0; certs[i].label; i++) {
