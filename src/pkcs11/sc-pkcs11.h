@@ -21,19 +21,20 @@
 #ifndef __sc_pkcs11_h__
 #define __sc_pkcs11_h__
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #ifdef HAVE_MALLOC_H
 #include <malloc.h>
 #endif
-#include <opensc/opensc.h>
-#include <opensc/pkcs15.h>
-#include <opensc/log.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/pkcs15.h"
+#include "libopensc/log.h"
 
 #define CRYPTOKI_EXPORTS
-#include <pkcs11.h>
-#include <pkcs11-opensc.h>
+#include "pkcs11.h"
+#include "pkcs11-opensc.h"
+#include "pkcs11-display.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +45,11 @@ extern "C" {
 #else
 #define PKCS11_DEFAULT_MODULE_NAME      "opensc-pkcs11.so"
 #endif
+
+#define SC_PKCS11_PIN_UNBLOCK_NOT_ALLOWED       0
+#define SC_PKCS11_PIN_UNBLOCK_UNLOGGED_SETPIN   1
+#define SC_PKCS11_PIN_UNBLOCK_SCONTEXT_SETPIN   2
+#define SC_PKCS11_PIN_UNBLOCK_SO_LOGGED_INITPIN 3
 
 extern void *C_LoadModule(const char *name, CK_FUNCTION_LIST_PTR_PTR);
 extern CK_RV C_UnloadModule(void *module);
@@ -65,35 +71,16 @@ struct sc_pkcs11_session;
 struct sc_pkcs11_slot;
 struct sc_pkcs11_card;
 
-/* Object Pool */
-struct sc_pkcs11_pool_item {
-	int handle;
-	void *item;
-	struct sc_pkcs11_pool_item *next;
-	struct sc_pkcs11_pool_item *prev;
-};
-
-enum {
-	POOL_TYPE_SESSION,
-	POOL_TYPE_OBJECT
-};
-
-struct sc_pkcs11_pool {
-	int type;
-	int next_free_handle;
-	int num_items;
-	struct sc_pkcs11_pool_item *head;
-	struct sc_pkcs11_pool_item *tail;
-};
-
 struct sc_pkcs11_config {
 	unsigned int plug_and_play;
 	unsigned int max_virtual_slots;
 	unsigned int slots_per_card;
 	unsigned char hide_empty_tokens;
 	unsigned char lock_login;
-	unsigned char cache_pins;
 	unsigned char soft_keygen_allowed;
+	unsigned int pin_unblock_style;
+	unsigned int create_puk_slot;
+	unsigned int zero_ckaid_for_ca_certs;
 };
 
 /*
@@ -131,6 +118,7 @@ struct sc_pkcs11_object_ops {
 };
 
 struct sc_pkcs11_object {
+	CK_OBJECT_HANDLE handle;
 	int flags;
 	struct sc_pkcs11_object_ops *ops;
 };
@@ -156,10 +144,10 @@ struct sc_pkcs11_framework_ops {
 	CK_RV (*release_token)(struct sc_pkcs11_card *, void *);
 
 	/* Login and logout */
-	CK_RV (*login)(struct sc_pkcs11_card *, void *,
+	CK_RV (*login)(struct sc_pkcs11_slot *,
 				CK_USER_TYPE, CK_CHAR_PTR, CK_ULONG);
 	CK_RV (*logout)(struct sc_pkcs11_card *, void *);
-	CK_RV (*change_pin)(struct sc_pkcs11_card *, void *,
+	CK_RV (*change_pin)(struct sc_pkcs11_card *, void *, int,
 				CK_CHAR_PTR, CK_ULONG,
 				CK_CHAR_PTR, CK_ULONG);
 
@@ -183,8 +171,6 @@ struct sc_pkcs11_framework_ops {
 				CK_ATTRIBUTE_PTR pPubKeyTempl, CK_ULONG ulPubKeyAttrCnt,
 				CK_ATTRIBUTE_PTR pPrivKeyTempl, CK_ULONG ulPrivKeyAttrCnt,
 				CK_OBJECT_HANDLE_PTR phPubKey, CK_OBJECT_HANDLE_PTR phPrivKey);
-	CK_RV (*seed_random)(struct sc_pkcs11_card *p11card,
-				CK_BYTE_PTR, CK_ULONG);
 	CK_RV (*get_random)(struct sc_pkcs11_card *p11card,
 				CK_BYTE_PTR, CK_ULONG);
 };
@@ -200,16 +186,10 @@ typedef unsigned __int64   sc_timestamp_t;
 #endif
 
 struct sc_pkcs11_card {
-	int reader;
-	struct sc_card *card;
+	sc_reader_t *reader;
+	sc_card_t *card;
 	struct sc_pkcs11_framework_ops *framework;
 	void *fw_data;
-	sc_timestamp_t slot_state_expires;
-
-	/* Number of slots owned by this card object */
-	unsigned int num_slots;
-	unsigned int max_slots;
-	unsigned int first_slot;
 
 	/* List of supported mechanisms */
 	struct sc_pkcs11_mechanism_type **mechanisms;
@@ -217,27 +197,17 @@ struct sc_pkcs11_card {
 };
 
 struct sc_pkcs11_slot {
-	int id;
-	int login_user;
-	/* Slot specific information (information about reader) */
-	CK_SLOT_INFO slot_info;
-	/* Token specific information (information about card) */
-	CK_TOKEN_INFO token_info;
-
-	/* Reader to which card is allocated (same as card->reader
-	 * if there's a card present) */
-	int reader;
-
-	/* The card associated with this slot */
-	struct sc_pkcs11_card *card;
-	/* Card events SC_EVENT_CARD_{INSERTED,REMOVED} */
-	int events;
-	/* Framework specific data */
-	void *fw_data;
-	/* Object pools */
-	struct sc_pkcs11_pool object_pool;
-	/* Number of sessions using this slot */
-	unsigned int nsessions;
+	CK_SLOT_ID id; /* ID of the slot */
+	int login_user; /* Currently logged in user */
+	CK_SLOT_INFO slot_info; /* Slot specific information (information about reader) */
+	CK_TOKEN_INFO token_info; /* Token specific information (information about card) */
+	sc_reader_t *reader; /* same as card->reader if there's a card present */
+	struct sc_pkcs11_card *card; /* The card associated with this slot */
+	unsigned int events; /* Card events SC_EVENT_CARD_{INSERTED,REMOVED} */
+	void *fw_data; /* Framework specific data */
+	list_t objects; /* Objects in this slot */
+	unsigned int nsessions; /* Number of sessions using this slot */
+	sc_timestamp_t slot_state_expires;
 };
 typedef struct sc_pkcs11_slot sc_pkcs11_slot_t;
 
@@ -308,11 +278,11 @@ struct sc_pkcs11_operation {
 };
 
 /* Find Operation */
-#define SC_PKCS11_FIND_MAX_HANDLES	32
+#define SC_PKCS11_FIND_INC_HANDLES	32
 struct sc_pkcs11_find_operation {
 	struct sc_pkcs11_operation operation;
-	int num_handles, current_handle;
-	CK_OBJECT_HANDLE handles[SC_PKCS11_FIND_MAX_HANDLES];
+	int num_handles, current_handle, allocated_handles;
+	CK_OBJECT_HANDLE *handles;
 };
 
 /*
@@ -320,6 +290,7 @@ struct sc_pkcs11_find_operation {
  */
 
 struct sc_pkcs11_session {
+	CK_SESSION_HANDLE handle;
 	/* Session to this slot */
 	struct sc_pkcs11_slot *slot;
 	CK_FLAGS flags;
@@ -333,44 +304,37 @@ typedef struct sc_pkcs11_session sc_pkcs11_session_t;
 
 /* Module variables */
 extern struct sc_context *context;
-extern struct sc_pkcs11_pool session_pool;
-extern struct sc_pkcs11_slot *virtual_slots;
-extern struct sc_pkcs11_card card_table[SC_MAX_READERS];
 extern struct sc_pkcs11_config sc_pkcs11_conf;
-extern unsigned int first_free_slot;
+extern list_t sessions;
+extern list_t virtual_slots;
+extern list_t cards;
 
 /* Framework definitions */
 extern struct sc_pkcs11_framework_ops framework_pkcs15;
 extern struct sc_pkcs11_framework_ops framework_pkcs15init;
 
 void strcpy_bp(u8 *dst, const char *src, size_t dstsize);
-CK_RV sc_to_cryptoki_error(int rc, int reader);
-void sc_pkcs11_print_attrs(const char *file, unsigned int line, const char *function,
+CK_RV sc_to_cryptoki_error(int rc, const char *ctx);
+void sc_pkcs11_print_attrs(int level, const char *file, unsigned int line, const char *function,
 		const char *info, CK_ATTRIBUTE_PTR pTemplate, CK_ULONG ulCount);
-#define dump_template(info, pTemplate, ulCount) \
-		sc_pkcs11_print_attrs(__FILE__, __LINE__, __FUNCTION__, \
+#define dump_template(level, info, pTemplate, ulCount) \
+		sc_pkcs11_print_attrs(level, __FILE__, __LINE__, __FUNCTION__, \
 				info, pTemplate, ulCount)
 
 /* Slot and card handling functions */
-CK_RV card_initialize(int reader);
+CK_RV card_removed(sc_reader_t *reader);
 CK_RV card_detect_all(void);
-CK_RV __card_detect_all(int);
-CK_RV card_detect(int reader);
-CK_RV card_removed(int reader);
-CK_RV slot_initialize(int id, struct sc_pkcs11_slot *);
-CK_RV slot_get_slot(int id, struct sc_pkcs11_slot **);
-CK_RV slot_get_token(int id, struct sc_pkcs11_slot **);
-CK_RV slot_token_removed(int id);
-CK_RV slot_find_changed(CK_SLOT_ID_PTR idp, int mask);
+CK_RV create_slot(sc_reader_t *reader);
+CK_RV initialize_reader(sc_reader_t *reader);
+CK_RV card_detect(sc_reader_t *reader);
+CK_RV slot_get_slot(CK_SLOT_ID id, struct sc_pkcs11_slot **);
+CK_RV slot_get_token(CK_SLOT_ID id, struct sc_pkcs11_slot **);
+CK_RV slot_token_removed(CK_SLOT_ID id);
 CK_RV slot_allocate(struct sc_pkcs11_slot **, struct sc_pkcs11_card *);
-
-/* Pool */
-CK_RV pool_initialize(struct sc_pkcs11_pool *, int);
-CK_RV pool_insert(struct sc_pkcs11_pool *, void *, CK_ULONG_PTR);
-CK_RV pool_find(struct sc_pkcs11_pool *, CK_ULONG, void **);
-CK_RV pool_find_and_delete(struct sc_pkcs11_pool *, CK_ULONG, void **);
+CK_RV slot_find_changed(CK_SLOT_ID_PTR idp, int mask);
 
 /* Session manipulation */
+CK_RV get_session(CK_SESSION_HANDLE hSession, struct sc_pkcs11_session ** session);
 CK_RV session_start_operation(struct sc_pkcs11_session *,
 			int, sc_pkcs11_mechanism_type_t *,
 			struct sc_pkcs11_operation **);
@@ -420,7 +384,7 @@ CK_RV sc_pkcs11_verif_final(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG);
 CK_RV sc_pkcs11_decr_init(struct sc_pkcs11_session *, CK_MECHANISM_PTR, struct sc_pkcs11_object *, CK_MECHANISM_TYPE);
 CK_RV sc_pkcs11_decr(struct sc_pkcs11_session *, CK_BYTE_PTR, CK_ULONG, CK_BYTE_PTR, CK_ULONG_PTR);
 sc_pkcs11_mechanism_type_t *sc_pkcs11_find_mechanism(struct sc_pkcs11_card *,
-				CK_MECHANISM_TYPE, int);
+				CK_MECHANISM_TYPE, unsigned int);
 sc_pkcs11_mechanism_type_t *sc_pkcs11_new_fw_mechanism(CK_MECHANISM_TYPE,
 				CK_MECHANISM_INFO_PTR, CK_KEY_TYPE,
 				void *);
@@ -436,9 +400,6 @@ CK_RV sc_pkcs11_register_sign_and_hash_mechanism(struct sc_pkcs11_card *,
 				sc_pkcs11_mechanism_type_t *);
 
 #ifdef ENABLE_OPENSSL
-/* Random generation functions */
-CK_RV sc_pkcs11_gen_keypair_soft(CK_KEY_TYPE keytype, CK_ULONG keybits,
-	struct sc_pkcs15_prkey *privkey, struct sc_pkcs15_pubkey *pubkey);
 CK_RV sc_pkcs11_verify_data(const unsigned char *pubkey, int pubkey_len,
 	const unsigned char *pubkey_params, int pubkey_params_len,
 	CK_MECHANISM_TYPE mech, sc_pkcs11_operation_t *md,

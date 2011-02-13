@@ -95,7 +95,6 @@ extern "C" {
 
 #endif
 
-
 #ifdef CRYPTOKI_COMPAT
   /* If we are in compatibility mode, switch all exposed names to the
      PKCS #11 variant.  There are corresponding #undefs below.  */
@@ -181,7 +180,6 @@ extern "C" {
 
 #endif	/* CRYPTOKI_COMPAT */
 
-
 
 typedef unsigned long ck_flags_t;
 
@@ -713,6 +711,12 @@ struct ck_mechanism_info
 #define CKF_DERIVE		(1UL << 19)
 #define CKF_EXTENSION		(1UL << 31)
 
+#define CKF_EC_F_P			(1UL << 20)
+#define CKF_EC_F_2M			(1UL << 21)
+#define CKF_EC_ECPARAMETERS	(1UL << 22)
+#define CKF_EC_NAMEDCURVE	(1UL << 23)
+#define CKF_EC_UNCOMPRESES	(1UL << 24)
+#define CKF_EC_COMPRESS		(1UL << 25)
 
 /* Flags for C_WaitForSlotEvent.  */
 #define CKF_DONT_BLOCK				(1UL)
@@ -1190,7 +1194,6 @@ struct ck_c_initialize_args
 #define CKR_VENDOR_DEFINED			(1UL << 31)
 
 
-
 /* Compatibility layer.  */
 
 #ifdef CRYPTOKI_COMPAT
@@ -1352,7 +1355,6 @@ typedef struct ck_c_initialize_args *CK_C_INITIALIZE_ARGS_PTR;
 
 #endif	/* CRYPTOKI_COMPAT */
 
-
 /* System dependencies.  */
 #if defined(_WIN32) || defined(CRYPTOKI_FORCE_WIN32)
 #pragma pack(pop, cryptoki)

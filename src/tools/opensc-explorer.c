@@ -18,28 +18,30 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <opensc/opensc.h>
-#include <opensc/asn1.h>
 #ifdef ENABLE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #endif
-#include <opensc/cardctl.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/asn1.h"
+#include "libopensc/cardctl.h"
 #include "util.h"
 
 #define DIM(v) (sizeof(v)/sizeof((v)[0]))
 
 static const char *app_name = "opensc-explorer";
 
-static int opt_reader = -1, opt_wait = 0, verbose = 0;
+static int opt_wait = 0, verbose = 0;
 static const char *opt_driver = NULL;
+static const char *opt_reader = NULL;
+static const char *opt_startfile = NULL;
 
 static sc_file_t *current_file = NULL;
 static sc_path_t current_path;
@@ -49,29 +51,18 @@ static sc_card_t *card = NULL;
 static const struct option options[] = {
 	{ "reader",		1, NULL, 'r' },
 	{ "card-driver",	1, NULL, 'c' },
-	{ "wait",		1, NULL, 'w' },
+	{ "mf",			1, NULL, 'm' },
+	{ "wait",		0, NULL, 'w' },
 	{ "verbose",		0, NULL, 'v' },
 	{ NULL, 0, NULL, 0 }
 };
 static const char *option_help[] = {
 	"Uses reader number <arg> [0]",
 	"Forces the use of driver <arg> [auto-detect]",
+	"Selects path <arg> on start-up, or none if empty [3F00]",
 	"Wait for card insertion",
 	"Verbose operation. Use several times to enable debug output.",
 };
-
-
-#if 0 /* fixme: uncomment for use with pksign */
-static u8 oid_md5[18] = /* MD5 OID is 1.2.840.113549.2.5 */
-{ 0x30, 0x20, 0x30, 0x0c, 0x06, 0x08, 0x2a, 0x86,0x48,
-  0x86, 0xf7, 0x0d, 0x02, 0x05, 0x05, 0x00, 0x04, 0x10 };
-static u8 oid_sha1[15] = /* SHA-1 OID 1.3.14.3.2.26 */
-{ 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x0e, 0x03,
-  0x02, 0x1a, 0x05, 0x00, 0x04, 0x14 };
-static u8 oid_rmd160[15] = /* RIPE MD-160 OID is 1.3.36.3.2.1 */
-{ 0x30, 0x21, 0x30, 0x09, 0x06, 0x05, 0x2b, 0x24, 0x03,
-  0x02, 0x01, 0x05, 0x00, 0x04, 0x14 };
-#endif
 
 static size_t hex2binary(u8 *out, size_t outlen, const char *in);
 
@@ -87,11 +78,22 @@ static void die(int ret)
 		sc_file_free(current_file);
 	if (card) {
 		sc_unlock(card);
-		sc_disconnect_card(card, 0);
+		sc_disconnect_card(card);
 	}
 	if (ctx)
 		sc_release_context(ctx);
 	exit(ret);
+}
+
+static void select_current_path_or_die(void)
+{
+	if (current_path.type || current_path.len) {
+		int r = sc_select_file(card, &current_path, NULL);
+		if (r) {
+			printf("unable to select parent DF: %s\n", sc_strerror(r));
+			die(1);
+		}
+	}
 }
 
 static struct command *
@@ -223,9 +225,7 @@ static int do_ls(int argc, char **argv)
 			}
 		}
 			
-		ctx->suppress_errors++;
 		r = sc_select_file(card, &path, &file);
-		ctx->suppress_errors--;
 		if (r) {
 			printf(" %02X%02X unable to select file, %s\n", cur[0], cur[1], sc_strerror(r));
 		} else {
@@ -235,11 +235,7 @@ static int do_ls(int argc, char **argv)
 		}
 		cur += 2;
 		count -= 2;
-		r = sc_select_file(card, &current_path, NULL);
-		if (r) {
-			printf("unable to select parent DF: %s\n", sc_strerror(r));
-			die(1);
-		}
+		select_current_path_or_die();
 	}
 	return 0;
 usage:
@@ -267,7 +263,8 @@ static int do_cd(int argc, char **argv)
 			printf("unable to go up: %s\n", sc_strerror(r));
 			return -1;
 		}
-		sc_file_free(current_file);
+		if (current_file)
+			sc_file_free(current_file);
 		current_file = file;
 		current_path = path;
 		return 0;
@@ -283,15 +280,12 @@ static int do_cd(int argc, char **argv)
 	if ((file->type != SC_FILE_TYPE_DF) && !(card->caps & SC_CARD_CAP_NO_FCI)) {
 		printf("Error: file is not a DF.\n");
 		sc_file_free(file);
-		r = sc_select_file(card, &current_path, NULL);
-		if (r) {
-			printf("unable to select parent file: %s\n", sc_strerror(r));
-			die(1);
-		}
+		select_current_path_or_die();
 		return -1;
 	}
 	current_path = path;
-	sc_file_free(current_file);
+	if (current_file)
+		sc_file_free(current_file);
 	current_file = file;
 
 	return 0;
@@ -329,15 +323,14 @@ static int read_and_util_print_binary_file(sc_file_t *file)
 	return 0;
 }
 
-static int read_and_print_record_file(sc_file_t *file)
+static int read_and_print_record_file(sc_file_t *file, unsigned char sfi)
 {
 	u8 buf[256];
 	int rec, r;
 
 	for (rec = 1; ; rec++) {
-		ctx->suppress_errors++;
-		r = sc_read_record(card, rec, buf, sizeof(buf), SC_RECORD_BY_REC_NR);
-		ctx->suppress_errors--;
+		r = sc_read_record(card, rec, buf, sizeof(buf),
+			SC_RECORD_BY_REC_NR | sfi);
 		if (r == SC_ERROR_RECORD_NOT_FOUND)
 			return 0;
 		if (r < 0) {
@@ -355,6 +348,8 @@ static int do_cat(int argc, char **argv)
 	sc_path_t path;
 	sc_file_t *file = NULL;
 	int not_current = 1;
+	int sfi = 0;
+	const char sfi_prefix[] = "sfi:";
 
 	if (argc > 1)
 		goto usage;
@@ -363,23 +358,41 @@ static int do_cat(int argc, char **argv)
 		file = current_file;
 		not_current = 0;
 	} else {
-		if (arg_to_path(argv[0], &path, 1) != 0) 
-			goto usage;
+		if (strncmp(argv[0], sfi_prefix, sizeof(sfi_prefix)-1)) {
+			if (arg_to_path(argv[0], &path, 1) != 0)
+				goto usage;
+			r = sc_select_file(card, &path, &file);
+			if (r) {
+				check_ret(r, SC_AC_OP_SELECT, "unable to select file",
+					current_file);
+				goto err;
+			}
+		} else {
+			const char *sfi_n = &argv[0][sizeof(sfi_prefix)-1];
 
-		r = sc_select_file(card, &path, &file);
-		if (r) {
-			check_ret(r, SC_AC_OP_SELECT, "unable to select file", current_file);
-			goto err;
+			if(!current_file) {
+				printf("A DF must be selected to read by SFI\n");
+				goto err;
+			}
+			path = current_path;
+			file = current_file;
+			not_current = 0;
+			sfi = atoi(sfi_n);
+			if ((sfi < 1) || (sfi > 30)) {
+				printf("Invalid SFI: %s\n", sfi_n);
+				goto usage;
+			}
 		}
 	}
-	if (file->type != SC_FILE_TYPE_WORKING_EF) {
+	if (file->type != SC_FILE_TYPE_WORKING_EF &&
+		!(file->type == SC_FILE_TYPE_DF && sfi)) {
 		printf("only working EFs may be read\n");
 		goto err;
 	}
-	if (file->ef_structure == SC_FILE_EF_TRANSPARENT)
+	if (file->ef_structure == SC_FILE_EF_TRANSPARENT && !sfi)
 		read_and_util_print_binary_file(file);
 	else
-		read_and_print_record_file(file);
+		read_and_print_record_file(file, sfi);
 	
 	err = 0;
 
@@ -388,16 +401,13 @@ err:
 		if (file != NULL) {
 			sc_file_free(file);
 		}
-		r = sc_select_file(card, &current_path, NULL);
-		if (r) {
-			printf("unable to select parent file: %s\n", sc_strerror(r));
-			die(1);
-		}
+		select_current_path_or_die();
 	}
 
 	return -err;
 usage:
-	puts("Usage: cat [file_id]");
+	puts("Usage: cat [file_id] or");
+	puts("       cat sfi:<sfi_id>");
 	return -1;
 }
 
@@ -469,16 +479,25 @@ static int do_info(int argc, char **argv)
 			"Linear fixed, SIMPLE-TLV", "Linear variable",
 			"Linear variable TLV", "Cyclic, SIMPLE-TLV",
 		};
-		const char *ops[] = {
-			"READ", "UPDATE", "DELETE", "WRITE", "REHABILITATE",
-			"INVALIDATE", "LIST_FILES", "CRYPTO",
+		const struct {
+			const char * label;
+			int op;
+		} ops[] = {
+			{ "READ", SC_AC_OP_READ },
+			{ "UPDATE", SC_AC_OP_UPDATE },
+			{ "DELETE", SC_AC_OP_DELETE },
+			{ "WRITE", SC_AC_OP_WRITE },
+			{ "REHABILITATE", SC_AC_OP_REHABILITATE },
+			{ "INVALIDATE", SC_AC_OP_INVALIDATE },
+			{ "LIST_FILES", SC_AC_OP_LIST_FILES },
+			{ "CRYPTO", SC_AC_OP_CRYPTO },
 		};
 		printf("%-15s%s\n", "EF structure:", structs[file->ef_structure]);
 		for (i = 0; i < sizeof(ops)/sizeof(ops[0]); i++) {
 			char buf[80];
 			
-			sprintf(buf, "ACL for %s:", ops[i]);
-			printf("%-25s%s\n", buf, util_acl_to_str(sc_file_get_acl_entry(file, i)));
+			sprintf(buf, "ACL for %s:", ops[i].label);
+			printf("%-25s%s\n", buf, util_acl_to_str(sc_file_get_acl_entry(file, ops[i].op)));
 		}
 	}	
 	if (file->prop_attr_len) {
@@ -496,11 +515,7 @@ static int do_info(int argc, char **argv)
 	printf("\n");
 	if (not_current) {
 		sc_file_free(file);
-		r = sc_select_file(card, &current_path, NULL);
-		if (r) {
-			printf("unable to select parent file: %s\n", sc_strerror(r));
-			die(1);
-		}
+		select_current_path_or_die();
 	}
 	return 0;
 
@@ -520,11 +535,7 @@ static int create_file(sc_file_t *file)
 	}
 	/* Make sure we're back in the parent directory, because on some cards
 	 * CREATE FILE also selects the newly created file. */
-	r = sc_select_file(card, &current_path, NULL);
-	if (r) {
-		printf("unable to select parent file: %s\n", sc_strerror(r));
-		die(1);
-	}
+	select_current_path_or_die();
 	return 0;
 }
 
@@ -652,7 +663,7 @@ static int do_verify(int argc, char **argv)
 	}
 
 	if (argc < 2) {
-		if (!(card->reader->slot[0].capabilities & SC_SLOT_CAP_PIN_PAD)) {
+		if (!(card->reader->capabilities & SC_READER_CAP_PIN_PAD)) {
 			printf("Card reader or driver doesn't support PIN PAD\n");
 			return -1;
 		}
@@ -707,7 +718,7 @@ static int do_change(int argc, char **argv)
 	size_t oldpinlen = sizeof(oldpin), i;
 	size_t newpinlen = sizeof(newpin);
 	
-	if (argc < 2 || argc > 3)
+	if (argc < 1 || argc > 3)
 		goto usage;
 	if (strncasecmp(argv[0], "CHV", 3)) {
 		printf("Invalid type.\n");
@@ -720,7 +731,11 @@ static int do_change(int argc, char **argv)
 	argc--;
 	argv++;
 
-	if (argc == 1) {
+	if (argc == 0) {
+		/* set without verification */
+		oldpinlen = 0;
+		newpinlen = 0;
+	} else if (argc == 1) {
 		/* set without verification */
 		oldpinlen = 0;
 	} else {
@@ -737,19 +752,21 @@ static int do_change(int argc, char **argv)
 		argv++;
 	}
 
-	if (argv[0][0] == '"') {
-		for (s = argv[0] + 1, i = 0;
-		     i < sizeof(newpin) && *s && *s != '"'; i++) 
-			newpin[i] = *s++;
-		newpinlen = i;
-	} else if (sc_hex_to_bin(argv[0], newpin, &newpinlen) != 0) {
-		printf("Invalid key value.\n");
-		goto usage;
+	if (argc)   {
+		if (argv[0][0] == '"') {
+			for (s = argv[0] + 1, i = 0;
+			     i < sizeof(newpin) && *s && *s != '"'; i++) 
+				newpin[i] = *s++;
+			newpinlen = i;
+		} else if (sc_hex_to_bin(argv[0], newpin, &newpinlen) != 0) {
+			printf("Invalid key value.\n");
+			goto usage;
+		}
 	}
 
 	r = sc_change_reference_data (card, SC_AC_CHV, ref,
-                                      oldpin, oldpinlen,
-                                      newpin, newpinlen,
+                                      oldpinlen ? oldpin : NULL, oldpinlen,
+                                      newpinlen ? newpin : NULL, newpinlen,
                                       &tries_left);
 	if (r) {
 		if (r == SC_ERROR_PIN_CODE_INCORRECT) {
@@ -764,21 +781,25 @@ static int do_change(int argc, char **argv)
 	printf("PIN changed.\n");
 	return 0;
 usage:
-	printf("Usage: change CHV<pin ref> [<old pin>] <new pin>\n");
-	printf("Example: change CHV2 00:00:00:00:00:00 \"foobar\"\n");
+	printf("Usage: change CHV<pin ref> [[<old pin>] <new pin>]\n");
+	printf("Examples: \n");
+	printf("\tChange PIN: change CHV2 00:00:00:00:00:00 \"foobar\"\n");
+	printf("\tSet PIN: change CHV2 \"foobar\"\n");
+	printf("\tChange PIN with pinpad': change CHV2\n");
 	return -1;
 }
+
 
 static int do_unblock(int argc, char **argv)
 {
 	int ref, r;
-	u8 puk[30];
-	u8 newpin[30];
+	u8 puk_buf[30], *puk = NULL;
+	u8 newpin_buf[30], *newpin = NULL;
 	const char *s;
-	size_t puklen = sizeof(puk), i;
-	size_t newpinlen = sizeof(newpin);
+	size_t puklen = sizeof(puk_buf), i;
+	size_t newpinlen = sizeof(newpin_buf);
 	
-	if (argc < 2 || argc > 3)
+	if (argc < 1 || argc > 3)
 		goto usage;
 	if (strncasecmp(argv[0], "CHV", 3)) {
 		printf("Invalid type.\n");
@@ -791,31 +812,41 @@ static int do_unblock(int argc, char **argv)
 	argc--;
 	argv++;
 
-	if (argc == 1) {
-		/* set without verification */
+	if (argc == 0) {
 		puklen = 0;
+		puk = NULL;
 	} else {
 		if (argv[0][0] == '"') {
 			for (s = argv[0] + 1, i = 0;
-			     i < sizeof(puk) && *s && *s != '"'; i++) 
-				puk[i] = *s++;
+			     i < sizeof(puk_buf) && *s && *s != '"'; i++) 
+				puk_buf[i] = *s++;
 			puklen = i;
-		} else if (sc_hex_to_bin(argv[0], puk, &puklen) != 0) {
+		} else if (sc_hex_to_bin(argv[0], puk_buf, &puklen) != 0) {
 			printf("Invalid key value.\n");
 			goto usage;
 		}
+		puk = &puk_buf[0];
+
 		argc--;
 		argv++;
 	}
 
-	if (argv[0][0] == '"') {
-		for (s = argv[0] + 1, i = 0;
-		     i < sizeof(newpin) && *s && *s != '"'; i++) 
-			newpin[i] = *s++;
-		newpinlen = i;
-	} else if (sc_hex_to_bin(argv[0], newpin, &newpinlen) != 0) {
-		printf("Invalid key value.\n");
-		goto usage;
+	if (argc)   {
+		if (argv[0][0] == '"') {
+			for (s = argv[0] + 1, i = 0;
+			     i < sizeof(newpin_buf) && *s && *s != '"'; i++) 
+				newpin_buf[i] = *s++;
+			newpinlen = i;
+		} else if (sc_hex_to_bin(argv[0], newpin_buf, &newpinlen) != 0) {
+			printf("Invalid key value.\n");
+			goto usage;
+		}
+
+		newpin = &newpin_buf[0];
+	}
+	else   {
+		newpinlen = 0;
+		newpin = NULL;
 	}
 
 	r = sc_reset_retry_counter (card, SC_AC_CHV, ref,
@@ -830,8 +861,16 @@ static int do_unblock(int argc, char **argv)
 	printf("PIN unblocked.\n");
 	return 0;
 usage:
-	printf("Usage: unblock CHV<pin ref> [<puk>] <new pin>\n");
-	printf("Example: unblock CHV2 00:00:00:00:00:00 \"foobar\"\n");
+	printf("Usage: unblock CHV<pin ref> [<puk>] [<new pin>]\n");
+	printf("PUK and PIN values can be hexadecimal, ASCII, empty (\"\") or absent\n");
+	printf("Examples:\n");
+	printf("\tUnblock PIN and set a new value:   unblock CHV2 00:00:00:00:00:00 \"foobar\"\n");
+	printf("\tUnblock PIN keeping the old value: unblock CHV2 00:00:00:00:00:00 \"\"\n");
+	printf("\tSet new PIN value:                 unblock CHV2 \"\" \"foobar\"\n");
+	printf("Examples with pinpad:\n");
+	printf("\tUnblock PIN: new PIN value is prompted by pinpad:                   unblock CHV2 00:00:00:00:00:00\n");
+	printf("\tSet PIN: new PIN value is prompted by pinpad:                       unblock CHV2 \"\"\n");
+	printf("\tUnblock PIN: unblock code and new PIN value are prompted by pinpad: unblock CHV2\n");
 	return -1;
 }
 
@@ -904,11 +943,7 @@ err:
 		sc_file_free(file);
 	if (outf)
 		fclose(outf);
-	r = sc_select_file(card, &current_path, NULL);
-	if (r) {
-		printf("unable to select parent file: %s\n", sc_strerror(r));
-		die(1);
-	}
+	select_current_path_or_die();
 	return -err;
 usage:
 	printf("Usage: get <file id> [output file]\n");
@@ -922,7 +957,7 @@ static size_t hex2binary(u8 *out, size_t outlen, const char *in)
 	int	    s = 0;
 
 	out--;
-	while (inlen && len) {
+	while (inlen && (len || s)) {
 		char c = *p++;
 		inlen--;
 		if (!isxdigit(c))
@@ -1002,12 +1037,7 @@ static int do_update_binary(int argc, char **argv)
 
 err:
 	sc_file_free(file);
-	r = sc_select_file(card, &current_path, NULL);
-	if (r) {
-		printf("unable to select parent file: %s\n", sc_strerror(r));
-		die(1);
-	}
-
+	select_current_path_or_die();
 	return -err;
 usage:
 	printf("Usage: update <file id> offs <hex value> | <'\"' enclosed string>\n");
@@ -1071,12 +1101,7 @@ static int do_update_record(int argc, char **argv)
 
 err:
 	sc_file_free(file);
-	r = sc_select_file(card, &current_path, NULL);
-	if (r) {
-		printf("unable to select parent file: %s\n", sc_strerror(r));
-		die(1);
-	}
-
+	select_current_path_or_die();
 	return -err;
 usage:
 	printf("Usage: update_record <file id> rec_nr rec_offs <hex value>\n");
@@ -1148,11 +1173,7 @@ err:
 		sc_file_free(file);
 	if (outf)
 		fclose(outf);
-	r = sc_select_file(card, &current_path, NULL);
-	if (r) {
-		printf("unable to select parent file: %s\n", sc_strerror(r));
-		die(1);
-	}
+	select_current_path_or_die();
 	return -err;
 usage:
 	printf("Usage: put <file id> [input file]\n");
@@ -1171,173 +1192,14 @@ static int do_debug(int argc, char **argv)
 		printf("Debug level set to %d\n", i);
 		ctx->debug = i;
 		if (i) {
-			ctx->error_file = stderr;
-			ctx->debug_file = stdout;
+			ctx->debug_file = stderr;
 		} else {
-			ctx->error_file = NULL;
 			ctx->debug_file = NULL;
 		}
 	}
 	return 0;
 }
 
-
-static int do_pksign(int argc, char **argv)
-{
-	puts ("Not yet supported");
-	return -1;
-#if 0
-	int i, ref, r;
-	u8 indata[128];
-	size_t indatalen = sizeof indata;
-	u8 outdata[128];
-	size_t outdatalen = sizeof outdata;
-	sc_security_env_t senv;
-	const u8 *oid;
-	int oidlen;
-	const char *s;
-
-	if (argc < 2 || argc > 3)
-		goto usage;
-	if (sscanf (argv[0], "%d", &ref) != 1 || ref < 0 || ref > 255) {
-		printf("Invalid key reference.\n");
-		goto usage;
-	}
-
-	if (argv[1][0] == '"') {
-		for (s = argv[1]+1, i = 0;
-		     i < sizeof indata && *s && *s != '"'; i++) 
-			indata[i] = *s++;
-		indatalen = i;
-	} else if (sc_hex_to_bin(argv[1], indata, &indatalen)) {
-		printf("Invalid data value.\n");
-		goto usage;
-	}
-
-		
-	if (argc == 3) {
-		if (!strcasecmp(argv[2], "SHA1")) {
-			oid = oid_sha1; oidlen = sizeof oid_sha1;
-		}
-		else if (!strcasecmp (argv[2], "MD5")) {
-			oid = oid_md5; oidlen = sizeof oid_md5;
-		}
-		else if (!strcasecmp (argv[2], "RMD160")) {
-			oid = oid_rmd160; oidlen = sizeof oid_rmd160;
-		}
-		else {
-			goto usage;
-		}
-	 }
-	else {
-		oid = ""; oidlen = 0;
-	}
-	
-	if (indatalen + oidlen > sizeof indata) {
-		printf("Data value to long.\n");
-		goto usage;
-	}
-	
-	memmove(indata + oidlen, indata, indatalen);
-	memcpy(indata, oid, oidlen);
-	indatalen += oidlen;
-
-	/* setup the security environment */
-	/* FIXME The values won't work for other cards.  They do work
-	   for TCOS because there is no need for a security
-	   environment there */
-	memset(&senv, 0, sizeof senv);
-	senv.operation = SC_SEC_OPERATION_SIGN;
-	senv.algorithm = SC_ALGORITHM_RSA;
-	senv.key_ref_len = 1;
-	senv.key_ref[0] = ref;
- 	senv.flags = (SC_SEC_ENV_KEY_REF_PRESENT | SC_SEC_ENV_ALG_PRESENT);
-	r = sc_set_security_env(card, &senv, 0);
-	if (r) {
-		printf("Failed to set the security environment: %s\n",
-		       sc_strerror (r));
-		return -1;
-	}
-
-	/* Perform the actual sign. */ 
-	r = sc_compute_signature(card, indata, indatalen,
-	                         outdata, outdatalen);
-	if (r<0) {
-		printf("Signing failed: %s\n",  sc_strerror (r));
-		return -1;
-	}
-	util_hex_dump_asc(stdout, outdata, r, -1);
-	printf ("Done.\n");
-	return 0;
-usage:
-	printf ("Usage: pksign <key ref> <data> [MD5|SHA1|RMD160]\n");
-	return -1;
-#endif
-}
-
-
-static int do_pkdecrypt(int argc, char **argv)
-{
-	puts ("Not yet supported");
-	return -1;
-#if 0
-	int i, ref, r;
-	u8 indata[128];
-	size_t indatalen = sizeof indata;
-	u8 outdata[128];
-	size_t outdatalen = sizeof outdata;
-	sc_security_env_t senv;
-	const char *s;
-
-	if (argc != 2)
-		goto usage;
-	if (sscanf(argv[0], "%d", &ref) != 1 || ref < 0 || ref > 255) {
-		printf("Invalid key reference.\n");
-		goto usage;
-	}
-
-	if (argv[1][0] == '"') {
-		for (s=argv[1]+1, i = 0;
-		     i < sizeof indata && *s && *s != '"'; i++) 
-			indata[i] = *s++;
-		indatalen = i;
-	} else if (sc_hex_to_bin (argv[1], indata, &indatalen)) {
-		printf("Invalid data value.\n");
-		goto usage;
-	}
-
-	/* setup the security environment */
-	memset (&senv, 0, sizeof senv);
-	senv.operation = SC_SEC_OPERATION_DECIPHER;
-	senv.algorithm = SC_ALGORITHM_RSA;
-	senv.key_ref_len = 1;
-	senv.key_ref[0] = ref;
- 	senv.flags = (SC_SEC_ENV_KEY_REF_PRESENT | SC_SEC_ENV_ALG_PRESENT);
-	r = sc_set_security_env(card, &senv, 0);
-	if (r) {
-		printf("Failed to set the security environment: %s\n",
-		       sc_strerror (r));
-		return -1;
-	}
-
-	/* perform the actual decryption */
-	/* FIXME: It is pretty useless to to this test padding :-; */
-	memmove(indata+(sizeof indata - indatalen), indata, indatalen);
-	memset(indata, 0, (sizeof indata - indatalen));
-	indatalen = sizeof indata;
-	r = sc_decipher(card, indata, indatalen, outdata, outdatalen);
-	if (r<0) {
-		printf("Decryption failed: %s\n",  sc_strerror (r));
-		return -1;
-	}
-	util_hex_dump_asc (stdout, outdata, r, -1);
-	printf("Done.\n");
-	return 0;
-usage:
-	printf("Usage: pkdecrypt <key ref> <data>\n");
-	return -1;
-#endif
-}
 
 static int
 do_erase(int argc, char **argv)
@@ -1440,20 +1302,24 @@ static int do_apdu(int argc, char **argv)
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 *p;
-	size_t len, len0, r;
+	size_t len, len0, r, ii;
 
-	if (argc == 0 || argc > 1) {
+	if (argc < 1) {
 		puts("Usage: apdu [apdu:hex:codes:...]");
 		return -1;
 	}
 
-	len = strlen(argv[0]);
-	len0 = len;
-	sc_hex_to_bin(argv[0], buf, &len);
+	for (ii = 0, len = 0; ii < argc; ii++)   {
+		len0 = strlen(argv[ii]);
+		sc_hex_to_bin(argv[ii], buf + len, &len0);
+		len += len0;
+	}
+
 	if (len < 4) {
 		puts("APDU too short (must be at least 4 bytes)");
 		return 1;
 	}
+	len0 = len;
 
 	memset(&apdu, 0, sizeof(apdu));
 	p = buf;
@@ -1583,11 +1449,7 @@ err:
 	if (not_current) {
 		if (file)
 			sc_file_free(file);
-		r = sc_select_file(card, &current_path, NULL);
-		if (r) {
-			printf("unable to select parent file: %s\n", sc_strerror(r));
-			die(1);
-		}
+		select_current_path_or_die();
 	}
 	return -err;
 }
@@ -1614,8 +1476,6 @@ static struct command	cmds[] = {
  { "do_get",	do_get_data,	"get a data object"			},
  { "do_put",	do_put_data,	"put a data object"			},
  { "mkdir",	do_mkdir,	"create a DF"				},
- { "pksign",    do_pksign,      "create a public key signature"         },
- { "pkdecrypt", do_pkdecrypt,   "perform a public key decryption"       },
  { "erase",	do_erase,	"erase card"				},
  { "random",	do_random,	"obtain N random bytes from card"	},
  { "quit",	do_quit,	"quit this program"			},
@@ -1704,20 +1564,21 @@ int main(int argc, char * const argv[])
 	int r, c, long_optind = 0, err = 0;
 	char *line;
 	int cargc;
-	char *cargv[20];
+	char *cargv[260];
 	sc_context_param_t ctx_param;
+	int lcycle = SC_CARDCTRL_LIFECYCLE_ADMIN;
 
 	printf("OpenSC Explorer version %s\n", sc_get_version());
 
 	while (1) {
-		c = getopt_long(argc, argv, "r:c:vw", options, &long_optind);
+		c = getopt_long(argc, argv, "r:c:vwm:", options, &long_optind);
 		if (c == -1)
 			break;
 		if (c == '?')
 			util_print_usage_and_die(app_name, options, option_help);
 		switch (c) {
 		case 'r':
-			opt_reader = atoi(optarg);
+			opt_reader = optarg;
 			break;
 		case 'c':
 			opt_driver = optarg;
@@ -1727,6 +1588,9 @@ int main(int argc, char * const argv[])
 			break;
 		case 'v':
 			verbose++;
+			break;
+		case 'm':
+			opt_startfile = optarg;
 			break;
 		}
 	}
@@ -1740,8 +1604,11 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
-	if (verbose > 1)
-		ctx->debug = verbose-1;
+
+	if (verbose > 1) {
+		ctx->debug = verbose;
+		ctx->debug_file = stderr;
+        }
 
 	if (opt_driver != NULL) {
 		err = sc_set_card_driver(ctx, opt_driver);
@@ -1752,23 +1619,36 @@ int main(int argc, char * const argv[])
 		}
 	}
 
-	err = util_connect_card(ctx, &card, opt_reader, 0, opt_wait, 0);
+	err = util_connect_card(ctx, &card, opt_reader, opt_wait, 0);
 	if (err)
 		goto end;
 
-	sc_format_path("3F00", &current_path);
-	r = sc_select_file(card, &current_path, &current_file);
-	if (r) {
-		printf("unable to select MF: %s\n", sc_strerror(r));
-		return 1;
+	if (opt_startfile) {
+		if(*opt_startfile) {
+			char startpath[1024];
+			char *argv[] = { startpath };
+
+			strncpy(startpath, opt_startfile, sizeof(startpath)-1);
+			r = do_cd(1, argv);
+			if (r) {
+				printf("unable to select file %s: %s\n",
+					opt_startfile, sc_strerror(r));
+				return -1;
+			}
+		}
+	} else {
+		sc_format_path("3F00", &current_path);
+		r = sc_select_file(card, &current_path, &current_file);
+		if (r) {
+			printf("unable to select MF: %s\n", sc_strerror(r));
+			return 1;
+		}
 	}
-	{
-		int lcycle = SC_CARDCTRL_LIFECYCLE_ADMIN;
-		r = sc_card_ctl(card, SC_CARDCTL_LIFECYCLE_SET, &lcycle);
-		if (r && r != SC_ERROR_NOT_SUPPORTED)
-			printf("unable to change lifecycle: %s\n",
-				sc_strerror(r));
-	}
+	
+	r = sc_card_ctl(card, SC_CARDCTL_LIFECYCLE_SET, &lcycle);
+	if (r && r != SC_ERROR_NOT_SUPPORTED)
+		printf("unable to change lifecycle: %s\n", sc_strerror(r));
+
 	while (1) {
 		struct command *cmd;
 		size_t i;

@@ -36,100 +36,10 @@
 extern "C" {
 #endif
 
-#include <opensc/scconf.h>
-#include <opensc/errors.h>
-#include <opensc/types.h>
-
-/* Different APDU cases */
-#define SC_APDU_CASE_NONE		0x00
-#define SC_APDU_CASE_1			0x01
-#define SC_APDU_CASE_2_SHORT		0x02
-#define SC_APDU_CASE_3_SHORT		0x03
-#define SC_APDU_CASE_4_SHORT		0x04
-#define SC_APDU_SHORT_MASK		0x0f
-#define SC_APDU_EXT			0x10
-#define SC_APDU_CASE_2_EXT		SC_APDU_CASE_2_SHORT | SC_APDU_EXT
-#define SC_APDU_CASE_3_EXT		SC_APDU_CASE_3_SHORT | SC_APDU_EXT
-#define SC_APDU_CASE_4_EXT		SC_APDU_CASE_4_SHORT | SC_APDU_EXT
-/* the following types let OpenSC decides whether to use 
- * short or extended APDUs */
-#define SC_APDU_CASE_2			0x22
-#define SC_APDU_CASE_3			0x23
-#define SC_APDU_CASE_4			0x24
-
-/* File types */
-#define SC_FILE_TYPE_DF			0x04
-#define SC_FILE_TYPE_INTERNAL_EF	0x03
-#define SC_FILE_TYPE_WORKING_EF		0x01
-
-/* EF structures */
-#define SC_FILE_EF_UNKNOWN		0x00
-#define SC_FILE_EF_TRANSPARENT		0x01
-#define SC_FILE_EF_LINEAR_FIXED		0x02
-#define SC_FILE_EF_LINEAR_FIXED_TLV	0x03
-#define SC_FILE_EF_LINEAR_VARIABLE	0x04
-#define SC_FILE_EF_LINEAR_VARIABLE_TLV	0x05
-#define SC_FILE_EF_CYCLIC		0x06
-#define SC_FILE_EF_CYCLIC_TLV		0x07
-
-/* File status flags */
-#define SC_FILE_STATUS_ACTIVATED	0x00
-#define SC_FILE_STATUS_INVALIDATED	0x01
-#define SC_FILE_STATUS_CREATION		0x02 /* Full access in this state,
-						(at least for SetCOS 4.4 */
-
-/* Access Control flags */
-#define SC_AC_NONE			0x00000000
-#define SC_AC_CHV			0x00000001 /* Card Holder Verif. */
-#define SC_AC_TERM			0x00000002 /* Terminal auth. */
-#define SC_AC_PRO			0x00000004 /* Secure Messaging */
-#define SC_AC_AUT			0x00000008 /* Key auth. */
-
-#define SC_AC_SYMBOLIC			0x00000010 /* internal use only */
-#define SC_AC_UNKNOWN			0xFFFFFFFE
-#define SC_AC_NEVER			0xFFFFFFFF
-
-/* Operations relating to access control (in case of DF) */
-#define SC_AC_OP_SELECT			0
-#define SC_AC_OP_LOCK			1
-#define SC_AC_OP_DELETE			2
-#define SC_AC_OP_CREATE			3
-#define SC_AC_OP_REHABILITATE		4
-#define SC_AC_OP_INVALIDATE		5
-#define SC_AC_OP_LIST_FILES		6
-#define SC_AC_OP_CRYPTO			7
-#define SC_AC_OP_DELETE_SELF		8
-/* If you add more OPs here, make sure you increase
- * SC_MAX_AC_OPS in types.h */
-
-/* Operations relating to access control (in case of EF) */
-#define SC_AC_OP_READ			0
-#define SC_AC_OP_UPDATE			1
-/* the use of SC_AC_OP_ERASE is deprecated, SC_AC_OP_DELETE should be used
- * instead  */
-#define SC_AC_OP_ERASE			SC_AC_OP_DELETE
-#define SC_AC_OP_WRITE			3
-/* rehab and invalidate are the same as in DF case */
-
-/* various maximum values */
-#define SC_MAX_READER_DRIVERS		6
-#define SC_MAX_READERS			16
-#define SC_MAX_CARD_DRIVERS		32
-#define SC_MAX_CARD_DRIVER_SNAME_SIZE	16
-#define SC_MAX_SLOTS			4
-#define SC_MAX_CARD_APPS		8
-#define SC_MAX_APDU_BUFFER_SIZE		258
-#define SC_MAX_EXT_APDU_BUFFER_SIZE	65538
-#define SC_MAX_PIN_SIZE			256 /* OpenPGP card has 254 max */
-#define SC_MAX_ATR_SIZE			33
-#define SC_MAX_AID_SIZE			16
-
-/* default max_send_size/max_recv_size */
-/* GPK rounds down to a multiple of 4, other driver have their own limits */
-#define SC_DEFAULT_MAX_SEND_SIZE	255
-#define SC_DEFAULT_MAX_RECV_SIZE	256
-
-#define SC_AC_KEY_REF_NONE	0xFFFFFFFF
+#include "common/simclist.h"
+#include "scconf/scconf.h"
+#include "libopensc/errors.h"
+#include "libopensc/types.h"
 
 #define SC_SEC_OPERATION_DECIPHER	0x0001
 #define SC_SEC_OPERATION_SIGN		0x0002
@@ -166,8 +76,9 @@ extern "C" {
 #define SC_ALGORITHM_PBES2		256
 
 #define SC_ALGORITHM_ONBOARD_KEY_GEN	0x80000000
+/* need usage = either sign or decrypt. keys with both? decrypt, emulate sign */
 #define SC_ALGORITHM_NEED_USAGE		0x40000000
-#define SC_ALGORITHM_SPECIFIC_FLAGS	0x0000FFFF
+#define SC_ALGORITHM_SPECIFIC_FLAGS	0x0001FFFF
 
 #define SC_ALGORITHM_RSA_RAW		0x00000001
 /* If the card is willing to produce a cryptogram padded with the following
@@ -195,10 +106,52 @@ extern "C" {
 #define SC_ALGORITHM_GOSTR3410_HASH_NONE	0x00004000
 #define SC_ALGORITHM_GOSTR3410_HASH_GOSTR3411	0x00008000
 #define SC_ALGORITHM_GOSTR3410_HASHES		0x00008000
+/*TODO: -DEE Should the above be 0x0000E000 */
+/* Or should the HASH_NONE be 0x00000010  and HASHES be 0x00008010 */
+
+/* May need more bits if card can do more hashes */
+/* TODO: -DEE Will overload RSA_HASHES with EC_HASHES */ 
+/* Not clear if these need their own bits or not */
+/* The PIV card does not support and hashes */
+#define SC_ALGORITHM_ECDSA_RAW				0x00010000
+#define SC_ALGORITHM_ECDSA_HASH_NONE		SC_ALGORITHM_RSA_HASH_NONE
+#define SC_ALGORITHM_ECDSA_HASH_SHA1		SC_ALGORITHM_RSA_HASH_SHA1
+#define SC_ALGORITHM_ECDSA_HASH_SHA224		SC_ALGORITHM_RSA_HASH_SHA224
+#define SC_ALGORITHM_ECDSA_HASH_SHA256		SC_ALGORITHM_RSA_HASH_SHA256
+#define SC_ALGORITHM_ECDSA_HASH_SHA384		SC_ALGORITHM_RSA_HASH_SHA384
+#define SC_ALGORITHM_ECDSA_HASH_SHA512		SC_ALGORITHM_RSA_HASH_SHA512
+#define SC_ALGORITHM_ECDSA_HASHES			(SC_ALGORITHM_ECDSA_HASH_SHA1 | \
+												SC_ALGORITHM_ECDSA_HASH_SHA224 | \
+												SC_ALGORITHM_ECDSA_HASH_SHA256 | \
+												SC_ALGORITHM_ECDSA_HASH_SHA384 | \
+												SC_ALGORITHM_ECDSA_HASH_SHA512)
+
+/* define mask of all algorithms that can do raw */
+#define SC_ALGORITHM_RAW_MASK (SC_ALGORITHM_RSA_RAW | SC_ALGORITHM_GOSTR3410_RAW | SC_ALGORITHM_ECDSA_RAW)
+
+/* extened algorithm bits for selected mechs */
+#define SC_ALGORITHM_EXT_EC_F_P          0x00000001
+#define SC_ALGORITHM_EXT_EC_F_2M         0x00000002
+#define SC_ALGORITHM_EXT_EC_ECPARAMETERS 0x00000004
+#define SC_ALGORITHM_EXT_EC_NAMEDCURVE   0x00000008
+#define SC_ALGORITHM_EXT_EC_UNCOMPRESES  0x00000010
+#define SC_ALGORITHM_EXT_EC_COMPRESS     0x00000020
 
 /* Event masks for sc_wait_for_event() */
 #define SC_EVENT_CARD_INSERTED		0x0001
 #define SC_EVENT_CARD_REMOVED		0x0002
+#define SC_EVENT_CARD_EVENTS		SC_EVENT_CARD_INSERTED|SC_EVENT_CARD_REMOVED
+#define SC_EVENT_READER_ATTACHED	0x0004
+#define SC_EVENT_READER_DETACHED	0x0008
+#define SC_EVENT_READER_EVENTS		SC_EVENT_READER_ATTACHED|SC_EVENT_READER_DETACHED
+
+struct sc_supported_algo_info {
+	unsigned int reference;
+	unsigned int mechanism;
+	unsigned int operations;
+	struct sc_object_id algo_id;
+	unsigned int algo_ref;
+};
 
 typedef struct sc_security_env {
 	unsigned long flags;
@@ -209,6 +162,8 @@ typedef struct sc_security_env {
 	struct sc_path file_ref;
 	u8 key_ref[8];
 	size_t key_ref_len;
+
+	struct sc_supported_algo_info supported_algos[SC_MAX_SUPPORTED_ALGORITHMS];
 } sc_security_env_t;
 
 struct sc_algorithm_id {
@@ -230,6 +185,12 @@ struct sc_pbes2_params {
 	struct sc_algorithm_id key_encr_alg;
 };
 
+struct sc_ec_params {
+	int type;
+	u8 * der;
+	size_t der_len;
+};
+
 typedef struct sc_algorithm_info {
 	unsigned int algorithm;
 	unsigned int key_length;
@@ -239,6 +200,9 @@ typedef struct sc_algorithm_info {
 		struct sc_rsa_info {
 			unsigned long exponent;
 		} _rsa;
+		struct sc_ec_info {
+			unsigned ext_flags;
+		} _ec;
 	} u;
 } sc_algorithm_info_t;
 
@@ -268,19 +232,25 @@ struct sc_reader_driver {
 	const char *short_name;
 	struct sc_reader_operations *ops;
 
-	size_t max_send_size, max_recv_size;
+	size_t max_send_size; /* Max Lc supported by the reader layer */
+	size_t max_recv_size; /* Mac Le supported by the reader layer */
 	void *dll;
 };
 
-/* slot flags */
-#define SC_SLOT_CARD_PRESENT	0x00000001
-#define SC_SLOT_CARD_CHANGED	0x00000002
-/* slot capabilities */
-#define SC_SLOT_CAP_DISPLAY	0x00000001
-#define SC_SLOT_CAP_PIN_PAD	0x00000002
+/* reader flags */
+#define SC_READER_CARD_PRESENT	0x00000001
+#define SC_READER_CARD_CHANGED	0x00000002
+/* reader capabilities */
+#define SC_READER_CAP_DISPLAY	0x00000001
+#define SC_READER_CAP_PIN_PAD	0x00000002
 
-typedef struct sc_slot_info {
-	int id;
+typedef struct sc_reader {
+	struct sc_context *ctx;
+	const struct sc_reader_driver *driver;
+	const struct sc_reader_operations *ops;
+	void *drv_data;
+	char *name;
+	
 	unsigned long flags, capabilities;
 	unsigned int supported_protocols, active_protocol;
 	u8 atr[SC_MAX_ATR_SIZE];
@@ -292,24 +262,6 @@ typedef struct sc_slot_info {
 		int Fi, f, Di, N;
 		u8 FI, DI;
 	} atr_info;
-
-	void *drv_data;
-} sc_slot_info_t;
-
-struct sc_event_listener {
-	unsigned int event_mask;
-	void (*func)(void *, const struct sc_slot_info *, unsigned int event);
-};
-
-typedef struct sc_reader {
-	struct sc_context *ctx;
-	const struct sc_reader_driver *driver;
-	const struct sc_reader_operations *ops;
-	void *drv_data;
-	char *name;
-
-	struct sc_slot_info slot[SC_MAX_SLOTS];
-	int slot_count;
 } sc_reader_t;
 
 /* This will be the new interface for handling PIN commands.
@@ -319,9 +271,11 @@ typedef struct sc_reader {
 #define SC_PIN_CMD_VERIFY	0
 #define SC_PIN_CMD_CHANGE	1
 #define SC_PIN_CMD_UNBLOCK	2
+#define SC_PIN_CMD_GET_INFO	3
 
-#define SC_PIN_CMD_USE_PINPAD	0x0001
-#define SC_PIN_CMD_NEED_PADDING	0x0002
+#define SC_PIN_CMD_USE_PINPAD		0x0001
+#define SC_PIN_CMD_NEED_PADDING 	0x0002
+#define SC_PIN_CMD_IMPLICIT_CHANGE	0x0004
 
 #define SC_PIN_ENCODING_ASCII	0
 #define SC_PIN_ENCODING_BCD	1
@@ -338,8 +292,11 @@ struct sc_pin_cmd_pin {
 	unsigned int encoding;	/* ASCII-numeric, BCD, etc */
 	size_t pad_length;	/* filled in by the card driver */
 	u8 pad_char;
-	size_t offset;          /* PIN offset in the APDU */
+	size_t offset;		/* PIN offset in the APDU */
 	size_t length_offset;	/* Effective PIN length offset in the APDU */
+	
+	int max_tries;	/* Used for signaling back from SC_PIN_CMD_GET_INFO */
+	int tries_left;	/* Used for signaling back from SC_PIN_CMD_GET_INFO */
 };
 
 struct sc_pin_cmd_data {
@@ -362,52 +319,38 @@ typedef struct sc_serial_number {
 	size_t len;
 } sc_serial_number_t;
 
-/* these flags are deprecated and shouldn't be used anymore */
-#define SC_DISCONNECT			0
-#define SC_DISCONNECT_AND_RESET		1
-#define SC_DISCONNECT_AND_UNPOWER	2
-#define SC_DISCONNECT_AND_EJECT		3
-
 struct sc_reader_operations {
 	/* Called during sc_establish_context(), when the driver
 	 * is loaded */
-	int (*init)(struct sc_context *ctx, void **priv_data);
+	int (*init)(struct sc_context *ctx);
 	/* Called when the driver is being unloaded.  finish() has to
-	 * deallocate the private data and any resources. */
-	int (*finish)(struct sc_context *ctx, void *priv_data);
+	 * release any resources. */
+	int (*finish)(struct sc_context *ctx);
 	/* Called when library wish to detect new readers
 	 * should add only new readers. */
-	int (*detect_readers)(struct sc_context *ctx, void *priv_data);
+	int (*detect_readers)(struct sc_context *ctx);
+	int (*cancel)(struct sc_context *ctx);
 	/* Called when releasing a reader.  release() has to
 	 * deallocate the private data.  Other fields will be
 	 * freed by OpenSC. */
 	int (*release)(struct sc_reader *reader);
 
-	int (*detect_card_presence)(struct sc_reader *reader,
-				    struct sc_slot_info *slot);
-	int (*connect)(struct sc_reader *reader, struct sc_slot_info *slot);
-	int (*disconnect)(struct sc_reader *reader, struct sc_slot_info *slot);
-	int (*transmit)(struct sc_reader *reader, struct sc_slot_info *slot,
-			sc_apdu_t *apdu);
-	int (*lock)(struct sc_reader *reader, struct sc_slot_info *slot);
-	int (*unlock)(struct sc_reader *reader, struct sc_slot_info *slot);
-	int (*set_protocol)(struct sc_reader *reader, struct sc_slot_info *slot,
-			    unsigned int proto);
+	int (*detect_card_presence)(struct sc_reader *reader);
+	int (*connect)(struct sc_reader *reader);
+	int (*disconnect)(struct sc_reader *reader);
+	int (*transmit)(struct sc_reader *reader, sc_apdu_t *apdu);
+	int (*lock)(struct sc_reader *reader);
+	int (*unlock)(struct sc_reader *reader);
+	int (*set_protocol)(struct sc_reader *reader, unsigned int proto);
 	/* Pin pad functions */
-	int (*display_message)(struct sc_reader *, struct sc_slot_info *,
-			       const char *);
-	int (*perform_verify)(struct sc_reader *, struct sc_slot_info *,
-			 struct sc_pin_cmd_data *);
+	int (*display_message)(struct sc_reader *, const char *);
+	int (*perform_verify)(struct sc_reader *, struct sc_pin_cmd_data *);
 
 	/* Wait for an event */
-	int (*wait_for_event)(struct sc_reader **readers,
-			      struct sc_slot_info **slots,
-			      size_t nslots,
-			      unsigned int event_mask,
-			      int *reader_index,
-			      unsigned int *event,
-			      int timeout);
-	int (*reset)(struct sc_reader *, struct sc_slot_info *);
+	int (*wait_for_event)(struct sc_context *ctx, unsigned int event_mask, sc_reader_t **event_reader, unsigned int *event, 
+			int timeout, void **reader_states);
+	/* Reset a reader */
+	int (*reset)(struct sc_reader *, int);
 };
 
 /*
@@ -458,22 +401,21 @@ struct sc_reader_operations {
 #define SC_CARD_CAP_RSA_2048		0x00000020
 
 /* D-TRUST CardOS cards special flags */
-#define SC_CARD_CAP_ONLY_RAW_HASH        0x00000040
-#define SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED      0x00000080
+#define SC_CARD_CAP_ONLY_RAW_HASH		0x00000040
+#define SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED	0x00000080
 
 typedef struct sc_card {
 	struct sc_context *ctx;
 	struct sc_reader *reader;
-	struct sc_slot_info *slot;
 
 	int type;			/* Card type, for card driver internal use */
 	unsigned long caps, flags;
-	unsigned int wait_resend_apdu;	/* Delay (msec) before responding to an SW12 = 6CXX */
+	unsigned int wait_resend_apdu;	/* Delay (msec) before responding to an SW = 6CXX */
 	int cla;
 	u8 atr[SC_MAX_ATR_SIZE];
 	size_t atr_len;
-	size_t max_send_size;
-	size_t max_recv_size;
+	size_t max_send_size; /* Max Lc supported by the card */
+	size_t max_recv_size; /* Max Le supported by the card */
 
 	struct sc_app_info *app[SC_MAX_CARD_APPS];
 	int app_count;
@@ -518,9 +460,9 @@ struct sc_card_operations {
 	/* ISO 7816-4 functions */
 
 	int (*read_binary)(struct sc_card *card, unsigned int idx,
-			   u8 * buf, size_t count, unsigned long flags);
+			u8 * buf, size_t count, unsigned long flags);
 	int (*write_binary)(struct sc_card *card, unsigned int idx,
-			    const u8 * buf, size_t count, unsigned long flags);
+				const u8 * buf, size_t count, unsigned long flags);
 	int (*update_binary)(struct sc_card *card, unsigned int idx,
 			     const u8 * buf, size_t count, unsigned long flags);
 	int (*erase_binary)(struct sc_card *card, unsigned int idx,
@@ -652,15 +594,13 @@ typedef struct sc_context {
 	char *app_name;
 	int debug;
 
-	int suppress_errors;
-	FILE *debug_file, *error_file;
+	FILE *debug_file;
 	char *preferred_language;
 
-	const struct sc_reader_driver *reader_drivers[SC_MAX_READER_DRIVERS];
-	void *reader_drv_data[SC_MAX_READER_DRIVERS];
-
-	struct sc_reader *reader[SC_MAX_READERS];
-	int reader_count;
+	list_t readers;
+	
+	struct sc_reader_driver *reader_driver;
+	void *reader_drv_data;
 
 	struct sc_card_driver *card_drivers[SC_MAX_CARD_DRIVERS];
 	struct sc_card_driver *forced_driver;
@@ -748,6 +688,24 @@ int sc_ctx_detect_readers(sc_context_t *ctx);
  */
 sc_reader_t *sc_ctx_get_reader(sc_context_t *ctx, unsigned int i);
 
+/** 
+ * Returns a pointer to the specified sc_reader_t object
+ * @param  ctx  OpenSC context
+ * @param  name name of the reader to look for
+ * @return the requested sc_reader object or NULL if the reader is
+ *         not available
+ */
+sc_reader_t *sc_ctx_get_reader_by_name(sc_context_t *ctx, const char *name);
+
+/** 
+ * Returns a pointer to the specified sc_reader_t object
+ * @param  ctx  OpenSC context
+ * @param  id id of the reader (starting from 0)
+ * @return the requested sc_reader object or NULL if the reader is
+ *         not available
+ */
+sc_reader_t *sc_ctx_get_reader_by_id(sc_context_t *ctx, unsigned int id);
+
 /**
  * Returns the number a available sc_reader objects
  * @param  ctx  OpenSC context
@@ -755,71 +713,50 @@ sc_reader_t *sc_ctx_get_reader(sc_context_t *ctx, unsigned int i);
  */
 unsigned int sc_ctx_get_reader_count(sc_context_t *ctx);
 
-/**  
- * Turns on error suppression 
- * @param  ctx  OpenSC context
- */
-void sc_ctx_suppress_errors_on(sc_context_t *ctx);
-
-/**
- * Turns off error suppression
- * @param  ctx  OpenSC context
- */
-void sc_ctx_suppress_errors_off(sc_context_t *ctx);
-
 /**
  * Forces the use of a specified card driver
  * @param ctx OpenSC context
- * @param short_name The short name of the driver to use (e.g. 'emv')
+ * @param short_name The short name of the driver to use (e.g. 'cardos')
  */
 int sc_set_card_driver(sc_context_t *ctx, const char *short_name);
 /**
  * Connects to a card in a reader and auto-detects the card driver.
  * The ATR (Answer to Reset) string of the card is also retrieved.
  * @param reader Reader structure
- * @param slot_id Slot ID to connect to
  * @param card The allocated card object will go here */
-int sc_connect_card(sc_reader_t *reader, int slot_id, sc_card_t **card);
+int sc_connect_card(sc_reader_t *reader, sc_card_t **card);
 /**
  * Disconnects from a card, and frees the card structure. Any locks
  * made by the application must be released before calling this function.
  * NOTE: The card is not reset nor powered down after the operation.
  * @param  card  The card to disconnect
- * @param  flag  currently not used (should be set to 0)
  * @return SC_SUCCESS on success and an error code otherwise
  */
-int sc_disconnect_card(sc_card_t *card, int flag);
-/**
- * Returns 1 if the magic value of the card object is correct. Mostly
- * used internally by the library.
- * @param card The card object to check
- */
-int sc_card_valid(const sc_card_t *card);
+int sc_disconnect_card(sc_card_t *card);
 
 /**
  * Checks if a card is present in a reader
  * @param reader Reader structure
- * @param slot_id Slot ID
  * @retval If an error occured, the return value is a (negative)
  *	OpenSC error code. If no card is present, 0 is returned.
  *	Otherwise, a positive value is returned, which is a
- *	combination of flags. The flag SC_SLOT_CARD_PRESENT is
+ *	combination of flags. The flag SC_READER_CARD_PRESENT is
  *	always set. In addition, if the card was exchanged,
- *	the SC_SLOT_CARD_CHANGED flag is set.
+ *	the SC_READER_CARD_CHANGED flag is set.
  */
-int sc_detect_card_presence(sc_reader_t *reader, int slot_id);
+int sc_detect_card_presence(sc_reader_t *reader);
 
 /**
  * Waits for an event on readers. Note: only the event is detected,
  * there is no update of any card or other info.
- * @param readers array of pointer to a Reader structure
- * @param reader_count amount of readers in the array
- * @param slot_id Slot ID
+ * NOTE: Only PC/SC backend implements this.
+ * @param ctx  pointer to a Context structure
  * @param event_mask The types of events to wait for; this should
  *   be ORed from one of the following
  *   	SC_EVENT_CARD_REMOVED
  *   	SC_EVENT_CARD_INSERTED
- * @param reader (OUT) the reader on which the event was detected
+ *	SC_EVENT_READER_ATTACHED
+ * @param event_reader (OUT) the reader on which the event was detected, or NULL if new reader
  * @param event (OUT) the events that occurred. This is also ORed
  *   from the SC_EVENT_CARD_* constants listed above.
  * @param timeout Amount of millisecs to wait; -1 means forever
@@ -827,17 +764,26 @@ int sc_detect_card_presence(sc_reader_t *reader, int slot_id);
  * @retval = 0 if a an event happened
  * @retval = 1 if the timeout occured
  */
-int sc_wait_for_event(sc_reader_t **readers, int *slots, size_t nslots,
-                      unsigned int event_mask,
-                      int *reader, unsigned int *event, int timeout);
+int sc_wait_for_event(sc_context_t *ctx, unsigned int event_mask,
+                      sc_reader_t **event_reader, unsigned int *event, 
+		      int timeout, void **reader_states);
 
 /**
  * Resets the card.
  * NOTE: only PC/SC backend implements this function at this moment.
  * @param card The card to reset.
+ * @param do_cold_reset 0 for a warm reset, 1 for a cold reset (unpower)
  * @retval SC_SUCCESS on success
  */
-int sc_reset(sc_card_t *card);
+int sc_reset(sc_card_t *card, int do_cold_reset);
+
+/**
+ * Cancel all pending PC/SC calls
+ * NOTE: only PC/SC backend implements this function.
+ * @param ctx pointer to application context
+ * @retval SC_SUCCESS on success
+ */
+int sc_cancel(sc_context_t *ctx);
 
 /**
  * Tries acquire the reader lock.
@@ -1147,6 +1093,7 @@ int sc_base64_decode(const char *in, u8 *out, size_t outlen);
  * @param  len  length of the memory buffer
  */
 void sc_mem_clear(void *ptr, size_t len);
+void *sc_mem_alloc_secure(size_t len);
 
 int sc_get_cache_dir(sc_context_t *ctx, char *buf, size_t bufsize);
 int sc_make_cache_dir(sc_context_t *ctx);
@@ -1157,6 +1104,13 @@ const sc_app_info_t * sc_find_pkcs15_app(sc_card_t *card);
 const sc_app_info_t * sc_find_app_by_aid(sc_card_t *card,
 					 const u8 *aid, size_t aid_len);
 int sc_update_dir(sc_card_t *card, sc_app_info_t *app);
+
+struct sc_algorithm_info * sc_card_find_rsa_alg(sc_card_t *card,
+		unsigned int key_length);
+struct sc_algorithm_info * sc_card_find_ec_alg(sc_card_t *card,
+		unsigned int field_length);
+struct sc_algorithm_info * sc_card_find_gostr3410_alg(sc_card_t *card,
+		unsigned int key_length);
 
 struct sc_card_error {
 	unsigned int SWs;

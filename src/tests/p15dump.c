@@ -4,13 +4,13 @@
  * PKCS#15 objects test
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <opensc/opensc.h>
-#include <opensc/pkcs15.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/pkcs15.h"
 #include "sc-test.h"
 
 static struct sc_pkcs15_card *p15card;
@@ -39,7 +39,7 @@ static int dump_objects(const char *what, int type)
 	}
 	printf("%u found.\n", count);
 
-	objs = (struct sc_pkcs15_object **) calloc(count, sizeof(*objs));
+	objs = calloc(count, sizeof(*objs));
 	if ((count = sc_pkcs15_get_objects(p15card, type, objs, count)) < 0) {
 		fprintf(stderr, "Error enumerating %s: %s\n",
 			what, sc_strerror(count));
@@ -68,9 +68,7 @@ static int dump_unusedspace(void)
 	}
 	path.count = -1;
 
-	sc_ctx_suppress_errors_on(p15card->card->ctx);
 	r = sc_pkcs15_read_file(p15card, &path, &buf, &buf_len, NULL);
-	sc_ctx_suppress_errors_off(p15card->card->ctx);
 	if (r < 0) {
 		if (r == SC_ERROR_FILE_NOT_FOUND) {
 			printf("\nNo EF(UnusedSpace) file\n");

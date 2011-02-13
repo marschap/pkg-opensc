@@ -18,21 +18,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <openssl/bn.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
-#include <opensc/pkcs15.h>
-#include <compat_strlcpy.h>
+
+#include "libopensc/pkcs15.h"
+#include "common/compat_strlcpy.h"
 #include "util.h"
 
 static const char *app_name = "cryptoflex-tool";
 
-static int opt_reader = 0;
+static char * opt_reader = NULL;
+static int opt_wait = 0;
 static int opt_key_num = 1, opt_pin_num = -1;
 static int verbose = 0;
 static int opt_exponent = 3;
@@ -58,6 +59,7 @@ static const struct option options[] = {
 	{ "exponent",		1, NULL,		'e' },
 	{ "modulus-length",	1, NULL,		'm' },
 	{ "reader",		1, NULL,		'r' },
+	{ "wait",		0, NULL,		'w' },
 	{ "verbose",		0, NULL,		'v' },
 	{ NULL, 0, NULL, 0 }
 };
@@ -75,7 +77,8 @@ static const char *option_help[] = {
 	"Public key file",
 	"The RSA exponent to use in key generation [3]",
 	"Modulus length to use in key generation [1024]",
-	"Uses reader number <arg> [0]",
+	"Uses reader <arg>",
+	"Wait for card insertion",
 	"Verbose operation. Use several times to enable debug output.",
 };
 
@@ -96,7 +99,7 @@ static char *getpin(const char *prompt)
 			pass[i] = 0;
 	if (strlen(pass) == 0)
 		return NULL;
-	buf = (char *) malloc(8);
+	buf = malloc(8);
 	if (buf == NULL)
 		return NULL;
 	if (strlen(pass) > 8) {
@@ -189,41 +192,6 @@ static int bn2cf(const BIGNUM *num, u8 *buf)
 	
 	return r;
 }
-
-#if 0
-
-int mont(RSA *rsa, u8 *j0)
-{
-	BIGNUM Ri, RR, Ni;
-	BN_CTX *bn_ctx = BN_CTX_new();
-	int num_bits = BN_num_bits(rsa->n);
-	u8 tmp[512];
-
-        BN_init(&Ri);
-	BN_init(&RR);
-	BN_init(&Ni);
-	BN_zero(&RR);
-	BN_set_bit(&RR, num_bits);
-	if ((BN_mod_inverse(&Ri, &RR, rsa->n, bn_ctx)) == NULL) {
-		fprintf(stderr, "BN_mod_inverse() failed.\n");
-		return -1;
-	}
-	BN_lshift(&Ri, &Ri, num_bits);
-	BN_sub_word(&Ri, 1);
-	BN_div(&Ni, NULL, &Ri, rsa->n, bn_ctx);
-
-	bn2cf(&Ni, tmp);
-	memcpy(j0, tmp, BN_num_bytes(&Ni)/2);
-	printf("Ni from SSL:\n");
-	util_hex_dump_asc(stdout, tmp, BN_num_bytes(&Ni), -1);
-
-	BN_free(&Ri);
-	BN_free(&RR);
-	BN_free(&Ni);
-	return 0;
-}
-
-#endif
 
 static int parse_public_key(const u8 *key, size_t keysize, RSA *rsa)
 {
@@ -781,11 +749,7 @@ static int encode_public_key(RSA *rsa, u8 *key, size_t *keysize)
 	memcpy(p, bnbuf, 2*base);
 	p += 2*base;
 
-#if 0
-	mont(rsa, p);	/* j0 */
-#else
 	memset(p, 0, base);
-#endif
 	p += base;
 
 	memset(bnbuf, 0, 2*base);
@@ -882,65 +846,6 @@ static int store_key(void)
 	return 0;	
 }                              
 
-#if 0
-static int create_file(sc_file_t *file)
-{
-	sc_path_t path;
-	int r;
-	
-	path = file->path;
-	if (path.len < 2)
-		return SC_ERROR_INVALID_ARGUMENTS;
-	ctx->suppress_errors++;
-	r = sc_select_file(card, &path, NULL);
-	ctx->suppress_errors--;
-	if (r == 0)
-		return 0;	/* File already exists */
-	path.len -= 2;
-	r = sc_select_file(card, &path, NULL);
-	if (r) {
-		fprintf(stderr, "Unable to select parent DF: %s", sc_strerror(r));
-		return r;
-	}
-	file->id = (path.value[path.len] << 8) | (path.value[path.len+1] & 0xFF);
-	r = sc_create_file(card, file);
-	if (r)
-		return r;
-	r = sc_select_file(card, &file->path, NULL);
-	if (r) {
-		fprintf(stderr, "Unable to select created file: %s\n", sc_strerror(r));
-		return r;
-	}
-        return 0;
-}
-#endif
-
-#if 0
-static int create_app_df(sc_path_t *path, size_t size)
-{
-	sc_file_t *file;
-	int i;
-	
-	file = sc_file_new();
-
-	file->type = SC_FILE_TYPE_DF;
-	file->size = size;
-	file->path = *path;
-
-	sc_file_add_acl_entry(file, SC_AC_OP_LIST_FILES, SC_AC_NONE, SC_AC_KEY_REF_NONE);
-	sc_file_add_acl_entry(file, SC_AC_OP_CREATE, SC_AC_CHV, 2);
-	sc_file_add_acl_entry(file, SC_AC_OP_DELETE, SC_AC_CHV, 2);
-	sc_file_add_acl_entry(file, SC_AC_OP_INVALIDATE, SC_AC_CHV, 2);
-	sc_file_add_acl_entry(file, SC_AC_OP_REHABILITATE, SC_AC_CHV, 2);
-
-	file->status = SC_FILE_STATUS_ACTIVATED;
-
-	i = create_file(file);
-	sc_file_free(file);
-	return i;
-}
-#endif
-
 static int create_pin_file(const sc_path_t *inpath, int chv, const char *key_id)
 {
 	char prompt[40], *pin, *puk;
@@ -962,57 +867,22 @@ static int create_pin_file(const sc_path_t *inpath, int chv, const char *key_id)
 	r = sc_select_file(card, inpath, NULL);
 	if (r)
 		return -1;
-	sc_ctx_suppress_errors_on(ctx);
 	r = sc_select_file(card, &file_id, NULL);
-	sc_ctx_suppress_errors_off(ctx);
 	if (r == 0)
 		return 0;
-	for (;;) {
-#if 0
-		char *tmp = NULL;
-#endif
-		sprintf(prompt, "Please enter CHV%d%s: ", chv, key_id);
-		pin = getpin(prompt);
-		if (pin == NULL)
-			return -1;
-#if 0
-		sprintf(prompt, "Please enter CHV%d%s again: ", chv, key_id);
-		tmp = getpin(prompt);
-		if (tmp == NULL)
-			return -1;
-		if (memcmp(pin, tmp, 8) != 0) {
-			free(pin);
-			free(tmp);		
-			continue;
-		}
-		free(tmp);
-#endif
-		break;
+
+	sprintf(prompt, "Please enter CHV%d%s: ", chv, key_id);
+	pin = getpin(prompt);
+	if (pin == NULL)
+		return -1;
+	
+	sprintf(prompt, "Please enter PUK for CHV%d%s: ", chv, key_id);
+	puk = getpin(prompt);
+	if (puk == NULL) {
+		free(pin);
+		return -1;
 	}
-	for (;;) {
-#if 0
-		char *tmp = NULL;
-#endif
-		sprintf(prompt, "Please enter PUK for CHV%d%s: ", chv, key_id);
-		puk = getpin(prompt);
-		if (puk == NULL) {
-			free(pin);
-			return -1;
-		}
-#if 0
-		sprintf(prompt, "Please enter PUK for CHV%d%s again: ", chv, key_id);
-		tmp = getpin(prompt);
-		if (tmp == NULL)
-			return -1;
-		if (memcmp(puk, tmp, 8) != 0) {
-			free(puk);
-			free(tmp);
-			continue;
-		}
-		free(tmp);
-#endif
-		break;
-	}
+
 	memset(p, 0xFF, 3);
 	p += 3;
 	memcpy(p, pin, 8);
@@ -1091,11 +961,10 @@ int main(int argc, char * const argv[])
 	int do_list_keys = 0;
 	int do_store_key = 0;
 	int do_create_pin_file = 0;
-	sc_reader_t *screader= NULL;
 	sc_context_param_t ctx_param;
 
 	while (1) {
-		c = getopt_long(argc, argv, "P:Vslgc:Rk:r:p:u:e:m:va:", options, &long_optind);
+		c = getopt_long(argc, argv, "P:Vslgc:Rk:r:p:u:e:m:vwa:", options, &long_optind);
 		if (c == -1)
 			break;
 		if (c == '?')
@@ -1150,10 +1019,13 @@ int main(int argc, char * const argv[])
 			opt_pubkeyf = optarg;
 			break;
 		case 'r':
-			opt_reader = atoi(optarg);
+			opt_reader = optarg;
 			break;
 		case 'v':
 			verbose++;
+			break;
+		case 'w':
+			opt_wait = 1;
 			break;
 		case 'a':
 			opt_appdf = optarg;
@@ -1172,38 +1044,15 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
-	if (verbose > 1)
-		ctx->debug = verbose-1;
-	if (opt_reader >= (int)sc_ctx_get_reader_count(ctx) || opt_reader < 0) {
-		fprintf(stderr, "Illegal reader number. Only %d reader(s) configured.\n", sc_ctx_get_reader_count(ctx));
-		err = 1;
-		goto end;
+
+	if (verbose > 1) {
+		ctx->debug = verbose;
+		ctx->debug_file = stderr;	
 	}
-	screader = sc_ctx_get_reader(ctx, opt_reader);
-	if (screader == NULL) {
-		err = 1;
-		goto end;
-	}
-	if (sc_detect_card_presence(screader, 0) <= 0) {
-		fprintf(stderr, "Card not present.\n");
-		err = 3;
-		goto end;
-	}
-	if (verbose)
-		fprintf(stderr, "Connecting to card in reader %s...\n", screader->name);
-	r = sc_connect_card(screader, 0, &card);
-	if (r) {
-		fprintf(stderr, "Failed to connect to card: %s\n", sc_strerror(r));
-		err = 1;
-		goto end;
-	}
+
+	err = util_connect_card(ctx, &card, opt_reader, opt_wait, verbose);
 	printf("Using card driver: %s\n", card->driver->name);
-	r = sc_lock(card);
-	if (r) {
-		fprintf(stderr, "Unable to lock card: %s\n", sc_strerror(r));
-		err = 1;
-		goto end;
-	}
+
 	if (do_create_pin_file) {
 		if ((err = create_pin()) != 0)
 			goto end;
@@ -1241,7 +1090,7 @@ int main(int argc, char * const argv[])
 end:
 	if (card) {
 		sc_unlock(card);
-		sc_disconnect_card(card, 0);
+		sc_disconnect_card(card);
 	}
 	if (ctx)
 		sc_release_context(ctx);

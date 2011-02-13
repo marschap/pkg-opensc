@@ -18,9 +18,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,10 +28,11 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#include <opensc/opensc.h>
-#include <opensc/cardctl.h>
-#include <opensc/cards.h>
-#include <opensc/log.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/cardctl.h"
+#include "libopensc/cards.h"
+#include "libopensc/log.h"
 #include "pkcs15-init.h"
 #include "profile.h"
 
@@ -77,17 +77,17 @@ struct pkdata {
 /*
  * Local functions
  */
-static int	gpk_pkfile_create(sc_profile_t *, sc_card_t *, sc_file_t *);
+static int	gpk_pkfile_create(sc_profile_t *, sc_pkcs15_card_t *, sc_file_t *);
 static int	gpk_encode_rsa_key(sc_profile_t *, sc_card_t *,
 			struct sc_pkcs15_prkey_rsa *, struct pkdata *,
 			struct sc_pkcs15_prkey_info *);
 static int	gpk_encode_dsa_key(sc_profile_t *, sc_card_t *,
 			struct sc_pkcs15_prkey_dsa *, struct pkdata *,
 			struct sc_pkcs15_prkey_info *);
-static int	gpk_store_pk(struct sc_profile *, sc_card_t *,
+static int	gpk_store_pk(struct sc_profile *, sc_pkcs15_card_t *,
 			sc_file_t *, struct pkdata *);
-static int	gpk_init_pinfile(sc_profile_t *, sc_card_t *, sc_file_t *);
-static int	gpk_pkfile_init_public(sc_profile_t *, sc_card_t *,
+static int	gpk_init_pinfile(sc_profile_t *, sc_pkcs15_card_t *, sc_file_t *);
+static int	gpk_pkfile_init_public(sc_profile_t *, sc_pkcs15_card_t *,
 			sc_file_t *, unsigned int, unsigned int, unsigned int);
 static int	gpk_pkfile_init_private(sc_card_t *, sc_file_t *, unsigned int);
 static int	gpk_read_rsa_key(sc_card_t *, struct sc_pkcs15_pubkey_rsa *);
@@ -97,18 +97,18 @@ static int	gpk_read_rsa_key(sc_card_t *, struct sc_pkcs15_pubkey_rsa *);
  * Erase the card
  */
 static int
-gpk_erase_card(struct sc_profile *pro, sc_card_t *card)
+gpk_erase_card(struct sc_profile *pro, sc_pkcs15_card_t *p15card)
 {
 	int	locked;
 
-	if (sc_card_ctl(card, SC_CARDCTL_GPK_IS_LOCKED, &locked) == 0
+	if (sc_card_ctl(p15card->card, SC_CARDCTL_GPK_IS_LOCKED, &locked) == 0
 	 && locked) {
-		sc_error(card->ctx,
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL,
 			"This card is already personalized, unable to "
 			"create PKCS#15 structure.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
-	return sc_card_ctl(card, SC_CARDCTL_ERASE_CARD, NULL);
+	return sc_card_ctl(p15card->card, SC_CARDCTL_ERASE_CARD, NULL);
 }
 
 /*
@@ -116,21 +116,22 @@ gpk_erase_card(struct sc_profile *pro, sc_card_t *card)
  * This will usually be the application DF
  */
 static int
-gpk_create_dir(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
+gpk_create_dir(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *df)
 {
 	struct sc_file	*pinfile;
-	int		r, locked, i;
+	int		r, locked;
 
-	if (sc_card_ctl(card, SC_CARDCTL_GPK_IS_LOCKED, &locked) == 0
-	 && locked) {
-		sc_error(card->ctx,
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
+	if (sc_card_ctl(p15card->card, SC_CARDCTL_GPK_IS_LOCKED, &locked) == 0 
+			&& locked) {
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL,
 			"This card is already personalized, unable to "
 			"create PKCS#15 structure.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 
 	/* Create the DF. */
-	r = sc_pkcs15init_create_file(profile, card, df);
+	r = sc_pkcs15init_create_file(profile, p15card, df);
 	if (r < 0)
 		return r;
 
@@ -142,27 +143,30 @@ gpk_create_dir(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
 		pinfile->path = df->path;
 		sc_append_file_id(&pinfile->path, pinfile->id);
 
-		r = gpk_init_pinfile(profile, card, pinfile);
+		r = gpk_init_pinfile(profile, p15card, pinfile);
 		sc_file_free(pinfile);
 		if (r < 0)
 			return r;
 
+		/* TODO: What for it was used ?
 		for (i = 0; i < GPK_MAX_PINS; i++)
-			sc_keycache_put_pin(&df->path, GPK_PIN_SCOPE|i, (const u8 *) "        ");
+		*	sc_keycache_put_pin(&df->path, GPK_PIN_SCOPE|i, (const u8 *) "        ");
+		*/
 	}
 
-	return r;
+	SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 /*
  * Select a PIN reference
  */
 static int
-gpk_select_pin_reference(sc_profile_t *profile, sc_card_t *card,
+gpk_select_pin_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 		sc_pkcs15_pin_info_t *pin_info)
 {
 	int	preferred, current;
 
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 	if ((current = pin_info->reference) < 0)
 		current = 0;
 
@@ -182,14 +186,14 @@ gpk_select_pin_reference(sc_profile_t *profile, sc_card_t *card,
 	if (current > preferred)
 		return SC_ERROR_TOO_MANY_OBJECTS;
 	pin_info->reference = preferred;
-	return 0;
+	SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, 0);
 }
 
 /*
  * Store a PIN
  */
 static int
-gpk_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
+gpk_create_pin(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *df,
 		sc_pkcs15_object_t *pin_obj,
 		const u8 *pin, size_t pin_len,
 		const u8 *puk, size_t puk_len)
@@ -198,6 +202,7 @@ gpk_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
 	u8	nulpin[8];
 	int	r, type;
 
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
 		type = SC_PKCS15INIT_SO_PIN;
 
@@ -229,32 +234,31 @@ gpk_create_pin(sc_profile_t *profile, sc_card_t *card, sc_file_t *df,
 		puk_len = pin_len;
 	}
 
-	r = sc_select_file(card, &df->path, NULL);
+	r = sc_select_file(p15card->card, &df->path, NULL);
+	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "select df path: %i", r);
 	if (r < 0)
 		return r;
 
 	/* Current PIN is 00:00:00:00:00:00:00:00 */
 	memset(nulpin, 0, sizeof(nulpin));
-	r = sc_change_reference_data(card, SC_AC_CHV,
+	r = sc_change_reference_data(p15card->card, SC_AC_CHV,
 			pin_info->reference,
 			nulpin, sizeof(nulpin),
 			pin, pin_len, NULL);
+	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "change  CHV %i", r);
 	if (r < 0)
 		return r;
 
 	/* Current PUK is 00:00:00:00:00:00:00:00 */
-	r = sc_change_reference_data(card, SC_AC_CHV,
+	r = sc_change_reference_data(p15card->card, SC_AC_CHV,
 			pin_info->reference + 1,
 			nulpin, sizeof(nulpin),
 			puk, puk_len, NULL);
+	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "change  CHV+1 %i", r);
 	if (r < 0)
 		return r;
 
-	sc_keycache_set_pin_name(&df->path,
-			pin_info->reference,
-			type);
-
-	return r;
+	SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 
@@ -275,36 +279,37 @@ gpk_lock(sc_card_t *card, sc_file_t *file, unsigned int op)
  * Lock the pin file
  */
 static int
-gpk_lock_pinfile(struct sc_profile *profile, sc_card_t *card,
+gpk_lock_pinfile(struct sc_profile *profile, sc_pkcs15_card_t *p15card,
 		sc_file_t *pinfile)
 {
 	struct sc_path	path;
 	struct sc_file	*parent = NULL;
 	int		r;
 
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 	/* Select the parent DF */
 	path = pinfile->path;
 	if (path.len >= 2)
 		path.len -= 2;
 	if (path.len == 0)
 		sc_format_path("3F00", &path);
-	if ((r = sc_select_file(card, &path, &parent)) < 0)
+	if ((r = sc_select_file(p15card->card, &path, &parent)) < 0)
 		return r;
 
 	/* Present PINs etc as necessary */
-	r = sc_pkcs15init_authenticate(profile, card, parent, SC_AC_OP_LOCK);
+	r = sc_pkcs15init_authenticate(profile, p15card, parent, SC_AC_OP_LOCK);
 	if (r >= 0)
-		r = gpk_lock(card, pinfile, SC_AC_OP_WRITE);
+		r = gpk_lock(p15card->card, pinfile, SC_AC_OP_WRITE);
 
 	sc_file_free(parent);
-	return r;
+	SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 /*
  * Initialize pin file
  */
 static int
-gpk_init_pinfile(struct sc_profile *profile, sc_card_t *card,
+gpk_init_pinfile(struct sc_profile *profile, sc_pkcs15_card_t *p15card,
 		sc_file_t *file)
 {
 	const sc_acl_entry_t *acl;
@@ -314,6 +319,7 @@ gpk_init_pinfile(struct sc_profile *profile, sc_card_t *card,
 	unsigned int	npins, i, j, cks;
 	int		r;
 
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 	/* Set defaults */
 	so_attempts[0] = sc_profile_get_pin_retries(profile, SC_PKCS15INIT_SO_PIN);
 	so_attempts[1] = sc_profile_get_pin_retries(profile, SC_PKCS15INIT_SO_PUK);
@@ -327,7 +333,7 @@ gpk_init_pinfile(struct sc_profile *profile, sc_card_t *card,
 	/* Create the PIN file. */
 	acl = sc_file_get_acl_entry(pinfile, SC_AC_OP_WRITE);
 	if (acl->method != SC_AC_NEVER) {
-		sc_error(card->ctx,
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL,
 			"PIN file most be protected by WRITE=NEVER");
 		sc_file_free(pinfile);
 		return SC_ERROR_INVALID_ARGUMENTS;
@@ -337,10 +343,12 @@ gpk_init_pinfile(struct sc_profile *profile, sc_card_t *card,
 	if (pinfile->size == 0)
 		pinfile->size = GPK_MAX_PINS * 8;
 
+	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Now create file");
 	/* Now create the file */
-	if ((r = sc_pkcs15init_create_file(profile, card, pinfile)) < 0
-	 || (r = sc_select_file(card, &pinfile->path, NULL)) < 0)
+	if ((r = sc_pkcs15init_create_file(profile, p15card, pinfile)) < 0
+	 || (r = sc_select_file(p15card->card, &pinfile->path, NULL)) < 0)   {
 		goto out;
+	}
 
 	/* Set up the PIN file contents.
 	 * We assume the file will contain pairs of PINs/PUKs */
@@ -368,19 +376,19 @@ gpk_init_pinfile(struct sc_profile *profile, sc_card_t *card,
 		blk[3] = ~cks;
 	}
 
-	r = sc_write_binary(card, 0, buffer, npins * 8, 0);
+	r = sc_write_binary(p15card->card, 0, buffer, npins * 8, 0);
 	if (r >= 0)
-		r = gpk_lock_pinfile(profile, card, pinfile);
+		r = gpk_lock_pinfile(profile, p15card, pinfile);
 
 out:	sc_file_free(pinfile);
-	return r;
+	SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 /*
  * Create a key file
  */
 static int
-gpk_create_key(sc_profile_t *profile, sc_card_t *card, sc_pkcs15_object_t *obj)
+gpk_create_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_pkcs15_object_t *obj)
 {
 	sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
 	struct sc_file	*keyfile = NULL;
@@ -423,25 +431,25 @@ gpk_create_key(sc_profile_t *profile, sc_card_t *card, sc_pkcs15_object_t *obj)
 	case SC_PKCS15_TYPE_PRKEY_DSA:
 		algo = SC_ALGORITHM_DSA; break;
 	default:
-		sc_error(card->ctx, "Unsupported public key algorithm");
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Unsupported public key algorithm");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 
 	/* Fix up PIN references in file ACL and create the PK file */
-	if ((r = sc_pkcs15init_fixup_file(profile, keyfile)) < 0
-	 || (r = gpk_pkfile_create(profile, card, keyfile)) < 0)
+	if ((r = sc_pkcs15init_fixup_file(profile, p15card, keyfile)) < 0
+	 || (r = gpk_pkfile_create(profile, p15card, keyfile)) < 0)
 		goto done;
 
 #ifdef PK_INIT_IMMEDIATELY
 	/* Initialize the public key header */
-	r = gpk_pkfile_init_public(profile, card, keyfile, algo,
+	r = gpk_pkfile_init_public(profile, p15card, keyfile, algo,
 			key_info->modulus_length,
 			key_info->usage);
 	if (r < 0)
 		goto done;
 
 	/* Create the private key portion */
-	r = gpk_pkfile_init_private(card, keyfile, prv_len);
+	r = gpk_pkfile_init_private(p15card->card, keyfile, prv_len);
 #endif
 
 done:
@@ -454,7 +462,7 @@ done:
  * Store a private key
  */
 static int
-gpk_store_key(sc_profile_t *profile, sc_card_t *card,
+gpk_store_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 		sc_pkcs15_object_t *obj, struct sc_pkcs15_prkey *key)
 {
 	sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
@@ -467,18 +475,18 @@ gpk_store_key(sc_profile_t *profile, sc_card_t *card,
 		return SC_ERROR_INVALID_ARGUMENTS;
 
 	/* Get the file we're supposed to create */
-	r = sc_select_file(card, &key_info->path, &keyfile);
+	r = sc_select_file(p15card->card, &key_info->path, &keyfile);
 	if (r < 0)
 		return r;
 
 	switch (key->algorithm) {
 	case SC_ALGORITHM_RSA:
-		r = gpk_encode_rsa_key(profile, card, &key->u.rsa,
+		r = gpk_encode_rsa_key(profile, p15card->card, &key->u.rsa,
 					&data, key_info);
 		break;
 
 	case SC_ALGORITHM_DSA:
-		r = gpk_encode_dsa_key(profile, card, &key->u.dsa,
+		r = gpk_encode_dsa_key(profile, p15card->card, &key->u.dsa,
 					&data, key_info);
 		break;
 	default:
@@ -486,7 +494,7 @@ gpk_store_key(sc_profile_t *profile, sc_card_t *card,
 	}
 
 	if (r >= 0)
-		r = gpk_store_pk(profile, card, keyfile, &data);
+		r = gpk_store_pk(profile, p15card, keyfile, &data);
 
 	if (keyfile)
 		sc_file_free(keyfile);
@@ -497,7 +505,7 @@ gpk_store_key(sc_profile_t *profile, sc_card_t *card,
  * On-board key generation.
  */
 static int
-gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
+gpk_generate_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
                         sc_pkcs15_object_t *obj,
                         sc_pkcs15_pubkey_t *pubkey)
 {
@@ -507,19 +515,11 @@ gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
 	sc_file_t	*keyfile;
 	int             r, n;
 
-	if (card->ctx->debug >= 1) {
-		char pbuf[SC_MAX_PATH_STRING_SIZE];
-
-		r = sc_path_print(pbuf, sizeof(pbuf), &key_info->path);
-		if (r != SC_SUCCESS)
-			pbuf[0] = '\0';
-
-		sc_debug(card->ctx, "path=%s, %d bits\n", pbuf,
+	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "path=%s, %d bits\n", sc_print_path(&key_info->path),
 			key_info->modulus_length);
-	}
 
 	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
-		sc_error(card->ctx, "GPK supports generating only RSA keys.");
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "GPK supports generating only RSA keys.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 
@@ -528,18 +528,18 @@ gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
 		return SC_ERROR_INVALID_ARGUMENTS;
 	keybits = key_info->modulus_length;
 
-	if ((r = sc_select_file(card, &key_info->path, &keyfile)) < 0)
+	if ((r = sc_select_file(p15card->card, &key_info->path, &keyfile)) < 0)
 		return r;
 
 #ifndef PK_INIT_IMMEDIATELY
-	r = gpk_pkfile_init_public(profile, card, keyfile, SC_ALGORITHM_RSA,
+	r = gpk_pkfile_init_public(profile, p15card, keyfile, SC_ALGORITHM_RSA,
 			keybits, key_info->usage);
 	if (r < 0) {
 		sc_file_free(keyfile);
 		return r;
 	}
 
-	if ((r = gpk_pkfile_init_private(card, keyfile, 5 * ((3 + keybits / 16 + 7) & ~7UL))) < 0) {
+	if ((r = gpk_pkfile_init_private(p15card->card, keyfile, 5 * ((3 + keybits / 16 + 7) & ~7UL))) < 0) {
 		sc_file_free(keyfile);
 		return r;
 	}
@@ -552,7 +552,7 @@ gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
 	args.fid = (key_info->path.value[n-2] << 8) | key_info->path.value[n-1];
 	args.privlen = keybits;
 
-	r = sc_card_ctl(card, SC_CARDCTL_GPK_GENERATE_KEY, &args);
+	r = sc_card_ctl(p15card->card, SC_CARDCTL_GPK_GENERATE_KEY, &args);
 	if (r < 0)
 		return r;
 
@@ -562,7 +562,7 @@ gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
 	sleep(20);
 
 	pubkey->algorithm = SC_ALGORITHM_RSA;
-	return gpk_read_rsa_key(card, &pubkey->u.rsa);
+	return gpk_read_rsa_key(p15card->card, &pubkey->u.rsa);
 }
 
 /*
@@ -574,25 +574,23 @@ gpk_generate_key(sc_profile_t *profile, sc_card_t *card,
  * XXX: Handle the UPDATE ACL = NEVER case just like for EFsc files
  */
 static int
-gpk_pkfile_create(sc_profile_t *profile, sc_card_t *card, sc_file_t *file)
+gpk_pkfile_create(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *file)
 {
 	struct sc_file	*found = NULL;
 	int		r;
 
-	sc_ctx_suppress_errors_on(card->ctx);
-	r = sc_select_file(card, &file->path, &found);
-	sc_ctx_suppress_errors_off(card->ctx);
+	r = sc_select_file(p15card->card, &file->path, &found);
 	if (r == SC_ERROR_FILE_NOT_FOUND) {
-		r = sc_pkcs15init_create_file(profile, card, file);
+		r = sc_pkcs15init_create_file(profile, p15card, file);
 		if (r >= 0)
-			r = sc_select_file(card, &file->path, &found);
+			r = sc_select_file(p15card->card, &file->path, &found);
 	} else {
 		/* XXX: make sure the file has correct type and size? */
 	}
 
 	if (r >= 0)
-		r = sc_pkcs15init_authenticate(profile, card,
-					file, SC_AC_OP_UPDATE);
+		r = sc_pkcs15init_authenticate(profile, p15card, file, 
+				SC_AC_OP_UPDATE);
 	if (found)
 		sc_file_free(found);
 
@@ -624,10 +622,11 @@ gpk_pkfile_keyalgo(unsigned int algo, unsigned char *p)
  * Set up the public key record for a signature only public key
  */
 static int
-gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
+gpk_pkfile_init_public(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *file,
 		unsigned int algo, unsigned int bits,
 		unsigned int usage)
 {
+	struct sc_context *ctx = p15card->card->ctx;
 	const sc_acl_entry_t *acl;
 	sc_file_t	*tmp = NULL;
 	u8		sysrec[7], buffer[256];
@@ -635,7 +634,7 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 	int		r, card_type;
 
 	/* Find out what sort of GPK we're using */
-	if ((r = sc_card_ctl(card, SC_CARDCTL_GPK_VARIANT, &card_type)) < 0)
+	if ((r = sc_card_ctl(p15card->card, SC_CARDCTL_GPK_VARIANT, &card_type)) < 0)
 		return r;
 
 	/* Set up the system record */
@@ -657,7 +656,7 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 	if (usage & (SC_PKCS15_PRKEY_USAGE_SIGN|SC_PKCS15_PRKEY_USAGE_NONREPUDIATION))
 		sysrec[2] &= ~0x20;
 	if (sysrec[2] == 0x30) {
-		sc_error(card->ctx, "Key usage should specify at least one of sign or decipher");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Key usage should specify at least one of sign or decipher");
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 
@@ -673,7 +672,7 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 	if (r < 0)
 		return r;
 	/* Fix up PIN references in file ACL */
-	if ((r = sc_pkcs15init_fixup_file(profile, tmp)) < 0) 
+	if ((r = sc_pkcs15init_fixup_file(profile, p15card, tmp)) < 0) 
 		goto out;
 
 	acl = sc_file_get_acl_entry(tmp, SC_AC_OP_CRYPTO);
@@ -682,15 +681,13 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 		 || acl->method == SC_AC_NEVER)
 			continue;
 		if (acl->method != SC_AC_CHV) {
-			sc_error(card->ctx,
-				"Authentication method not "
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Authentication method not "
 				"supported for private key files.\n");
 			r = SC_ERROR_NOT_SUPPORTED;
 			goto out;
 		}
 		if (++npins >= 2) {
-			sc_error(card->ctx,
-				"Too many pins for PrKEY file!\n");
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Too many pins for PrKEY file!\n");
 			r = SC_ERROR_NOT_SUPPORTED;
 			goto out;
 		}
@@ -711,21 +708,18 @@ gpk_pkfile_init_public(sc_profile_t *profile, sc_card_t *card, sc_file_t *file,
 	for (n = 0; n < 6; n++)
 		sysrec[6] ^= sysrec[n];
 
-	sc_ctx_suppress_errors_on(card->ctx);
-	r = sc_read_record(card, 1, buffer, sizeof(buffer),
+	r = sc_read_record(p15card->card, 1, buffer, sizeof(buffer),
 			SC_RECORD_BY_REC_NR);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (r >= 0) {
 		if (r != 7 || buffer[0] != 0) {
-			sc_error(card->ctx,
-				"first record of public key file is not Lsys0");
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "first record of public key file is not Lsys0");
 			return SC_ERROR_OBJECT_NOT_VALID;
 		}
 
-		r = sc_update_record(card, 1, sysrec, sizeof(sysrec),
+		r = sc_update_record(p15card->card, 1, sysrec, sizeof(sysrec),
 				SC_RECORD_BY_REC_NR);
 	} else {
-		r = sc_append_record(card, sysrec, sizeof(sysrec), 0);
+		r = sc_append_record(p15card->card, sysrec, sizeof(sysrec), 0);
 	}
 
 out:	if (tmp)
@@ -735,22 +729,20 @@ out:	if (tmp)
 
 static int
 gpk_pkfile_update_public(struct sc_profile *profile,
-		sc_card_t *card, struct pkpart *part)
+		sc_pkcs15_card_t *p15card, struct pkpart *part)
 {
+	struct sc_context *ctx = p15card->card->ctx;
 	struct pkcomp	*pe;
 	unsigned char	buffer[256];
 	unsigned int	m, n, tag;
 	int		r = 0, found;
 
-	if (card->ctx->debug > 1)
-		sc_debug(card->ctx, "Updating public key elements\n");
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Updating public key elements\n");
 
 	/* If we've been given a key with public parts, write them now */
 	for (n = 2; n < 256; n++) {
-		sc_ctx_suppress_errors_on(card->ctx);
-		r = sc_read_record(card, n, buffer, sizeof(buffer),
+		r = sc_read_record(p15card->card, n, buffer, sizeof(buffer),
 				SC_RECORD_BY_REC_NR);
-		sc_ctx_suppress_errors_off(card->ctx);
 		if (r < 0) {
 			r = 0;
 			break;
@@ -758,8 +750,7 @@ gpk_pkfile_update_public(struct sc_profile *profile,
 
 		/* Check for bad record */
 		if (r < 2) {
-			sc_error(card->ctx,
-				"key file format error: "
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "key file format error: "
 				"record %u too small (%u bytes)\n", 
 				n, r);
 			return SC_ERROR_OBJECT_NOT_VALID;
@@ -770,7 +761,7 @@ gpk_pkfile_update_public(struct sc_profile *profile,
 		for (m = 0, found = 0; m < part->count; m++) {
 			pe = part->components + m;
 			if (pe->tag == tag) {
-				r = sc_update_record(card, n,
+				r = sc_update_record(p15card->card, n,
 						pe->data, pe->size,
 						SC_RECORD_BY_REC_NR);
 				if (r < 0)
@@ -781,15 +772,15 @@ gpk_pkfile_update_public(struct sc_profile *profile,
 			}
 		}
 
-		if (!found && card->ctx->debug)
-			sc_debug(card->ctx, "GPK unknown PK tag %u\n", tag);
+		if (!found)
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "GPK unknown PK tag %u\n", tag);
 	}
 
 	/* Write all remaining elements */
 	for (m = 0; r >= 0 && m < part->count; m++) {
 		pe = part->components + m;
 		if (pe->tag != 0)
-			r = sc_append_record(card, pe->data, pe->size, 0);
+			r = sc_append_record(p15card->card, pe->data, pe->size, 0);
 	}
 
 	return r;
@@ -821,7 +812,7 @@ gpk_pkfile_load_private(sc_card_t *card, sc_file_t *file,
 
 static int
 gpk_pkfile_update_private(struct sc_profile *profile,
-			sc_card_t *card, sc_file_t *file,
+			sc_pkcs15_card_t *p15card, sc_file_t *file,
 			struct pkpart *part)
 {
 	unsigned int	m, size, nb, cks;
@@ -829,8 +820,7 @@ gpk_pkfile_update_private(struct sc_profile *profile,
 	u8		data[256];
 	int		r = 0;
 
-	if (card->ctx->debug > 1)
-		sc_debug(card->ctx, "Updating private key elements\n");
+	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Updating private key elements\n");
 
 	for (m = 0; m < part->count; m++) {
 		pe = part->components + m;
@@ -843,7 +833,7 @@ gpk_pkfile_update_private(struct sc_profile *profile,
 		/* We must set a secure messaging key before each
 		 * Load Private Key command. Any key will do...
 		 * The GPK _is_ weird. */
-		r = sc_pkcs15init_verify_key(profile, card, NULL, SC_AC_PRO, 1);
+		r = sc_pkcs15init_verify_secret(profile, p15card, NULL, SC_AC_PRO, 1);
 		if (r < 0)
 			break;
 
@@ -857,7 +847,7 @@ gpk_pkfile_update_private(struct sc_profile *profile,
 		while (nb & 7)
 			data[nb++] = 0;
 
-		r = gpk_pkfile_load_private(card, file, data, size-1, nb);
+		r = gpk_pkfile_load_private(p15card->card, file, data, size-1, nb);
 		if (r < 0)
 			break;
 		pe++;
@@ -925,7 +915,7 @@ gpk_add_bignum(struct pkpart *part, unsigned int tag,
 	memset(comp, 0, sizeof(*comp));
 	comp->tag  = tag;
 	comp->size = size + 1;
-	comp->data = (u8 *) malloc(size + 1);
+	comp->data = malloc(size + 1);
 
 	/* Add the tag */
 	comp->data[0] = tag;
@@ -941,7 +931,7 @@ static int gpk_encode_rsa_key(sc_profile_t *profile, sc_card_t *card,
 		sc_pkcs15_prkey_info_t *info)
 {
 	if (!rsa->modulus.len || !rsa->exponent.len) {
-		sc_error(card->ctx,
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 			"incomplete RSA public key");
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
@@ -950,7 +940,7 @@ static int gpk_encode_rsa_key(sc_profile_t *profile, sc_card_t *card,
 	 * the only exponent supported by GPK4000 and GPK8000 */
 	if (rsa->exponent.len != 3
 	 || memcmp(rsa->exponent.data, "\001\000\001", 3)) {
-		sc_error(card->ctx,
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 			"unsupported RSA exponent");
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
@@ -969,7 +959,7 @@ static int gpk_encode_rsa_key(sc_profile_t *profile, sc_card_t *card,
 	if (!rsa->p.len || !rsa->q.len || !rsa->dmp1.len || !rsa->dmq1.len || !rsa->iqmp.len) {
 		/* No or incomplete CRT information */
 		if (!rsa->d.len) {
-			sc_error(card->ctx,
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 				"incomplete RSA private key");
 			return SC_ERROR_INVALID_ARGUMENTS;
 		}
@@ -980,7 +970,7 @@ static int gpk_encode_rsa_key(sc_profile_t *profile, sc_card_t *card,
 		unsigned int	K = p->bytes / 2;
 		u8		*crtbuf;
 
-		crtbuf = (u8 *) malloc(5 * K + 1);
+		crtbuf = malloc(5 * K + 1);
 
 		crtbuf[0] = 0x05;
 		gpk_bn2bin(crtbuf + 1 + 0 * K, &rsa->p, K);
@@ -1019,7 +1009,7 @@ static int gpk_encode_dsa_key(sc_profile_t *profile, sc_card_t *card,
 {
 	if (!dsa->p.len || !dsa->q.len || !dsa->g.len
 	 || !dsa->pub.len || !dsa->priv.len) {
-		sc_error(card->ctx,
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 			"incomplete DSA public key");
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
@@ -1038,7 +1028,7 @@ static int gpk_encode_dsa_key(sc_profile_t *profile, sc_card_t *card,
 		p->bits  = 1024;
 		p->bytes = 128;
 	} else {
-		sc_error(card->ctx,
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 			"incompatible DSA key size (%u bits)", p->bits);
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
@@ -1056,9 +1046,10 @@ static int gpk_encode_dsa_key(sc_profile_t *profile, sc_card_t *card,
 }
 
 static int
-gpk_store_pk(struct sc_profile *profile, sc_card_t *card,
+gpk_store_pk(struct sc_profile *profile, sc_pkcs15_card_t *p15card,
 		sc_file_t *file, struct pkdata *p)
 {
+	struct sc_context *ctx = p15card->card->ctx;
 	size_t	fsize;
 	int	r;
 
@@ -1066,9 +1057,7 @@ gpk_store_pk(struct sc_profile *profile, sc_card_t *card,
 	gpk_compute_publen(&p->_public);
 	gpk_compute_privlen(&p->_private);
 
-	if (card->ctx->debug)
-		sc_debug(card->ctx,
-			"Storing pk: %u bits, pub %u bytes, priv %u bytes\n",
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Storing pk: %u bits, pub %u bytes, priv %u bytes\n",
 			p->bits, p->_public.size, p->_private.size);
 
 	fsize = p->_public.size + p->_private.size;
@@ -1077,26 +1066,26 @@ gpk_store_pk(struct sc_profile *profile, sc_card_t *card,
 
 	/* Put the system record */
 #ifndef PK_INIT_IMMEDIATELY
-	r = gpk_pkfile_init_public(profile, card, file, p->algo,
+	r = gpk_pkfile_init_public(profile, p15card, file, p->algo,
 		       	p->bits, p->usage);
 	if (r < 0)
 		return r;
 #endif
 
 	/* Put the public key elements */
-	r = gpk_pkfile_update_public(profile, card, &p->_public);
+	r = gpk_pkfile_update_public(profile, p15card, &p->_public);
 	if (r < 0)
 		return r;
 
 	/* Create the private key part */
 #ifndef PK_INIT_IMMEDIATELY
-	r = gpk_pkfile_init_private(card, file, p->_private.size);
+	r = gpk_pkfile_init_private(p15card->card, file, p->_private.size);
 	if (r < 0)
 		return r;
 #endif
 
 	/* Now store the private key elements */
-	r = gpk_pkfile_update_private(profile, card, file, &p->_private);
+	r = gpk_pkfile_update_private(profile, p15card, file, &p->_private);
 
 	return r;
 }
@@ -1112,10 +1101,8 @@ gpk_read_rsa_key(sc_card_t *card, struct sc_pkcs15_pubkey_rsa *rsa)
 		u8		buffer[256];
 		size_t		m;
 
-		sc_ctx_suppress_errors_on(card->ctx);
 		r = sc_read_record(card, n, buffer, sizeof(buffer),
 				SC_RECORD_BY_REC_NR);
-		sc_ctx_suppress_errors_off(card->ctx);
 		if (r < 1)
 			break;
 
@@ -1126,7 +1113,7 @@ gpk_read_rsa_key(sc_card_t *card, struct sc_pkcs15_pubkey_rsa *rsa)
 		else
 			continue;
 		bn->len  = r - 1;
-		bn->data = (u8 *) malloc(bn->len);
+		bn->data = malloc(bn->len);
 		for (m = 0; m < bn->len; m++)
 			bn->data[m] = buffer[bn->len - m];
 	}
@@ -1147,8 +1134,8 @@ static struct sc_pkcs15init_operations sc_pkcs15init_gpk_operations = {
 	gpk_generate_key,
 	NULL, NULL,			/* encode private/public key */
 	NULL,				/* finalize_card */
-	NULL, NULL, NULL, NULL, NULL,	/* old style api */
-	NULL 				/* delete_object */
+	NULL, 				/* delete_object */
+	NULL, NULL, NULL, NULL, NULL  /* pkcs15init emulation */
 };
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_gpk_ops(void)

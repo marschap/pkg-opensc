@@ -18,18 +18,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-
-#include <opensc/opensc.h>
-#include <opensc/cardctl.h>
-#include "pkcs15-init.h"
-#include "profile.h"
 
 #ifdef ENABLE_OPENSSL
 #include <openssl/opensslv.h>
@@ -40,31 +33,34 @@
 #include <openssl/bio.h>
 #endif
 
-extern int sc_check_sw(sc_card_t *card, unsigned int sw1, unsigned int sw2);
+#include "libopensc/opensc.h"
+#include "libopensc/cardctl.h"
+#include "pkcs15-init.h"
+#include "profile.h"
 
 static int westcos_pkcs15init_init_card(sc_profile_t *profile, 
-						sc_card_t *card)
+						sc_pkcs15_card_t *p15card)
 {
-	int     r;
-	struct	sc_path path;
+	int r;
+	struct sc_path path;
 
 	sc_format_path("3F00", &path);
-	r = sc_select_file(card, &path, NULL);
+	r = sc_select_file(p15card->card, &path, NULL);
 	if(r) return (r);
 
 	return r;
 }
 
 static int westcos_pkcs15init_create_dir(sc_profile_t *profile, 
-						sc_card_t *card, 
+						sc_pkcs15_card_t *p15card, 
 						sc_file_t *df)
 {
-	int		r;
+	int r;
 
 	/* Create the application DF */
-	r = sc_pkcs15init_create_file(profile, card, df);
+	r = sc_pkcs15init_create_file(profile, p15card, df);
 
-	r = sc_select_file(card, &df->path, NULL);
+	r = sc_select_file(p15card->card, &df->path, NULL);
 	if(r) return r;
 
 	return 0;
@@ -74,7 +70,7 @@ static int westcos_pkcs15init_create_dir(sc_profile_t *profile,
  * Select the PIN reference
  */
 static int westcos_pkcs15_select_pin_reference(sc_profile_t *profile, 
-					sc_card_t *card,
+					sc_pkcs15_card_t *p15card,
 					sc_pkcs15_pin_info_t *pin_info)
 {
 
@@ -91,50 +87,39 @@ static int westcos_pkcs15_select_pin_reference(sc_profile_t *profile,
  * Create a new PIN inside a DF
  */
 static int westcos_pkcs15_create_pin(sc_profile_t *profile, 
-					sc_card_t *card, sc_file_t *df,
+					sc_pkcs15_card_t *p15card, 
+					sc_file_t *df,
 					sc_pkcs15_object_t *pin_obj,
 					const u8 *pin, size_t pin_len,
 					const u8 *puk, size_t puk_len)
 {
 	int r;
-	sc_file_t *file = sc_file_new();
-	sc_path_t	path;
+	sc_file_t *pinfile = NULL;
 
 	if(pin_len>9 || puk_len>9)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
-	file->type = SC_FILE_TYPE_INTERNAL_EF;
-	file->ef_structure = SC_FILE_EF_TRANSPARENT;
-	file->shareable = 0;
-		
-	file->id = 0xAAAA;
-	file->size = 37;
+	r = sc_profile_get_file(profile, "PINFILE", &pinfile);
+	if(r < 0) return r;
 
-	r = sc_file_add_acl_entry(file, SC_AC_OP_READ, SC_AC_NONE, 0);
-	if(r) return r;
-	r = sc_file_add_acl_entry(file, SC_AC_OP_UPDATE, SC_AC_NONE, 0);
-	if(r) return r;
-	r = sc_file_add_acl_entry(file, SC_AC_OP_ERASE, SC_AC_NONE, 0);
-	if(r) return r;
-
-	r = sc_create_file(card, file);
+	r = sc_create_file(p15card->card, pinfile);
 	if(r)
 	{
 		if(r != SC_ERROR_FILE_ALREADY_EXISTS)
 			return (r);
 
-		sc_format_path("3F005015AAAA", &path);
-		r = sc_select_file(card, &path, NULL);
+		r = sc_select_file(p15card->card, &pinfile->path, NULL);
 		if(r) return (r);
 	}
 
-	if(file)
-		sc_file_free(file);
+	if(pinfile)
+		sc_file_free(pinfile);
 
 	if(pin != NULL)
 	{
 		sc_changekey_t ck;
 		struct sc_pin_cmd_pin pin_cmd;
+		int ret;
 
 		memset(&pin_cmd, 0, sizeof(pin_cmd));
 		memset(&ck, 0, sizeof(ck));
@@ -146,12 +131,13 @@ static int westcos_pkcs15_create_pin(sc_profile_t *profile,
 		pin_cmd.data = pin;
 		pin_cmd.max_length = 8;
 
-		ck.new_key.key_len = sc_build_pin(ck.new_key.key_value, 
+		ret = sc_build_pin(ck.new_key.key_value, 
 			sizeof(ck.new_key.key_value), &pin_cmd, 1); 
-		if(ck.new_key.key_len<0)
+		if(ret < 0)
 			return SC_ERROR_CARD_CMD_FAILED;
 
-		r = sc_card_ctl(card, SC_CARDCTL_WESTCOS_CHANGE_KEY, &ck);
+		ck.new_key.key_len = ret;
+		r = sc_card_ctl(p15card->card, SC_CARDCTL_WESTCOS_CHANGE_KEY, &ck);
 		if(r) return r;
 	}
 
@@ -159,6 +145,7 @@ static int westcos_pkcs15_create_pin(sc_profile_t *profile,
 	{
 		sc_changekey_t ck;
 		struct sc_pin_cmd_pin puk_cmd;
+		int ret;
 
 		memset(&puk_cmd, 0, sizeof(puk_cmd));
 		memset(&ck, 0, sizeof(ck));
@@ -170,12 +157,13 @@ static int westcos_pkcs15_create_pin(sc_profile_t *profile,
 		puk_cmd.data = puk;
 		puk_cmd.max_length = 8;
 
-		ck.new_key.key_len = sc_build_pin(ck.new_key.key_value, 
+		ret = sc_build_pin(ck.new_key.key_value, 
 			sizeof(ck.new_key.key_value), &puk_cmd, 1); 
-		if(ck.new_key.key_len<0)
+		if(ret < 0)
 			return SC_ERROR_CARD_CMD_FAILED;
 
-		r = sc_card_ctl(card, SC_CARDCTL_WESTCOS_CHANGE_KEY, &ck);
+		ck.new_key.key_len = ret;
+		r = sc_card_ctl(p15card->card, SC_CARDCTL_WESTCOS_CHANGE_KEY, &ck);
 		if(r) return r;
 	}
 
@@ -186,71 +174,23 @@ static int westcos_pkcs15_create_pin(sc_profile_t *profile,
  * Create a new key file
  */
 static int westcos_pkcs15init_create_key(sc_profile_t *profile, 
-						sc_card_t *card, 
+						sc_pkcs15_card_t *p15card, 
 						sc_pkcs15_object_t *obj)
 {
-	int             r;
-	size_t          size;
-	sc_file_t       *keyfile = NULL;
-	sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
 
 	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 
-	switch (key_info->modulus_length) {
-		case  128: size = 112; break;
-		case  256: size = 184; break;
-		case  512: size = 336; break;
-		case  768: size = 480; break;
-		case 1024: size = 616; break;
-		case 1536: size = 912; break;
-		case 2048: size = 1200; break;
-		default:
-			r = SC_ERROR_INVALID_ARGUMENTS;
-			goto out;
-	}
-
-	keyfile = sc_file_new();
-	if(keyfile == NULL)
-		return SC_ERROR_OUT_OF_MEMORY;
-
-	keyfile->path = key_info->path;
-
-	keyfile->type = SC_FILE_TYPE_WORKING_EF;
-	keyfile->ef_structure = SC_FILE_EF_TRANSPARENT;
-	keyfile->shareable = 0;
-	keyfile->size = size;
-
-	r = sc_file_add_acl_entry(keyfile, SC_AC_OP_READ, SC_AC_CHV, 0);
-	if(r) goto out;
-	r = sc_file_add_acl_entry(keyfile, SC_AC_OP_UPDATE, SC_AC_CHV, 0);
-	if(r) goto out;
-	r = sc_file_add_acl_entry(keyfile, SC_AC_OP_ERASE, SC_AC_CHV, 0);
-	if(r) goto out;
-
-	r = sc_pkcs15init_create_file(profile, card, keyfile);
-	if(r)
-	{
-		if(r != SC_ERROR_FILE_ALREADY_EXISTS)
-			goto out;
-		r = 0;
-	}
-
-out:
-	if(keyfile)
-		sc_file_free(keyfile);
-
-	return r;
+	return 0;
 }
-
 
 
 /*
  * Store a private key
  */
 static int westcos_pkcs15init_store_key(sc_profile_t *profile, 
-						sc_card_t *card,
+						sc_pkcs15_card_t *p15card,
 						sc_pkcs15_object_t *obj,
 						sc_pkcs15_prkey_t *key)
 {
@@ -261,7 +201,7 @@ static int westcos_pkcs15init_store_key(sc_profile_t *profile,
  * Generate key
  */
 static int westcos_pkcs15init_generate_key(sc_profile_t *profile, 
-						sc_card_t *card,
+						sc_pkcs15_card_t *p15card,
 						sc_pkcs15_object_t *obj,
 						sc_pkcs15_pubkey_t *pubkey)
 {
@@ -272,11 +212,11 @@ static int westcos_pkcs15init_generate_key(sc_profile_t *profile,
 	long lg;
 	u8 *p;
 	sc_pkcs15_prkey_info_t *key_info = (sc_pkcs15_prkey_info_t *) obj->data;
-	RSA			*rsa = NULL;
-	BIGNUM			*bn = NULL;
-	BIO			*mem = NULL;
+	RSA *rsa = NULL;
+	BIGNUM *bn = NULL;
+	BIO *mem = NULL;
 
-	sc_file_t 		*prkf = NULL;
+	sc_file_t *prkf = NULL;
 	
 	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA) {
 		return SC_ERROR_NOT_SUPPORTED;
@@ -293,7 +233,6 @@ static int westcos_pkcs15init_generate_key(sc_profile_t *profile,
 		goto out;
 	}
 
-	/* pkcs11 re-route routine cryptage vers la carte fixe default to use openssl */
 	if(!BN_set_word(bn, RSA_F4) || 
 		!RSA_generate_key_ex(rsa, key_info->modulus_length, bn, NULL))
 #else
@@ -327,7 +266,7 @@ static int westcos_pkcs15init_generate_key(sc_profile_t *profile,
 
 		pubkey->algorithm = SC_ALGORITHM_RSA;
 
-		r = sc_pkcs15_decode_pubkey(card->ctx, pubkey, p, lg);
+		r = sc_pkcs15_decode_pubkey(p15card->card->ctx, pubkey, p, lg);
 	}
 
 	(void) BIO_reset(mem);
@@ -350,10 +289,15 @@ static int westcos_pkcs15init_generate_key(sc_profile_t *profile,
 		if (r != SC_SUCCESS)
 			pbuf[0] = '\0';
 
-		return r;
+		goto out;
 	}
 
-	r = sc_pkcs15init_update_file(profile, card, prkf, p, lg);
+	prkf->size = lg;
+
+	r = sc_pkcs15init_create_file(profile, p15card, prkf);
+	if(r) goto out;
+
+	r = sc_pkcs15init_update_file(profile, p15card, prkf, p, lg);
 	if(r) goto out;
 
 out:
@@ -382,23 +326,22 @@ static int westcos_pkcs15init_finalize_card(sc_card_t *card)
 }
 
 static struct sc_pkcs15init_operations sc_pkcs15init_westcos_operations = {
-        NULL,								/* erase_card */
-        westcos_pkcs15init_init_card,		/* init_card  */
-        westcos_pkcs15init_create_dir,		/* create_dir */
-        NULL,								 /* create_domain */
-        westcos_pkcs15_select_pin_reference,/* select_pin_reference */
-        westcos_pkcs15_create_pin,			/* create_pin */
-        NULL,								/* select_key_reference */
-        westcos_pkcs15init_create_key,		/* create_key */
-        westcos_pkcs15init_store_key,		/* store_key */
-        westcos_pkcs15init_generate_key,	/* generate_key */
-        NULL, NULL,							/* encode private/public key */
-        westcos_pkcs15init_finalize_card,	/* finalize_card */
-		NULL,NULL,NULL,NULL,				/* old style app */
-        NULL,								/* old_generate_key */
-        NULL								/* delete_object */
+	NULL,					/* erase_card */
+	westcos_pkcs15init_init_card,		/* init_card  */
+	westcos_pkcs15init_create_dir,		/* create_dir */
+	NULL,					/* create_domain */
+	westcos_pkcs15_select_pin_reference,	/* select_pin_reference */
+	westcos_pkcs15_create_pin,		/* create_pin */
+	NULL,					/* select_key_reference */
+	westcos_pkcs15init_create_key,		/* create_key */
+	westcos_pkcs15init_store_key,		/* store_key */
+	westcos_pkcs15init_generate_key,	/* generate_key */
+	NULL, NULL,				/* encode private/public key */
+	westcos_pkcs15init_finalize_card,	/* finalize_card */
+	NULL,					/* delete_object */
+	NULL, NULL, NULL, NULL, NULL  /* pkcs15init emulation */
 };
-	
+
 struct sc_pkcs15init_operations* sc_pkcs15init_get_westcos_ops(void)
 {
 	return &sc_pkcs15init_westcos_operations;

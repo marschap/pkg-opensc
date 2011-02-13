@@ -1,5 +1,5 @@
 /*
- * $Id: parse.c 3510 2008-05-05 13:00:01Z ludovic.rousseau $
+ * $Id: parse.c 4636 2010-08-18 15:08:51Z ludovic.rousseau $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -19,9 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,9 +28,10 @@
 #include <strings.h>
 #endif
 #include <errno.h>
+
+#include "common/compat_strlcpy.h"
 #include "scconf.h"
 #include "internal.h"
-#include <compat_strlcpy.h>
 
 #define STATE_NAME	0x01
 #define STATE_VALUE	0x02
@@ -77,7 +77,7 @@ static void scconf_parse_warning_expect(scconf_parser * parser, const char *toke
 		parser->line, token);
 }
 
-static scconf_item *scconf_item_find(scconf_parser * parser, const char *key)
+static scconf_item *scconf_item_find(scconf_parser * parser)
 {
 	scconf_item *item;
 
@@ -96,7 +96,7 @@ static scconf_item *scconf_item_add_internal(scconf_parser * parser, int type)
 
 	if (type == SCCONF_ITEM_TYPE_VALUE) {
 		/* if item with same key already exists, use it */
-		item = scconf_item_find(parser, parser->key);
+		item = scconf_item_find(parser);
 		if (item) {
 			if (parser->key) {
 				free(parser->key);
@@ -106,7 +106,7 @@ static scconf_item *scconf_item_add_internal(scconf_parser * parser, int type)
 			return item;
 		}
 	}
-	item = (scconf_item *) malloc(sizeof(scconf_item));
+	item = malloc(sizeof(scconf_item));
 	if (!item) {
 		return NULL;
 	}
@@ -173,7 +173,7 @@ static void scconf_block_add_internal(scconf_parser * parser)
 
 	item = scconf_item_add_internal(parser, SCCONF_ITEM_TYPE_BLOCK);
 
-	block = (scconf_block *) malloc(sizeof(scconf_block));
+	block = malloc(sizeof(scconf_block));
 	if (!block) {
 		return;
 	}

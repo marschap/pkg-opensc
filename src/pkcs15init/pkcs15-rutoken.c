@@ -1,5 +1,5 @@
 /*
- * Rutoken specific operation for PKCS15 initialization
+ * Rutoken S specific operation for PKCS15 initialization
  *
  * Copyright (C) 2007  Pavel Mironchik <rutoken@rutoken.ru>
  * Copyright (C) 2007  Eugene Hermann <rutoken@rutoken.ru> 
@@ -19,25 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-#if defined(HAVE_INTTYPES_H)
-#include <inttypes.h>
-#elif defined(HAVE_STDINT_H)
-#include <stdint.h>
-#elif defined(_MSC_VER)
-typedef unsigned __int32 uint32_t;
-#else
-#warning no uint32_t type available, please contact opensc-devel@opensc-project.org
-#endif
+#include "config.h"
+
 #include <sys/types.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
-#include <opensc/opensc.h>
-#include <opensc/cardctl.h>
-#include <opensc/log.h>
-#include <opensc/pkcs15.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/cardctl.h"
+#include "libopensc/log.h"
+#include "libopensc/pkcs15.h"
 #include "pkcs15-init.h"
 #include "profile.h"
 
@@ -63,8 +55,8 @@ static const sc_SecAttrV2_t p2_sec_attr = {
 	2
 };
 static const sc_SecAttrV2_t p1_sec_attr = {
-	0x43, 1, 1, 0, 0, 0, 0, -1,
-	1, 0, 0, 0,
+	0x43, -1, 1, 0, 0, 0, 0, -1,
+	0, 0, 0, 0,
 	1
 };
 
@@ -84,151 +76,73 @@ static const struct
 			}
 		};
 
-
-static int rutoken_get_bin_from_prkey(const struct sc_pkcs15_prkey_rsa *rsa,
-			u8 *bufkey, size_t *bufkey_size)
-{
-	const uint32_t bitlen = rsa->modulus.len * 8;
-	size_t i, len;
-
-	if (    rsa->modulus.len  != bitlen/8
-	     || rsa->p.len        != bitlen/16
-	     || rsa->q.len        != bitlen/16
-	     || rsa->dmp1.len     != bitlen/16
-	     || rsa->dmq1.len     != bitlen/16
-	     || rsa->iqmp.len     != bitlen/16
-	     || rsa->d.len        != bitlen/8
-	     || rsa->exponent.len > sizeof(uint32_t)
-	)
-		return -1;
-
-	if (*bufkey_size < 14 + sizeof(uint32_t) * 2 + bitlen/8 * 2 + bitlen/16 * 5)
-		return -1;
-
-	bufkey[0] = 2;
-	bufkey[1] = 1;
-
-	/* BLOB header */
-	bufkey[2] = 0x07; /* Type */
-	bufkey[3] = 0x02; /* Version */
-	/* reserve */
-	bufkey[4] = 0;
-	bufkey[5] = 0;
-	/* aiKeyAlg */
-	bufkey[6] = 0;
-	bufkey[7] = 0xA4;
-	bufkey[8] = 0;
-	bufkey[9] = 0;
-
-	/* RSAPUBKEY */
-	/* magic "RSA2" */
-	bufkey[10] = 0x52;
-	bufkey[11] = 0x53;
-	bufkey[12] = 0x41;
-	bufkey[13] = 0x32;
-	len = 14;
-	/* bitlen */
-	for (i = 0; i < sizeof(uint32_t); ++i)
-		bufkey[len++] = (bitlen >> i*8) & 0xff;
-	/* pubexp */
-	for (i = 0; i < sizeof(uint32_t); ++i)
-		if (i < rsa->exponent.len)
-			bufkey[len++] = rsa->exponent.data[rsa->exponent.len - 1 - i];
-		else
-			bufkey[len++] = 0;
-
-#define MEMCPY_BUF_REVERSE_RSA(NAME) \
-	do { \
-		for (i = 0; i < rsa->NAME.len; ++i) \
-			bufkey[len++] = rsa->NAME.data[rsa->NAME.len - 1 - i]; \
-	} while (0)
-
-	/* PRIVATEKEYBLOB tail */
-	MEMCPY_BUF_REVERSE_RSA(modulus); /* modulus */
-	MEMCPY_BUF_REVERSE_RSA(p); /* prime1 */
-	MEMCPY_BUF_REVERSE_RSA(q); /* prime2 */
-	MEMCPY_BUF_REVERSE_RSA(dmp1); /* exponent1 */
-	MEMCPY_BUF_REVERSE_RSA(dmq1); /* exponent2 */
-	MEMCPY_BUF_REVERSE_RSA(iqmp); /* coefficient */
-	MEMCPY_BUF_REVERSE_RSA(d); /* privateExponent */
-
-	*bufkey_size = len;
-	return 0;
-}
-
 /*
  * Create a DF
  */
 static int
-rutoken_create_dir(sc_profile_t *profile, sc_card_t *card, sc_file_t *df)
+rutoken_create_dir(sc_profile_t *profile, sc_pkcs15_card_t *p15card, 
+		sc_file_t *df)
 {
-	if (!profile || !card || !card->ctx || !df)
+	if (!profile || !p15card || !p15card->card || !p15card->card->ctx || !df)
 		return SC_ERROR_INVALID_ARGUMENTS;
-	SC_FUNC_CALLED(card->ctx, 1);
-	return sc_pkcs15init_create_file(profile, card, df);
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
+	return sc_pkcs15init_create_file(profile, p15card, df);
 }
 
 /*
  * Select a PIN reference
  */
 static int
-rutoken_select_pin_reference(sc_profile_t *profile, sc_card_t *card,
+rutoken_select_pin_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 			sc_pkcs15_pin_info_t *pin_info)
 {
-	if (!profile || !card || !pin_info)
+	int pin_ref;
+	unsigned int so_pin_flag;
+
+	if (!profile || !p15card || !p15card->card || !p15card->card->ctx || !pin_info)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 
-	sc_debug(card->ctx, "PIN reference %i, PIN flags 0x%x\n",
-			pin_info->reference, pin_info->flags);
-	/* XXX:
-	 * Create:
-	 * First iteration find reference for create new PIN object with
-	 * pin_info->reference == 0
-	 * Next iteration ++pin_info->reference signify PIN object
-	 * (pin_info->reference == SC_RUTOKEN_DEF_ID_GCHV_ADMIN  or
-	 *  pin_info->reference == SC_RUTOKEN_DEF_ID_GCHV_USER)
-	 * is already created.
-	 * Find:
-	 * Valid PIN reference: { SC_RUTOKEN_DEF_ID_GCHV_ADMIN,
-	 * SC_RUTOKEN_DEF_ID_GCHV_USER }
-	 */
-	if (pin_info->reference != 0
-			&& pin_info->reference != SC_RUTOKEN_DEF_ID_GCHV_ADMIN
-			&& pin_info->reference != SC_RUTOKEN_DEF_ID_GCHV_USER
+	pin_ref = pin_info->reference;
+	so_pin_flag = pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN;
+
+	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "PIN reference %i%s\n",
+			pin_ref, so_pin_flag ? " SO PIN flag" : "");
+
+	if ((pin_ref == SC_RUTOKEN_DEF_ID_GCHV_ADMIN && so_pin_flag)
+			|| (pin_ref == SC_RUTOKEN_DEF_ID_GCHV_USER && !so_pin_flag)
 	)
-		/* PKCS#15 SOPIN and UserPIN already created */
-		return SC_ERROR_NOT_SUPPORTED;
-
-	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN)
-		pin_info->reference = SC_RUTOKEN_DEF_ID_GCHV_ADMIN;
+		return SC_SUCCESS;
 	else
-		pin_info->reference = SC_RUTOKEN_DEF_ID_GCHV_USER;
-	sc_debug(card->ctx, "PIN reference %i\n", pin_info->reference);
-	return SC_SUCCESS;
+		return SC_ERROR_NOT_SUPPORTED;
 }
 
 /*
  * Create a PIN object within the given DF
  */
 static int
-rutoken_create_pin(sc_profile_t *profile, sc_card_t *card,
+rutoken_create_pin(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 			sc_file_t *df, sc_pkcs15_object_t *pin_obj,
 			const unsigned char *pin, size_t pin_len,
 			const unsigned char *puk, size_t puk_len)
 {
+	sc_context_t *ctx;
 	sc_pkcs15_pin_info_t *pin_info;
 	size_t i;
 
-	if (!profile || !card || !df || !pin_obj || !pin_obj->data || !pin || !pin_len)
+	(void)puk; /* no warning */
+	if (!profile || !p15card || !p15card->card || !p15card->card->ctx
+			|| !df || !pin_obj || !pin_obj->data || !pin || !pin_len)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	ctx = p15card->card->ctx;
+	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
 
 	if (puk_len != 0)
 	{
-		sc_error(card->ctx, "Do not enter User unblocking PIN (PUK): %s\n",
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL,
+				"Do not enter User unblocking PIN (PUK): %s\n",
 				sc_strerror(SC_ERROR_NOT_SUPPORTED));
 		return SC_ERROR_NOT_SUPPORTED;
 	}
@@ -242,113 +156,14 @@ rutoken_create_pin(sc_profile_t *profile, sc_card_t *card,
 				return SC_SUCCESS;
 			else
 			{
-				sc_error(card->ctx, "Incorrect PIN\n");
+				sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Incorrect PIN\n");
 				break;
 			}
 		}
-	sc_debug(card->ctx, "PIN reference %i not found in standard (Rutoken) PINs\n",
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL,
+			"PIN reference %i not found in standard (Rutoken) PINs\n",
 			pin_info->reference);
 	return SC_ERROR_NOT_SUPPORTED;
-}
-
-/*
- * Select a key reference
- */
-static int
-rutoken_select_key_reference(sc_profile_t *profile, sc_card_t *card,
-			sc_pkcs15_prkey_info_t *key_info)
-{
-	int id_low;
-
-	if (!profile || !card || !card->ctx || !key_info || key_info->path.len < 1)
-		return SC_ERROR_INVALID_ARGUMENTS;
-
-	SC_FUNC_CALLED(card->ctx, 1);
-
-	id_low = key_info->key_reference + key_info->path.value[key_info->path.len - 1];
-	sc_debug(card->ctx, "id_low = %i, key_reference = %i\n",
-			id_low, key_info->key_reference);
-	if (id_low > 0xFF)
-		return SC_ERROR_TOO_MANY_OBJECTS;
-
-	key_info->path.value[key_info->path.len - 1] = id_low & 0xFF;
-	return SC_SUCCESS;
-}
-
-/*
- * Create a private key object.
- * This is a no-op.
- */
-static int
-rutoken_create_key(sc_profile_t *profile, sc_card_t *card,
-			sc_pkcs15_object_t *obj)
-{
-	if (!profile || !card || !card->ctx || !obj)
-		return SC_ERROR_INVALID_ARGUMENTS;
-	SC_FUNC_CALLED(card->ctx, 1);
-	return SC_SUCCESS;
-}
-
-/* 
- * Store a private key object.
- */
-static int
-rutoken_store_key(sc_profile_t *profile, sc_card_t *card,
-			sc_pkcs15_object_t *obj,
-			sc_pkcs15_prkey_t *key)
-{
-	sc_pkcs15_prkey_info_t *key_info;
-	u8 *prkeybuf = NULL;
-	size_t prsize = 2048;
-	sc_file_t *file;
-	int ret;
-
-	if (!profile || !card || !card->ctx || !obj || !obj->data || !key)
-		return SC_ERROR_INVALID_ARGUMENTS;
-
-	SC_FUNC_CALLED(card->ctx, 1);
-
-	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA)
-		return SC_ERROR_NOT_SUPPORTED;
-
-	key_info = (sc_pkcs15_prkey_info_t *) obj->data;
-	if (key_info->path.len < 2)
-		return SC_ERROR_INVALID_ARGUMENTS;
-
-	prkeybuf = calloc(prsize, 1);
-	if (!prkeybuf)
-		return SC_ERROR_OUT_OF_MEMORY;
-
-	/*
-	 * encode private key 
-	 * create key file 
-	 * write a key
-	 */
-	ret = rutoken_get_bin_from_prkey(&key->u.rsa, prkeybuf, &prsize);
-	sc_debug(card->ctx, "sc_rutoken_get_bin_from_prkey returned %i\n", ret);
-	if (ret == 0)
-	{
-		file = sc_file_new();
-		if (!file)
-			ret = SC_ERROR_OUT_OF_MEMORY;
-		else
-		{
-			/* create (or update) key file */
-			file->path = key_info->path;
-			file->type = SC_FILE_TYPE_WORKING_EF;
-			file->id = key_info->path.value[key_info->path.len - 2] << 8
-				| key_info->path.value[key_info->path.len - 1];
-			file->size = prsize;
-			sc_file_set_sec_attr(file, pr_sec_attr, sizeof(pr_sec_attr));
-
-			ret = sc_pkcs15init_update_file(profile, card,
-					file, prkeybuf, prsize);
-			sc_file_free(file);
-		}
-		memset(prkeybuf, 0, prsize);
-	}
-	free(prkeybuf);
-	return ret;
 }
 
 /*
@@ -464,14 +279,16 @@ static int create_typical_fs(sc_card_t *card)
  * Erase everything that's on the card
  */
 static int
-rutoken_erase(struct sc_profile *profile, sc_card_t *card)
+rutoken_erase(struct sc_profile *profile, sc_pkcs15_card_t *p15card)
 {
+	sc_card_t *card;
 	int ret, ret_end;
 
-	if (!profile || !card || !card->ctx)
+	if (!profile || !p15card || !p15card->card || !p15card->card->ctx)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	card = p15card->card;
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 	/* ret = sc_card_ctl(card, SC_CARDCTL_ERASE_CARD, NULL); */
 	ret = sc_card_ctl(card, SC_CARDCTL_RUTOKEN_FORMAT_INIT, NULL);
@@ -479,14 +296,16 @@ rutoken_erase(struct sc_profile *profile, sc_card_t *card)
 	{
 		ret = create_typical_fs(card);
 		if (ret != SC_SUCCESS)
-			sc_error(card->ctx, "Failed to create typical fs: %s\n",
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+					"Failed to create typical fs: %s\n",
 					sc_strerror(ret));
 		ret_end = sc_card_ctl(card, SC_CARDCTL_RUTOKEN_FORMAT_END, NULL);
 		if (ret_end != SC_SUCCESS)
 			ret = ret_end;
 	}
 	if (ret != SC_SUCCESS)
-		sc_error(card->ctx, "Failed to erase: %s\n", sc_strerror(ret));
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+				"Failed to erase: %s\n", sc_strerror(ret));
 	else
 		sc_free_apps(card);
 	return ret;
@@ -499,20 +318,15 @@ static struct sc_pkcs15init_operations sc_pkcs15init_rutoken_operations = {
 	NULL,                           /* create_domain */
 	rutoken_select_pin_reference,   /* select_pin_reference */
 	rutoken_create_pin,             /* create_pin */
-	rutoken_select_key_reference,   /* select_key_reference */
-	rutoken_create_key,             /* create_key */
-	rutoken_store_key,              /* store_key */
+	NULL,                           /* select_key_reference */
+	NULL,                           /* create_key */
+	NULL,                           /* store_key */
 	NULL,                           /* generate_key */
 	NULL,                           /* encode_private_key */
 	NULL,                           /* encode_public_key */
 	NULL,                           /* finalize_card */
-	/* Old-style API */
-	NULL,                           /* init_app */
-	NULL,                           /* new_pin */
-	NULL,                           /* new_key */
-	NULL,                           /* new_file */
-	NULL,                           /* old_generate_key */
-	NULL                            /* delete_object */
+	NULL,                           /* delete_object */
+	NULL, NULL, NULL, NULL, NULL    /* pkcs15init emulation */
 };
 
 struct sc_pkcs15init_operations* sc_pkcs15init_get_rutoken_ops(void)

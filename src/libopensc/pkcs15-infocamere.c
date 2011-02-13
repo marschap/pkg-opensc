@@ -21,20 +21,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
-#include <opensc/pkcs15.h>
-#include <opensc/log.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <compat_strlcpy.h>
-
 #ifdef ENABLE_ZLIB
 #include <zlib.h>
 #endif
+
+#include "common/compat_strlcpy.h"
+#include "pkcs15.h"
+#include "log.h"
 
 int sc_pkcs15emu_infocamere_init_ex(sc_pkcs15_card_t *,
 				    sc_pkcs15emu_opt_t *);
@@ -242,9 +240,7 @@ static int infocamere_1200_init(sc_pkcs15_card_t * p15card)
 
 	sc_format_path("3F002F02", &path);
 
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_select_file(card, &path, &file);
-	sc_ctx_suppress_errors_off(card->ctx);
 	
 	if (r != SC_SUCCESS || file->size > 255) {
 		/* Not EF.GDO */
@@ -291,16 +287,16 @@ static int infocamere_1200_init(sc_pkcs15_card_t * p15card)
 		return SC_ERROR_WRONG_CARD;
 	}
 
-	set_string(&p15card->serial_number, serial);
+	set_string(&p15card->tokeninfo->serial_number, serial);
 
 	if (ef_gdo[len_iccsn + 6] == 0x02)
-		set_string(&p15card->label, "Infocamere 1202 Card");
+		set_string(&p15card->tokeninfo->label, "Infocamere 1202 Card");
 	else {
-		set_string(&p15card->label, "Infocamere 1203 Card");
+		set_string(&p15card->tokeninfo->label, "Infocamere 1203 Card");
 		change_sign = 1;
 	}
 
-	set_string(&p15card->manufacturer_id, "Infocamere");
+	set_string(&p15card->tokeninfo->manufacturer_id, "Infocamere");
 
 	authority = 0;
 
@@ -308,9 +304,7 @@ static int infocamere_1200_init(sc_pkcs15_card_t * p15card)
 
 	sc_format_path(infocamere_auth_certpath[ef_gdo[len_iccsn+6]-2], &path);
 
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_select_file(card, &path, NULL);
-	sc_ctx_suppress_errors_off(card->ctx);
 
 	if (r >= 0) {
 
@@ -398,9 +392,7 @@ static int infocamere_1200_init(sc_pkcs15_card_t * p15card)
 
 	sc_format_path(infocamere_cacert_path[ef_gdo[len_iccsn+6]-2], &path);
 
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_select_file(card, &path, NULL);
-	sc_ctx_suppress_errors_off(card->ctx);
 
 	if (r >= 0) {
 		size_t len;
@@ -522,15 +514,14 @@ static int loadCertificate(sc_pkcs15_card_t * p15card, int i,
 	sc_read_binary(card, 2, size, 2, 0);
 
 	compLen = (size[0] << 8) + size[1];
-	compCert =
-	    (unsigned char *) malloc(compLen * sizeof(unsigned char));
+	compCert = malloc(compLen * sizeof(unsigned char));
 	len = 4 * compLen;	/*Approximation of the uncompressed size */
-	cert = (unsigned char *) malloc(len * sizeof(unsigned char));
+	cert = malloc(len * sizeof(unsigned char));
 
 	sc_read_binary(card, 4, compCert, compLen, 0);
 
 	if ((r = uncompress(cert, &len, compCert, compLen)) != Z_OK) {
-		sc_error(p15card->card->ctx, "Zlib error: %d", r);
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Zlib error: %d", r);
 		return SC_ERROR_INTERNAL;
 	}
 
@@ -596,7 +587,7 @@ static int infocamere_1400_init(sc_pkcs15_card_t * p15card)
 	set_security_env = card->ops->set_security_env;
 	card->ops->set_security_env = infocamere_1400_set_sec_env;
 	card->ops->compute_signature = do_sign;
-	p15card->opts.use_cache = 1;
+	p15card->opts.use_file_cache = 1;
 
 	sc_format_path("30000001", &path);
 
@@ -608,13 +599,13 @@ static int infocamere_1400_init(sc_pkcs15_card_t * p15card)
 	sc_read_binary(card, 15, serial, 15, 0);
 	serial[15] = '\0';
 
-	set_string(&p15card->serial_number, (char *)serial);
-	set_string(&p15card->label, "Infocamere 1400 Card");
-	set_string(&p15card->manufacturer_id, "Infocamere");
+	set_string(&p15card->tokeninfo->serial_number, (char *)serial);
+	set_string(&p15card->tokeninfo->label, "Infocamere 1400 Card");
+	set_string(&p15card->tokeninfo->manufacturer_id, "Infocamere");
 
 	if ((r = loadCertificate(p15card, 0, certPath[0], certLabel[0])) !=
 	    SC_SUCCESS) {
-		sc_error(p15card->card->ctx, "%s", sc_strerror(r));
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "%s", sc_strerror(r));
 		return SC_ERROR_WRONG_CARD;
 	}
 
@@ -733,9 +724,9 @@ static int infocamere_1600_init(sc_pkcs15_card_t * p15card)
 	sc_read_binary(card, 30, serial, 16, 0);
 	serial[16] = '\0';
 
-	set_string(&p15card->serial_number, (char *) serial);
-	set_string(&p15card->label, "Infocamere 1600 Card");
-	set_string(&p15card->manufacturer_id, "Infocamere");
+	set_string(&p15card->tokeninfo->serial_number, (char *) serial);
+	set_string(&p15card->tokeninfo->label, "Infocamere 1600 Card");
+	set_string(&p15card->tokeninfo->manufacturer_id, "Infocamere");
 
 	/* Adding certificates.
 	 * Certificates are stored in a ZLib compressed form with

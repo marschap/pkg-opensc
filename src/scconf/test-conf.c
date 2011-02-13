@@ -1,5 +1,5 @@
 /*
- * $Id: test-conf.c 3177 2007-06-21 10:07:01Z aj $
+ * $Id: test-conf.c 4163 2010-03-28 14:13:32Z ludovic.rousseau $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -19,9 +19,8 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
