@@ -21,9 +21,8 @@
  *  -	the "key" command should go away, it's obsolete
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -37,15 +36,28 @@
 #endif
 #include <assert.h>
 #include <stdlib.h>
-#include <opensc/scconf.h>
-#include <opensc/log.h>
+
+#ifdef _WIN32  
+#include <windows.h>
+#include <winreg.h>
+#endif
+
+#include "common/compat_strlcpy.h"
+#include "scconf/scconf.h"
+#include "libopensc/log.h"
+#include "libopensc/pkcs15.h"
 #include "pkcs15-init.h"
 #include "profile.h"
-#include <compat_strlcpy.h>
 
 #define DEF_PRKEY_RSA_ACCESS	0x1D
 #define DEF_PRKEY_DSA_ACCESS	0x12
 #define DEF_PUBKEY_ACCESS	0x12
+
+#define TEMPLATE_FILEID_MIN_DIFF	0x20
+
+/*
+#define DEBUG_PROFILE 
+*/
 
 /*
  * Parser state
@@ -104,13 +116,18 @@ static struct map		fileOpNames[] = {
 	{ "UPDATE",	SC_AC_OP_UPDATE	},
 	{ "WRITE",	SC_AC_OP_WRITE	},
 	{ "ERASE",	SC_AC_OP_ERASE	},
-	{ "CRYPTO",	SC_AC_OP_CRYPTO },
+	{ "CRYPTO",     SC_AC_OP_CRYPTO },
+        { "PIN-DEFINE", SC_AC_OP_PIN_DEFINE },
+        { "PIN-CHANGE", SC_AC_OP_PIN_CHANGE },
+        { "PIN-RESET",  SC_AC_OP_PIN_RESET },
+	{ "GENERATE",	SC_AC_OP_GENERATE },
 	{ NULL, 0 }
 };
 static struct map		fileTypeNames[] = {
 	{ "EF",		SC_FILE_TYPE_WORKING_EF		},
 	{ "INTERNAL-EF",SC_FILE_TYPE_INTERNAL_EF	},
 	{ "DF",		SC_FILE_TYPE_DF			},
+	{ "BSO",	SC_FILE_TYPE_BSO		},
 	{ NULL, 0 }
 };
 static struct map		fileStructureNames[] = {
@@ -136,11 +153,11 @@ static struct map		pkcs15DfNames[] = {
 	{ NULL, 0 }
 };
 static struct map		pinTypeNames[] = {
-	{ "BCD",		0			},
-	{ "ascii-numeric",	1			},
-	{ "utf8",		2			},
-	{ "half-nibble-bcd",	3			},
-	{ "iso9564-1",		4			},
+	{ "BCD",		SC_PKCS15_PIN_TYPE_BCD	},
+	{ "ascii-numeric",	SC_PKCS15_PIN_TYPE_ASCII_NUMERIC	},
+	{ "utf8",		SC_PKCS15_PIN_TYPE_UTF8	},
+	{ "half-nibble-bcd",	SC_PKCS15_PIN_TYPE_HALFNIBBLE_BCD	},
+	{ "iso9564-1",		SC_PKCS15_PIN_TYPE_ISO9564_1	},
 	{ NULL, 0 }
 };
 static struct map		pinIdNames[] = {
@@ -155,18 +172,24 @@ static struct map		pinIdNames[] = {
 	{ NULL, 0 }
 };
 static struct map		pinFlagNames[] = {
-	{ "case-sensitive",		0x0001			},
-	{ "local",			0x0002			},
-	{ "change-disabled",		0x0004			},
-	{ "unblock-disabled",		0x0008			},
-	{ "initialized",		0x0010			},
-	{ "needs-padding",		0x0020			},
-	{ "unblockingPin",		0x0040			},
-	{ "soPin",			0x0080			},
-	{ "disable-allowed",		0x0100			},
-	{ "integrity-protected",	0x0200			},
-	{ "confidentiality-protected",	0x0400			},
-	{ "exchangeRefData",		0x0800			},
+	{ "case-sensitive",		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE		},
+	{ "local",			SC_PKCS15_PIN_FLAG_LOCAL			},
+	{ "change-disabled",		SC_PKCS15_PIN_FLAG_CHANGE_DISABLED		},
+	{ "unblock-disabled",		SC_PKCS15_PIN_FLAG_UNBLOCK_DISABLED		},
+	{ "initialized",		SC_PKCS15_PIN_FLAG_INITIALIZED			},
+	{ "needs-padding",		SC_PKCS15_PIN_FLAG_NEEDS_PADDING		},
+	{ "unblockingPin",		SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN		},
+	{ "soPin",			SC_PKCS15_PIN_FLAG_SO_PIN			},
+	{ "disable-allowed",		SC_PKCS15_PIN_FLAG_DISABLE_ALLOW		},
+	{ "integrity-protected",	SC_PKCS15_PIN_FLAG_INTEGRITY_PROTECTED		},
+	{ "confidentiality-protected",	SC_PKCS15_PIN_FLAG_CONFIDENTIALITY_PROTECTED	},
+	{ "exchangeRefData",		SC_PKCS15_PIN_FLAG_EXCHANGE_REF_DATA		},
+	{ NULL, 0 }
+};
+static struct map		idStyleNames[] = {
+	{ "native",		SC_PKCS15INIT_ID_STYLE_NATIVE },
+	{ "mozilla",		SC_PKCS15INIT_ID_STYLE_MOZILLA },
+	{ "rfc2459",		SC_PKCS15INIT_ID_STYLE_RFC2459 },
 	{ NULL, 0 }
 };
 static struct {
@@ -212,7 +235,7 @@ static file_info *	sc_profile_find_file_by_path(
 				struct sc_profile *,
 				const sc_path_t *);
 
-static pin_info *	new_pin(struct sc_profile *, unsigned int);
+static pin_info *	new_pin(struct sc_profile *, int);
 static file_info *	new_file(struct state *, const char *,
 				unsigned int);
 static file_info *	add_file(sc_profile_t *, const char *,
@@ -238,7 +261,7 @@ init_file(unsigned int type)
 	}
 	file->type = type;
 	file->status = SC_FILE_STATUS_ACTIVATED;
-	if (file->type != SC_FILE_TYPE_DF)
+	if (file->type != SC_FILE_TYPE_DF && file->type != SC_FILE_TYPE_BSO)
 		file->ef_structure = SC_FILE_EF_TRANSPARENT;
 	return file;
 }
@@ -252,20 +275,19 @@ sc_profile_new(void)
 	struct sc_pkcs15_card *p15card;
 	struct sc_profile *pro;
 
-	pro = (struct sc_profile *) calloc(1, sizeof(*pro));
+	pro = calloc(1, sizeof(*pro));
 	if (pro == NULL)
 		return NULL;
 	pro->p15_spec = p15card = sc_pkcs15_card_new();
 
-	pro->protect_certificates = 1;
 	pro->pkcs15.do_last_update = 1;
 
 	if (p15card) {
-		p15card->label = strdup("OpenSC Card");
-		p15card->manufacturer_id = strdup("OpenSC Project");
-		p15card->serial_number = strdup("0000");
-		p15card->flags = SC_PKCS15_CARD_FLAG_EID_COMPLIANT;
-		p15card->version = 1;
+		p15card->tokeninfo->label = strdup("OpenSC Card");
+		p15card->tokeninfo->manufacturer_id = strdup("OpenSC Project");
+		p15card->tokeninfo->serial_number = strdup("0000");
+		p15card->tokeninfo->flags = SC_PKCS15_TOKEN_EID_COMPLIANT;
+		p15card->tokeninfo->version = 0;
 
 		/* Set up EF(TokenInfo) and EF(ODF) */
 		p15card->file_tokeninfo = init_file(SC_FILE_TYPE_WORKING_EF);
@@ -276,10 +298,10 @@ sc_profile_new(void)
 	/* Assume card does RSA natively, but no DSA */
 	pro->rsa_access_flags = DEF_PRKEY_RSA_ACCESS;
 	pro->dsa_access_flags = DEF_PRKEY_DSA_ACCESS;
-	pro->pin_encoding = 0x01;
+	pro->pin_encoding = SC_PKCS15_PIN_TYPE_ASCII_NUMERIC;
 	pro->pin_minlen = 4;
 	pro->pin_maxlen = 8;
-	pro->keep_public_key = 1;
+	pro->id_style = SC_PKCS15INIT_ID_STYLE_NATIVE; 
 
 	return pro;
 }
@@ -292,18 +314,43 @@ sc_profile_load(struct sc_profile *profile, const char *filename)
 	const char *profile_dir = NULL;
 	char path[PATH_MAX];
 	int             res = 0, i;
-
+#ifdef _WIN32
+	char temp_path[PATH_MAX];
+	DWORD temp_len;
+	long rc;
+	HKEY hKey;
+#endif
+                
 	for (i = 0; ctx->conf_blocks[i]; i++) {
 		profile_dir = scconf_get_str(ctx->conf_blocks[i], "profile_dir", NULL);
 		if (profile_dir)
 			break;
 	}
-
 	if (!profile_dir) {
+#ifdef _WIN32
+		rc = RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\OpenSC Project\\OpenSC", 0, KEY_QUERY_VALUE, &hKey);
+		if (rc == ERROR_SUCCESS) {
+			temp_len = PATH_MAX;
+			rc = RegQueryValueEx(hKey, "ProfileDir", NULL, NULL, (LPBYTE) temp_path, &temp_len);
+			if ((rc == ERROR_SUCCESS) && (temp_len < PATH_MAX))
+				profile_dir = temp_path;
+			RegCloseKey(hKey);
+		}
+		if (!profile_dir) {
+			rc = RegOpenKeyEx(HKEY_LOCAL_MACHINE, "Software\\OpenSC Project\\OpenSC", 0, KEY_QUERY_VALUE, &hKey);
+			if (rc == ERROR_SUCCESS) {
+				temp_len = PATH_MAX;
+				rc = RegQueryValueEx(hKey, "ProfileDir", NULL, NULL, (LPBYTE) temp_path, &temp_len);
+				if ((rc == ERROR_SUCCESS) && (temp_len < PATH_MAX))
+					profile_dir = temp_path;
+				RegCloseKey(hKey);
+			}	
+		}                                                                                                                                                                             
+#else
 		profile_dir = SC_PKCS15_PROFILE_DIRECTORY;
+#endif
 	}
-
-	sc_debug(ctx, "Using profile directory '%s'.", profile_dir);
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Using profile directory '%s'.", profile_dir);
 
 #ifdef _WIN32
 	snprintf(path, sizeof(path), "%s\\%s.%s",
@@ -313,18 +360,14 @@ sc_profile_load(struct sc_profile *profile, const char *filename)
 		profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
 #endif /* _WIN32 */
 
-	if (profile->card->ctx->debug >= 2) {
-		sc_debug(profile->card->ctx,
-			"Trying profile file %s", path);
-	}
+	sc_debug(profile->card->ctx, SC_LOG_DEBUG_NORMAL,
+		"Trying profile file %s", path);
 
 	conf = scconf_new(path);
 	res = scconf_parse(conf);
 
-	if (res > 0 && profile->card->ctx->debug >= 2) {
-		sc_debug(profile->card->ctx,
-			"profile %s loaded ok", path);
-	}
+	sc_debug(profile->card->ctx, SC_LOG_DEBUG_NORMAL,
+		"profile %s loaded ok", path);
 
 	if (res < 0)
 		return SC_ERROR_FILE_NOT_FOUND;
@@ -373,7 +416,7 @@ sc_profile_finish(struct sc_profile *profile)
 	}
 	return 0;
 
-whine:	sc_error(profile->card->ctx, "%s", reason);
+whine:	sc_debug(profile->card->ctx, SC_LOG_DEBUG_NORMAL, "%s", reason);
 	return SC_ERROR_INCONSISTENT_PROFILE;
 }
 
@@ -426,7 +469,7 @@ sc_profile_free(struct sc_profile *profile)
 
 void
 sc_profile_get_pin_info(struct sc_profile *profile,
-		unsigned int id, struct sc_pkcs15_pin_info *info)
+		int id, struct sc_pkcs15_pin_info *info)
 {
 	struct pin_info	*pi;
 
@@ -437,7 +480,7 @@ sc_profile_get_pin_info(struct sc_profile *profile,
 }
 
 int
-sc_profile_get_pin_retries(sc_profile_t *profile, unsigned int id)
+sc_profile_get_pin_retries(sc_profile_t *profile, int id)
 {
 	struct pin_info	*pi;
 
@@ -449,7 +492,7 @@ sc_profile_get_pin_retries(sc_profile_t *profile, unsigned int id)
 
 int
 sc_profile_get_pin_id(struct sc_profile *profile,
-		unsigned int reference, unsigned int *id)
+		unsigned int reference, int *id)
 {
 	struct pin_info	*pi;
 
@@ -489,6 +532,34 @@ sc_profile_get_file(struct sc_profile *profile,
 	if (*ret == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
 	return 0;
+}
+
+int
+sc_profile_get_file_instance(struct sc_profile *profile, const char *name, 
+		int index, sc_file_t **ret)
+{
+	struct file_info *fi;
+	struct sc_file *file;
+	int r;
+
+	if ((fi = sc_profile_find_file(profile, NULL, name)) == NULL)
+		return SC_ERROR_FILE_NOT_FOUND;
+	sc_file_dup(&file, fi->file);
+	if (file == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
+
+	file->id += index;
+	file->path.value[file->path.len - 2] = (file->id >> 8) & 0xFF;
+	file->path.value[file->path.len - 1] = file->id & 0xFF;
+
+	r = sc_profile_add_file(profile, name, file);
+	if (r)
+		return r;
+
+	if (ret)
+		*ret = file;
+
+	return SC_SUCCESS;
 }
 
 int
@@ -550,12 +621,17 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	unsigned int	idx;
 	struct file_info *fi, *base_file, *match = NULL;
 
-	for (info = profile->template_list; info; info = info->next) {
+#ifdef DEBUG_PROFILE
+	printf("Instantiate %s in template %s\n", file_name, template_name);
+	sc_profile_find_file_by_path(profile, base_path);
+#endif
+	for (info = profile->template_list; info; info = info->next) 
 		if (!strcmp(info->name, template_name))
 			break;
-	}
-	if (info == NULL)
+	if (info == NULL)   {
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Template %s not found", template_name);
 		return SC_ERROR_TEMPLATE_NOT_FOUND;
+	}
 
 	tmpl = info->data;
 	idx = id->value[id->len-1];
@@ -571,26 +647,13 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 		}
 	}
 
-	if (profile->card->ctx->debug >= 2) {
-		char pbuf[SC_MAX_PATH_STRING_SIZE];
-
-		int r = sc_path_print(pbuf, sizeof(pbuf), base_path);
-		if (r != SC_SUCCESS)
-			pbuf[0] = '\0';
-
-		sc_debug(profile->card->ctx,
-			"Instantiating template %s at %s", template_name, pbuf);
-	}
+	if (card->ctx->debug >= 2)
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+			"Instantiating template %s at %s", template_name, sc_print_path(base_path));
 
 	base_file = sc_profile_find_file_by_path(profile, base_path);
 	if (base_file == NULL) {
-		char pbuf[SC_MAX_PATH_STRING_SIZE];
-
-		int r = sc_path_print(pbuf, sizeof(pbuf), base_path);
-		if (r != SC_SUCCESS)
-			pbuf[0] = '\0';
-
-		sc_error(card->ctx, "Directory %s not defined in profile", pbuf);
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Directory %s not defined in profile", sc_print_path(base_path));
 		return SC_ERROR_OBJECT_NOT_FOUND;
 	}
 
@@ -621,13 +684,16 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	}
 
 	if (match == NULL) {
-		sc_error(card->ctx, "No file named \"%s\" in template \"%s\"",
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "No file named \"%s\" in template \"%s\"",
 				file_name, template_name);
 		return SC_ERROR_OBJECT_NOT_FOUND;
 	}
 	sc_file_dup(ret, match->file);
 	if (*ret == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
+#ifdef DEBUG_PROFILE
+	printf("Template instantiated\n");
+#endif
 	return 0;
 }
 
@@ -638,7 +704,7 @@ sc_profile_instantiate_file(sc_profile_t *profile, file_info *ft,
 	struct file_info *fi;
 	sc_card_t	*card = profile->card;
 
-	fi = (file_info *) calloc(1, sizeof(*fi));
+	fi = calloc(1, sizeof(*fi));
 	if (fi == NULL)
 		return NULL;
 	fi->instance = fi;
@@ -656,41 +722,61 @@ sc_profile_instantiate_file(sc_profile_t *profile, file_info *ft,
 	}
 	fi->file->path = parent->file->path;
 	fi->file->id += skew;
-	sc_append_file_id(&fi->file->path, fi->file->id);
+
+	if (fi->file->type == SC_FILE_TYPE_INTERNAL_EF 
+			|| fi->file->type == SC_FILE_TYPE_WORKING_EF
+			|| (fi->file->type == SC_FILE_TYPE_DF && fi->file->id))
+		sc_append_file_id(&fi->file->path, fi->file->id);
 
 	append_file(profile, fi);
 
 	ft->instance = fi;
 
 	if (card->ctx->debug >= 2) {
-		char pbuf[SC_MAX_PATH_STRING_SIZE];
-
-		int r = sc_path_print(pbuf, sizeof(pbuf), &fi->file->path);
-		if (r != SC_SUCCESS)
-			pbuf[0] = '\0';
-
-		sc_debug(card->ctx, "Instantiated %s at %s", ft->ident, pbuf);
-
-		r = sc_path_print(pbuf, sizeof(pbuf), &parent->file->path);
-		if (r != SC_SUCCESS)
-			pbuf[0] = '\0';
-
-		sc_debug(card->ctx, "  parent=%s@%s", parent->ident, pbuf);
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Instantiated %s at %s", ft->ident, sc_print_path(&fi->file->path));
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "  parent=%s@%s", parent->ident, sc_print_path(&parent->file->path));
 	}
 
 	return fi;
+}
+
+int
+sc_profile_get_pin_id_by_reference(struct sc_profile *profile, 
+		unsigned auth_method, int reference, 
+		struct sc_pkcs15_pin_info *pin_info)
+{
+	struct pin_info *pinfo;
+
+	for (pinfo = profile->pin_list; pinfo; pinfo = pinfo->next)  {
+		if (auth_method == SC_AC_SYMBOLIC)   {
+			if (pinfo->id != reference)
+				continue;
+		}
+		else   {
+			if (pinfo->pin.auth_method != auth_method)
+				continue;
+			if (pinfo->pin.reference != reference)
+				continue;
+		}
+
+		if (pin_info)
+			*pin_info = pinfo->pin;
+		return pinfo->id;
+	}
+
+	return -1;
 }
 
 /*
  * Configuration file parser
  */
 static void
-init_state(struct state *cur, struct state *new_state)
+init_state(struct state *cur_state, struct state *new_state)
 {
 	memset(new_state, 0, sizeof(*new_state));
-	new_state->filename = cur->filename;
-	new_state->profile = cur->profile;
-	new_state->frame = cur;
+	new_state->filename = cur_state->filename;
+	new_state->profile = cur_state->profile;
+	new_state->frame = cur_state;
 }
 
 static int
@@ -732,23 +818,11 @@ do_pin_domains(struct state *cur, int argc, char **argv)
 }
 
 static int
-do_protect_certificates(struct state *cur, int argc, char **argv)
-{
-	return get_bool(cur, argv[0], &cur->profile->protect_certificates);
-}
-
-static int
-do_keep_public_key(struct state *cur, int argc, char **argv)
-{
-	return get_bool(cur, argv[0], &cur->profile->keep_public_key);
-}
-
-static int
 do_card_label(struct state *cur, int argc, char **argv)
 {
 	struct sc_pkcs15_card	*p15card = cur->profile->p15_spec;
 
-	return setstr(&p15card->label, argv[0]);
+	return setstr(&p15card->tokeninfo->label, argv[0]);
 }
 
 static int
@@ -756,7 +830,7 @@ do_card_manufacturer(struct state *cur, int argc, char **argv)
 {
 	struct sc_pkcs15_card	*p15card = cur->profile->p15_spec;
 
-	return setstr(&p15card->manufacturer_id, argv[0]);
+	return setstr(&p15card->tokeninfo->manufacturer_id, argv[0]);
 }
 
 /*
@@ -778,6 +852,12 @@ static int
 do_encode_update_field(struct state *cur, int argc, char **argv)
 {
 	return get_bool(cur, argv[0], &cur->profile->pkcs15.do_last_update);
+}
+
+static int
+do_pkcs15_id_style(struct state *cur, int argc, char **argv)
+{
+	return map_str2int(cur, argv[0], &cur->profile->id_style, idStyleNames);
 }
 
 /*
@@ -825,7 +905,7 @@ new_key(struct sc_profile *profile, unsigned int type, unsigned int ref)
 			return ai;
 	}
 
-	ai = (struct auth_info *) calloc(1, sizeof(*ai));
+	ai = calloc(1, sizeof(*ai));
 	if (ai == NULL)
 		return NULL;
 	ai->type = type;
@@ -896,6 +976,62 @@ process_ef(struct state *cur, struct block *info,
 	return process_block(&state, info, name, blk);
 }
 
+
+static int
+process_bso(struct state *cur, struct block *info,
+		const char *name, scconf_block *blk)
+{
+	struct state	state;
+
+	init_state(cur, &state);
+	if (name == NULL) {
+		parse_error(cur, "No name given for BSO object.");
+		return 1;
+	}
+	if (!(state.file = new_file(cur, name, SC_FILE_TYPE_BSO)))
+		return 1;
+	return process_block(&state, info, name, blk);
+}
+
+/* 
+ * In the template the difference between any two file-ids 
+ * should be greater then TEMPLATE_FILEID_MIN_DIFF.
+ */
+static int
+template_sanity_check(struct state *cur, struct sc_profile *templ)
+{
+	struct file_info *fi, *ffi;
+
+	for (fi = templ->ef_list; fi; fi = fi->next) {
+		struct sc_path fi_path =  fi->file->path;
+		int fi_id = fi_path.value[fi_path.len - 2] * 0x100 
+			+ fi_path.value[fi_path.len - 1]; 
+
+		if (fi->file->type == SC_FILE_TYPE_BSO)
+			continue;
+		for (ffi = templ->ef_list; ffi; ffi = ffi->next) {
+			struct sc_path ffi_path =  ffi->file->path;
+			int dlt, ffi_id = ffi_path.value[ffi_path.len - 2] * 0x100 
+				+ ffi_path.value[ffi_path.len - 1]; 
+
+			if (ffi->file->type == SC_FILE_TYPE_BSO)
+				continue;
+
+			dlt = fi_id > ffi_id ? fi_id - ffi_id : ffi_id - fi_id;
+			if (strcmp(ffi->ident, fi->ident))   {
+				if (dlt >= TEMPLATE_FILEID_MIN_DIFF)
+					continue;
+
+				parse_error(cur, "Template insane: file-ids should be substantially different");
+				return 1;
+			}
+		}
+	}
+
+	return SC_SUCCESS;
+}
+
+
 static int
 process_tmpl(struct state *cur, struct block *info,
 		const char *name, scconf_block *blk)
@@ -903,21 +1039,23 @@ process_tmpl(struct state *cur, struct block *info,
 	struct state	state;
 	sc_template_t	*tinfo;
 	sc_profile_t	*templ;
+	int r;
 
+#ifdef DEBUG_PROFILE
+	printf("Process template:%s; block:%s\n", name, info->name);
+#endif
 	if (name == NULL) {
 		parse_error(cur, "No name given for template.");
 		return 1;
 	}
 
-	templ = (sc_profile_t *) calloc(1, sizeof(*templ));
+	templ = calloc(1, sizeof(*templ));
 	if (templ == NULL) {
 		parse_error(cur, "memory allocation failed");
 		return 1;
 	}
 		
-	templ->cbs = cur->profile->cbs;
-
-	tinfo = (sc_template_t *) calloc(1, sizeof(*tinfo));
+	tinfo = calloc(1, sizeof(*tinfo));
 	if (tinfo == NULL) {
 		parse_error(cur, "memory allocation failed");
 		free(templ);
@@ -933,7 +1071,14 @@ process_tmpl(struct state *cur, struct block *info,
 	state.profile = tinfo->data;
 	state.file = NULL;
 
-	return process_block(&state, info, name, blk);
+	r = process_block(&state, info, name, blk);
+	if (!r)
+		r = template_sanity_check(cur, templ);
+
+#ifdef DEBUG_PROFILE
+	printf("Template %s processed; returns %i\n", name, r);
+#endif
+	return r;
 }
 
 /*
@@ -960,7 +1105,7 @@ add_file(sc_profile_t *profile, const char *name,
 {
 	file_info	*info;
 
-	info = (struct file_info *) calloc(1, sizeof(*info));
+	info = calloc(1, sizeof(*info));
 	if (info == NULL)
 		return NULL;
 	info->instance = info;
@@ -1031,7 +1176,9 @@ new_file(struct state *cur, const char *name, unsigned int type)
 	assert(file);
 	if (file->type != (int)type) {
 		parse_error(cur, "inconsistent file type (should be %s)",
-			(file->type == SC_FILE_TYPE_DF)? "DF" : "EF");
+			file->type == SC_FILE_TYPE_DF 
+				? "DF" : file->type == SC_FILE_TYPE_BSO 
+					? "BS0" : "EF");
 		if (strncasecmp(name, "PKCS15-", 7) ||
 			!strcasecmp(name+7, "AppDF")) 
 			sc_file_free(file);
@@ -1234,13 +1381,13 @@ process_pin(struct state *cur, struct block *info,
 		return 1;
 
 	init_state(cur, &state);
-	state.pin = new_pin(cur->profile, id);
+	state.pin = new_pin(cur->profile, (int)id);
 
 	return process_block(&state, info, name, blk);
 }
 
 static struct pin_info *
-new_pin(struct sc_profile *profile, unsigned int id)
+new_pin(struct sc_profile *profile, int id)
 {
 	struct pin_info	*pi, **tail;
 
@@ -1255,10 +1402,11 @@ new_pin(struct sc_profile *profile, unsigned int id)
 	 * are usually created before we've read the card specific
 	 * profile
 	 */
-	pi = (struct pin_info *) calloc(1, sizeof(*pi));
+	pi = calloc(1, sizeof(*pi));
 	if (pi == NULL)
 		return NULL;
 	pi->id = id;
+	pi->pin.auth_method = SC_AC_CHV;
 	pi->pin.type = (unsigned int)-1;
 	pi->pin.flags = 0x32;
 	pi->pin.max_length = 0;
@@ -1407,7 +1555,7 @@ process_macros(struct state *cur, struct block *info,
 		name = item->key;
 		if (item->type != SCCONF_ITEM_TYPE_VALUE)
 			continue;
-#if 0
+#ifdef DEBUG_PROFILE
 		printf("Defining %s\n", name);
 #endif
 		new_macro(cur->profile, name, item->value.list);
@@ -1422,7 +1570,7 @@ new_macro(sc_profile_t *profile, const char *name, scconf_list *value)
 	sc_macro_t	*mac;
 
 	if ((mac = find_macro(profile, name)) == NULL) {
-		mac = (sc_macro_t *) calloc(1, sizeof(*mac));
+		mac = calloc(1, sizeof(*mac));
 		if (mac == NULL)
 			return;
 		mac->name = strdup(name);
@@ -1463,10 +1611,8 @@ static struct command	ci_commands[] = {
  { "pin-encoding",	1,	1,	do_default_pin_type },
  { "pin-pad-char",	1,	1,	do_pin_pad_char },
  { "pin-domains",	1,	1,	do_pin_domains	},
- { "protect-certificates", 1,	1,	do_protect_certificates },
  { "label",		1,	1,	do_card_label	},
  { "manufacturer",	1,	1,	do_card_manufacturer},
- { "keep-public-key",	1,	1,	do_keep_public_key },
 
  { NULL, 0, 0, NULL }
 };
@@ -1496,6 +1642,7 @@ static struct command	fs_commands[] = {
 static struct block	fs_blocks[] = {
  { "DF",		process_df,	fs_commands,	fs_blocks },
  { "EF",		process_ef,	fs_commands,	fs_blocks },
+ { "BSO",		process_bso,	fs_commands,	fs_blocks },
  { "template",		process_tmpl,	fs_commands,	fs_blocks },
 
  { NULL, NULL, NULL, NULL }
@@ -1525,6 +1672,7 @@ static struct command	p15_commands[] = {
  { "direct-certificates", 1,	1,	do_direct_certificates },
  { "encode-df-length",	1,	1,	do_encode_df_length },
  { "do-last-update", 1, 1, do_encode_update_field },
+ { "pkcs15-id-style", 1, 1, do_pkcs15_id_style },
  { NULL, 0, 0, NULL }
 };
 
@@ -1571,7 +1719,7 @@ build_argv(struct state *cur, const char *cmdname,
 			return SC_ERROR_SYNTAX_ERROR;
 		}
 
-#if 0
+#ifdef DEBUG_PROFILE
 		{
 			scconf_list *list;
 
@@ -1663,7 +1811,7 @@ process_block(struct state *cur, struct block *info,
 				}
 				ident = nlist->data;
 			}
-#if 0
+#ifdef DEBUG_PROFILE
 			printf("Processing %s %s\n",
 				cmd, ident? ident : "");
 #endif
@@ -1674,7 +1822,7 @@ process_block(struct state *cur, struct block *info,
 			}
 		} else
 		if (item->type == SCCONF_ITEM_TYPE_VALUE) {
-#if 0
+#ifdef DEBUG_PROFILE
 			printf("Processing %s\n", cmd);
 #endif
 			if ((cp = find_cmd_handler(info->cmd_info, cmd))) {
@@ -1723,18 +1871,30 @@ sc_profile_find_file(struct sc_profile *pro,
 	return NULL;
 }
 
-static struct file_info * sc_profile_find_file_by_path(struct sc_profile *pro, const sc_path_t *path)
+static struct file_info *
+sc_profile_find_file_by_path(struct sc_profile *pro, const sc_path_t *path)
 {
-	struct file_info *fi;
+	struct file_info *fi, *out = NULL;
 	struct sc_file	*fp;
 
+#ifdef DEBUG_PROFILE
+	sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "profile's EF list:");
+	for (fi = pro->ef_list; fi; fi = fi->next)
+		sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "check fi (%s:path:%s)", fi->ident, sc_print_path(&fi->file->path));
+
+	sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "find profile file by path:%s", sc_print_path(path));
+#endif
 	for (fi = pro->ef_list; fi; fi = fi->next) {
 		fp = fi->file;
 		if (fp->path.len == path->len
 		 && !memcmp(fp->path.value, path->value, path->len))
-			return fi;
+			out = fi;
 	}
-	return NULL;
+
+#ifdef DEBUG_PROFILE
+	sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "returns (%s)", out ? out->ident: "<null>");
+#endif
+	return out;
 }
 
 /*
@@ -1768,7 +1928,10 @@ get_uint(struct state *cur, const char *value, unsigned int *vp)
 {
 	char	*ep;
 
-	*vp = strtoul(value, &ep, 0);
+	if (strstr(value, "0x") == value)
+		*vp = strtoul(value + 2, &ep, 16);
+	else
+		*vp = strtoul(value, &ep, 0);
 	if (*ep != '\0') {
 		parse_error(cur, 
 			"invalid integer argument \"%s\"\n", value);
@@ -2059,5 +2222,8 @@ parse_error(struct state *cur, const char *fmt, ...)
 	if ((sp = strchr(buffer, '\n')) != NULL)
 		*sp = '\0';
 
-	sc_error(cur->profile->card->ctx, "%s: %s", cur->filename, buffer);
+	if (cur->profile->card && cur->profile->card->ctx)
+		sc_debug(cur->profile->card->ctx, SC_LOG_DEBUG_NORMAL, "%s: %s", cur->filename, buffer);
+	else
+		fprintf(stdout, "%s: %s\n", cur->filename, buffer);
 }

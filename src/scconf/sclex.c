@@ -1,5 +1,5 @@
 /*
- * $Id: sclex.c 3510 2008-05-05 13:00:01Z ludovic.rousseau $
+ * $Id: sclex.c 4636 2010-08-18 15:08:51Z ludovic.rousseau $
  *
  * Copyright (C) 2003
  *  Jamie Honan <jhonan@optusnet.com.au>
@@ -19,15 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #ifdef HAVE_STRINGS_H
 #include <strings.h>
 #endif
+
 #include "scconf.h"
 #include "internal.h"
 
@@ -44,7 +44,7 @@ static void buf_init(BUFHAN * bp, FILE * fp, const char *saved_string)
 {
 	bp->fp = fp;
 	bp->saved_char = 0;
-	bp->buf = (char *) malloc(256);
+	bp->buf = malloc(256);
 	bp->bufmax = 256;
 	bp->bufcur = 0;
 	bp->buf[0] = '\0';

@@ -1,30 +1,54 @@
 NEWS for OpenSC -- History of user visible changes
 
-Please also see doc/WhatsNew.html or
-http://www.opensc-project.org/opensc/wiki/WhatsNew
+Complete change history is available online:
+http://www.opensc-project.org/opensc/timeline
 
-Also see the svn changelog using svn command
-or doc/nonpersistent/ChangeLog.
-
-New in 0.11.13; 2010-02-16; Andreas Jellinghaus
+New in 0.12.0; 2010-12-22
+* OpenSC uses a single reader driver, specified at compile time.
+* New card driver: Italian eID (CNS) by Emanuele Pucciarelli.
+* New card driver: Portuguese eID by João Poupino.
+* New card driver: westcos by François Leblanc.
+* pkcs11-tool can use a slot based on ID, label or index in the slot list.
+* PIN flags are updated from supported cards when C_GetTokenInfo is called.
+* Support for CardOS 4.4 cards added.
+* Fature to exclude readers from OpenSC PKCS#11 via "ignored_readers"
+  configuration file entry.
+* #229: Support semi-automatic fixes to cards personalized with older and
+  broken OpenSC versions.
+* Software keys removed from pkcs15-init and the PKCS#11 module. OpenSC
+  can either generate keys on card or import plaintext keys to the card, but
+  will never generate plaintext key material in software by itself.
+  All traces of a software token (PKCS#15 Section 7) shall be removed.
+* Updates to PC/SC driver to build with pcsc-lite >= 1.6.2
+* Build script for a binary Mac OS X installer for 10.5 and 10.6 systems.
+  Binary installer includes OpenSC.tokend for platform integration.
+  10.6 installer includes engine_pkcs11.
 * Modify Rutoken S binary interfaces by Aktiv Co.
-* Muscle driver fixed (acl reading issue)
-* Many small fixes (e.g. mem leaks)
-* Compiling with openssl 1.0.0-beta fixed
-
+* Support GOST R 34.10-2001 and GOST R 34.11-94 by Aktiv Co.
+* CardOS driver now emulates sign on rsa keys with sign+decrypt usage
+  with padding and decrypt(). This is compatible with old cards and
+  card initialized by Siemens software. Removed "--split-key" option,
+  as it is no longer needed.
+* Improved debugging support: debug level 3 will show everything
+  except of ASN1 and card matching debugging (usualy not needed).
+* Massive changes to libopensc. This library is now internal, only
+  used by opensc-pkcs11.so and command line tools. Header files are
+  no longer installed, library should not be used by other applications.
+  Please use generic PKCS#11 interface instead.
+* #include file statements cleaned up: first include "config.h", then
+  system headers, then additional libraries, then headers in opensc
+  (but from other directories), then header files from same directory.
+  Fix path to reference headers, remove src/include/ directory.
+* Various source code fixes and improvements.
+* OpenSC now depends on xsltproc utility and docbook-xsl to build docs and man
+* Remove iconv dependency. EstEID driver now uses the commonName from the
+  certificate for card label.
+* Possibility to change the default behavior for card resets via
+  opensc.conf.
+ 
 New in 0.11.12; 2009-12-18; Andreas Jellinghaus
 * Document integer problem in OpenSC and implement workaround
 * Improve entersafe profile to support private data objects
-
-New in 0.11.11; 2009-10-26; Andreas Jellinghaus
-* Now again compatible with OpenSSL 0.9.7 and OpenSSL 1.0.0
-* A few warnings and minor bugs were fixed
-* Updated myeid driver by Aventra
-
-New in 0.11.10; 2009-10-20; Andreas Jellinghaus
-* New westcos driver by François Leblanc
-* Initial support for MyEid card (Aventra)
-* GOST algorithm supported by Rutoken driver (Aleksey Samsonov)
 
 New in 0.11.9; 2009-07-29; Andreas Jellinghaus
 * New rutoken_ecp driver by  Aktiv Co. / Aleksey Samsonov

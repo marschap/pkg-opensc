@@ -30,9 +30,12 @@
 #include "config.h"
 #endif
 
-#ifdef HAVE_GETOPT_H
+#if defined(HAVE_GETOPT_H) && defined(HAVE_GETOPT_LONG) && defined(HAVE_GETOPT_LONG_ONLY)
 #include <getopt.h>
 #else
+
+/* Prevent mingw32 from including an incompatible getopt implementation */
+#define __GETOPT_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -83,6 +86,6 @@ extern int _my_getopt_internal(int argc, char * argv[], const char *shortopts,
 }
 #endif
 
-#endif /* HAVE_GETOPT_H */
+#endif /* HAVE_GETOPT_H && HAVE_GETOPT_LONG && HAVE_GETOPT_LONG_ONLY */
 
 #endif /* MY_GETOPT_H_INCLUDED */

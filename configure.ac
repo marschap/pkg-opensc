@@ -3,15 +3,15 @@ dnl -*- mode: m4; -*-
 AC_PREREQ(2.60)
 
 define([PACKAGE_VERSION_MAJOR], [0])
-define([PACKAGE_VERSION_MINOR], [11])
-define([PACKAGE_VERSION_FIX], [13])
+define([PACKAGE_VERSION_MINOR], [12])
+define([PACKAGE_VERSION_FIX], [0])
 define([PACKAGE_SUFFIX], [])
 
 AC_INIT([opensc],[PACKAGE_VERSION_MAJOR.PACKAGE_VERSION_MINOR.PACKAGE_VERSION_FIX[]PACKAGE_SUFFIX])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([${PACKAGE_NAME}], [${PACKAGE_VERSION}])
+AM_INIT_AUTOMAKE(foreign 1.10)
 
 OPENSC_VERSION_MAJOR="PACKAGE_VERSION_MAJOR"
 OPENSC_VERSION_MINOR="PACKAGE_VERSION_MINOR"
@@ -21,8 +21,8 @@ OPENSC_VERSION_FIX="PACKAGE_VERSION_FIX"
 #   (Code changed:                      REVISION++)
 #   (Oldest interface removed:          OLDEST++)
 #   (Interfaces added:                  CURRENT++, REVISION=0)
-OPENSC_LT_CURRENT="2"
-OPENSC_LT_OLDEST="2"
+OPENSC_LT_CURRENT="3"
+OPENSC_LT_OLDEST="3"
 OPENSC_LT_REVISION="0"
 OPENSC_LT_AGE="0"
 OPENSC_LT_AGE="$((${OPENSC_LT_CURRENT}-${OPENSC_LT_OLDEST}))"
@@ -33,14 +33,6 @@ AC_CANONICAL_HOST
 AC_PROG_CC
 PKG_PROG_PKG_CONFIG
 AC_C_BIGENDIAN
-
-AC_MSG_CHECKING([svn checkout])
-if test -e "${srcdir}/packaged"; then
-	svn_checkout="no"
-else
-	svn_checkout="yes"
-fi
-AC_MSG_RESULT([${svn_checkout}])
 
 AC_ARG_WITH(
 	[cygwin-native],
@@ -53,32 +45,9 @@ dnl Check for some target-specific stuff
 test -z "${WIN32}" && WIN32="no"
 test -z "${CYGWIN}" && CYGWIN="no"
 case "${host}" in
-	*-*-hpux*)
-		CPPFLAGS="${CPPFLAGS} -D_HPUX_SOURCE -D_XOPEN_SOURCE_EXTENDED"
-	;;
 	*-*-solaris*)
 		CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
 		LDFLAGS="${LDFLAGS} -L/usr/local/lib -R/usr/local/lib"
-		need_dash_r="1"
-	;;
-	*-*-sunos4*)
-		CPPFLAGS="${CPPFLAGS} -DSUNOS4"
-	;;
-	*-*-aix*)
-		CPPFLAGS="${CPPFLAGS} -I/usr/local/include"
-		LDFLAGS="${LDFLAGS} -L/usr/local/lib"
-		if test "${LD}" != "gcc" -a -z "${blibpath}"; then
-			blibpath="/usr/lib:/lib:/usr/local/lib"
-		fi
-	;;
-	*-*-osf*)
-		CPPFLAGS="${CPPFLAGS} -D_POSIX_PII_SOCKET"
-	;;
-	*-*-darwin*)
-		LIBS="${LIBS} -Wl,-framework,CoreFoundation"
-		if test "${GCC}" = "yes"; then
-			CFLAGS="${CFLAGS} -no-cpp-precomp"
-		fi
 	;;
 	*-mingw*|*-winnt*)
 		WIN32="yes"
@@ -131,13 +100,6 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-	[iconv],
-	[AS_HELP_STRING([--enable-iconv],[enable iconv linkage @<:@detect@:>@])],
-	,
-	[enable_iconv="detect"]
-)
-
-AC_ARG_ENABLE(
 	[openssl],
 	[AS_HELP_STRING([--enable-openssl],[enable openssl linkage @<:@detect@:>@])],
 	,
@@ -153,29 +115,30 @@ AC_ARG_ENABLE(
 
 AC_ARG_ENABLE(
 	[pcsc],
-	[AS_HELP_STRING([--enable-pcsc],[enable pcsc support @<:@disabled@:>@])],
+	[AS_HELP_STRING([--disable-pcsc],[disable pcsc support @<:@enabled@:>@])],
 	,
-	[enable_pcsc="no"]
+	[enable_pcsc="yes"]
 )
 
 AC_ARG_ENABLE(
-	[nsplugin],
-	[AS_HELP_STRING([--enable-nsplugin],[enable nsplugin (signer) @<:@disabled@:>@])],
+	[ctapi],
+	[AS_HELP_STRING([--enable-ctapi],[enable CT-API support @<:@disabled@:>@])],
 	,
-	[enable_nsplugin="no"]
+	[enable_ctapi="no"]
+)
+
+AC_ARG_ENABLE(
+	[cardmod],
+	[AS_HELP_STRING([--enable-cardmod],[enable cardmod module on Windows @<:@disabled@:>@])],
+	,
+	[enable_cardmod="no"]
 )
 
 AC_ARG_ENABLE(
 	[man],
 	[AS_HELP_STRING([--disable-man],[disable installation of manuals @<:@enabled for none Windows@:>@])],
 	,
-	[
-		if test "${WIN32}" = "yes"; then
-			enable_man="no"
-		else
-			enable_man="yes"
-		fi
-	]
+	[enable_man="detect"]
 )
 
 AC_ARG_ENABLE(
@@ -193,26 +156,20 @@ AC_ARG_WITH(
 )
 
 AC_ARG_WITH(
-	[plugindir],
-	[AS_HELP_STRING([--with-plugindir=PATH],[install Mozilla plugin to PATH @<:@LIBDIR/mozilla/plugins@:>@])],
-	[plugindir="${withval}"],
-	[plugindir="\$(libdir)/mozilla/plugins"]
-)
-
-AC_ARG_WITH(
 	[pcsc-provider],
 	[AS_HELP_STRING([--with-pcsc-provider=PATH],[Path to system pcsc provider @<:@system default@:>@])],
 	,
 	[with_pcsc_provider="detect"]
 )
-
-AC_ARG_WITH(
-	[pinentry],
-	[AS_HELP_STRING([--with-pinentry=PROG],[run PROG as PIN-entry for OpenSC Signer @<:/usr/bin/gpinentry:>@])],
-	,
-	[with_pinentry="/usr/bin/gpinentry"]
-)
-
+dnl ./configure check
+reader_count=""
+for rdriver in "${enable_pcsc}" "${enable_openct}" "${enable_ctapi}"; do
+	test "${rdriver}" = "yes" && reader_count="${reader_count}x"
+done
+if test "${reader_count}" != "x"; then
+	AC_MSG_ERROR([Only one of --enable-pcsc, --enable-openct, --enable-ctapi can be specified!])
+fi
+	 
 dnl Checks for programs.
 AC_PROG_CPP
 AC_PROG_INSTALL
@@ -236,60 +193,27 @@ ifdef(
 )
 
 dnl These required for svn checkout
-AC_ARG_VAR([XSLTPROC], [xsltproc utility])
 AC_ARG_VAR([SVN], [subversion utility])
-AC_ARG_VAR([WGET], [wget utility])
-AC_ARG_VAR([WGET_OPTS], [wget options])
-AC_ARG_VAR([TR], [tr utility])
-AC_CHECK_PROGS([XSLTPROC],[xsltproc])
+AC_ARG_VAR([XSLTPROC], [xsltproc utility])
 AC_CHECK_PROGS([SVN],[svn])
-AC_CHECK_PROGS([WGET],[wget])
-AC_CHECK_PROGS([TR],[tr])
-test -z "${WGET_OPTS}" && WGET_OPTS="-nv"
+AC_CHECK_PROGS([XSLTPROC],[xsltproc])
 
+AC_MSG_CHECKING([xsl-stylesheets])
 if test "${xslstylesheetsdir}" = "detect"; then
-	AC_MSG_CHECKING([xsl-stylesheets])
 	xslstylesheetsdir="no"
 	for f in \
 		/usr/share/xml/docbook/stylesheet/nwalsh \
+		/usr/share/xml/docbook/stylesheet/nwalsh/current \
+		/opt/local/share/xsl/docbook-xsl \
+		/sw/share/xml/xsl/docbook-xsl \
 		/usr/share/sgml/docbook/*; do
 
 		test -e "${f}/html/docbook.xsl" && xslstylesheetsdir="${f}"
 	done
-	AC_MSG_RESULT([${xslstylesheetsdir}])
 elif test "${xslstylesheetsdir}" != "no"; then
-	AC_MSG_CHECKING([xsl-stylesheets])
 	test -e "${xslstylesheetsdir}/html/docbook.xsl" || AC_MSG_ERROR([invalid])
 fi
-
-dnl svn checkout dependencies
-if test "${svn_checkout}" = "yes"; then
-	AC_MSG_CHECKING([XSLTPROC requirement])
-	if test -n "${XSLTPROC}"; then
-		AC_MSG_RESULT([ok])
-	else
-		if test "${enable_man}" = "yes" -o "${enable_doc}" = "yes"; then
-			AC_MSG_ERROR([Missing XSLTPROC svn build with man or doc])
-		else
-			AC_MSG_WARN(["make dist" will not work])
-		fi
-	fi
-
-	if test "${enable_man}" = "yes"; then
-		test "${xslstylesheetsdir}" = "no" && AC_MSG_ERROR([xsl-stylesheets are required for svn build with man])
-	fi
-
-	AC_MSG_CHECKING([svn doc build dependencies])
-	if test -n "${SVN}" -a -n "${TR}" -a -n "${WGET}"; then
-		AC_MSG_RESULT([ok])
-	else
-		if test "${enable_doc}" = "yes"; then
-			AC_MSG_ERROR([Missing SVN, TR or WGET for svn doc build])
-		else
-			AC_MSG_WARN(["make dist" will not work])
-		fi
-	fi
-fi
+AC_MSG_RESULT([${xslstylesheetsdir}])
 
 dnl C Compiler features
 AC_C_INLINE
@@ -297,10 +221,11 @@ AC_C_INLINE
 dnl Checks for header files.
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
+AC_HEADER_ASSERT
 AC_CHECK_HEADERS([ \
 	errno.h fcntl.h malloc.h stdlib.h \
 	inttypes.h string.h strings.h \
-	sys/time.h unistd.h locale.h getopt.h
+	sys/time.h unistd.h getopt.h sys/mman.h
 ])
 
 dnl Checks for typedefs, structures, and compiler characteristics.
@@ -315,10 +240,15 @@ AC_FUNC_STAT
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([ \
 	getpass gettimeofday memset mkdir \
-	strdup strerror setutent vsyslog \
-	setlocale getopt_long \
-	strlcpy
+	strdup strerror getopt_long getopt_long_only \
+	strlcpy strlcat
 ])
+AC_CHECK_SIZEOF(void *)
+if test "${ac_cv_sizeof_void_p}" = 8; then
+	LIBRARY_BITNESS="64"
+else
+	LIBRARY_BITNESS="32"
+fi
 
 dnl See if socket() is found from libsocket
 AC_CHECK_LIB(
@@ -364,6 +294,16 @@ if test "${WIN32}" = "no"; then
 		[AC_MSG_ERROR([POSIX thread support required])]
 	)
 	CC="${PTHREAD_CC}"
+fi
+
+if test "${enable_cardmod}" = "yes"; then
+	dnl win32 special test for minidriver
+	AC_CHECK_HEADER(
+		[cardmod.h],
+		,
+		[AC_MSG_ERROR([cardmod.h is not found and required for cardmod])]
+	)
+	AC_DEFINE([ENABLE_CARDMOD], [1], [Enable cardmod support])
 fi
 
 AC_ARG_VAR([ZLIB_CFLAGS], [C compiler flags for zlib])
@@ -444,66 +384,6 @@ if test "${enable_readline}" = "yes"; then
 	fi
 fi
 
-AC_ARG_VAR([ICONV_CFLAGS], [C compiler flags for iconv])
-AC_ARG_VAR([ICONV_LIBS], [linker flags for iconv])
-if test -n "${ICONV_LIBS}"; then
-	ac_cv_lib_iconv="yes"
-else
-	AC_MSG_CHECKING([if iconv library available within libc])
-	AC_LINK_IFELSE(
-		[AC_LANG_FUNC_LINK_TRY([iconv])],
-		[
-			AC_MSG_RESULT([yes])
-			ac_cv_lib_iconv="yes"
-		],
-		[
-			AC_MSG_RESULT([no])
-			AC_CHECK_LIB(
-				[iconv],
-				[iconv],
-				[
-					ac_cv_lib_iconv="yes"
-					ICONV_LIBS="-liconv"
-				],
-				[AC_CHECK_LIB(
-					[iconv],
-					[libiconv],
-					[
-						ac_cv_lib_iconv="yes"
-						ICONV_LIBS="-liconv"
-					]
-				)]
-			)
-		]
-	)
-fi
-saved_CFLAGS="${CFLAGS}"
-CFLAGS="${CFLAGS} ${ICONV_CFLAGS}"
-AC_CHECK_HEADERS([iconv.h])
-CFLAGS="${saved_CFLAGS}"
-test "${ac_cv_lib_iconv}" = "yes" -a "${ac_cv_header_iconv_h}" = "yes" && have_iconv="yes"
-
-case "${enable_iconv}" in
-	no)
-		have_iconv="no"
-	;;
-	detect)
-		if test "${have_iconv}" = "yes"; then
-			enable_iconv="yes"
-		else
-			enable_iconv="no"
-		fi
-	;;
-esac
-
-if test "${enable_iconv}" = "yes"; then
-	if test "${have_iconv}" = "yes"; then
-		AC_DEFINE([ENABLE_ICONV], [1], [Use iconv libraries and header files])
-	else
-		AC_MSG_ERROR([iconv linkage required, but no iconv was found])
-	fi
-fi
-
 PKG_CHECK_MODULES(
 	[OPENSSL],
 	[libcrypto >= 0.9.7],
@@ -554,6 +434,10 @@ if test "${enable_openct}" = "yes"; then
 	)
 fi
 
+if test "${enable_ctapi}" = "yes"; then
+	AC_DEFINE([ENABLE_CTAPI], [1], [Enable CT-API support])
+fi
+
 if test "${enable_pcsc}" = "yes"; then
 	if test "${WIN32}" != "yes"; then
 		PKG_CHECK_EXISTS(
@@ -587,7 +471,7 @@ if test "${enable_pcsc}" = "yes"; then
 				DEFAULT_PCSC_PROVIDER="winscard.dll"
 			;;
 			*)
-				DEFAULT_PCSC_PROVIDER="/usr/lib${libdir##*/lib}/libpcsclite.so.1"
+				DEFAULT_PCSC_PROVIDER="libpcsclite.so.1"
 			;;
 		esac
 	else
@@ -597,19 +481,21 @@ if test "${enable_pcsc}" = "yes"; then
 	AC_DEFINE([ENABLE_PCSC], [1], [Define if PC/SC is to be enabled])
 fi
 
-dnl AM_PATH_LIBASSUAN([MINIMUM-VERSION,
-dnl                   [ACTION-IF-FOUND [, ACTION-IF-NOT-FOUND ]]])
-dnl Test for libassuan and define LIBASSUAN_CFLAGS and LIBASSUAN_LIBS
-AM_PATH_LIBASSUAN(
-	,
-	[have_assuan="yes"], 
-	[have_assuan="no"]
-)
-
-if test "${enable_nsplugin}" = "yes"; then
-	if test "x${have_assuan}" != "xyes" -o "x${have_openssl}" != "xyes"; then
-		AC_MSG_ERROR([nsplugin requires assuan and openssl])
+if test "${enable_man}" = "detect"; then
+	if test "${WIN32}" = "yes"; then
+		enable_man="no"
+	elif test -n "${XSLTPROC}" -a "${xslstylesheetsdir}" != "no"; then
+		enable_man="yes"
+	else
+		enable_man="no"
 	fi
+fi
+
+if test "${enable_man}" = "yes" -o "${enable_doc}" = "yes"; then
+	AC_MSG_CHECKING([XSLTPROC requirement])
+	test -n "${XSLTPROC}" || AC_MSG_ERROR([Missing XSLTPROC svn build with man or doc])
+	test "${xslstylesheetsdir}" != "no" || AC_MSG_ERROR([Missing xslstylesheetsdir])
+	AC_MSG_RESULT([ok])
 fi
 
 OPENSC_FEATURES=""
@@ -622,11 +508,6 @@ if test "${enable_readline}" = "yes"; then
 	OPENSC_FEATURES="${OPENSC_FEATURES} readline"
 	OPTIONAL_READLINE_CFLAGS="${READLINE_CFLAGS}"
 	OPTIONAL_READLINE_LIBS="${READLINE_LIBS}"
-fi
-if test "${enable_iconv}" = "yes"; then
-	OPENSC_FEATURES="${OPENSC_FEATURES} iconv"
-	OPTIONAL_ICONV_CFLAGS="${ICONV_CFLAGS}"
-	OPTIONAL_ICONV_LIBS="${ICONV_LIBS}"
 fi
 if test "${enable_openssl}" = "yes"; then
 	OPENSC_FEATURES="${OPENSC_FEATURES} openssl"
@@ -642,22 +523,21 @@ if test "${enable_pcsc}" = "yes"; then
 	OPENSC_FEATURES="${OPENSC_FEATURES} pcsc(${DEFAULT_PCSC_PROVIDER})"
 	OPTIONAL_PCSC_CFLAGS="${PCSC_CFLAGS}"
 fi
-test "${enable_nsplugin}" = "yes" && OPENSC_FEATURES="${OPENSC_FEATURES} nsplugin"
+if test "${enable_ctapi}" = "yes"; then
+	OPENSC_FEATURES="${OPENSC_FEATURES} ctapi"
+fi
+if test "${enable_cardmod}" = "yes"; then
+	OPENSC_FEATURES="${OPENSC_FEATURES} cardmod"
+fi
 
 AC_DEFINE_UNQUOTED([OPENSC_VERSION_MAJOR], [${OPENSC_VERSION_MAJOR}], [OpenSC version major component])
 AC_DEFINE_UNQUOTED([OPENSC_VERSION_MINOR], [${OPENSC_VERSION_MINOR}], [OpenSC version minor component])
 AC_DEFINE_UNQUOTED([OPENSC_VERSION_FIX], [${OPENSC_VERSION_FIX}], [OpenSC version fix component])
-test "${with_pinentry}" != "no" && AC_DEFINE_UNQUOTED([PIN_ENTRY], ["${with_pinentry}"], [PIN-entry program for OpenSC Signer])
 AC_DEFINE_UNQUOTED([OPENSC_FEATURES], ["${OPENSC_FEATURES}"], [Enabled OpenSC features])
 
-openscincludedir="\$(includedir)/opensc"
 pkcs11dir="\$(libdir)/pkcs11"
-pkgconfigdir="\$(libdir)/pkgconfig"
 
-AC_SUBST([openscincludedir])
 AC_SUBST([pkcs11dir])
-AC_SUBST([plugindir])
-AC_SUBST([pkgconfigdir])
 AC_SUBST([xslstylesheetsdir])
 AC_SUBST([OPENSC_VERSION_MAJOR])
 AC_SUBST([OPENSC_VERSION_MINOR])
@@ -672,25 +552,22 @@ AC_SUBST([OPTIONAL_ZLIB_CFLAGS])
 AC_SUBST([OPTIONAL_ZLIB_LIBS])
 AC_SUBST([OPTIONAL_READLINE_CFLAGS])
 AC_SUBST([OPTIONAL_READLINE_LIBS])
-AC_SUBST([OPTIONAL_ICONV_CFLAGS])
-AC_SUBST([OPTIONAL_ICONV_LIBS])
 AC_SUBST([OPTIONAL_OPENSSL_CFLAGS])
 AC_SUBST([OPTIONAL_OPENSSL_LIBS])
 AC_SUBST([OPTIONAL_OPENCT_CFLAGS])
 AC_SUBST([OPTIONAL_OPENCT_LIBS])
 AC_SUBST([OPTIONAL_PCSC_CFLAGS])
+AC_SUBST([LIBRARY_BITNESS])
 
-AM_CONDITIONAL([SVN_CHECKOUT], [test "${svn_checkout}" = "yes"])
 AM_CONDITIONAL([ENABLE_MAN], [test "${enable_man}" = "yes"])
 AM_CONDITIONAL([ENABLE_ZLIB], [test "${enable_zlib}" = "yes"])
 AM_CONDITIONAL([ENABLE_READLINE], [test "${enable_readline}" = "yes"])
-AM_CONDITIONAL([ENABLE_ICONV], [test "${enable_iconv}" = "yes"])
 AM_CONDITIONAL([ENABLE_OPENSSL], [test "${enable_openssl}" = "yes"])
 AM_CONDITIONAL([ENABLE_OPENCT], [test "${enable_openct}" = "yes"])
-AM_CONDITIONAL([ENABLE_NSPLUGIN], [test "${enable_nsplugin}" = "yes"])
 AM_CONDITIONAL([ENABLE_DOC], [test "${enable_doc}" = "yes"])
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 AM_CONDITIONAL([CYGWIN], [test "${CYGWIN}" = "yes"])
+AM_CONDITIONAL([ENABLE_CARDMOD], [test "${enable_cardmod}" = "yes"])
 
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes";
@@ -707,29 +584,22 @@ fi
 AC_CONFIG_FILES([
 	Makefile
 	doc/Makefile
-	doc/nonpersistent/Makefile
 	etc/Makefile
 	src/Makefile
 	src/common/Makefile
-	src/include/Makefile
-	src/include/winconfig.h
-	src/include/opensc/Makefile
 	src/libopensc/Makefile
-	src/libopensc/opensc-config
 	src/libopensc/libopensc.pc
-	src/libopensc/libpkcs15init.pc
-	src/libopensc/libscconf.pc
-	src/openssh/Makefile
 	src/pkcs11/Makefile
 	src/pkcs15init/Makefile
 	src/scconf/Makefile
-	src/signer/Makefile
-	src/signer/npinclude/Makefile
 	src/tests/Makefile
 	src/tests/regression/Makefile
 	src/tools/Makefile
+	src/cardmod/Makefile
+	src/cardmod/cardmod.inf
 	win32/Makefile
-	win32/versioninfo.rc.in
+	win32/versioninfo.rc
+	win32/winconfig.h
 ])
 AC_OUTPUT
 
@@ -747,14 +617,13 @@ man support:             ${enable_man}
 doc support:             ${enable_doc}
 zlib support:            ${enable_zlib}
 readline support:        ${enable_readline}
-iconv support:           ${enable_iconv}
 OpenSSL support:         ${enable_openssl}
 PC/SC support:           ${enable_pcsc}
 OpenCT support:          ${enable_openct}
-NSPlugin support:        ${enable_nsplugin}
+CT-API support:          ${enable_ctapi}
+cardmod support:         ${enable_cardmod}
 
 PC/SC default provider:  ${DEFAULT_PCSC_PROVIDER}
-pinentry:                ${with_pinentry}
 
 Host:                    ${host}
 Compiler:                ${CC}
@@ -769,15 +638,11 @@ READLINE_CFLAGS:         ${READLINE_CFLAGS}
 READLINE_LIBS:           ${READLINE_LIBS}
 ZLIB_CFLAGS:             ${ZLIB_CFLAGS}
 ZLIB_LIBS:               ${ZLIB_LIBS}
-ICONV_CFLAGS:            ${ICONV_CFLAGS}
-ICONV_LIBS:              ${ICONV_LIBS}
 OPENSSL_CFLAGS:          ${OPENSSL_CFLAGS}
 OPENSSL_LIBS:            ${OPENSSL_LIBS}
 OPENCT_CFLAGS:           ${OPENCT_CFLAGS}
 OPENCT_LIBS:             ${OPENCT_LIBS}
 PCSC_CFLAGS:             ${PCSC_CFLAGS}
-LIBASSUAN_CFLAGS:        ${LIBASSUAN_CFLAGS}
-LIBASSUAN_LIBS:          ${LIBASSUAN_LIBS}
 
 EOF
 

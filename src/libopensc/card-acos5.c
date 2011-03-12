@@ -18,7 +18,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <string.h>
+
 #include "internal.h"
 #include "cardctl.h"
 
@@ -51,11 +54,6 @@ static int acos5_init(sc_card_t * card)
 {
 	card->max_recv_size = 128;
 	card->max_send_size = 128;
-	return SC_SUCCESS;
-}
-
-static int acos5_finish(sc_card_t * card)
-{
 	return SC_SUCCESS;
 }
 
@@ -133,15 +131,15 @@ static int acos5_get_serialnr(sc_card_t * card, sc_serial_number_t * serial)
 	apdu.resplen = sizeof(rbuf);
 	apdu.le = 6;
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 		return SC_ERROR_INTERNAL;
 
 	/*
 	 * Cache serial number.
 	 */
-	memcpy(card->serialnr.value, apdu.resp, apdu.resplen);
-	card->serialnr.len = apdu.resplen;
+	memcpy(card->serialnr.value, apdu.resp, MIN(apdu.resplen, SC_MAX_SERIALNR));
+	card->serialnr.len = MIN(apdu.resplen, SC_MAX_SERIALNR);
 
 	/*
 	 * Copy and return serial number.
@@ -183,7 +181,7 @@ static int acos5_list_files(sc_card_t * card, u8 * buf, size_t buflen)
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_1, 0x14, 0x01, 0x00);
 	apdu.cla |= 0x80;
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	if (apdu.sw1 != 0x90)
 		return SC_ERROR_INTERNAL;
 	count = apdu.sw2;
@@ -204,7 +202,7 @@ static int acos5_list_files(sc_card_t * card, u8 * buf, size_t buflen)
 		apdu.resplen = sizeof(info);
 		apdu.le = sizeof(info);
 		r = sc_transmit_apdu(card, &apdu);
-		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 			return SC_ERROR_INTERNAL;
 
@@ -225,7 +223,6 @@ static struct sc_card_driver *sc_get_driver(void)
 
 	acos5_ops.match_card = acos5_match_card;
 	acos5_ops.init = acos5_init;
-	acos5_ops.finish = acos5_finish;
 	acos5_ops.select_file = acos5_select_file;
 	acos5_ops.card_ctl = acos5_card_ctl;
 	acos5_ops.list_files = acos5_list_files;

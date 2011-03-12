@@ -45,10 +45,10 @@ option default {
 PIN user-pin {
     auth-id     = 2;
     reference   = 2;
-    attempts    = 2;
+    attempts    = 10;
     min-length  = 8;
     max-length  = 32;
-    flags       = case-sensitive, local, initialized;
+    flags       = case-sensitive, initialized;
 }
 PIN user-puk {
     min-length  = 0;
@@ -58,10 +58,10 @@ PIN user-puk {
 PIN so-pin {
     auth-id     = 1;
     reference   = 1;
-    attempts    = 2;
+    attempts    = 10;
     min-length  = 8;
     max-length  = 32;
-    flags       = case-sensitive, local, initialized, soPin;
+    flags       = case-sensitive, initialized, soPin;
 }
 PIN so-puk {
     min-length  = 0;
@@ -100,6 +100,19 @@ filesystem {
                 DF LCHV-DF {
                     file-id = 6005;
                 }
+            }
+
+            DF Resrv1-DF {
+                file-id = 1001;
+            }
+            DF Resrv2-DF {
+                file-id = 1002;
+            }
+            DF Resrv3-DF {
+                file-id = 1003;
+            }
+            DF Resrv4-DF {
+                file-id = 1004;
             }
         }
 

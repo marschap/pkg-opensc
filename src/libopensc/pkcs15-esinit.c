@@ -15,22 +15,25 @@
  */
 /* Initially written by Weitao Sun (weitao@ftsafe.com) 2008*/
 
-#include "internal.h"
-#include "pkcs15.h"
-#include "cardctl.h"
+#include "config.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
+#include "internal.h"
+#include "pkcs15.h"
+#include "cardctl.h"
 
 #define MANU_ID		"entersafe"
+
+int sc_pkcs15emu_entersafe_init_ex(sc_pkcs15_card_t *, sc_pkcs15emu_opt_t *);
 
 static int entersafe_detect_card( sc_pkcs15_card_t *p15card)
 {
 	sc_card_t *card = p15card->card;
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 	/* check if we have the correct card OS */
 	if (strcmp(card->name, "entersafe"))
@@ -46,27 +49,27 @@ static int sc_pkcs15emu_entersafe_init( sc_pkcs15_card_t *p15card)
 	sc_card_t *card = p15card->card;
 	sc_serial_number_t serial;
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 	/* get serial number */
 	r = sc_card_ctl(card, SC_CARDCTL_GET_SERIALNR, &serial);
 	r = sc_bin_to_hex(serial.value, serial.len, buf, sizeof(buf), 0);
 	if (r != SC_SUCCESS)
 		return SC_ERROR_INTERNAL;
-	if (p15card->serial_number)
-		free(p15card->serial_number);
-	p15card->serial_number = (char *) malloc(strlen(buf) + 1);
-	if (!p15card->serial_number)
+	if (p15card->tokeninfo->serial_number)
+		free(p15card->tokeninfo->serial_number);
+	p15card->tokeninfo->serial_number = malloc(strlen(buf) + 1);
+	if (!p15card->tokeninfo->serial_number)
 		return SC_ERROR_INTERNAL;
-	strcpy(p15card->serial_number, buf);
+	strcpy(p15card->tokeninfo->serial_number, buf);
 
 	/* the manufacturer ID, in this case Giesecke & Devrient GmbH */
-	if (p15card->manufacturer_id)
-		free(p15card->manufacturer_id);
-	p15card->manufacturer_id = (char *) malloc(strlen(MANU_ID) + 1);
-	if (!p15card->manufacturer_id)
+	if (p15card->tokeninfo->manufacturer_id)
+		free(p15card->tokeninfo->manufacturer_id);
+	p15card->tokeninfo->manufacturer_id = malloc(strlen(MANU_ID) + 1);
+	if (!p15card->tokeninfo->manufacturer_id)
 		return SC_ERROR_INTERNAL;
-	strcpy(p15card->manufacturer_id, MANU_ID);
+	strcpy(p15card->tokeninfo->manufacturer_id, MANU_ID);
 
 	return SC_SUCCESS;
 }
@@ -74,7 +77,7 @@ static int sc_pkcs15emu_entersafe_init( sc_pkcs15_card_t *p15card)
 int sc_pkcs15emu_entersafe_init_ex(sc_pkcs15_card_t *p15card,
 				  sc_pkcs15emu_opt_t *opts)
 {
-	SC_FUNC_CALLED(p15card->card->ctx, 1);
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 	if (opts && opts->flags & SC_PKCS15EMU_FLAGS_NO_CHECK)
 		return sc_pkcs15emu_entersafe_init(p15card);

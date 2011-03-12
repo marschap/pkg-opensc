@@ -11,8 +11,7 @@
 extern "C" {
 #endif
 
-#include <opensc/pkcs15.h>
-#include "keycache.h"
+#include "libopensc/pkcs15.h"
 
 #ifndef SC_PKCS15_PROFILE_SUFFIX
 #define SC_PKCS15_PROFILE_SUFFIX	"profile"
@@ -45,7 +44,7 @@ struct file_info {
  * in the same file as the PIN
  */
 struct pin_info {
-	unsigned int		id;
+	int	id;
 	struct pin_info *	next;
 	char *			file_name;	/* obsolete */
 	unsigned int		file_offset;	/* obsolete */
@@ -82,7 +81,6 @@ struct sc_profile {
 	sc_card_t *		card;
 	char *			driver;
 	struct sc_pkcs15init_operations *ops;
-	struct sc_pkcs15init_callbacks *cbs;
 	void *			dll;	/* handle for dynamic modules */
 
 	struct file_info *	mf_info;
@@ -104,8 +102,6 @@ struct sc_profile {
 	unsigned int		puk_attempts;
 	unsigned int		rsa_access_flags;
 	unsigned int		dsa_access_flags;
-	unsigned int		protect_certificates;
-	unsigned int		keep_public_key;
 
 	struct {
 		unsigned int	direct_certificates;
@@ -120,6 +116,9 @@ struct sc_profile {
 	 * needs to be updated (in other words: if the card content
 	 * has been changed) */
 	int			dirty;
+
+	/* PKCS15 object ID style */
+	unsigned int id_style;
 };
 
 struct sc_profile *sc_profile_new(void);
@@ -128,9 +127,9 @@ int		sc_profile_finish(struct sc_profile *);
 void		sc_profile_free(struct sc_profile *);
 int		sc_profile_build_pkcs15(struct sc_profile *);
 void		sc_profile_get_pin_info(struct sc_profile *,
-			unsigned int, struct sc_pkcs15_pin_info *);
+			int, struct sc_pkcs15_pin_info *);
 int		sc_profile_get_pin_id(struct sc_profile *,
-			unsigned int, unsigned int *);
+			unsigned int, int *);
 int		sc_profile_get_file(struct sc_profile *, const char *,
 			struct sc_file **);
 int		sc_profile_get_file_by_path(struct sc_profile *,
@@ -145,6 +144,10 @@ int		sc_profile_instantiate_template(struct sc_profile *,
 			sc_file_t **);
 int		sc_profile_add_file(struct sc_profile *,
 			const char *, sc_file_t *);
+int		sc_profile_get_file_instance(struct sc_profile *, const char *,
+			int, sc_file_t **);
+int		sc_profile_get_pin_id_by_reference(struct sc_profile *,
+			unsigned, int, struct sc_pkcs15_pin_info *);
 
 #ifdef __cplusplus
 }

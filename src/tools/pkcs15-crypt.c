@@ -18,9 +18,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef HAVE_UNISTD_H
@@ -28,19 +27,21 @@
 #endif
 #include <errno.h>
 #include <string.h>
-#include <opensc/opensc.h>
-#include <opensc/pkcs15.h>
 #ifdef ENABLE_OPENSSL
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 #include <openssl/dsa.h>
 #endif
-#include <compat_getpass.h>
+
+#include "common/compat_getpass.h"
+#include "libopensc/opensc.h"
+#include "libopensc/pkcs15.h"
 #include "util.h"
 
 static const char *app_name = "pkcs15-crypt";
 
-static int opt_reader = -1, verbose = 0, opt_wait = 0, opt_raw = 0;
+static int verbose = 0, opt_wait = 0, opt_raw = 0;
+static char * opt_reader;
 static char * opt_pincode = NULL, * opt_key_id = NULL;
 static char * opt_input = NULL, * opt_output = NULL;
 static int opt_crypt_flags = 0;
@@ -266,6 +267,7 @@ static int sign_ext(struct sc_pkcs15_object *obj,
 {
 	EVP_PKEY *pkey = NULL;
 	int	r, nid = -1;
+	unsigned int out_int = out_len;
 
 	r = extract_key(obj, &pkey);
 	if (r < 0)
@@ -289,20 +291,18 @@ static int sign_ext(struct sc_pkcs15_object *obj,
 				return SC_ERROR_INVALID_ARGUMENTS;
 			}
 		}
-		r = RSA_sign(nid, data, len, out, (unsigned int *) &out_len,
-				pkey->pkey.rsa);
+		r = RSA_sign(nid, data, len, out, &out_int, pkey->pkey.rsa);
 		if (r <= 0)
 			r = SC_ERROR_INTERNAL;
 		break;
 	case SC_PKCS15_TYPE_PRKEY_DSA:
-		r = DSA_sign(NID_sha1, data, len, out, (unsigned int *) &out_len,
-				pkey->pkey.dsa);
+		r = DSA_sign(NID_sha1, data, len, out, &out_int, pkey->pkey.dsa);
 		if (r <= 0)
 			r = SC_ERROR_INTERNAL;
 		break;
 	}
 	if (r >= 0)
-		r = out_len;
+		r = out_int;
 	EVP_PKEY_free(pkey);
 	return r;
 }
@@ -466,11 +466,10 @@ static int get_key(unsigned int usage, sc_pkcs15_object_t **result)
 
 		pincode = get_pin(pin);
 		if (((pincode == NULL || *pincode == '\0')) &&
-		    !(p15card->card->slot->capabilities & SC_SLOT_CAP_PIN_PAD))
+		    !(p15card->card->reader->capabilities & SC_READER_CAP_PIN_PAD))
 				return 5;
 
-		r = sc_pkcs15_verify_pin(p15card, (struct sc_pkcs15_pin_info *) pin->data,
-				(const u8 *) pincode, pincode == NULL ? 0 : strlen(pincode));
+		r = sc_pkcs15_verify_pin(p15card, pin, (const u8 *)pincode, pincode ? strlen(pincode) : 0);
 		if (r) {
 			fprintf(stderr, "PIN code verification failed: %s\n", sc_strerror(r));
 			return 5;
@@ -513,7 +512,7 @@ int main(int argc, char * const argv[])
 			action_count++;
 			break;
 		case 'r':
-			opt_reader = atoi(optarg);
+			opt_reader = optarg;
 			break;
 		case 'i':
 			opt_input = optarg;
@@ -568,10 +567,13 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
-	if (verbose > 1)
-		ctx->debug = verbose-1;
 
-	err = util_connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
+	if (verbose > 1) {
+		ctx->debug = verbose;
+		ctx->debug_file = stderr;
+	}
+
+	err = util_connect_card(ctx, &card, opt_reader, opt_wait, verbose);
 	if (err)
 		goto end;
 
@@ -579,12 +581,12 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Trying to find a PKCS #15 compatible card...\n");
 	r = sc_pkcs15_bind(card, &p15card);
 	if (r) {
-		fprintf(stderr, "PKCS #15 initialization failed: %s\n", sc_strerror(r));
+		fprintf(stderr, "PKCS #15 binding failed: %s\n", sc_strerror(r));
 		err = 1;
 		goto end;
 	}
 	if (verbose)
-		fprintf(stderr, "Found %s!\n", p15card->label);
+		fprintf(stderr, "Found %s!\n", p15card->tokeninfo->label);
 
 	if (do_decipher) {
 		if ((err = get_key(SC_PKCS15_PRKEY_USAGE_DECRYPT, &key))
@@ -604,10 +606,8 @@ end:
 	if (p15card)
 		sc_pkcs15_unbind(p15card);
 	if (card) {
-#if 1
 		sc_unlock(card);
-#endif
-		sc_disconnect_card(card, 0);
+		sc_disconnect_card(card);
 	}
 	if (ctx)
 		sc_release_context(ctx);

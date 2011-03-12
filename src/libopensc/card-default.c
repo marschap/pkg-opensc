@@ -18,8 +18,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
+#include "config.h"
+
 #include <string.h>
+
+#include "internal.h"
 
 static struct sc_card_operations default_ops;
 static struct sc_card_driver default_drv = {
@@ -28,11 +31,6 @@ static struct sc_card_driver default_drv = {
 	&default_ops,
 	NULL, 0, NULL
 };
-
-static int default_finish(sc_card_t *card)
-{
-	return 0;
-}
 
 static int default_match_card(sc_card_t *card)
 {
@@ -47,11 +45,9 @@ static int autodetect_class(sc_card_t *card)
 	sc_apdu_t apdu;
 	int i, r;
 
-	if (card->ctx->debug >= 2)
-		sc_debug(card->ctx, "autodetecting CLA byte\n");
+	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "autodetecting CLA byte\n");
 	for (i = 0; i < class_count; i++) {
-		if (card->ctx->debug >= 2)
-			sc_debug(card->ctx, "trying with 0x%02X\n", classes[i]);
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "trying with 0x%02X\n", classes[i]);
 		memset(&apdu, 0, sizeof(apdu));
 		apdu.cla = classes[i];
 		apdu.cse = SC_APDU_CASE_2_SHORT;
@@ -63,58 +59,56 @@ static int autodetect_class(sc_card_t *card)
 		apdu.resp = rbuf;
 		apdu.resplen = sizeof(rbuf);
 		r = sc_transmit_apdu(card, &apdu);
-		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 		if (apdu.sw1 == 0x6E)
 			continue;
 		if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00)
 			break;
 		if (apdu.sw1 == 0x61)
 			break;
-		if (card->ctx->debug >= 2)
-			sc_debug(card->ctx, "got strange SWs: 0x%02X 0x%02X\n",
-			      apdu.sw1, apdu.sw2);
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+			"got strange SWs: 0x%02X 0x%02X\n", apdu.sw1, apdu.sw2);
 		break;
 	}
 	if (i == class_count)
 		return -1;
 	card->cla = classes[i];
-	if (card->ctx->debug >= 2)
-		sc_debug(card->ctx, "detected CLA byte as 0x%02X\n", card->cla);
+	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+		"detected CLA byte as 0x%02X\n", card->cla);
 	if (apdu.resplen < 2) {
-		if (card->ctx->debug >= 2)
-			sc_debug(card->ctx, "SELECT FILE returned %d bytes\n",
-			      apdu.resplen);
-		return 0;
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+			"SELECT FILE returned %d bytes\n", apdu.resplen);
+		return SC_SUCCESS;
 	}
 	if (rbuf[0] == 0x6F) {
-		if (card->ctx->debug >= 2)
-			sc_debug(card->ctx, "SELECT FILE seems to behave according to ISO 7816-4\n");
-		return 0;
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+		    "SELECT FILE seems to behave according to ISO 7816-4\n");
+		return SC_SUCCESS;
 	}
 	if (rbuf[0] == 0x00 && rbuf[1] == 0x00) {
 		struct sc_card_driver *drv;
-		if (card->ctx->debug >= 2)
-			sc_debug(card->ctx, "SELECT FILE seems to return Schlumberger 'flex stuff\n");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+		    "SELECT FILE seems to return Schlumberger 'flex stuff\n");
 		drv = sc_get_cryptoflex_driver();
 		card->ops->select_file = drv->ops->select_file;
-		return 0;
+		return SC_SUCCESS;
 	}
-	return 0;
+	return SC_SUCCESS;
 }
 
 static int default_init(sc_card_t *card)
 {
 	int r;
 	
-	card->name = "Unidentified card";
+	card->name = "Unsupported card";
 	card->drv_data = NULL;
 	r = autodetect_class(card);
 	if (r) {
-		sc_error(card->ctx, "unable to determine the right class byte\n");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unable to determine the right class byte\n");
 		return SC_ERROR_INVALID_CARD;
 	}
 
-	return 0;
+	return SC_SUCCESS;
 }
 
 static struct sc_card_driver * sc_get_driver(void)
@@ -124,14 +118,11 @@ static struct sc_card_driver * sc_get_driver(void)
 	default_ops = *iso_drv->ops;
 	default_ops.match_card = default_match_card;
 	default_ops.init = default_init;
-	default_ops.finish = default_finish;
 
 	return &default_drv;
 }
 
-#if 1
 struct sc_card_driver * sc_get_default_driver(void)
 {
 	return sc_get_driver();
 }
-#endif

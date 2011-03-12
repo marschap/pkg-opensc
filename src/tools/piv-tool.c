@@ -2,7 +2,7 @@
  * piv-tool.c: Tool for accessing smart cards with libopensc
  *
  * Copyright (C) 2001  Juha Yrjölä <juha.yrjola@iki.fi>
- * Copyright (C) 2005, Douglas E. Engert <deengert@anl.gov>
+ * Copyright (C) 2005,2010 Douglas E. Engert <deengert@anl.gov>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,9 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef HAVE_UNISTD_H
@@ -31,21 +30,31 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#include <opensc/opensc.h>
-#include <opensc/cardctl.h>
-#include "util.h"
+
+/* Module only built if OPENSSL is enabled */
+#include <openssl/opensslconf.h>
 #include <openssl/rsa.h>
+#if OPENSSL_VERSION_NUMBER >= 0x00908000L && !defined(OPENSSL_NO_EC)
+#include <openssl/ec.h>
+#endif
+#include <openssl/evp.h>
 #include <openssl/x509.h>
 #include <openssl/bn.h>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/err.h>
+#include <openssl/obj_mac.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/cardctl.h"
+#include "libopensc/asn1.h"
+#include "util.h"
 
 static const char *app_name = "piv-tool";
 
-static int	opt_reader = -1,
-		opt_wait = 0;
+static int	opt_wait = 0;
 static char **	opt_apdus;
+static char *	opt_reader;
 static int	opt_apdu_count = 0;
 static int	verbose = 0;
 
@@ -59,11 +68,11 @@ static const struct option options[] = {
 	{ "admin",		0, NULL, 		'A' },
 	{ "usepin",		0, NULL,		'P' }, /* some beta cards want user pin for put_data */
 	{ "genkey",		0, NULL,		'G' },
-	{ "cert",		0, NULL,		'C' },
-	{ "compresscert", 0, NULL,		'Z' },
-	{ "req",		0, NULL, 		'R' },
-	{ "out",	0, NULL, 		'o' },
-	{ "in",		0, NULL, 		'o' },
+	{ "object",		1, NULL,		'O' },
+	{ "cert",		1, NULL,		'C' },
+	{ "compresscert", 1, NULL,		'Z' },
+	{ "out",	1, NULL, 		'o' },
+	{ "in",		1, NULL, 		'i' },
 	{ "send-apdu",		1, NULL,		's' },
 	{ "reader",		1, NULL,		'r' },
 	{ "card-driver",	1, NULL,		'c' },
@@ -78,10 +87,10 @@ static const char *option_help[] = {
 	"authenticate using default 3des key",
 	"authenticate using user pin", 
 	"Generate key <ref>:<alg> 9A:06 on card, and output pubkey",
+	"Load an object <containerID> containerID as defined in 800-73 without leading 0x",
 	"Load a cert <ref> where <ref> is 9A,9B,9C or 9D",
 	"Load a cert that has been gziped <ref>",
-	"Generate a cert req",
-	"Output file for cert or key or req",
+	"Output file for cert or key",
 	"Inout file for cert",
 	"Sends an APDU in format AA:BB:CC:DD:EE:FF...",
 	"Uses reader number <arg> [0]",
@@ -93,7 +102,56 @@ static const char *option_help[] = {
 static sc_context_t *ctx = NULL;
 static sc_card_t *card = NULL;
 static BIO * bp = NULL;
-static RSA * newkey = NULL;
+static EVP_PKEY * evpkey = NULL;
+
+static int load_object(const char * object_id, const char * object_file)
+{
+	FILE *fp;
+	sc_path_t path;
+	size_t derlen;
+	u8 *der = NULL;
+	u8 *body;
+	size_t bodylen;
+	int r;
+	struct stat stat_buf;
+
+    if((fp=fopen(object_file, "r"))==NULL){
+        printf("Cannot open object file, %s %s\n", 
+			(object_file)?object_file:"", strerror(errno));
+        return -1;
+    }
+							
+	stat(object_file, &stat_buf);
+	derlen = stat_buf.st_size;
+	der = malloc(derlen);
+	if (der == NULL) {
+		printf("file %s is too big, %lu\n",
+		object_file, (unsigned long)derlen);
+		return-1 ;
+	}
+	if (1 != fread(der, derlen, 1, fp)) {
+		printf("unable to read file %s\n",object_file);
+		return -1;
+	}
+	/* check if tag and length are valid */
+	body = (u8 *)sc_asn1_find_tag(card->ctx, der, derlen, 0x53, &bodylen);
+	if (body == NULL || derlen != body  - der +  bodylen) {
+		fprintf(stderr, "object tag or length not valid\n");
+		return -1;
+	}
+
+	sc_format_path(object_id, &path);
+	
+	r = sc_select_file(card, &path, NULL);
+	if (r < 0) {
+		fprintf(stderr, "select file failed\n");
+		return -1;
+	}
+	/* leave 8 bits for flags, and pass in total length */ 
+	r = sc_write_binary(card, 0, der, derlen, derlen<<8);
+
+	return r;
+}	
 
 
 static int load_cert(const char * cert_id, const char * cert_file,
@@ -111,7 +169,7 @@ static int load_cert(const char * cert_id, const char * cert_file,
 
     if((fp=fopen(cert_file, "r"))==NULL){
         printf("Cannot open cert file, %s %s\n", 
-			cert_file, strerror(errno));
+			cert_file?cert_file:"", strerror(errno));
         return -1;
     }
 	if (compress) { /* file is gziped already */
@@ -138,7 +196,7 @@ static int load_cert(const char * cert_id, const char * cert_file,
     	}
 
 		derlen = i2d_X509(cert, NULL);
-		der = (u8 *) malloc(derlen);
+		der = malloc(derlen);
 		p = der;
 		i2d_X509(cert, &p);
 	}
@@ -160,8 +218,9 @@ static int load_cert(const char * cert_id, const char * cert_file,
 		fprintf(stderr, "select file failed\n");
 		 return -1;
 	}
-	/* we pass compress as the flag to card-piv.c write_binary */
-	r = sc_write_binary(card, 0, der, derlen, compress); 
+	/* we pass length  and  8 bits of flag to card-piv.c write_binary */
+	/* pass in its a cert and if needs compress */
+	r = sc_write_binary(card, 0, der, derlen, (derlen<<8) | (compress<<4) | 1); 
 	
 	return r;
 
@@ -185,20 +244,11 @@ static int admin_mode(const char* admin_info)
 		return -1;
 	}
 	
-	r = sc_card_ctl(card, SC_CARDCTL_LIFECYCLE_SET, &opts);
+	r = sc_card_ctl(card, SC_CARDCTL_PIV_AUTHENTICATE, &opts);
 	if (r)
 		fprintf(stderr, " admin_mode failed %d\n", r);
 	return r;
 }
-
-#if 0
-/* generate a req using xxx as subject */
-static int req()
-{
-	fprintf(stderr, "Not Implemented yet\n");
-	return -1;
-}
-#endif
 
 /* generate a new key pair, and save public key in newkey */
 static int gen_key(const char * key_info)
@@ -206,11 +256,13 @@ static int gen_key(const char * key_info)
 	int r;
 	u8 buf[2];
 	size_t buflen = 2;
-	struct sc_cardctl_cryptoflex_genkey_info 
-		keydata = { 0x9a, 1024, 0, NULL, 0};
+	sc_cardctl_piv_genkey_info_t
+		keydata = {0, 0, 0, 0, NULL, 0, NULL, 0, NULL, 0};
 	unsigned long expl;
 	u8 expc[4];
-	
+#if OPENSSL_VERSION_NUMBER >= 0x00908000L && !defined(OPENSSL_NO_EC)
+	int nid;
+#endif	
 	sc_hex_to_bin(key_info, buf, &buflen);
 	if (buflen != 2) {
 		fprintf(stderr, "<keyref>:<algid> invalid, example: 9A:06\n");
@@ -229,47 +281,99 @@ static int gen_key(const char * key_info)
 	}
 
 	switch (buf[1]) {
-		case 5: keydata.key_bits = 3072; break;
-		case 6: keydata.key_bits = 1024; break;
-		case 7: keydata.key_bits = 2048; break;
+		case 0x05: keydata.key_bits = 3072; break;
+		case 0x06: keydata.key_bits = 1024; break;
+		case 0x07: keydata.key_bits = 2048; break;
+#if OPENSSL_VERSION_NUMBER >= 0x00908000L && !defined(OPENSSL_NO_EC)		
+		case 0x11: keydata.key_bits = 0; 
+			nid = NID_X9_62_prime256v1; /* We only support one curve per algid */
+			break; 
+		case 0x14: keydata.key_bits = 0; 
+			nid = NID_secp384r1; 
+			break;
+#endif
 		default:
-			fprintf(stderr, "<keyref>:<algid> algid, 05, 06, 07 for 3072, 1024, 2048\n");
+			fprintf(stderr, "<keyref>:<algid> algid=RSA - 05, 06, 07 for 3072, 1024, 2048;EC - 11, 14 for 256, 384\n");
 			return 2;
 	}
 
-	r = sc_card_ctl(card, SC_CARDCTL_CRYPTOFLEX_GENERATE_KEY, &keydata);
+	keydata.key_algid = buf[1];
+
+
+	r = sc_card_ctl(card, SC_CARDCTL_PIV_GENERATE_KEY, &keydata);
 	if (r) {
 		fprintf(stderr, "gen_key failed %d\n", r);
 		return r;
 	}
-	
-	newkey = RSA_new();
-	if (newkey == NULL) { 
-		fprintf(stderr, "gen_key RSA_new failed %d\n",r);
-		return -1;
-	}
-	newkey->n = BN_bin2bn(keydata.pubkey, keydata.pubkey_len, newkey->n);
-	expl = keydata.exponent;
-	expc[3] = (u8) expl & 0xff;
-	expc[2] = (u8) (expl >>8) & 0xff;
-	expc[1] = (u8) (expl >>16) & 0xff;
-	expc[0] = (u8) (expl >>24) & 0xff;
-	newkey->e =  BN_bin2bn(expc, 4,  newkey->e);
-	
-	if (verbose) 
-		RSA_print_fp(stdout, newkey,0); 
 
-	if (bp) 
-		PEM_write_bio_RSAPublicKey(bp, newkey);
+		evpkey = EVP_PKEY_new();
+
+	if (keydata.key_bits > 0) { /* RSA key */
+		RSA * newkey = NULL;
+	
+		newkey = RSA_new();
+		if (newkey == NULL) { 
+			fprintf(stderr, "gen_key RSA_new failed %d\n",r);
+			return -1;
+		}
+		newkey->n = BN_bin2bn(keydata.pubkey, keydata.pubkey_len, newkey->n);
+		expl = keydata.exponent;
+		expc[3] = (u8) expl & 0xff;
+		expc[2] = (u8) (expl >>8) & 0xff;
+		expc[1] = (u8) (expl >>16) & 0xff;
+		expc[0] = (u8) (expl >>24) & 0xff;
+		newkey->e =  BN_bin2bn(expc, 4,  newkey->e);
+	
+		if (verbose) 
+			RSA_print_fp(stdout, newkey,0); 
+
+		EVP_PKEY_assign_RSA(evpkey, newkey);
+
+	} else { /* EC key */
+#if OPENSSL_VERSION_NUMBER >= 0x00908000L && !defined(OPENSSL_NO_EC)
+		int i;
+		BIGNUM *x;
+		BIGNUM *y;
+		EC_KEY * eckey = NULL;
+		EC_GROUP * ecgroup = NULL;
+		EC_POINT * ecpoint = NULL;
+
+		ecgroup = EC_GROUP_new_by_curve_name(nid);
+		EC_GROUP_set_asn1_flag(ecgroup, OPENSSL_EC_NAMED_CURVE);
+		ecpoint = EC_POINT_new(ecgroup);
+	
+		/* PIV returns 04||x||y  and x and y are the same size */
+		i = (keydata.ecpoint_len - 1)/2;
+		x = BN_bin2bn(keydata.ecpoint + 1, i, x);
+		y = BN_bin2bn(keydata.ecpoint + 1 + i, i, y) ;
+		r = EC_POINT_set_affine_coordinates_GFp(ecgroup, ecpoint, x, y, NULL);
+		eckey = EC_KEY_new();
+		r = EC_KEY_set_group(eckey, ecgroup);
+		r = EC_KEY_set_public_key(eckey, ecpoint);
+
+		if (verbose)
+			EC_KEY_print_fp(stdout, eckey, 0);
+
+		EVP_PKEY_assign_EC_KEY(evpkey, eckey);
+#else
+		fprintf(stderr, "This build of OpenSSL does not support EC keys\n");
+		r = 1; 
+#endif /* OPENSSL_NO_EC */
+
+	}
+	if (bp)
+		r = i2d_PUBKEY_bio(bp, evpkey);
+
+	if (evpkey)
+		EVP_PKEY_free(evpkey);
 
 	return r;
-
 }
 
 static int send_apdu(void)
 {
 	sc_apdu_t apdu;
-	u8 buf[SC_MAX_APDU_BUFFER_SIZE], sbuf[SC_MAX_APDU_BUFFER_SIZE],
+	u8 buf[SC_MAX_APDU_BUFFER_SIZE+3], sbuf[SC_MAX_APDU_BUFFER_SIZE],
 	   rbuf[SC_MAX_APDU_BUFFER_SIZE], *p;
 	size_t len, len0, r;
 	int c;
@@ -277,6 +381,11 @@ static int send_apdu(void)
 	for (c = 0; c < opt_apdu_count; c++) {
 		len0 = sizeof(buf);
 		sc_hex_to_bin(opt_apdus[c], buf, &len0);
+		if (len0 > SC_MAX_APDU_BUFFER_SIZE+2) {
+			fprintf(stderr, "APDU too long, (must be at most %d bytes).\n",
+				SC_MAX_APDU_BUFFER_SIZE+2);
+				return 2;
+		}
 		if (len0 < 4) {
 			fprintf(stderr, "APDU too short (must be at least 4 bytes).\n");
 			return 2;
@@ -359,8 +468,8 @@ int main(int argc, char * const argv[])
 	int do_admin_mode = 0;
 	int do_gen_key = 0;
 	int do_load_cert = 0;
+	int do_load_object = 0;
 	int compress_cert = 0;
-	int do_req = 0;
 	int do_print_serial = 0;
 	int do_print_name = 0;
 	int action_count = 0;
@@ -368,6 +477,7 @@ int main(int argc, char * const argv[])
 	const char *out_file = NULL;
 	const char *in_file = NULL;
 	const char *cert_id = NULL;
+	const char *object_id = NULL;
 	const char *key_info = NULL;
 	const char *admin_info = NULL;
 		
@@ -375,7 +485,7 @@ int main(int argc, char * const argv[])
 	setbuf(stdout, NULL);
 
 	while (1) {
-		c = getopt_long(argc, argv, "nA:G:Z:C:Ri:o:fvs:c:w", options, &long_optind);
+		c = getopt_long(argc, argv, "nA:G:O:Z:C:i:o:fvs:c:w", options, &long_optind);
 		if (c == -1)
 			break;
 		if (c == '?')
@@ -408,15 +518,16 @@ int main(int argc, char * const argv[])
 			key_info = optarg;
 			action_count++;
 			break;
+		case 'O':
+			do_load_object = 1;
+			object_id = optarg;
+			action_count++;
+			break;
 		case 'Z':
 			compress_cert = 1;
 		case 'C':
 			do_load_cert = 1;
 			cert_id = optarg;
-			action_count++;
-			break;
-		case 'R':
-			do_req = 1;
 			action_count++;
 			break;
 		case 'i':
@@ -426,7 +537,7 @@ int main(int argc, char * const argv[])
 			out_file = optarg;
 			break;
 		case 'r':
-			opt_reader = atoi(optarg);
+			opt_reader = optarg;
 			break;
 		case 'v':
 			verbose++;
@@ -460,8 +571,12 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
-	if (verbose > 1)
-		ctx->debug = verbose-1;
+
+	/* Only change if not in opensc.conf */
+	if (verbose > 1 && ctx->debug == 0) { 
+		ctx->debug = verbose;
+		ctx->debug_file = stderr;
+	}
 
 	if (action_count <= 0)
 		goto end;
@@ -475,7 +590,7 @@ int main(int argc, char * const argv[])
 		}
 	}
 
-	err = util_connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
+	err = util_connect_card(ctx, &card, opt_reader, opt_wait, verbose);
 	if (err)
 		goto end;
 
@@ -491,6 +606,11 @@ int main(int argc, char * const argv[])
 	}
 	if (do_gen_key) {
 		if ((err = gen_key(key_info)))
+			goto end;
+		action_count--;
+	}
+	if (do_load_object) {
+		if ((err = load_object(object_id, in_file)))
 			goto end;
 		action_count--;
 	}
@@ -517,9 +637,11 @@ end:
 		BIO_free(bp);
 	if (card) {
 		sc_unlock(card);
-		sc_disconnect_card(card, 0);
+		sc_disconnect_card(card);
 	}
 	if (ctx)
 		sc_release_context(ctx);
+
+	ERR_print_errors_fp(stderr);
 	return err;
 }

@@ -16,10 +16,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
+#include "config.h"
+
 #include <ctype.h>
 #include <string.h>
 
+#include "internal.h"
 #include "asn1.h"
 #include "cardctl.h"
 
@@ -38,11 +40,6 @@ static struct sc_atr_table asepcos_atrs[] = {
 	{ "3b:d6:18:00:81:b1:fe:7d:1f:03:41:53:45:37:35:35:01", NULL, NULL, SC_CARD_TYPE_ASEPCOS_JAVA, 0, NULL},
 	{ NULL, NULL, NULL, 0, 0, NULL }
 };
-
-static int asepcos_finish(sc_card_t *card)
-{
-	return SC_SUCCESS;
-}
 
 static int asepcos_match_card(sc_card_t *card)
 {
@@ -64,7 +61,7 @@ static int asepcos_select_asepcos_applet(sc_card_t *card)
 
 	r = sc_select_file(card, &tpath, NULL);
 	if (r != SC_SUCCESS) {
-		sc_error(card->ctx, "unable to select ASEPCOS applet");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unable to select ASEPCOS applet");
 		return r;
 	}
 
@@ -140,6 +137,12 @@ static int set_sec_attr(sc_file_t *file, unsigned int am, unsigned int ac,
 	unsigned int meth)
 {
 	const amode_entry_t *table;
+
+        /* CHV with reference '0' is the trasport PIN
+	 * and is presented as 'AUT' key with reference '0'*/
+	if (meth == SC_AC_CHV && ac == 0)
+		meth = SC_AC_AUT;
+
 	if (file->type == SC_FILE_TYPE_DF)
 		table = df_amode_table;
 	else if (file->type == SC_FILE_TYPE_WORKING_EF)
@@ -165,7 +168,7 @@ static int asepcos_parse_sec_attr(sc_card_t *card, sc_file_t *file, const u8 *bu
 	while (len != 0) {
 		unsigned int amode, tlen = 3;
 		if (len < 5 && p[0] != 0x80 && p[1] != 0x01) {
-			sc_error(card->ctx, "invalid access mode encoding");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "invalid access mode encoding");
 			return SC_ERROR_INTERNAL;
 		}
 		amode = p[2];
@@ -192,7 +195,7 @@ static int asepcos_parse_sec_attr(sc_card_t *card, sc_file_t *file, const u8 *bu
 				return r;
 			tlen += 2 + p[4];	/* FIXME */
 		} else {
-			sc_error(card->ctx, "invalid security condition");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "invalid security condition");
 			return SC_ERROR_INTERNAL;
 		}
 		p   += tlen;
@@ -247,7 +250,7 @@ static int asepcos_get_current_df_path(sc_card_t *card, sc_path_t *path)
 	apdu.le      = 256;
 
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 		return sc_check_sw(card, apdu.sw1, apdu.sw2);
 	return asepcos_tlvpath_to_scpath(path, apdu.resp, apdu.resplen);
@@ -262,7 +265,7 @@ static int asepcos_select_file(sc_card_t *card, const sc_path_t *in_path,
 	int       r;
 	sc_path_t npath = *in_path;
 
-	SC_FUNC_CALLED(card->ctx, 2);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_NORMAL);
 
 	if (in_path->type == SC_PATH_TYPE_PATH) {
 		/* check the current DF to avoid unnecessary re-selection of
@@ -306,9 +309,9 @@ static int asepcos_select_file(sc_card_t *card, const sc_path_t *in_path,
 	if (r == SC_SUCCESS && file != NULL) {
 		r = asepcos_parse_sec_attr(card, *file, (*file)->sec_attr, (*file)->sec_attr_len);
 		if (r != SC_SUCCESS) 
-			sc_error(card->ctx, "error parsing security attributes");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "error parsing security attributes");
 	}
-	SC_FUNC_RETURN(card->ctx, 1, r);
+	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 static int asepcos_set_security_env(sc_card_t *card,
@@ -322,7 +325,7 @@ static int asepcos_set_security_env(sc_card_t *card,
 	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE], *p = sbuf;
 	int r, locked = 0;
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0, 0);
 	switch (env->operation) {
 	case SC_SEC_OPERATION_DECIPHER:
@@ -353,18 +356,20 @@ static int asepcos_set_security_env(sc_card_t *card,
 	apdu.data    = sbuf;
 	if (se_num > 0) {
 		r = sc_lock(card);
-		SC_TEST_RET(card->ctx, r, "sc_lock() failed");
+		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "sc_lock() failed");
 		locked = 1;
 	}
 	if (apdu.datalen != 0) {
 		r = sc_transmit_apdu(card, &apdu);
 		if (r) {
-			sc_perror(card->ctx, r, "APDU transmit failed");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+				"%s: APDU transmit failed", sc_strerror(r));
 			goto err;
 		}
 		r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 		if (r) {
-			sc_perror(card->ctx, r, "Card returned error");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+				 "%s: Card returned error", sc_strerror(r));
 			goto err;
 		}
 	}
@@ -373,7 +378,7 @@ static int asepcos_set_security_env(sc_card_t *card,
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0xF2, se_num);
 	r = sc_transmit_apdu(card, &apdu);
 	sc_unlock(card);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 err:
 	if (locked)
@@ -402,7 +407,7 @@ static int asepcos_akn_to_fileid(sc_card_t *card, sc_cardctl_asepcos_akn2fileid_
 	apdu.data    = sbuf;
 
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 
 	if (apdu.resplen != 4)
 		return SC_ERROR_INTERNAL;
@@ -426,7 +431,7 @@ static int asepcos_set_sec_attributes(sc_card_t *card, const u8 *data, size_t le
 	apdu.datalen = len;
 	apdu.data    = data;
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 }
 
@@ -482,7 +487,7 @@ static int asepcos_set_security_attributes(sc_card_t *card, sc_file_t *file)
 			*p++ = (st.fileid >> 8 ) & 0xff;
 			*p++ = st.fileid & 0xff;
 		} else {
-			sc_error(card->ctx, "unknow auth method: '%d'", ent->method);
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unknow auth method: '%d'", ent->method);
 			return SC_ERROR_INTERNAL;
 		} 
 	}
@@ -498,7 +503,7 @@ static int asepcos_decipher(sc_card_t *card, const u8 * crgram, size_t crgram_le
 	int       r;
 	sc_apdu_t apdu;
 
-	SC_FUNC_CALLED(card->ctx, 2);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_NORMAL);
 
 	/* call RSA ENCRYPT DECRYPT for the decipher operation */
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_4, 0x14, 0x01, 0x00);
@@ -509,15 +514,14 @@ static int asepcos_decipher(sc_card_t *card, const u8 * crgram, size_t crgram_le
 	 * to tell the card the we want everything available (note: we
 	 * always have Le <= crgram_len) */
 	apdu.le      = (outlen >= 256 && crgram_len < 256) ? 256 : outlen;
-	apdu.sensitive = 1;
 	
 	apdu.data    = crgram;
 	apdu.lc      = crgram_len;
 	apdu.datalen = crgram_len;
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
-		SC_FUNC_RETURN(card->ctx, 2, sc_check_sw(card, apdu.sw1, apdu.sw2));
+		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, sc_check_sw(card, apdu.sw1, apdu.sw2));
 	return apdu.resplen;
 }
 
@@ -532,7 +536,7 @@ static int asepcos_compute_signature(sc_card_t *card, const u8 *data, size_t dat
 	u8  rbuf[SC_MAX_APDU_BUFFER_SIZE];
 	sc_apdu_t apdu;
 
-	SC_FUNC_CALLED(card->ctx, 2);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_NORMAL);
 
 	if (datalen >= 256)
 		atype = SC_APDU_CASE_4_EXT;
@@ -548,9 +552,9 @@ static int asepcos_compute_signature(sc_card_t *card, const u8 *data, size_t dat
 	apdu.le      = 256;
 
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00) {
-		sc_error(card->ctx, "error creating signature");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "error creating signature");
 		return sc_check_sw(card, apdu.sw1, apdu.sw2);
 	}
 
@@ -576,7 +580,7 @@ static int asepcos_activate_file(sc_card_t *card, int fileid, int is_ef)
 	apdu.datalen = 2;
 	apdu.data    = sbuf;
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 } 
 
@@ -618,7 +622,7 @@ static int asepcos_create_file(sc_card_t *card, sc_file_t *file)
 		apdu.data    = sbuf;
 
 		r = sc_transmit_apdu(card, &apdu);
-		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 			return sc_check_sw(card, apdu.sw1, apdu.sw2); 
 
@@ -628,7 +632,7 @@ static int asepcos_create_file(sc_card_t *card, sc_file_t *file)
 		/* set security attributes */
 		r = asepcos_set_security_attributes(card, file);
 		if (r != SC_SUCCESS) {
-			sc_error(card->ctx, "unable to set security attributes");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unable to set security attributes");
 			return r;
 		}
 		return SC_SUCCESS;
@@ -667,14 +671,14 @@ static int asepcos_create_file(sc_card_t *card, sc_file_t *file)
 		apdu.datalen = p - sbuf;
 		apdu.data    = sbuf;
 		r = sc_transmit_apdu(card, &apdu);
-		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 			return sc_check_sw(card, apdu.sw1, apdu.sw2);
 
 		/* set security attributes */
 		r = asepcos_set_security_attributes(card, file);
 		if (r != SC_SUCCESS) {
-			sc_error(card->ctx, "unable to set security attributes");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unable to set security attributes");
 			return r;
 		}
 		return asepcos_activate_file(card, file->id, 1);
@@ -695,13 +699,13 @@ static int asepcos_create_file(sc_card_t *card, sc_file_t *file)
 		apdu.data    = file->prop_attr;
 
 		r = sc_transmit_apdu(card, &apdu);
-		SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 			return sc_check_sw(card, apdu.sw1, apdu.sw2);
 		/* set security attributes */
 		r = asepcos_set_security_attributes(card, file);
 		if (r != SC_SUCCESS) {
-			sc_error(card->ctx, "unable to set security attributes");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unable to set security attributes");
 			return r;
 		}
 		return asepcos_activate_file(card, file->id, 1);
@@ -735,7 +739,7 @@ static int asepcos_list_files(sc_card_t *card, u8 *buf, size_t blen)
 		return r;
 	if (tfile->prop_attr_len != 6 || tfile->prop_attr == NULL) {
 		sc_file_free(tfile);
-		sc_error(card->ctx, "unable to parse proprietary FCI attributes");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unable to parse proprietary FCI attributes");
 		return SC_ERROR_INTERNAL;
 	}
 	dfFID = (tfile->prop_attr[2] << 8) | tfile->prop_attr[3];
@@ -809,7 +813,7 @@ static int asepcos_delete_file(sc_card_t *card, const sc_path_t *path)
 	apdu.resplen = sizeof(buf);
 	apdu.resp    = buf;
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	if (apdu.sw1 == 0x90 && apdu.sw2 == 0x00) {
 		/* looks like a EF */
 		atype = SC_APDU_CASE_3_SHORT;
@@ -830,7 +834,7 @@ static int asepcos_delete_file(sc_card_t *card, const sc_path_t *path)
 	}
 	
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 }
 
@@ -861,11 +865,11 @@ static int asepcos_get_serialnr(sc_card_t *card, sc_serial_number_t *serial)
 	apdu.resplen = sizeof(rbuf);
 	apdu.le   = 256;
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r,  "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r,  "APDU transmit failed");
 	if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 		return SC_ERROR_INTERNAL;
 	if (apdu.resplen != 8) {
-		sc_debug(card->ctx, "unexpected response to GET DATA serial number\n");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "unexpected response to GET DATA serial number\n");
 		return SC_ERROR_INTERNAL;
 	}
 	/* cache serial number */
@@ -892,7 +896,7 @@ static int asepcos_change_key(sc_card_t *card, sc_cardctl_asepcos_change_key_t *
 	apdu.data    = p->data;
 
 	r = sc_transmit_apdu(card, &apdu);
-	SC_TEST_RET(card->ctx, r, "APDU transmit failed");
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	return sc_check_sw(card, apdu.sw1, apdu.sw2);
 }
 
@@ -990,9 +994,6 @@ static int asepcos_build_pin_apdu(sc_card_t *card, sc_apdu_t *apdu,
 	default:
 		return SC_ERROR_NOT_SUPPORTED;
 	}
-	/* all PIN related APDUs are sensitive */
-	apdu->sensitive = 1;
-
 	return SC_SUCCESS;
 }
 
@@ -1008,28 +1009,35 @@ static int asepcos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *pdata,
 
 	if (tries_left)
 		*tries_left = -1;
+
 	/* only PIN verification is supported at the moment  */
-	if (pdata->pin_type != SC_AC_CHV && pdata->pin_type != SC_AC_AUT)
-		return SC_ERROR_INVALID_ARGUMENTS;
+
 	/* check PIN length */
 	if (pdata->pin1.len < 4 || pdata->pin1.len > 16) {
-		sc_error(card->ctx, "invalid PIN1 length");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "invalid PIN1 length");
 		return SC_ERROR_INVALID_PIN_LENGTH; 
 	}
 
 	switch (pdata->cmd) {
 	case SC_PIN_CMD_VERIFY:
+		if (pdata->pin_type != SC_AC_CHV && pdata->pin_type != SC_AC_AUT)
+			return SC_ERROR_INVALID_ARGUMENTS;
+		/* 'AUT' key is the transport PIN and should have reference '0' */
+		if (pdata->pin_type == SC_AC_AUT && pdata->pin_reference)
+			return SC_ERROR_INVALID_ARGUMENTS;
 		/* build verify APDU and send it to the card */
 		r = asepcos_build_pin_apdu(card, &apdu, pdata, sbuf, sizeof(sbuf), SC_PIN_CMD_VERIFY, 0);
 		if (r != SC_SUCCESS)
 			break;
 		r = sc_transmit_apdu(card, &apdu);
 		if (r != SC_SUCCESS)
-			sc_error(card->ctx, "APDU transmit failed");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "APDU transmit failed");
 		break;
 	case SC_PIN_CMD_CHANGE:
+		if (pdata->pin_type != SC_AC_CHV)
+			return SC_ERROR_INVALID_ARGUMENTS;
 		if (pdata->pin2.len < 4 || pdata->pin2.len > 16) {
-			sc_error(card->ctx, "invalid PIN2 length");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "invalid PIN2 length");
 			return SC_ERROR_INVALID_PIN_LENGTH; 
 		}
 		/* 1. step: verify the old pin */
@@ -1038,7 +1046,7 @@ static int asepcos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *pdata,
 			break;
 		r = sc_transmit_apdu(card, &apdu);
 		if (r != SC_SUCCESS) {
-			sc_error(card->ctx, "APDU transmit failed");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "APDU transmit failed");
 			break;
 		}
 		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00) {
@@ -1052,12 +1060,14 @@ static int asepcos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *pdata,
 			break;
 		r = sc_transmit_apdu(card, &apdu);
 		if (r != SC_SUCCESS)
-			sc_error(card->ctx, "APDU transmit failed");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "APDU transmit failed");
 		r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 		break;
 	case SC_PIN_CMD_UNBLOCK:
+		if (pdata->pin_type != SC_AC_CHV)
+			return SC_ERROR_INVALID_ARGUMENTS;
 		if (pdata->pin2.len < 4 || pdata->pin2.len > 16) {
-			sc_error(card->ctx, "invalid PIN2 length");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "invalid PIN2 length");
 			return SC_ERROR_INVALID_PIN_LENGTH; 
 		}
 		/* 1. step: verify the puk */
@@ -1066,7 +1076,7 @@ static int asepcos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *pdata,
 			break;
 		r = sc_transmit_apdu(card, &apdu);
 		if (r != SC_SUCCESS) {
-			sc_error(card->ctx, "APDU transmit failed");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "APDU transmit failed");
 			break;
 		}
 		/* 2, step: unblock and change the pin */
@@ -1075,13 +1085,13 @@ static int asepcos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *pdata,
 			break;
 		r = sc_transmit_apdu(card, &apdu);
 		if (r != SC_SUCCESS) {
-			sc_error(card->ctx, "APDU transmit failed");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "APDU transmit failed");
 			break;
 		}
 		r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 		break;
 	default:
-		sc_error(card->ctx, "error: unknow cmd type");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "error: unknow cmd type");
 		return SC_ERROR_INTERNAL;
 	}
 	/* Clear the buffer - it may contain pins */
@@ -1102,7 +1112,6 @@ static struct sc_card_driver * sc_get_driver(void)
 	asepcos_ops = *iso_ops;
 	asepcos_ops.match_card        = asepcos_match_card;
 	asepcos_ops.init              = asepcos_init;
-	asepcos_ops.finish            = asepcos_finish;
 	asepcos_ops.select_file       = asepcos_select_file;
 	asepcos_ops.set_security_env  = asepcos_set_security_env;
 	asepcos_ops.decipher          = asepcos_decipher;

@@ -21,7 +21,13 @@ pkcs15 {
     # Put the DF length into the ODF file?
     encode-df-length	= no;
     # Have a lastUpdate field in the EF(TokenInfo)?
-    do-last-update		= yes;
+    do-last-update	= yes;
+    # Method to calculate ID of the crypto objects
+    #     mozilla: SHA1(modulus) for RSA, SHA1(pub) for DSA
+    #     rfc2459: SHA1(SequenceASN1 of public key components as ASN1 integers)
+    #     native: 'E' + number_of_present_objects_of_the_same_type
+    # default value: 'native'
+    pkcs15-id-style	= mozilla;
 }
 
 # Default settings.
@@ -73,17 +79,6 @@ option small {
 	pukdf-size	= 128;
 	dodf-size	= 128;
     }
-}
-
-option oberthur {
-  macros {
-	odf-size        = 512;
-	aodf-size       = 512;
-	cdf-size        = 3072;
-	prkdf-size      = 1024;
-	pukdf-size      = 1024;
-	dodf-size       = 512;
-  }
 }
 
 # This option tells pkcs15-init to use the direct option

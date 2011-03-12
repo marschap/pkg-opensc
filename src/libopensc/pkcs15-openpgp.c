@@ -19,14 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include <opensc/pkcs15.h>
-#include <opensc/log.h>
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
-#include <compat_strlcpy.h>
+
+#include "common/compat_strlcpy.h"
+#include "internal.h"
+#include "pkcs15.h"
+#include "log.h"
 
 int sc_pkcs15emu_openpgp_init_ex(sc_pkcs15_card_t *, sc_pkcs15emu_opt_t *);
 
@@ -84,25 +87,22 @@ sc_pkcs15emu_openpgp_init(sc_pkcs15_card_t *p15card)
 	size_t		length;
 	int		r, i;
 
-	set_string(&p15card->label, "OpenPGP Card");
-	set_string(&p15card->manufacturer_id, "OpenPGP project");
+	set_string(&p15card->tokeninfo->label, "OpenPGP Card");
+	set_string(&p15card->tokeninfo->manufacturer_id, "OpenPGP project");
 
 	if ((r = read_file(card, "004f", buffer, sizeof(buffer))) < 0)
 		goto failed;
 	sc_bin_to_hex(buffer, (size_t)r, string, sizeof(string), 0);
-	set_string(&p15card->serial_number, string);
-	p15card->version = (buffer[6] << 8) | buffer[7];
+	set_string(&p15card->tokeninfo->serial_number, string);
 
-	p15card->flags = SC_PKCS15_CARD_FLAG_LOGIN_REQUIRED |
-			 SC_PKCS15_CARD_FLAG_PRN_GENERATION |
-			 SC_PKCS15_CARD_FLAG_EID_COMPLIANT;
+	p15card->tokeninfo->flags = SC_PKCS15_TOKEN_PRN_GENERATION | SC_PKCS15_TOKEN_EID_COMPLIANT;
 
 	/* Extract preferred language */
 	r = read_file(card, "00655f2d", string, sizeof(string)-1);
 	if (r < 0)
 		goto failed;
 	string[r] = '\0';
-	set_string(&p15card->preferred_language, string);
+	set_string(&p15card->tokeninfo->preferred_language, string);
 
 	/* Get Application Related Data (006E) */
 	if ((r = sc_get_data(card, 0x006E, buffer, sizeof(buffer))) < 0)
@@ -119,7 +119,7 @@ sc_pkcs15emu_openpgp_init(sc_pkcs15_card_t *p15card)
 	if ((r = read_file(card, "006E007300C4", buffer, sizeof(buffer))) < 0)
 		goto failed;
 	if (r != 7) {
-		sc_error(ctx,
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL,
 			"CHV status bytes have unexpected length "
 			"(expected 7, got %d)\n", r);
 		return SC_ERROR_OBJECT_NOT_VALID;
@@ -229,7 +229,7 @@ sc_pkcs15emu_openpgp_init(sc_pkcs15_card_t *p15card)
 
 	return 0;
 
-failed:	sc_error(card->ctx, "Failed to initialize OpenPGP emulation: %s\n",
+failed:	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Failed to initialize OpenPGP emulation: %s\n",
 			sc_strerror(r));
 	return r;
 }

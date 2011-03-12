@@ -63,7 +63,11 @@ PIN user-pin {
     reference   = 2;
     min-length  = 8;
     max-length  = 16;
-    flags       = case-sensitive, local, initialized;
+    flags       = case-sensitive, initialized;
+}
+PIN user-puk {
+    min-length  = 0;
+    max-length  = 0;
 }
 
 PIN so-pin {
@@ -71,7 +75,11 @@ PIN so-pin {
     reference   = 1;
     min-length  = 8;
     max-length  = 16;
-    flags       = case-sensitive, local, initialized, soPin;
+    flags       = case-sensitive, initialized, soPin;
+}
+PIN so-puk {
+    min-length  = 0;
+    max-length  = 0;
 }
 
 filesystem {
@@ -91,6 +99,8 @@ filesystem {
         DF PKCS15-AppDF {
             type    = DF;
             file-id = 5015;
+            aid     = A0:00:00:00:63:50:4B:43:53:2D:31:35;
+            size    = 0;
             acl     = *=NEVER, SELECT=NONE, DELETE=CHV2, CREATE=CHV2, READ=NONE;
 
             EF PKCS15-ODF {

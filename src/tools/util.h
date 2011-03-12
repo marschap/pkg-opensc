@@ -1,9 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,8 +15,9 @@
 #include <unistd.h>
 #endif
 #include <sys/stat.h>
-#include <compat_getopt.h>
-#include <opensc/opensc.h>
+
+#include "common/compat_getopt.h"
+#include "libopensc/opensc.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,8 +33,9 @@ void util_warn(const char *fmt, ...);
 void util_error(const char *fmt, ...);
 void util_fatal(const char *fmt, ...);
 /* All singing all dancing card connect routine */
-int util_connect_card(struct sc_context *, struct sc_card **,
-		int reader_id, int slot_id, int wait, int verbose);
+int util_connect_card(struct sc_context *, struct sc_card **, const char *reader_id, int wait, int verbose);
+
+int util_getpass (char **lineptr, size_t *n, FILE *stream);
 
 #ifdef __cplusplus
 }

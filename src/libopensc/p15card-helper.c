@@ -18,19 +18,21 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
+#include "config.h"
 
-#if ENABLE_OPENSSL
-#include "p15card-helper.h"
-#include <opensc/opensc.h>
-#include <opensc/types.h>
-#include <opensc/log.h>
-#include <opensc/pkcs15.h>
+#if ENABLE_OPENSSL	/* empty file without openssl */
 #include <string.h>
 #include <stdlib.h>
 #include <openssl/bio.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
+
+#include "internal.h"
+#include "p15card-helper.h"
+#include "opensc.h"
+#include "types.h"
+#include "log.h"
+#include "pkcs15.h"
 
 int sc_pkcs15emu_initialize_objects(sc_pkcs15_card_t *p15card, p15data_items *items) {
 	sc_card_t* card = p15card->card;
@@ -56,7 +58,7 @@ int sc_pkcs15emu_initialize_objects(sc_pkcs15_card_t *p15card, p15data_items *it
 		r = sc_pkcs15emu_object_add(p15card, SC_PKCS15_TYPE_DATA_OBJECT, 
 			&obj_obj, &obj_info); 
 		if (r < 0)
-			SC_FUNC_RETURN(card->ctx, 1, r);
+			SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, r);
 	}
 	return SC_SUCCESS;
 }
@@ -142,29 +144,29 @@ CERT_HANDLE_FUNCTION(default_cert_handle) {
 	int modulus_len = 0;
 	const prdata* key = get_prkey_by_cert(items, cert);
 	if(!key) {
-		sc_error(p15card->card->ctx, "Error: No key for this certificate");
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Error: No key for this certificate");
 		return SC_ERROR_INTERNAL;
 	}
 
 	if(!d2i_X509(&cert_data, (const u8**)&data, length)) {
-		sc_error(p15card->card->ctx, "Error converting certificate");
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Error converting certificate");
 		return SC_ERROR_INTERNAL;
 	}
 
 	pkey = X509_get_pubkey(cert_data);
 	
 	if(pkey == NULL) {
-		sc_error(p15card->card->ctx, "Error: no public key associated with the certificate");
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Error: no public key associated with the certificate");
 		r = SC_ERROR_INTERNAL;
 		goto err;
 	}
 	if(! EVP_PK_RSA & (certtype = X509_certificate_type(cert_data, pkey))) {
-		sc_error(p15card->card->ctx, "Error: certificate is not for an RSA key");
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Error: certificate is not for an RSA key");
 		r = SC_ERROR_INTERNAL;
 		goto err;
 	}
 	if(pkey->pkey.rsa->n == NULL) {
-		sc_error(p15card->card->ctx, "Error: no modulus associated with the certificate");
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Error: no modulus associated with the certificate");
 		r = SC_ERROR_INTERNAL;
 		goto err;
 	}
@@ -202,7 +204,7 @@ err:
 		X509_free(cert_data);
 		cert_data = NULL;
 	}
-	SC_FUNC_RETURN(p15card->card->ctx, 1, r);
+	SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 int sc_pkcs15emu_initialize_certificates(sc_pkcs15_card_t *p15card, p15data_items* items) {
@@ -296,7 +298,7 @@ int sc_pkcs15emu_initialize_pins(sc_pkcs15_card_t *p15card, p15data_items* items
 		pin_obj.flags = pins[i].obj_flags;
 
 		if(0 > (r = sc_pkcs15emu_add_pin_obj(p15card, &pin_obj, &pin_info)))
-			SC_FUNC_RETURN(p15card->card->ctx, 1, r);
+			SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 	}
 	return SC_SUCCESS;
 }
@@ -309,7 +311,7 @@ int sc_pkcs15emu_initialize_private_keys(sc_pkcs15_card_t *p15card, p15data_item
 	for (i = 0; prkeys[i].label; i++) {
 		r = add_private_key(p15card, &prkeys[i], 0, 0);
 		if (r < 0)
-			SC_FUNC_RETURN(p15card->card->ctx, 1, r);
+			SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 	}
 	return SC_SUCCESS;
 }
@@ -322,7 +324,7 @@ int sc_pkcs15emu_initialize_public_keys(sc_pkcs15_card_t *p15card, p15data_items
 	for (i = 0; keys[i].label; i++) {
 		r = add_public_key(p15card, &keys[i], 0, 0);
 		if (r < 0)
-			SC_FUNC_RETURN(p15card->card->ctx, 1, r);
+			SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
 	}
 	return SC_SUCCESS;
 
@@ -344,4 +346,4 @@ int sc_pkcs15emu_initialize_all(sc_pkcs15_card_t *p15card, p15data_items* items)
 	return SC_SUCCESS;
 }
 
-#endif
+#endif	/* ENABLE_OPENSSL */

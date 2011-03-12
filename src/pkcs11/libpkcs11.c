@@ -5,14 +5,14 @@
  * Copyright (C) 2002  Olaf Kirch <okir@lst.de>
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-#include "sc-pkcs11.h"
+#include "config.h"
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <ltdl.h>
+
+#include "sc-pkcs11.h"
 
 #define MAGIC			0xd00bed00
 
@@ -30,21 +30,18 @@ void *
 C_LoadModule(const char *mspec, CK_FUNCTION_LIST_PTR_PTR funcs)
 {
 	sc_pkcs11_module_t *mod;
-	CK_RV (*c_get_function_list)(CK_FUNCTION_LIST_PTR_PTR);
-	int rv;
+	CK_RV rv, (*c_get_function_list)(CK_FUNCTION_LIST_PTR_PTR);
 
 	lt_dlinit();
 
-	mod = (sc_pkcs11_module_t *) calloc(1, sizeof(*mod));
+	mod = calloc(1, sizeof(*mod));
 	mod->_magic = MAGIC;
 
 	if (mspec == NULL)
 		mspec = PKCS11_DEFAULT_MODULE_NAME;
 	mod->handle = lt_dlopen(mspec);
 	if (mod->handle == NULL) {
-#if 0
 		fprintf(stderr, "lt_dlopen failed: %s\n", lt_dlerror());
-#endif
 		goto failed;
 	}
 
@@ -56,7 +53,8 @@ C_LoadModule(const char *mspec, CK_FUNCTION_LIST_PTR_PTR funcs)
 	rv = c_get_function_list(funcs);
 	if (rv == CKR_OK)
 		return (void *) mod;
-
+	else
+		fprintf(stderr, "C_GetFunctionList failed %lx", rv);
 failed:
 	C_UnloadModule((void *) mod);
 	return NULL;

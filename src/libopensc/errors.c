@@ -18,7 +18,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#include "config.h"
+
 #include <stdio.h>
+
 #include "errors.h"
 
 #define DIM(v)		(sizeof(v)/(sizeof((v)[0])))
@@ -28,8 +31,8 @@ const char *sc_strerror(int error)
 	const char *rdr_errors[] = {
 		"Generic reader error",
 		"No readers found",
-		"Slot not found",
-		"Slot already connected",
+		"UNUSED",
+		"UNUSED",
 		"Card not present",
 		"Card removed",
 		"Card reset",
@@ -42,6 +45,7 @@ const char *sc_strerror(int error)
 		"Unresponsive card (correctly inserted?)",
 		"Reader detached (hotplug device?)",
 		"Reader reattached (hotplug device?)",
+		"Reader in use by another application"
 	};
 	const int rdr_base = -SC_ERROR_READER;
 	const char *card_errors[] = {
@@ -62,12 +66,13 @@ const char *sc_strerror(int error)
 		"PIN code or key incorrect",
 		"File already exists",
 		"Data object not found",
+		"Not enough memory on card",
 	};
 	const int card_base = -SC_ERROR_CARD_CMD_FAILED;
 	const char *arg_errors[] = {
 		"Invalid arguments",
-		"Command too short",
-		"Command too long",
+		"UNUSED",
+		"UNUSED",
 		"Buffer too small",
 		"Invalid PIN length",
 		"Invalid data",
@@ -84,23 +89,24 @@ const char *sc_strerror(int error)
 		"Requested object not found",
 		"Not supported",
 		"Passphrase required",
-		"The key is extractable",
+		"UNUSED",
 		"Decryption failed",
 		"Wrong padding",
 		"Unsupported card",
 		"Unable to load external module",
-		"EF offset too large"
+		"EF offset too large",
+		"Not implemented"
 	};
 	const int int_base = -SC_ERROR_INTERNAL;
 	const char *p15i_errors[] = {
-		"Generic PKCS #15 initialization error",
+		"Generic PKCS#15 initialization error",
 		"Syntax error",
-		"Inconsistent or incomplete pkcs15 profile",
+		"Inconsistent or incomplete PKCS#15 profile",
 		"Key length/algorithm not supported by card",
 		"No default (transport) key available",
-		"The PKCS#15 Key/certificate ID specified is not unique",
+		"UNUSED",
 		"Unable to load key and certificate(s) from file",
-		"Object is not compatible with intended use",
+		"UNUSED",
 		"File template not found",
 		"Invalid PIN reference",
 		"File too small",
@@ -110,10 +116,13 @@ const char *sc_strerror(int error)
 		"Unknown error",
 		"PKCS#15 compatible smart card not found",
 	};
+	const char *no_errors = "Success";
 	const int misc_base = -SC_ERROR_UNKNOWN;
 	const char **errors = NULL;
 	int count = 0, err_base = 0;
-	
+
+	if (!error)
+		return no_errors;
 	if (error < 0)
 		error = -error;
 	if (error >= misc_base) {

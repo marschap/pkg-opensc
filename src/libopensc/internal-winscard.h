@@ -23,7 +23,7 @@ typedef unsigned __int8 uint8_t;
 #else
 /* mingw32 does not have winscard.h */
 
-#define MAX_ATR_SIZE			33	/**< Maximum ATR size */
+#define MAX_ATR_SIZE                   33      /**< Maximum ATR size */
 
 #define SCARD_PROTOCOL_T0		0x0001	/**< T=0 active protocol. */
 #define SCARD_PROTOCOL_T1		0x0002	/**< T=1 active protocol. */
@@ -32,11 +32,19 @@ typedef unsigned __int8 uint8_t;
 #define SCARD_STATE_UNAWARE		0x0000	/**< App wants status */
 #define SCARD_STATE_IGNORE		0x0001	/**< Ignore this reader */
 #define SCARD_STATE_CHANGED		0x0002	/**< State has changed */
+#define SCARD_STATE_UNKNOWN		0x0004	/**< Reader unknown */
+#define SCARD_STATE_UNAVAILABLE		0x0008	/**< Status unavailable */
 #define SCARD_STATE_EMPTY		0x0010	/**< Card removed */
 #define SCARD_STATE_PRESENT		0x0020	/**< Card inserted */
+#define SCARD_STATE_EXCLUSIVE		0x0080	/**< Exclusive Mode */
+#define SCARD_STATE_INUSE		0x0100	/**< Shared Mode */
+#define SCARD_STATE_MUTE		0x0200	/**< Unresponsive card */
+#define SCARD_STATE_UNPOWERED		0x0400	/**< Unpowered card */
+
 
 #define SCARD_SHARE_EXCLUSIVE		0x0001	/**< Exclusive mode only */
 #define SCARD_SHARE_SHARED		0x0002	/**< Shared mode only */
+#define SCARD_SHARE_DIRECT		0x0003	/**< Raw mode only */
 
 #define SCARD_LEAVE_CARD		0x0000	/**< Do nothing on close */
 #define SCARD_RESET_CARD		0x0001	/**< Reset on close */
@@ -46,9 +54,12 @@ typedef unsigned __int8 uint8_t;
 
 #ifndef SCARD_S_SUCCESS	/* conflict in mingw-w64 */
 #define SCARD_S_SUCCESS			0x00000000 /**< No error was encountered. */
+#define SCARD_E_CANCELLED		0x80100002 /**< The action was cancelled by an SCardCancel request. */
 #define SCARD_E_INVALID_HANDLE		0x80100003 /**< The supplied handle was invalid. */
 #define SCARD_E_TIMEOUT			0x8010000A /**< The user-specified timeout value has expired. */
 #define SCARD_E_SHARING_VIOLATION	0x8010000B /**< The smart card cannot be accessed because of other connections outstanding. */
+#define SCARD_E_NO_SMARTCARD		0x8010000C /**< The operation requires a smart card, but no smart card is currently in the device. */
+#define SCARD_E_PROTO_MISMATCH		0x8010000F /**< The requested protocols are incompatible with the protocol currently in use with the smart card. */
 #define SCARD_E_NOT_TRANSACTED		0x80100016 /**< An attempt was made to end a non-existent transaction. */
 #define SCARD_E_READER_UNAVAILABLE	0x80100017 /**< The specified reader is not currently available for use. */
 #define SCARD_E_NO_SERVICE		0x8010001D /**< The Smart card resource manager is not running. */
@@ -77,7 +88,7 @@ typedef struct
 	unsigned long cbAtr;
 	unsigned char rgbAtr[MAX_ATR_SIZE];
 }
-SCARD_READERSTATE_A;
+SCARD_READERSTATE, *LPSCARD_READERSTATE;
 
 typedef struct _SCARD_IO_REQUEST
 {
@@ -87,8 +98,6 @@ typedef struct _SCARD_IO_REQUEST
 SCARD_IO_REQUEST, *PSCARD_IO_REQUEST, *LPSCARD_IO_REQUEST;
 
 typedef const SCARD_IO_REQUEST *LPCSCARD_IO_REQUEST;
-typedef SCARD_READERSTATE_A SCARD_READERSTATE, *PSCARD_READERSTATE_A,
-	*LPSCARD_READERSTATE_A;
 
 #endif	/* HAVE_SCARD_H */
 
@@ -113,7 +122,8 @@ typedef LONG (PCSC_API *SCardEndTransaction_t)(SCARDHANDLE hCard, DWORD dwDispos
 typedef LONG (PCSC_API *SCardStatus_t)(SCARDHANDLE hCard, LPSTR mszReaderNames, LPDWORD pcchReaderLen,
 	LPDWORD pdwState, LPDWORD pdwProtocol, LPBYTE pbAtr, LPDWORD pcbAtrLen);
 typedef LONG (PCSC_API *SCardGetStatusChange_t)(SCARDCONTEXT hContext, DWORD dwTimeout,
-	LPSCARD_READERSTATE_A rgReaderStates, DWORD cReaders);
+	SCARD_READERSTATE *rgReaderStates, DWORD cReaders);
+typedef LONG (PCSC_API *SCardCancel_t)(SCARDCONTEXT hContext);
 typedef LONG (PCSC_API *SCardControlOLD_t)(SCARDHANDLE hCard, LPCVOID pbSendBuffer, DWORD cbSendLength,
 	LPVOID pbRecvBuffer, LPDWORD lpBytesReturned);
 typedef LONG (PCSC_API *SCardControl_t)(SCARDHANDLE hCard, DWORD dwControlCode, LPCVOID pbSendBuffer,
@@ -124,6 +134,8 @@ typedef LONG (PCSC_API *SCardTransmit_t)(SCARDHANDLE hCard, LPCSCARD_IO_REQUEST 
 	LPBYTE pbRecvBuffer, LPDWORD pcbRecvLength);
 typedef LONG (PCSC_API *SCardListReaders_t)(SCARDCONTEXT hContext, LPCSTR mszGroups,
 	LPSTR mszReaders, LPDWORD pcchReaders);
+typedef LONG (PCSC_API *SCardGetAttrib_t)(SCARDHANDLE hCard, DWORD dwAttrId,\
+	LPBYTE pbAttr, LPDWORD pcbAttrLen);
 
 /* Copied from pcsc-lite reader.h */
 
@@ -158,13 +170,15 @@ typedef LONG (PCSC_API *SCardListReaders_t)(SCARDCONTEXT hContext, LPCSTR mszGro
 #define FEATURE_WRITE_DISPLAY            0x0F
 #define FEATURE_GET_KEY                  0x10
 #define FEATURE_IFD_DISPLAY_PROPERTIES   0x11
+#define FEATURE_GET_TLV_PROPERTIES       0x12
+#define FEATURE_CCID_ESC_COMMAND         0x13
 
-/* structures used (but not defined) in PCSC Part 10 revision 2.01.02:
+/* structures used (but not defined) in PCSC Part 10:
  * "IFDs with Secure Pin Entry Capabilities" */
 
 /* Set structure elements aligment on bytes
  * http://gcc.gnu.org/onlinedocs/gcc/Structure_002dPacking-Pragmas.html */
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(sun)
 #pragma pack(1)
 #else
 #pragma pack(push, 1)
@@ -241,16 +255,26 @@ typedef struct
 	uint8_t abData[1]; /**< Data to send to the ICC */
 } PIN_MODIFY_STRUCTURE;
 
+/* PIN_PROPERTIES as defined (in/up to?) PC/SC 2.02.05 */
+/* This only makes sense with old Windows drivers. To be removed some time in the future. */
+#define PIN_PROPERTIES_v5
 typedef struct {
 	uint16_t wLcdLayout; /**< display characteristics */
 	uint16_t wLcdMaxCharacters;
 	uint16_t wLcdMaxLines;
 	uint8_t bEntryValidationCondition;
 	uint8_t bTimeOut2;
+} PIN_PROPERTIES_STRUCTURE_v5;
+
+/* PIN_PROPERTIES as defined in PC/SC 2.02.06 and later */
+typedef struct {
+	uint16_t wLcdLayout; /**< display characteristics */
+	uint8_t bEntryValidationCondition;
+	uint8_t bTimeOut2;
 } PIN_PROPERTIES_STRUCTURE;
 
 /* restore default structure elements alignment */
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(sun)
 #pragma pack()
 #else
 #pragma pack(pop)

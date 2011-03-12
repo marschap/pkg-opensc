@@ -19,12 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include <opensc/pkcs15.h>
-#include <opensc/cardctl.h>
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <compat_strlcpy.h>
+
+#include "common/compat_strlcpy.h"
+#include "libopensc/pkcs15.h"
+#include "libopensc/cardctl.h"
 
 #define MANU_ID		"A-Trust"
 #define CARD_LABEL	"a.sign Premium a"
@@ -95,9 +98,7 @@ static int acos_detect_card(sc_pkcs15_card_t *p15card)
 		return SC_ERROR_WRONG_CARD;
 	/* read EF_CIN_CSN file */
 	sc_format_path("DF71D001", &path);
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_select_file(card, &path, NULL);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (r != SC_SUCCESS)
 		return SC_ERROR_WRONG_CARD;
 	r = sc_read_binary(card, 0, buf, 8, 0);
@@ -163,9 +164,7 @@ static int sc_pkcs15emu_atrust_acos_init(sc_pkcs15_card_t *p15card)
 
 	/* read EF_CIN_CSN file */
 	sc_format_path("DF71D001", &path);
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_select_file(card, &path, NULL);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (r != SC_SUCCESS)
 		return SC_ERROR_INTERNAL;
 	r = sc_read_binary(card, 0, buf, 8, 0);
@@ -174,31 +173,28 @@ static int sc_pkcs15emu_atrust_acos_init(sc_pkcs15_card_t *p15card)
 	r = sc_bin_to_hex(buf, 8, buf2, sizeof(buf2), 0);
 	if (r != SC_SUCCESS)
 		return SC_ERROR_INTERNAL;
-	if (p15card->serial_number)
-		free(p15card->serial_number);
-	p15card->serial_number = (char *) malloc(strlen(buf2) + 1);
-	if (!p15card->serial_number)
+	if (p15card->tokeninfo->serial_number)
+		free(p15card->tokeninfo->serial_number);
+	p15card->tokeninfo->serial_number = malloc(strlen(buf2) + 1);
+	if (!p15card->tokeninfo->serial_number)
 		return SC_ERROR_INTERNAL;
-	strcpy(p15card->serial_number, buf2);
-
-	/* the TokenInfo version number */
-	p15card->version = 0;
+	strcpy(p15card->tokeninfo->serial_number, buf2);
 
 	/* manufacturer ID */
-	if (p15card->manufacturer_id)
-		free(p15card->manufacturer_id);
-	p15card->manufacturer_id = (char *) malloc(strlen(MANU_ID) + 1);
-	if (!p15card->manufacturer_id)
+	if (p15card->tokeninfo->manufacturer_id)
+		free(p15card->tokeninfo->manufacturer_id);
+	p15card->tokeninfo->manufacturer_id = malloc(strlen(MANU_ID) + 1);
+	if (!p15card->tokeninfo->manufacturer_id)
 		return SC_ERROR_INTERNAL;
-	strcpy(p15card->manufacturer_id, MANU_ID);
+	strcpy(p15card->tokeninfo->manufacturer_id, MANU_ID);
 
 	/* card label */
-	if (p15card->label)
-		free(p15card->label);
-	p15card->label = (char *) malloc(strlen(CARD_LABEL) + 1);
-	if (!p15card->label)
+	if (p15card->tokeninfo->label)
+		free(p15card->tokeninfo->label);
+	p15card->tokeninfo->label = malloc(strlen(CARD_LABEL) + 1);
+	if (!p15card->tokeninfo->label)
 		return SC_ERROR_INTERNAL;
-	strcpy(p15card->label, CARD_LABEL);
+	strcpy(p15card->tokeninfo->label, CARD_LABEL);
 
 	/* set certs */
 	for (i = 0; certs[i].label; i++) {

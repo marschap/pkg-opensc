@@ -18,20 +18,21 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
-#ifdef ENABLE_OPENSSL
-#include <openssl/crypto.h>     /* for OPENSSL_cleanse */
-#endif
-
-#include "internal.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#ifdef HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
+#ifdef ENABLE_OPENSSL
+#include <openssl/crypto.h>     /* for OPENSSL_cleanse */
+#endif
+
+#include "internal.h"
 
 #ifdef PACKAGE_VERSION
 static const char *sc_version = PACKAGE_VERSION;
@@ -178,58 +179,15 @@ int sc_compare_oid(const struct sc_object_id *oid1, const struct sc_object_id *o
 	return 1;
 }
 
-sc_slot_info_t * _sc_get_slot_info(sc_reader_t *reader, int slot_id)
-{
-	assert(reader != NULL);
-	if (slot_id < 0 || slot_id > reader->slot_count)
-		return NULL;
-	return &reader->slot[slot_id];
-}
-
-int sc_detect_card_presence(sc_reader_t *reader, int slot_id)
+int sc_detect_card_presence(sc_reader_t *reader)
 {
 	int r;
-	sc_slot_info_t *slot = _sc_get_slot_info(reader, slot_id);
-
-	if (slot == NULL)
-		SC_FUNC_RETURN(reader->ctx, 0, SC_ERROR_SLOT_NOT_FOUND);
-	SC_FUNC_CALLED(reader->ctx, 1);
+	SC_FUNC_CALLED(reader->ctx, SC_LOG_DEBUG_VERBOSE);
 	if (reader->ops->detect_card_presence == NULL)
-		SC_FUNC_RETURN(reader->ctx, 0, SC_ERROR_NOT_SUPPORTED);
+		SC_FUNC_RETURN(reader->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_NOT_SUPPORTED);
 
-	r = reader->ops->detect_card_presence(reader, slot);
-	SC_FUNC_RETURN(reader->ctx, 1, r);
-}
-
-int sc_wait_for_event(sc_reader_t *readers[], int slot_id[], size_t nslots,
-                      unsigned int event_mask,
-                      int *reader, unsigned int *event, int timeout)
-{
-	sc_slot_info_t *slotp[SC_MAX_SLOTS * SC_MAX_READERS];
-	sc_context_t *ctx;
-	unsigned int j;
-	int r;
-
-	if (nslots == 0 || nslots > SC_MAX_SLOTS * SC_MAX_READERS)
-	       return SC_ERROR_INVALID_ARGUMENTS;
-	ctx = readers[0]->ctx;
-
-	SC_FUNC_CALLED(ctx, 1);
-	for (j = 0; j < nslots; j++) {
-		slotp[j] = _sc_get_slot_info(readers[j], slot_id[j]);
-
-		if (slotp[j] == NULL)
-			SC_FUNC_RETURN(ctx, 0, SC_ERROR_SLOT_NOT_FOUND);
-		/* XXX check to make sure all readers share the same operations
-		 * struct */
-	}
-
-	if (readers[0]->ops->wait_for_event == NULL)
-	       SC_FUNC_RETURN(ctx, 0, SC_ERROR_NOT_SUPPORTED);
-
-	r = readers[0]->ops->wait_for_event(readers, slotp, nslots,
-				       event_mask, reader, event, timeout);
-	SC_FUNC_RETURN(ctx, 1, r);
+	r = reader->ops->detect_card_presence(reader);
+	SC_FUNC_RETURN(reader->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 int sc_path_set(sc_path_t *path, int type, const u8 *id, size_t id_len, 
@@ -406,7 +364,7 @@ int sc_file_add_acl_entry(sc_file_t *file, unsigned int operation,
 			return 0;
 	}
 
-	_new = (sc_acl_entry_t *) malloc(sizeof(sc_acl_entry_t));
+	_new = malloc(sizeof(sc_acl_entry_t));
 	if (_new == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;
 	_new->method = method;
@@ -639,10 +597,10 @@ int sc_file_valid(const sc_file_t *file) {
 	return file->magic == SC_FILE_MAGIC;
 }
 
-int _sc_parse_atr(sc_context_t *ctx, sc_slot_info_t *slot)
+int _sc_parse_atr(sc_reader_t *reader)
 {
-	u8 *p = slot->atr;
-	int atr_len = (int) slot->atr_len;
+	u8 *p = reader->atr;
+	int atr_len = (int) reader->atr_len;
 	int n_hist, x;
 	int tx[4];
 	int i, FI, DI;
@@ -656,16 +614,16 @@ int _sc_parse_atr(sc_context_t *ctx, sc_slot_info_t *slot)
 		-1, 1, 2, 4, 8, 16, 32, -1,
 		12, 20, -1, -1, -1, -1, -1, -1 };
 
-	slot->atr_info.hist_bytes_len = 0;
-	slot->atr_info.hist_bytes = NULL;
+	reader->atr_info.hist_bytes_len = 0;
+	reader->atr_info.hist_bytes = NULL;
 
 	if (atr_len == 0) {
-		sc_error(ctx, "empty ATR - card not present?\n");
+		sc_debug(reader->ctx, SC_LOG_DEBUG_NORMAL, "empty ATR - card not present?\n");
 		return SC_ERROR_INTERNAL;
 	}
 
 	if (p[0] != 0x3B && p[0] != 0x3F) {
-		sc_error(ctx, "invalid sync byte in ATR: 0x%02X\n", p[0]);
+		sc_debug(reader->ctx, SC_LOG_DEBUG_NORMAL, "invalid sync byte in ATR: 0x%02X\n", p[0]);
 		return SC_ERROR_INTERNAL;
 	}
 	n_hist = p[1] & 0x0F;
@@ -681,20 +639,20 @@ int _sc_parse_atr(sc_context_t *ctx, sc_slot_info_t *slot)
                         tx[i] = -1;
         }
 	if (tx[0] >= 0) {
-		slot->atr_info.FI = FI = tx[0] >> 4;
-		slot->atr_info.DI = DI = tx[0] & 0x0F;
-		slot->atr_info.Fi = Fi_table[FI];
-		slot->atr_info.f = f_table[FI];
-		slot->atr_info.Di = Di_table[DI];
+		reader->atr_info.FI = FI = tx[0] >> 4;
+		reader->atr_info.DI = DI = tx[0] & 0x0F;
+		reader->atr_info.Fi = Fi_table[FI];
+		reader->atr_info.f = f_table[FI];
+		reader->atr_info.Di = Di_table[DI];
 	} else {
-		slot->atr_info.Fi = -1;
-		slot->atr_info.f = -1;
-		slot->atr_info.Di = -1;
+		reader->atr_info.Fi = -1;
+		reader->atr_info.f = -1;
+		reader->atr_info.Di = -1;
 	}
 	if (tx[2] >= 0)
-		slot->atr_info.N = tx[3];
+		reader->atr_info.N = tx[3];
 	else
-		slot->atr_info.N = -1;
+		reader->atr_info.N = -1;
 	while (tx[3] > 0 && tx[3] & 0xF0 && atr_len > 0) {
 		x = tx[3] >> 4;
 		for (i = 0; i < 4 && atr_len > 0; i++) {
@@ -710,9 +668,27 @@ int _sc_parse_atr(sc_context_t *ctx, sc_slot_info_t *slot)
 		return 0;
 	if (n_hist > atr_len)
 		n_hist = atr_len;
-	slot->atr_info.hist_bytes_len = n_hist;
-	slot->atr_info.hist_bytes = p;
+	reader->atr_info.hist_bytes_len = n_hist;
+	reader->atr_info.hist_bytes = p;
 	return 0;
+}
+
+void *sc_mem_alloc_secure(size_t len)
+{
+    void *pointer;
+    
+    pointer = calloc(len, sizeof(unsigned char));
+    if (!pointer)
+        return NULL;
+#ifdef HAVE_SYS_MMAN_H
+    /* TODO Windows support and mprotect too */
+    /* Do not swap the memory */
+    if (mlock(pointer, len) == -1) {
+        free(pointer);
+        return NULL;
+    }
+#endif
+    return pointer;
 }
 
 void sc_mem_clear(void *ptr, size_t len)
