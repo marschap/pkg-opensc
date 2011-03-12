@@ -17,14 +17,17 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
-#include "internal.h"
-#ifdef ENABLE_ZLIB
-#include "compression.h"
 
+#include "config.h"
+
+#ifdef ENABLE_ZLIB	/* empty file without zlib */
 #include <zlib.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "internal.h"
 #include "errors.h"
+#include "compression.h"
 
 static int zerr_to_opensc(int err) {
 	switch(err) {
@@ -33,9 +36,9 @@ static int zerr_to_opensc(int err) {
 		return SC_SUCCESS;
 	case Z_UNKNOWN:
 		return SC_ERROR_UNKNOWN;
-	case Z_BUF_ERROR:
+	case Z_BUF_ERROR: /* XXX: something else than OOM ? */
 	case Z_MEM_ERROR:
-		return SC_ERROR_MEMORY_FAILURE;
+		return SC_ERROR_OUT_OF_MEMORY;
 	case Z_VERSION_ERROR:
 	case Z_DATA_ERROR:
 	case Z_STREAM_ERROR:

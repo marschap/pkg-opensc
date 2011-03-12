@@ -19,14 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include <opensc/pkcs15.h>
-#include <opensc/log.h>
-#include <opensc/cardctl.h>
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <compat_strlcpy.h>
+
+#include "common/compat_strlcpy.h"
+#include "internal.h"
+#include "pkcs15.h"
+#include "log.h"
+#include "cardctl.h"
 
 #define MANU_ID		"GemSAFE on GPK16000"
 
@@ -101,7 +104,7 @@ static int my_pin_cmd(sc_card_t * card, struct sc_pin_cmd_data * data,
 	int saved_len = 0;
 	u8  newpin[8];
 	
-	SC_FUNC_CALLED(card->ctx, 2);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_NORMAL);
 
 	memset(newpin, 0xff, sizeof(newpin));
 
@@ -109,7 +112,7 @@ static int my_pin_cmd(sc_card_t * card, struct sc_pin_cmd_data * data,
 		memcpy(newpin,data->pin1.data, (size_t)data->pin1.len);
 		newpin[data->pin1.len] = 0x00;
 		
-		sc_debug(card->ctx, "pin len=%d", data->pin1.len);
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "pin len=%d", data->pin1.len);
 
 		saved_data = data->pin1.data;
 		saved_len = data->pin1.len;
@@ -124,7 +127,7 @@ static int my_pin_cmd(sc_card_t * card, struct sc_pin_cmd_data * data,
 		data->pin1.len = saved_len;
 	}
 
-	SC_FUNC_RETURN(card->ctx, 2, r);
+	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, r);
 }
 
 
@@ -160,7 +163,7 @@ static int gemsafe_detect_card(sc_pkcs15_card_t *p15card)
 {
 	sc_card_t *card = p15card->card;
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 
 	if (strcmp(card->name, "Gemplus GPK"))
@@ -207,25 +210,23 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 	u8 *cp;
 	char buf[256];
 
-	SC_FUNC_CALLED(card->ctx, 1);
+	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 	/* need to limit to 248 */
-	if (card->max_send_size > 248)
-		card->max_send_size = 248;
-	if (card->max_recv_size > 248)
-		card->max_recv_size = 248;
+	card->max_send_size = 248;
+	card->max_recv_size = 248;
 
 
 	/* could read this off card if needed */
 
-	p15card->label = strdup("GemSAFE");
-	p15card->manufacturer_id = strdup(MANU_ID);
+	p15card->tokeninfo->label = strdup("GemSAFE");
+	p15card->tokeninfo->manufacturer_id = strdup(MANU_ID);
 	/* get serial number */
         r = sc_card_ctl(card, SC_CARDCTL_GET_SERIALNR, &serial);
         r = sc_bin_to_hex(serial.value, serial.len, buf, sizeof(buf), 0);
         if (r != SC_SUCCESS)
                 return SC_ERROR_INTERNAL;
-        p15card->serial_number = strdup(buf);
+        p15card->tokeninfo->serial_number = strdup(buf);
 
 	/* test if we have a gemsafe app df */
 	memset(&path, 0, sizeof(path));
@@ -248,7 +249,7 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 	free(file);
 	file = NULL;
 
-	sc_debug(card->ctx, "GemSafe file found, id=%d",dfpath);
+	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "GemSafe file found, id=%d",dfpath);
 
 	/* There may be more then one key in the directory. */
 	/* we need to find them so we can associate them with the */
@@ -259,14 +260,10 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 		path.value[1] = i;
 		path.len = 2;	
 		path.type = SC_PATH_TYPE_FILE_ID;
-		sc_ctx_suppress_errors_on(card->ctx); /* file may not exist, and not an error */
 		r = sc_select_file(card, &path, NULL);
-		sc_ctx_suppress_errors_off(card->ctx);
 		if (r < 0) 
 			continue;
-		sc_ctx_suppress_errors_on(card->ctx);
 		r = sc_read_record(card, 1, sysrec, sizeof(sysrec), SC_RECORD_BY_REC_NR);
-		sc_ctx_suppress_errors_off(card->ctx);
 		if (r != 7 || sysrec[0] != 0) {
 			continue;
 		}
@@ -279,14 +276,14 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 			case 0x10: kinfo[num_keyinfo].modulus_len =  768 / 8; break;
 			case 0x11: kinfo[num_keyinfo].modulus_len = 1024 / 8; break;
 			default:
-				sc_error(card->ctx, "Unsupported modulus length");
+				sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Unsupported modulus length");
 				continue;
 		}
 
 		kinfo[num_keyinfo].fileid = i;
 		sc_pkcs15_format_id("NONE", &kinfo[num_keyinfo].id); 
 
-		sc_debug(card->ctx,"reading modulus");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,"reading modulus");
 		r = sc_read_record(card, 2, modulus_buf, 
 				kinfo[num_keyinfo].modulus_len+1, SC_RECORD_BY_REC_NR);
 		if (r < 0) 
@@ -322,7 +319,7 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 	/* For performance reasons we will only */
 	/* read part of the file , as it is about 6100 bytes */
 
-	gsdata = (unsigned char *) malloc(file->size);
+	gsdata = malloc(file->size);
 
 	if (!gsdata)
 		return SC_ERROR_OUT_OF_MEMORY;
@@ -380,7 +377,7 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 					idx2 = idx2 + idxlen;
 				}
 				cert_info.value.len = seq_len1 + 4;
-				sc_debug(card->ctx, "Found cert at offset %d", idx1);
+				sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Found cert at offset %d", idx1);
 				cert_info.value.value = (unsigned char *) 
 						malloc(cert_info.value.len);
 				if (!cert_info.value.value) 
@@ -411,11 +408,11 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 		}
 
 		for (j = 0; j < num_keyinfo; j++) { 
-			if (cert_out->key.u.rsa.modulus.len == kinfo[j].modulus_len &&	
-					memcmp(cert_out->key.u.rsa.modulus.data, 
-					&kinfo[j].modulus, cert_out->key.u.rsa.modulus.len) == 0) { 
+			if (cert_out->key->u.rsa.modulus.len == kinfo[j].modulus_len &&	
+					memcmp(cert_out->key->u.rsa.modulus.data, 
+					&kinfo[j].modulus, cert_out->key->u.rsa.modulus.len) == 0) { 
 			memcpy(&kinfo[j].id, &cert_info.id, sizeof(sc_pkcs15_id_t));
-			sc_debug(card->ctx, "found match");
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found match");
 			}
 		}
 		sc_pkcs15_free_certificate(cert_out);
@@ -486,7 +483,7 @@ static int sc_pkcs15emu_gemsafeGPK_init(sc_pkcs15_card_t *p15card)
 	
 		for (j = 0; j < num_keyinfo; j++) {
 			if (sc_pkcs15_compare_id(&kinfo[j].id, &prkey_info.id))  {
-				sc_debug(card->ctx, "found key in file %d for id %d", 
+				sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found key in file %d for id %d", 
 						kinfo[j].fileid, prkey_info.id);
 				prkey_info.path.value[0] = kinfo[j].fileid >> 8;
 				prkey_info.path.value[1] = kinfo[j].fileid & 0xff;
@@ -512,7 +509,7 @@ int sc_pkcs15emu_gemsafeGPK_init_ex(sc_pkcs15_card_t *p15card,
 	sc_card_t   *card = p15card->card;
 	sc_context_t    *ctx = card->ctx;
 
-	sc_debug(ctx, "Entering %s", __FUNCTION__);
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Entering %s", __FUNCTION__);
 
 	if (opts && opts->flags & SC_PKCS15EMU_FLAGS_NO_CHECK)
 		return sc_pkcs15emu_gemsafeGPK_init(p15card);

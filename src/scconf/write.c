@@ -1,5 +1,5 @@
 /*
- * $Id: write.c 1775 2004-04-21 18:10:58Z nils $
+ * $Id: write.c 4636 2010-08-18 15:08:51Z ludovic.rousseau $
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>
@@ -19,14 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+
 #include "scconf.h"
 
 #define INDENT_CHAR	'\t'
@@ -141,7 +141,7 @@ static void scconf_write_items(scconf_writer * writer, const scconf_block * bloc
 			/* header */
 			name = scconf_list_get_string(subblock->name);
 			datalen = strlen(item->key) + strlen(name) + 6;
-			data = (char *) malloc(datalen);
+			data = malloc(datalen);
 			if (!data) {
 				free(name);
 				continue;
@@ -162,7 +162,7 @@ static void scconf_write_items(scconf_writer * writer, const scconf_block * bloc
 		case SCCONF_ITEM_TYPE_VALUE:
 			name = scconf_list_get_string(item->value.list);
 			datalen = strlen(item->key) + strlen(name) + 6;
-			data = (char *) malloc(datalen);
+			data = malloc(datalen);
 			if (!data) {
 				free(name);
 				continue;

@@ -20,9 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include "pkcs15.h"
-#include "asn1.h"
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -30,6 +29,10 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+
+#include "internal.h"
+#include "asn1.h"
+#include "pkcs15.h"
 
 static const struct sc_asn1_entry     c_asn1_data_object[] = {
         { "dataObject", SC_ASN1_OCTET_STRING, SC_ASN1_TAG_OCTET_STRING, 0, NULL, NULL },
@@ -47,12 +50,12 @@ int sc_pkcs15_read_data_object(struct sc_pkcs15_card *p15card,
 	
 	if (p15card == NULL || info == NULL || data_object_out == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
-	SC_FUNC_CALLED(p15card->card->ctx, 1);
+	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 	r = sc_pkcs15_read_file(p15card, &info->path, &data, &len, NULL);
 	if (r)
 		return r;
-	data_object = (struct sc_pkcs15_data *) malloc(sizeof(struct sc_pkcs15_data));
+	data_object = malloc(sizeof(struct sc_pkcs15_data));
 	if (data_object == NULL) {
 		free(data);
 		return SC_ERROR_OUT_OF_MEMORY;
@@ -109,14 +112,14 @@ int sc_pkcs15_decode_dodf_entry(struct sc_pkcs15_card *p15card,
 	r = sc_asn1_decode(ctx, asn1_data, *buf, *buflen, buf, buflen);
 	if (r == SC_ERROR_ASN1_END_OF_CONTENTS)
 		return r;
-	SC_TEST_RET(ctx, r, "ASN.1 decoding failed");
+	SC_TEST_RET(ctx, SC_LOG_DEBUG_NORMAL, r, "ASN.1 decoding failed");
 	r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
 	if (r < 0)
 		return r;
 	obj->type = SC_PKCS15_TYPE_DATA_OBJECT;
 	obj->data = malloc(sizeof(info));
 	if (obj->data == NULL)
-		SC_FUNC_RETURN(ctx, 0, SC_ERROR_OUT_OF_MEMORY);
+		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_OUT_OF_MEMORY);
 	memcpy(obj->data, &info, sizeof(info));
 
 	return 0;

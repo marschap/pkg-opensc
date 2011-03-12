@@ -18,17 +18,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <sys/types.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#include <opensc/log.h>
-#include <opensc/opensc.h>
-#include <opensc/cardctl.h>
+
+#include "libopensc/log.h"
+#include "libopensc/opensc.h"
+#include "libopensc/cardctl.h"
 #include "pkcs15-init.h"
 #include "profile.h"
 
@@ -43,9 +43,9 @@
 
 static int starcos_finalize_card(sc_card_t *card);
 
-static int starcos_erase_card(struct sc_profile *pro, sc_card_t *card)
+static int starcos_erase_card(struct sc_profile *pro, sc_pkcs15_card_t *p15card)
 {
-	return sc_card_ctl(card, SC_CARDCTL_ERASE_CARD, NULL);
+	return sc_card_ctl(p15card->card, SC_CARDCTL_ERASE_CARD, NULL);
 }
 
 static u8 get_so_ac(const sc_file_t *file, unsigned int op,
@@ -74,8 +74,9 @@ static u8 get_so_ac(const sc_file_t *file, unsigned int op,
 }
 
 
-static int starcos_init_card(sc_profile_t *profile, sc_card_t *card)
+static int starcos_init_card(sc_profile_t *profile, sc_pkcs15_card_t *p15card)
 {
+	struct sc_card *card = p15card->card;
 	static const u8 key[]  = {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08};
 	int		ret;
 	sc_starcos_create_data  mf_data, ipf_data;
@@ -89,9 +90,7 @@ static int starcos_init_card(sc_profile_t *profile, sc_card_t *card)
 	tpath.value[1] = 0x00;
 	tpath.len      = 2;
 	tpath.type     = SC_PATH_TYPE_PATH;
-	sc_ctx_suppress_errors_on(card->ctx);
 	ret = sc_select_file(card, &tpath, NULL);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (ret == SC_SUCCESS)
 		/* we already have a MF => return OK */
 		return ret;
@@ -172,9 +171,10 @@ static int starcos_init_card(sc_profile_t *profile, sc_card_t *card)
 	return SC_SUCCESS;
 }
 
-static int starcos_create_dir(sc_profile_t *profile, sc_card_t *card,
+static int starcos_create_dir(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	sc_file_t *df)
 {
+	struct sc_card *card = p15card->card;
 	int             ret;
 	sc_starcos_create_data df_data, ipf_data;
 	sc_file_t	*isf_file, *ipf_file;
@@ -270,7 +270,7 @@ static int have_onepin(sc_profile_t *profile)
 #define STARCOS_MAX_LPIN_ID	0x8f
 #define STARCOS_MIN_GPIN_ID	0x03
 #define STARCOS_MAX_GPIN_ID	0x0f
-static int starcos_pin_reference(sc_profile_t *profile, sc_card_t *card,
+static int starcos_pin_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	sc_pkcs15_pin_info_t *pin_info)
 {
 	int	             tmp = pin_info->reference;
@@ -338,11 +338,12 @@ static int starcos_pin_reference(sc_profile_t *profile, sc_card_t *card,
  */
 #define STARCOS_PINID2STATE(a)	(((a) == STARCOS_SOPIN_GID) ? STARCOS_SOPIN_STATE : (0x0f - ((0x0f & (a)) >> 1)))
 
-static int starcos_create_pin(sc_profile_t *profile, sc_card_t *card,
+static int starcos_create_pin(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	sc_file_t *df, sc_pkcs15_object_t *pin_obj,
 	const unsigned char *pin, size_t pin_len,
 	const unsigned char *puk, size_t puk_len)
 {
+	struct sc_card *card = p15card->card;
 	int	r, is_local, pin_id, tmp, need_finalize = 0;
 	size_t	akd;
 	sc_file_t            *tfile;
@@ -370,7 +371,7 @@ static int starcos_create_pin(sc_profile_t *profile, sc_card_t *card,
 		if ((pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN) || have_onepin(profile))
 			need_finalize = 1;
 		else
-			r = sc_pkcs15init_authenticate(profile, card, tfile, SC_AC_OP_WRITE);
+			r = sc_pkcs15init_authenticate(profile, p15card, tfile, SC_AC_OP_WRITE);
 	}
 	sc_file_free(tfile);
 	if (r < 0)
@@ -478,18 +479,14 @@ static int starcos_create_pin(sc_profile_t *profile, sc_card_t *card,
 #define STARCOS_MAX_LPKEY_ID	0x9f
 #define STARCOS_MIN_GPKEY_ID	0x11
 #define STARCOS_MAX_GPKEY_ID	0x1f
-static int starcos_key_reference(sc_profile_t *profile, sc_card_t *card,
+static int starcos_key_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	sc_pkcs15_prkey_info_t *prkey)
 {
-	struct sc_file	*df = profile->df_info->file;
-
 	/* use (local) KIDs 0x91-0x9f for private rsa keys */
 	if (prkey->key_reference < STARCOS_MIN_LPKEY_ID)
 		prkey->key_reference = STARCOS_MIN_LPKEY_ID;
 	if (prkey->key_reference > STARCOS_MAX_LPKEY_ID)
 		return SC_ERROR_TOO_MANY_OBJECTS;
-
-	prkey->path = df->path;
 	return SC_SUCCESS;
 }
 
@@ -663,7 +660,7 @@ static int starcos_write_pukey(sc_profile_t *profile, sc_card_t *card,
 		return r;
 	len = tfile->size;
 	sc_file_free(tfile);
-	buf = (u8 *) malloc(len);
+	buf = malloc(len);
 	if (!buf)
 		return SC_ERROR_OUT_OF_MEMORY;
 	/* read the complete IPF */
@@ -709,9 +706,10 @@ static int starcos_write_pukey(sc_profile_t *profile, sc_card_t *card,
 	return sc_update_binary(card, endpos, key, keylen + 12, 0);
 }
 
-static int starcos_create_key(sc_profile_t *profile, sc_card_t *card,
+static int starcos_create_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	sc_pkcs15_object_t *obj)
 {
+	struct sc_card *card = p15card->card;
 	int	r, pin_id;
 	u8	akd = 0, state;
 
@@ -726,7 +724,7 @@ static int starcos_create_key(sc_profile_t *profile, sc_card_t *card,
                 return r;
 	acl_entry = sc_file_get_acl_entry(tfile, SC_AC_OP_WRITE);
 	if (acl_entry->method  != SC_AC_NONE) {
-		r = sc_pkcs15init_authenticate(profile, card, tfile, SC_AC_OP_WRITE);
+		r = sc_pkcs15init_authenticate(profile, p15card, tfile, SC_AC_OP_WRITE);
 	}
 	else   {
 		r = sc_select_file(card, &tfile->path, NULL);
@@ -741,7 +739,9 @@ static int starcos_create_key(sc_profile_t *profile, sc_card_t *card,
 	tkey.key_header[0] = (u8) kinfo->key_reference;
 	tkey.key_header[1] = (STARCOS_MAX_PR_KEYSIZE >> 8) & 0xff;
 	tkey.key_header[2] = STARCOS_MAX_PR_KEYSIZE & 0xff;
-	pin_id = sc_keycache_find_named_pin(&kinfo->path, SC_PKCS15INIT_USER_PIN);
+
+	pin_id = sc_pkcs15init_get_pin_reference(p15card, profile, SC_AC_SYMBOLIC, 
+			SC_PKCS15INIT_USER_PIN);
 	if (pin_id < 0)
 		state = STARCOS_AC_ALWAYS;
 	else {
@@ -775,7 +775,7 @@ static int starcos_create_key(sc_profile_t *profile, sc_card_t *card,
 	return sc_card_ctl(card, SC_CARDCTL_STARCOS_WRITE_KEY, &tkey);
 }
 
-static int starcos_store_key(sc_profile_t *profile, sc_card_t *card,
+static int starcos_store_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	sc_pkcs15_object_t *obj, sc_pkcs15_prkey_t *key)
 {
 	int     r;
@@ -801,7 +801,7 @@ static int starcos_store_key(sc_profile_t *profile, sc_card_t *card,
                 return r;
 	acl_entry = sc_file_get_acl_entry(tfile, SC_AC_OP_WRITE);
 	if (acl_entry->method  != SC_AC_NONE) {
-		r = sc_pkcs15init_authenticate(profile, card, tfile, SC_AC_OP_WRITE);
+		r = sc_pkcs15init_authenticate(profile, p15card, tfile, SC_AC_OP_WRITE);
 	}
 	sc_file_free(tfile);
 	if (r < 0)
@@ -812,14 +812,14 @@ static int starcos_store_key(sc_profile_t *profile, sc_card_t *card,
 	tkey.key     = key_buf;
 	tkey.key_len = STARCOS_MAX_PR_KEYSIZE;
 
-	r = sc_card_ctl(card, SC_CARDCTL_STARCOS_WRITE_KEY, &tkey);
+	r = sc_card_ctl(p15card->card, SC_CARDCTL_STARCOS_WRITE_KEY, &tkey);
 	if (r != SC_SUCCESS)
 		return r;
 	/* store public key in the IPF */
-	return starcos_write_pukey(profile, card, rsa, kinfo);
+	return starcos_write_pukey(profile, p15card->card, rsa, kinfo);
 }
 
-static int starcos_generate_key(sc_profile_t *profile, sc_card_t *card,
+static int starcos_generate_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 		sc_pkcs15_object_t *obj, sc_pkcs15_pubkey_t *pubkey)
 {
 	int r;
@@ -837,7 +837,7 @@ static int starcos_generate_key(sc_profile_t *profile, sc_card_t *card,
                 return r;
 	acl_entry = sc_file_get_acl_entry(tfile, SC_AC_OP_WRITE);
 	if (acl_entry->method  != SC_AC_NONE) {
-		r = sc_pkcs15init_authenticate(profile, card, tfile, SC_AC_OP_WRITE);
+		r = sc_pkcs15init_authenticate(profile, p15card, tfile, SC_AC_OP_WRITE);
 	}
 	sc_file_free(tfile);
 	if (r < 0)
@@ -849,14 +849,14 @@ static int starcos_generate_key(sc_profile_t *profile, sc_card_t *card,
 	 * we would waste space.
 	 */
 	/* create (empty) public key entry */
-	r = starcos_write_pukey(profile, card, NULL, kinfo);
+	r = starcos_write_pukey(profile, p15card->card, NULL, kinfo);
 	if (r < 0)
 		return r;
 	/* generate key pair */
 	gendat.key_id     = (u8) kinfo->key_reference;
 	gendat.key_length = (size_t) kinfo->modulus_length;
 	gendat.modulus    = NULL;
-	r = sc_card_ctl(card, SC_CARDCTL_STARCOS_GENERATE_KEY, &gendat);
+	r = sc_card_ctl(p15card->card, SC_CARDCTL_STARCOS_GENERATE_KEY, &gendat);
 	if (r != SC_SUCCESS)
 		return r;
 	/* get the modulus via READ PUBLIC KEY */
@@ -867,7 +867,7 @@ static int starcos_generate_key(sc_profile_t *profile, sc_card_t *card,
 		rsa->modulus.data = gendat.modulus;
 		rsa->modulus.len  = kinfo->modulus_length >> 3;
 		/* set the exponent (always 0x10001) */
-		buf = (u8 *) malloc(3);
+		buf = malloc(3);
 		if (!buf)
 			return SC_ERROR_OUT_OF_MEMORY;
 		buf[0] = 0x01;
@@ -899,17 +899,13 @@ static int starcos_finalize_card(sc_card_t *card)
 	/* call CREATE END for the MF (ignore errors) */
 	tfile.type = SC_FILE_TYPE_DF;
 	tfile.id   = 0x3f00;
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_card_ctl(card, SC_CARDCTL_STARCOS_CREATE_END, &tfile);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (r < 0)
-		sc_debug(card->ctx, "failed to call CREATE END for the MF\n");
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "failed to call CREATE END for the MF\n");
 	/* call CREATE END for the apps (pkcs15) DF */
 	tfile.type = SC_FILE_TYPE_DF;
 	tfile.id   = 0x5015;
-	sc_ctx_suppress_errors_on(card->ctx);
 	r = sc_card_ctl(card, SC_CARDCTL_STARCOS_CREATE_END, &tfile);
-	sc_ctx_suppress_errors_off(card->ctx);
 	if (r == SC_ERROR_NOT_ALLOWED)
 		/* card is already finalized */ 
 		return SC_SUCCESS;
@@ -929,8 +925,8 @@ static struct sc_pkcs15init_operations sc_pkcs15init_starcos_operations = {
 	starcos_generate_key,
 	NULL, NULL,			/* encode private/public key */
 	starcos_finalize_card,
-	NULL, NULL, NULL, NULL, NULL,	/* old style api */
-	NULL 				/* delete_object */
+	NULL, 				/* delete_object */
+	NULL, NULL, NULL, NULL, NULL  /* pkcs15init emulation */
 };
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_starcos_ops(void)

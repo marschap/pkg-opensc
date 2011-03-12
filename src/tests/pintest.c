@@ -4,18 +4,18 @@
  * PKCS#15 PIN code test
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#include <opensc/opensc.h>
-#include <opensc/pkcs15.h>
-#include <compat_getpass.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/pkcs15.h"
+#include "common/compat_getpass.h"
 #include "sc-test.h"
 
 static struct sc_pkcs15_card *p15card;
@@ -35,7 +35,7 @@ static int enum_pins(struct sc_pkcs15_object ***ret)
 		fprintf(stderr, "No PIN codes found!\n");
 		return 0;
 	}
-	objs = (struct sc_pkcs15_object **) calloc(n, sizeof(*objs));
+	objs = calloc(n, sizeof(*objs));
 	sc_pkcs15_get_objects(p15card, SC_PKCS15_TYPE_AUTH_PIN, objs, n);
 	for (i = 0; i < n; i++) {
 		sc_test_print_object(objs[i]);
@@ -44,30 +44,29 @@ static int enum_pins(struct sc_pkcs15_object ***ret)
 	return n;
 }
 
-static int ask_and_verify_pin(struct sc_pkcs15_object *obj)
+static int ask_and_verify_pin(struct sc_pkcs15_object *pin_obj)
 {
-	struct sc_pkcs15_pin_info *pin;
+	struct sc_pkcs15_pin_info *pin_info = (struct sc_pkcs15_pin_info *) pin_obj->data;
 	int i = 0;
 	char prompt[80];
 	u8 *pass;
 
-	pin = (struct sc_pkcs15_pin_info *) obj->data;
-	if (pin->flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN) {
-		printf("Skipping unblocking pin [%s]\n", obj->label);
+	if (pin_info->flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN) {
+		printf("Skipping unblocking pin [%s]\n", pin_obj->label);
 		return 0;
 	}
 
-	sprintf(prompt, "Please enter PIN code [%s]: ", obj->label);
+	sprintf(prompt, "Please enter PIN code [%s]: ", pin_obj->label);
 	pass = (u8 *) getpass(prompt);
 
 	sc_lock(card);
-	i = sc_pkcs15_verify_pin(p15card, pin, pass, strlen((char *) pass));
+	i = sc_pkcs15_verify_pin(p15card, pin_obj, pass, strlen((char *) pass));
 	sc_unlock(card);
 	if (i) {
 		if (i == SC_ERROR_PIN_CODE_INCORRECT)
 			fprintf(stderr,
 				"Incorrect PIN code (%d tries left)\n",
-				pin->tries_left);
+				pin_info->tries_left);
 		else
 			fprintf(stderr,
 				"PIN verifying failed: %s\n",
@@ -87,7 +86,7 @@ int main(int argc, char *argv[])
 	i = sc_test_init(&argc, argv);
 	if (i < 0)
 		return 1;
-	if (card->slot->capabilities & SC_SLOT_CAP_PIN_PAD)
+	if (card->reader->capabilities & SC_READER_CAP_PIN_PAD)
 		printf("Slot is capable of doing pinpad operations!\n");
 	printf("Looking for a PKCS#15 compatible Smart Card... ");
 	fflush(stdout);

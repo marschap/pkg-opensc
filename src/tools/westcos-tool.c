@@ -1,5 +1,5 @@
 /*
- * westcos-tool.exe: tool for westcos card
+ * westcos-tool.c: tool for westcos card
  *
  * Copyright (C) 2009 francois.leblanc@cev-sa.com 
  *
@@ -19,19 +19,11 @@
  */
 
  
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include <opensc/opensc.h>
-#include <opensc/errors.h>
-#include <opensc/pkcs15.h>
-#include <opensc/cardctl.h>
-
 #include <openssl/opensslv.h>
 #include <openssl/rsa.h>
 #include <openssl/evp.h>
@@ -41,14 +33,62 @@
 #include <openssl/x509v3.h>
 #include <openssl/bn.h>
 
-static char *version ="0.0.6";
+#include "libopensc/opensc.h"
+#include "libopensc/errors.h"
+#include "libopensc/pkcs15.h"
+#include "libopensc/cardctl.h"
 
-static char *nom_card = "WESTCOS";
+#include "util.h"
 
-static int finalise = 0;
-static int verbose = 0;
+static const char *app_name = "westcos-tool";
+
+static const struct option options[] = {
+	{ "reader", 1, NULL, 'r' },
+	{ "wait", 0, NULL, 'w' },
+	{ "generate-key", 0, NULL, 'g' },
+	{ "overwrite-key", 0, NULL, 'o' },
+	{ "key-length", 1, NULL, 'l' },
+	{ "install-pin", 0, NULL, 'i' },
+	{ "pin-value", 1, NULL, 'x' },
+	{ "puk-value", 1, NULL, 'y' },
+	{ "change-pin", 0, NULL, 'n' },
+	{ "unblock-pin", 0, NULL, 'u' },
+	{ "certificat", 1, NULL, 't' },
+	{ "finalize", 0, NULL, 'f' },
+	{ "read-file", 1, NULL, 'j' },
+	{ "write-file", 1, NULL, 'k' },
+	{ "help", 0, NULL, 'h' },
+	{ "verbose", 0, NULL, 'v' },
+	{ NULL, 0, NULL, 0 }
+};
+
+static const char *option_help[] = {
+	"Uses reader number <arg> [0]",
+	"Wait for card insertion",
+	"Generate key 1536 default",
+	"Overwrite key if already exist",
+	"Key length <arg> [512,1024,1536]",
+	"Install pin",
+	"Pin value <arg>",
+	"Puk value <arg>",
+	"Change pin (new pin in puk value)",
+	"Unblock pin",
+	"Write certificate <arg> (in pem format)",
+	"Finalize card(!!! MANDATORY FOR SECURITY !!!)",
+	"Read file <arg>",
+	"Write file <arg> (ex 0002 write file 0002 to 0002)",
+	"This message",
+	"Verbose operation. Use several times to enable debug output."
+};
+
+
+static int opt_wait = 0, verbose = 0;
+static const char *opt_driver = NULL;
+static const char *opt_reader = NULL;
+
+static int finalize = 0;
 static int install_pin = 0;
-static int remplace = 0;
+static int overwrite = 0;
 
 static char *pin = NULL;
 static char *puk = NULL;
@@ -56,10 +96,8 @@ static char *cert = NULL;
 
 static int keylen = 0;
 
-static int no_lecteur = -1;
-
 static int new_pin = 0;
-static int debloque = 0;
+static int unlock = 0;
 
 static char *get_filename = NULL;
 static char *put_filename = NULL;
@@ -68,7 +106,7 @@ static int do_convert_bignum(sc_pkcs15_bignum_t *dst, BIGNUM *src)
 {
 	if (src == 0) return 0;
 	dst->len = BN_num_bytes(src);
-	dst->data = (u8 *) malloc(dst->len);
+	dst->data = malloc(dst->len);
 	BN_bn2bin(src, dst->data);
 	return 1;
 }
@@ -85,7 +123,7 @@ static void print_openssl_erreur(void)
 	}
 
 	while ((r = ERR_get_error()) != 0)
-		fprintf(stderr, "%s\n", ERR_error_string(r, NULL));
+		printf("%s\n", ERR_error_string(r, NULL));
 }
 
 static int verify_pin(sc_card_t *card, int pin_reference, char *pin_value)
@@ -102,7 +140,7 @@ static int verify_pin(sc_card_t *card, int pin_reference, char *pin_value)
 
 	data.flags = SC_PIN_CMD_NEED_PADDING;
 
-	if (card->slot->capabilities & SC_SLOT_CAP_PIN_PAD) 
+	if (card->reader->capabilities & SC_READER_CAP_PIN_PAD) 
 	{
 		printf("Please enter PIN on the reader's pin pad.\n");
 		data.pin1.prompt = "Please enter PIN";
@@ -131,7 +169,7 @@ static int verify_pin(sc_card_t *card, int pin_reference, char *pin_value)
 				printf("Wrong pin.\n");
 		}
 		else
-			fprintf(stderr, "The pin can be verify: %s\n", sc_strerror(r));
+			printf("The pin can be verify: %s\n", sc_strerror(r));
 		return -1;
 	}
 	printf("Pin correct.\n");
@@ -155,7 +193,7 @@ static int change_pin(sc_card_t *card,
 
 	data.flags = SC_PIN_CMD_NEED_PADDING;
 
-	if (card->slot->capabilities & SC_SLOT_CAP_PIN_PAD) 
+	if (card->reader->capabilities & SC_READER_CAP_PIN_PAD) 
 	{
 		printf("Please enter PIN on the reader's pin pad.\n");
 		data.pin1.prompt = "Please enter PIN";
@@ -188,7 +226,7 @@ static int change_pin(sc_card_t *card,
 				printf("Wrong pin.\n");
 		}
 		else
-			fprintf(stderr, "Can't change pin: %s\n", 
+			printf("Can't change pin: %s\n", 
 				sc_strerror(r));
 		return -1;
 	}
@@ -196,7 +234,7 @@ static int change_pin(sc_card_t *card,
 	return 0;
 }
 
-static int debloque_pin(sc_card_t *card, 
+static int unlock_pin(sc_card_t *card, 
 			int pin_reference, 
 			char *puk_value, 
 			char *pin_value)
@@ -213,7 +251,7 @@ static int debloque_pin(sc_card_t *card,
 
 	data.flags = SC_PIN_CMD_NEED_PADDING;
 
-	if (card->slot->capabilities & SC_SLOT_CAP_PIN_PAD) 
+	if (card->reader->capabilities & SC_READER_CAP_PIN_PAD) 
 	{
 		printf("Please enter PIN on the reader's pin pad.\n");
 		data.pin1.prompt = "Please enter PIN";
@@ -246,11 +284,11 @@ static int debloque_pin(sc_card_t *card,
 				printf("Wrong pin.\n");
 		}
 		else
-			fprintf(stderr, "Can't unblock pin: %s\n", 
+			printf("Can't unblock pin: %s\n", 
 				sc_strerror(r));
 		return -1;
 	}
-	printf("Code debloque.\n");
+	printf("Unlock pin.\n");
 	return 0;
 }
 
@@ -259,7 +297,7 @@ static int cert2der(X509 *cert, u8 **value)
 	int len;
 	u8 *p;
 	len = i2d_X509(cert, NULL);
-	p = *value = (u8*)malloc(len);
+	p = *value = malloc(len);
 	i2d_X509(cert, &p);
 	return len;
 }
@@ -270,7 +308,6 @@ static int creation_fichier_cert(sc_card_t *card)
 	int size;
 	sc_path_t path;
 	sc_file_t *file = NULL;
-	sc_context_t *ctx = card->ctx;
 
 	sc_format_path("3F00", &path);
 	r = sc_select_file(card, &path, &file);
@@ -285,9 +322,7 @@ static int creation_fichier_cert(sc_card_t *card)
 	}
 
 	sc_format_path("0002", &path);
-	sc_ctx_suppress_errors_on(ctx);
 	r = sc_select_file(card, &path, NULL);
-	sc_ctx_suppress_errors_off(ctx);
 	if(r) 
 	{
 		if(r != SC_ERROR_FILE_NOT_FOUND) goto out;
@@ -295,7 +330,7 @@ static int creation_fichier_cert(sc_card_t *card)
 		file = sc_file_new();
 		if(file == NULL)
 		{
-			fprintf(stderr, "memory error.\n");
+			printf("Memory error.\n");
 			goto out;
 		}
 		
@@ -324,37 +359,10 @@ out:
 	return r;
 }
 
-void usage(void)
-{
-printf("Tools for westcos card.\n");
-printf("version %s.\n\n", version);
-printf("\t -G                 Generate key 1536 default.\n");
-printf("\t -L [length]        Key length 512,1024,1536.\n");
-printf("\t -i                 Install pin.\n");
-printf("\t -pin [value]       Pin.\n");
-printf("\t -puk [value]       Puk.\n");
-printf("\t -n                 Change pin (new pin in puk option).\n");
-printf("\t -u                 Unblock pin.\n");
-printf("\t -cert [file]       Write certificate (in pem format).\n");
-printf("\t -F                 Finalize card "\
-	"(!!! MANDATORY FOR SECURITY !!!).\n");
-printf("\t -r [n]             Use reader number [n]"\
-	" (default: autodetect).\n");
-printf("\t -gf [path]         Read file [path].\n");
-printf("\t -pf [path]         Write file [path].\n");
-printf("\t -v                 verbose.\n");
-printf("\t -h                 This message.\n");
-exit(0);
-}
-
 int main(int argc, char *argv[])
 {
-	int r;
-	int i = 1;
-	char *p;
-	int card_presente = 0;
+	int r, c, long_optind = 0;
 	sc_context_param_t ctx_param;
-	sc_reader_t *lecteur = NULL;
 	sc_card_t *card = NULL;
 	sc_context_t *ctx = NULL;
 	sc_file_t *file = NULL;
@@ -363,123 +371,62 @@ int main(int argc, char *argv[])
 	BIGNUM	*bn = NULL;
 	BIO	*mem = NULL;
 
-	while(i<argc)
+	while (1) 
 	{
-		p = argv[i++];
-		if(strcmp(p, "-gf") == 0)
+		c = getopt_long(argc, argv, "r:wgol:ix:y:nut:fj:k:hv", \
+			options, &long_optind);
+		if (c == -1)
+			break;
+		if (c == '?' || c == 'h')
+			util_print_usage_and_die(app_name, options, option_help);
+		switch (c) 
 		{
-			if(i<argc)
-			{
-				get_filename = argv[i++];
-				continue;
-			}
+			case 'r':
+				opt_reader = optarg;
+				break;
+			case 'w':
+				opt_wait = 1;
+				break;
+			case 'g':
+				if(keylen == 0) keylen = 1536;
+				break;
+			case 'o':
+				overwrite = 1;
+				break;
+			case 'l':
+				keylen = atoi(optarg);
+				break;
+			case 'i':
+				install_pin = 1;
+				break;
+			case 'x':
+				pin = optarg;
+				break;
+			case 'y':
+				puk = optarg;
+				break;
+			case 'n':
+				new_pin = 1;
+				break;
+			case 'u':
+				unlock = 1;
+				break;
+			case 't':
+				cert = optarg;
+				break;
+			case 'f':
+				finalize = 1;
+				break;
+			case 'j':
+				get_filename = optarg;
+				break;
+			case 'k':
+				put_filename = optarg;
+				break;
+			case 'v':
+				verbose++;
+				break;
 		}
-
-		if(strcmp(p, "-pf") == 0)
-		{
-			if(i<argc)
-			{
-				put_filename = argv[i++];
-				continue;
-			}
-		}
-
-		if(strcmp(p, "-F") == 0)
-		{
-			finalise = 1;
-			continue;
-		}
-
-		if(strcmp(p, "-i") == 0)
-		{
-			install_pin = 1;
-			continue;
-		}
-
-		if(strcmp(p, "-R") == 0)
-		{
-			remplace = 1;
-			continue;
-		}
-
-		if(strcmp(p, "-G") == 0)
-		{
-			if(keylen == 0) keylen = 1536;
-			continue;
-		}
-
-		if(strcmp(p, "-L") == 0)
-		{
-			if(i<argc)
-			{
-				keylen = atoi(argv[i++]);
-				continue;
-			}
-		}
-
-		if(strcmp(p, "-pin") == 0)
-		{
-			if(i<argc)
-			{
-				pin = argv[i++];
-				continue;
-			}
-		}
-
-		if(strcmp(p, "-puk") == 0)
-		{
-			if(i<argc)
-			{
-				puk = argv[i++];
-				continue;
-			}
-		}
-
-		if(strcmp(p, "-cert") == 0)
-		{
-			if(i<argc)
-			{
-				cert = argv[i++];
-				continue;
-			}
-		}
-
-		if(strcmp(p, "-n") == 0)
-		{
-			new_pin = 1;
-			continue;
-		}
-
-		if(strcmp(p, "-u") == 0)
-		{
-			debloque = 1;
-			continue;
-		}
-
-		if(strcmp(p, "-r") == 0)
-		{
-			if(i<argc)
-			{
-				no_lecteur = atoi(argv[i++]);
-				continue;
-			}
-		}
-
-		if(!strcmp(p, "-h") || !strcmp(p,"--help"))
-		{
-			usage();
-		}
-
-		if(!strncmp(p, "-v", 2))
-		{
-			char *n = p+1;
-			while(*n++ == 'v') verbose++;
-			continue;
-		}
-
-		printf("Unknown %s \n", p);
-		usage();
-		exit(-1);
 	}
 
 	memset(&ctx_param, 0, sizeof(ctx_param));
@@ -489,54 +436,28 @@ int main(int argc, char *argv[])
 	r = sc_context_create(&ctx, &ctx_param);
 	if (r) 
 	{
-		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
+		printf("Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
-	if (verbose > 1)
-		ctx->debug = verbose-1;
 
-	if(no_lecteur == -1)
-	{
-		for(i = 0; i<sc_ctx_get_reader_count(ctx); i++)
-		{
-			lecteur = sc_ctx_get_reader(ctx, i);
-			if(sc_detect_card_presence(lecteur, 0))
-			{
-				r = sc_connect_card(lecteur, 0, &card);
-				if(r>=0)
-				{
-					printf("card->name = %s\n", card->name);
-					if(strncmp(card->name, nom_card, strlen(nom_card)) == 0)
-					{
-						card_presente = 1;
-						break;
-					}
-					sc_disconnect_card(card,0);
-					card = NULL;
-				}
-			}
-		}
+	if (verbose > 1) {
+		ctx->debug = verbose;
+		ctx->debug_file = stderr;
 	}
-	else
+
+	if (opt_driver != NULL) 
 	{
-		if(no_lecteur < sc_ctx_get_reader_count(ctx))
+		r = sc_set_card_driver(ctx, opt_driver);
+		if (r) 
 		{
-			lecteur = sc_ctx_get_reader(ctx, no_lecteur);
-			r = sc_connect_card(lecteur, 0, &card);
-			if(r>=0)
-			{
-				card_presente = 1;
-			}
-			else
-			{
-				sc_disconnect_card(card,0);
-			}
+			printf("Driver '%s' not found!\n", opt_driver);
+			goto out;
 		}
 	}
 
-	if(!card_presente) goto out;
-
-	sc_lock(card);
+	r = util_connect_card(ctx, &card, opt_reader, opt_wait, 0);
+	if (r)
+		goto out;
 
 	sc_format_path("3F00", &path);
 	r = sc_select_file(card, &path, NULL);
@@ -545,9 +466,7 @@ int main(int argc, char *argv[])
 	if(install_pin)
 	{
 		sc_format_path("AAAA", &path);
-		sc_ctx_suppress_errors_on(ctx);
 		r = sc_select_file(card, &path, NULL);
-		sc_ctx_suppress_errors_off(ctx);
 		if(r) 
 		{
 			if(r != SC_ERROR_FILE_NOT_FOUND) goto out;
@@ -555,7 +474,7 @@ int main(int argc, char *argv[])
 			file = sc_file_new();
 			if(file == NULL)
 			{
-				fprintf(stderr, "Not enougth memory.\n");
+				printf("Not enougth memory.\n");
 				goto out;
 			}
 			
@@ -573,7 +492,7 @@ int main(int argc, char *argv[])
 			r = sc_file_add_acl_entry(file, SC_AC_OP_ERASE, SC_AC_NONE, 0);
 			if(r) goto out;
 
-			//sc_format_path("3F00AAAA", &(file->path));
+			/* sc_format_path("3F00AAAA", &(file->path)); */
 			file->path = path;
 			r = sc_create_file(card, file);
 			if(r) goto out;
@@ -583,6 +502,7 @@ int main(int argc, char *argv[])
 		{
 			sc_changekey_t ck;
 			struct sc_pin_cmd_pin pin_cmd;
+			int ret;
 
 			memset(&pin_cmd, 0, sizeof(pin_cmd));
 			memset(&ck, 0, sizeof(ck));
@@ -594,11 +514,12 @@ int main(int argc, char *argv[])
 			pin_cmd.data = (u8*)pin;
 			pin_cmd.max_length = 8;
 
-			ck.new_key.key_len = sc_build_pin(ck.new_key.key_value, 
+			ret = sc_build_pin(ck.new_key.key_value, 
 				sizeof(ck.new_key.key_value), &pin_cmd, 1); 
-			if(ck.new_key.key_len<0)
+			if(ret < 0)
 				goto out;
 
+			ck.new_key.key_len = ret;
 			r = sc_card_ctl(card, SC_CARDCTL_WESTCOS_CHANGE_KEY, &ck);
 			if(r) goto out;
 		}
@@ -607,6 +528,7 @@ int main(int argc, char *argv[])
 		{
 			sc_changekey_t ck;
 			struct sc_pin_cmd_pin puk_cmd;
+			int ret;
 
 			memset(&puk_cmd, 0, sizeof(puk_cmd));
 			memset(&ck, 0, sizeof(ck));
@@ -618,11 +540,12 @@ int main(int argc, char *argv[])
 			puk_cmd.data = (u8*)puk;
 			puk_cmd.max_length = 8;
 
-			ck.new_key.key_len = sc_build_pin(ck.new_key.key_value, 
+			ret = sc_build_pin(ck.new_key.key_value, 
 				sizeof(ck.new_key.key_value), &puk_cmd, 1); 
-			if(ck.new_key.key_len<0)
+			if(ret < 0)
 				goto out;
 
+			ck.new_key.key_len = ret;
 			r = sc_card_ctl(card, SC_CARDCTL_WESTCOS_CHANGE_KEY, &ck);
 			if(r) goto out;
 		}
@@ -635,9 +558,9 @@ int main(int argc, char *argv[])
 		goto out;
 	}
 
-	if(debloque)
+	if(unlock)
 	{
-		if(debloque_pin(card, 0, puk, pin)) 
+		if(unlock_pin(card, 0, puk, pin)) 
 			printf("Error unblocking pin.\n");
 		goto out;
 	}
@@ -670,7 +593,7 @@ int main(int argc, char *argv[])
 	
 		if(rsa == NULL || bn == NULL || mem == NULL) 
 		{
-			fprintf(stderr,"Not enougth memory.\n");
+			printf("Not enougth memory.\n");
 			goto out;
 		}
 
@@ -682,15 +605,14 @@ int main(int argc, char *argv[])
 
 		if(mem == NULL) 
 		{
-			fprintf(stderr,"Not enougth memory.\n");
+			printf("Not enougth memory.\n");
 			goto out;
 		}
 
 		if (!rsa)
 #endif
 		{
-			fprintf(stderr, 
-				"RSA_generate_key_ex return %ld\n", ERR_get_error());
+			printf("RSA_generate_key_ex return %ld\n", ERR_get_error());
 			goto out;
 		}
 
@@ -698,17 +620,14 @@ int main(int argc, char *argv[])
 
 		if(!i2d_RSAPrivateKey_bio(mem, rsa))
 		{
-			fprintf(stderr, 
-				"i2d_RSAPrivateKey_bio return %ld\n", ERR_get_error());
+			printf("i2d_RSAPrivateKey_bio return %ld\n", ERR_get_error());
 			goto out;
 		}
 
 		lg = BIO_get_mem_data(mem, &pdata);
 
 		sc_format_path("0001", &path);
-		sc_ctx_suppress_errors_on(ctx);
 		r = sc_select_file(card, &path, NULL);
-		sc_ctx_suppress_errors_off(ctx);
 		if(r) 
 		{
 			if(r != SC_ERROR_FILE_NOT_FOUND) goto out;
@@ -716,7 +635,7 @@ int main(int argc, char *argv[])
 			file = sc_file_new();
 			if(file == NULL)
 			{
-				fprintf(stderr, "Not enougth memory.\n");
+				printf("Not enougth memory.\n");
 				goto out;
 			}
 			
@@ -735,7 +654,7 @@ int main(int argc, char *argv[])
 
 			file->path = path;
 
-			printf("File key creation %s, size %d.\n", file->path.value, 
+			printf("File key creation %s, size %zd.\n", file->path.value, 
 				file->size);
 
 			r = sc_create_file(card, file);
@@ -743,16 +662,15 @@ int main(int argc, char *argv[])
 		}	
 		else
 		{
-			if(!remplace)
+			if(!overwrite)
 			{
-				fprintf(stderr, 
-					"Key file already exist,"\
-					" use -R to replace it.\n");
+				printf("Key file already exist,"\
+						" use -o to replace it.\n");
 				goto out;
 			}
 		}
 
-		printf("Private key length is %d\n", lg);
+		printf("Private key length is %zd\n", lg);
 
 		printf("Write private key.\n");
 		r = sc_update_binary(card,0,pdata,lg,0);
@@ -769,7 +687,7 @@ int main(int argc, char *argv[])
 		r = sc_pkcs15_encode_pubkey(ctx, &key, &pdata, &lg);
 		if(r) goto out;
 
-		printf("Public key length %d\n", lg);
+		printf("Public key length %zd\n", lg);
 
 		sc_format_path("3F000002", &path);
 		r = sc_select_file(card, &path, NULL);
@@ -792,7 +710,7 @@ int main(int argc, char *argv[])
 		if (BIO_read_filename(bio, cert) <= 0)
 		{
 			BIO_free(bio);
-			fprintf(stderr, "Can't open file %s.\n", cert);
+			printf("Can't open file %s.\n", cert);
 			goto out;
 		}
 		xp = PEM_read_bio_X509(bio, NULL, NULL, NULL);
@@ -814,6 +732,17 @@ int main(int argc, char *argv[])
 			printf("Write certificate %s.\n", cert);
 
 			r = sc_update_binary(card,0,pdata,lg,0);
+			if(r == SC_ERROR_SECURITY_STATUS_NOT_SATISFIED)
+			{
+				if(verify_pin(card, 0, pin))
+				{
+					printf("Wrong pin.\n");
+				}
+				else
+				{
+					r = sc_update_binary(card,0,pdata,lg,0); 
+				}
+			}
 			if(r<0) 
 			{
 				if(pdata) free(pdata);
@@ -826,7 +755,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	if(finalise)
+	if(finalize)
 	{
 		int mode = SC_CARDCTRL_LIFECYCLE_USER;
 
@@ -871,14 +800,24 @@ int main(int argc, char *argv[])
 				goto out;
 		}
 
-		b = (u8*)malloc(file->size);
+		b = malloc(file->size);
 		if(b == NULL)
 		{
-				fprintf(stderr, "Not enougth memory.\n");
+				printf("Not enougth memory.\n");
 				goto out;
 		}
 
 		r = sc_read_binary(card, 0, b, file->size, 0);
+		if(r == SC_ERROR_SECURITY_STATUS_NOT_SATISFIED)
+		{
+			if(verify_pin(card, 0, pin)) 
+			{
+				printf("Wrong pin.\n");
+				goto out;
+			}
+			r = sc_read_binary(card, 0, b, file->size, 0);
+		}
+		
 		if(r<0)
 		{
 				printf("Error reading file.\n");
@@ -911,10 +850,10 @@ int main(int argc, char *argv[])
 				goto out;
 		}
 
-		b = (u8*)malloc(file->size);
+		b = malloc(file->size);
 		if(b == NULL)
 		{
-				fprintf(stderr, "Not enougth memory.\n");
+				printf("Not enougth memory.\n");
 				goto out;
 		}
 
@@ -925,6 +864,17 @@ int main(int argc, char *argv[])
 		fclose(fp);
 
 		r = sc_update_binary(card, 0, b, file->size, 0);
+		if(r == SC_ERROR_SECURITY_STATUS_NOT_SATISFIED)
+		{
+			if(verify_pin(card, 0, pin))
+			{
+				printf("Wrong pin.\n");
+			}
+			else
+			{
+				r = sc_update_binary(card, 0, b, file->size, 0);
+			}
+		}
 		if(r<0)
 		{
 				free(b);
@@ -950,7 +900,7 @@ out:
 	if (card) 
 	{
 		sc_unlock(card);
-		sc_disconnect_card(card, 0);
+		sc_disconnect_card(card);
 	}
 
 	if (ctx)

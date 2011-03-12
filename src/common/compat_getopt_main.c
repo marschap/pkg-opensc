@@ -4,9 +4,6 @@
  * This program is in the public domain.
  */
 
-#define VERSION \
-"0.3"
-
 #define COPYRIGHT \
 "This program is in the public domain."
 
@@ -17,7 +14,10 @@
 #include <string.h>
 
 /* for my getopt() re-implementation */
-#include "getopt.h"
+#include "compat_getopt.h"
+
+#undef VERSION
+#define VERSION "0.3"
 
 /* the default verbosity level is 0 (no verbose reporting) */
 static unsigned verbose = 0;
@@ -74,8 +74,8 @@ usage(char *progname)
 /* input file handler -- returns nonzero or exit()s on failure */
 static int
 handle(char *progname,
-       FILE *infile,  char *infilename,
-       FILE *outfile, char *outfilename,
+       FILE *infile,  const char *infilename,
+       FILE *outfile, const char *outfilename,
        int rotate)
 {
   int c;
@@ -119,8 +119,7 @@ handle(char *progname,
     {
       fprintf(stderr,
               "%s: %lu bytes copied from `%s' to `%s'\n",
-              (unsigned long) progname, bytes_copied, infilename,
-              outfilename);
+              progname, bytes_copied, infilename, outfilename);
     }
   return 0;
 }
@@ -134,7 +133,7 @@ main(int argc, char * argv[])
   /* during argument parsing, opt contains the return value from getopt() */
   int opt;
   /* the output filename is initially 0 (a.k.a. stdout) */
-  char *outfilename = 0;
+  const char *outfilename = 0;
   /* the default return value is initially 0 (success) */
   int retval = 0;
   /* initially we truncate */
@@ -143,7 +142,7 @@ main(int argc, char * argv[])
   int rotate = 0;
 
   /* short options string */
-  char *shortopts = "Vho:r::v::";
+  const char *shortopts = "Vho:r::v::";
   /* long options list */
   struct option longopts[] =
   {
@@ -327,7 +326,7 @@ main(int argc, char * argv[])
       
       for (argindex = optind; argindex < argc; argindex ++)
         {
-          char *infilename = argv[argindex];
+          const char *infilename = argv[argindex];
           FILE *infile;
           
           /* we allow "-" as a synonym for stdin here */

@@ -21,7 +21,7 @@
 #ifndef _OPENSC_CARDS_H
 #define _OPENSC_CARDS_H
 
-#include <opensc/types.h>
+#include "libopensc/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +44,8 @@ enum {
 	SC_CARD_TYPE_CARDOS_M4_3,
 	SC_CARD_TYPE_CARDOS_M4_2B, /* 4.2b is after 4.3b */
 	SC_CARD_TYPE_CARDOS_M4_2C,
+	SC_CARD_TYPE_CARDOS_CIE_V1, /* Italian CIE (eID) v1 */
+	SC_CARD_TYPE_CARDOS_M4_4,
 
 	/* flex/cyberflex drivers */
 	SC_CARD_TYPE_FLEX_BASE = 2000,
@@ -71,7 +73,9 @@ enum {
 	/* mcrd driver */
 	SC_CARD_TYPE_MCRD_BASE = 5000,
 	SC_CARD_TYPE_MCRD_GENERIC,
-	SC_CARD_TYPE_MCRD_ESTEID,
+	SC_CARD_TYPE_MCRD_ESTEID_V10,
+	SC_CARD_TYPE_MCRD_ESTEID_V11,
+	SC_CARD_TYPE_MCRD_ESTEID_V30,
 	SC_CARD_TYPE_MCRD_DTRUST,
 
 	/* setcos driver */
@@ -123,9 +127,11 @@ enum {
 	SC_CARD_TYPE_PIV_II_BASE = 14000,
 	SC_CARD_TYPE_PIV_II_GENERIC,
 	
-	/* Muscle cards */
+	/* MuscleApplet */
 	SC_CARD_TYPE_MUSCLE_BASE = 15000,
 	SC_CARD_TYPE_MUSCLE_GENERIC,
+	SC_CARD_TYPE_MUSCLE_V1,
+	SC_CARD_TYPE_MUSCLE_V2,	
 	SC_CARD_TYPE_MUSCLE_ETOKEN_72K,
 	SC_CARD_TYPE_MUSCLE_JCOP241,
 
@@ -150,10 +156,30 @@ enum {
 	/* MyEID cards */
 	SC_CARD_TYPE_MYEID_BASE = 20000,
 	SC_CARD_TYPE_MYEID_GENERIC,
+	
+	/* GemsafeV1 cards */
+	SC_CARD_TYPE_GEMSAFEV1_BASE = 21000,
+	SC_CARD_TYPE_GEMSAFEV1_GENERIC,
+	SC_CARD_TYPE_GEMSAFEV1_PTEID,
+
+	/* IAS cards */
+	SC_CARD_TYPE_IAS_BASE = 22000,
+	SC_CARD_TYPE_IAS_PTEID,
+	
+	/* Italian CNS cards */
+	SC_CARD_TYPE_ITACNS_BASE = 23000,
+	SC_CARD_TYPE_ITACNS_GENERIC,
+	SC_CARD_TYPE_ITACNS_CNS,
+	SC_CARD_TYPE_ITACNS_CIE_V2,
+	SC_CARD_TYPE_ITACNS_CIE_V1,
+
+	/* Generic JavaCards without supported applet */
+	SC_CARD_TYPE_JAVACARD_BASE = 24000,
+	SC_CARD_TYPE_JAVACARD,
+
 };
 
 extern sc_card_driver_t *sc_get_default_driver(void);
-extern sc_card_driver_t *sc_get_emv_driver(void);
 extern sc_card_driver_t *sc_get_cardos_driver(void);
 extern sc_card_driver_t *sc_get_cryptoflex_driver(void);
 extern sc_card_driver_t *sc_get_cyberflex_driver(void);
@@ -180,6 +206,9 @@ extern sc_card_driver_t *sc_get_rutoken_driver(void);
 extern sc_card_driver_t *sc_get_rtecp_driver(void);
 extern sc_card_driver_t *sc_get_westcos_driver(void);
 extern sc_card_driver_t *sc_get_myeid_driver(void);
+extern sc_card_driver_t *sc_get_ias_driver(void);
+extern sc_card_driver_t *sc_get_javacard_driver(void);
+extern sc_card_driver_t *sc_get_itacns_driver(void);
 
 #ifdef __cplusplus
 }

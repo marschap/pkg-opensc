@@ -18,13 +18,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include "pkcs15.h"
-#include "asn1.h"
+#include "config.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+
+#include "internal.h"
+#include "asn1.h"
+#include "pkcs15.h"
 
 static const struct sc_asn1_entry c_asn1_com_key_attr[] = {
 	{ "iD",		 SC_ASN1_PKCS15_ID, SC_ASN1_TAG_OCTET_STRING, 0, NULL, NULL },
@@ -36,7 +39,8 @@ static const struct sc_asn1_entry c_asn1_com_key_attr[] = {
 };
 
 static const struct sc_asn1_entry c_asn1_com_prkey_attr[] = {
-        /* FIXME */
+	{ "subjectName", SC_ASN1_OCTET_STRING, SC_ASN1_TAG_SEQUENCE | SC_ASN1_CONS, 
+		SC_ASN1_EMPTY_ALLOWED | SC_ASN1_ALLOC | SC_ASN1_OPTIONAL, NULL, NULL },
 	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
@@ -103,7 +107,7 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 	struct sc_pkcs15_keyinfo_gostparams *keyinfo_gostparams;
 	size_t usage_len = sizeof(info.usage);
 	size_t af_len = sizeof(info.access_flags);
-	struct sc_asn1_entry asn1_com_key_attr[6], asn1_com_prkey_attr[1];
+	struct sc_asn1_entry asn1_com_key_attr[6], asn1_com_prkey_attr[2];
 	struct sc_asn1_entry asn1_rsakey_attr[4], asn1_prk_rsa_attr[2];
 	struct sc_asn1_entry asn1_dsakey_attr[2], asn1_prk_dsa_attr[2],
 			asn1_dsakey_i_p_attr[2],
@@ -159,6 +163,8 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 	sc_format_asn1_entry(asn1_com_key_attr + 3, &info.access_flags, &af_len, 0);
 	sc_format_asn1_entry(asn1_com_key_attr + 4, &info.key_reference, NULL, 0);
 
+	sc_format_asn1_entry(asn1_com_prkey_attr + 0, &info.subject.value, &info.subject.len, 0);
+
         /* Fill in defaults */
         memset(&info, 0, sizeof(info));
 	info.key_reference = -1;
@@ -168,7 +174,7 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 	r = sc_asn1_decode_choice(ctx, asn1_prkey, *buf, *buflen, buf, buflen);
 	if (r == SC_ERROR_ASN1_END_OF_CONTENTS)
 		return r;
-	SC_TEST_RET(ctx, r, "ASN.1 decoding failed");
+	SC_TEST_RET(ctx, SC_LOG_DEBUG_NORMAL, r, "ASN.1 decoding failed");
 	if (asn1_prkey[0].flags & SC_ASN1_PRESENT) {
 		obj->type = SC_PKCS15_TYPE_PRKEY_RSA;
 	} else if (asn1_prkey[1].flags & SC_ASN1_PRESENT) {
@@ -184,15 +190,15 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 		info.params_len = sizeof(struct sc_pkcs15_keyinfo_gostparams);
 		info.params = malloc(info.params_len);
 		if (info.params == NULL)
-			SC_FUNC_RETURN(ctx, 0, SC_ERROR_OUT_OF_MEMORY);
+			SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_OUT_OF_MEMORY);
 		assert(sizeof(*keyinfo_gostparams) == info.params_len);
 		keyinfo_gostparams = info.params;
 		keyinfo_gostparams->gostr3410 = gostr3410_params[0];
 		keyinfo_gostparams->gostr3411 = gostr3410_params[1];
 		keyinfo_gostparams->gost28147 = gostr3410_params[2];
 	} else {
-		sc_error(ctx, "Neither RSA or DSA or GOSTR3410 key in PrKDF entry.\n");
-		SC_FUNC_RETURN(ctx, 0, SC_ERROR_INVALID_ASN1_OBJECT);
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Neither RSA or DSA or GOSTR3410 key in PrKDF entry.");
+		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ASN1_OBJECT);
 	}
 	r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
 	if (r < 0) {
@@ -214,7 +220,7 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 	if (obj->data == NULL) {
 		if (info.params)
 			free(info.params);
-		SC_FUNC_RETURN(ctx, 0, SC_ERROR_OUT_OF_MEMORY);
+		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_OUT_OF_MEMORY);
 	}
 	memcpy(obj->data, &info, sizeof(info));
 
@@ -225,7 +231,7 @@ int sc_pkcs15_encode_prkdf_entry(sc_context_t *ctx,
 				 const struct sc_pkcs15_object *obj,
 				 u8 **buf, size_t *buflen)
 {
-	struct sc_asn1_entry asn1_com_key_attr[6], asn1_com_prkey_attr[1];
+	struct sc_asn1_entry asn1_com_key_attr[6], asn1_com_prkey_attr[2];
 	struct sc_asn1_entry asn1_rsakey_attr[4], asn1_prk_rsa_attr[2];
 	struct sc_asn1_entry asn1_dsakey_attr[2], asn1_prk_dsa_attr[2],
 			asn1_dsakey_value_attr[3],
@@ -297,8 +303,8 @@ int sc_pkcs15_encode_prkdf_entry(sc_context_t *ctx,
 		}
 		break;
 	default:
-		sc_error(ctx, "Invalid private key type: %X\n", obj->type);
-		SC_FUNC_RETURN(ctx, 0, SC_ERROR_INTERNAL);
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Invalid private key type: %X", obj->type);
+		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INTERNAL);
 		break;
 	}
 	sc_format_asn1_entry(asn1_com_key_attr + 0, &prkey->id, NULL, 1);
@@ -312,6 +318,9 @@ int sc_pkcs15_encode_prkdf_entry(sc_context_t *ctx,
 	}
 	if (prkey->key_reference >= 0)
 		sc_format_asn1_entry(asn1_com_key_attr + 4, &prkey->key_reference, NULL, 1);
+
+	sc_format_asn1_entry(asn1_com_prkey_attr + 0, prkey->subject.value, &prkey->subject.len, prkey->subject.len != 0);
+
 	r = sc_asn1_encode(ctx, asn1_prkey, buf, buflen);
 
 	return r;
@@ -360,7 +369,7 @@ sc_pkcs15_encode_prkey(sc_context_t *ctx,
 {
 	if (key->algorithm == SC_ALGORITHM_DSA)
 		return sc_pkcs15_encode_prkey_dsa(ctx, &key->u.dsa, buf, len);
-	sc_error(ctx, "Cannot encode private key type %u.\n",
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Cannot encode private key type %u.",
 			key->algorithm);
 	return SC_ERROR_NOT_SUPPORTED;
 }
@@ -372,7 +381,7 @@ sc_pkcs15_decode_prkey(sc_context_t *ctx,
 {
 	if (key->algorithm == SC_ALGORITHM_DSA)
 		return sc_pkcs15_decode_prkey_dsa(ctx, &key->u.dsa, buf, len);
-	sc_error(ctx, "Cannot decode private key type %u.\n",
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Cannot decode private key type %u.",
 			key->algorithm);
 	return SC_ERROR_NOT_SUPPORTED;
 }
@@ -400,12 +409,12 @@ sc_pkcs15_read_prkey(struct sc_pkcs15_card *p15card,
 		key.algorithm = SC_ALGORITHM_DSA;
 		break;
 	default:
-		sc_error(ctx, "Unsupported object type.\n");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Unsupported object type.");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 	info = (struct sc_pkcs15_prkey_info *) obj->data;
 	if (info->native) {
-		sc_error(ctx, "Private key is native, will not read.");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Private key is native, will not read.");
 		return SC_ERROR_NOT_ALLOWED;
 	}
 
@@ -415,7 +424,7 @@ sc_pkcs15_read_prkey(struct sc_pkcs15_card *p15card,
 
 	r = sc_pkcs15_read_file(p15card, &path, &data, &len, NULL);
 	if (r < 0) {
-		sc_error(ctx, "Unable to read private key file.\n");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Unable to read private key file.");
 		return r;
 	}
 
@@ -433,7 +442,7 @@ sc_pkcs15_read_prkey(struct sc_pkcs15_card *p15card,
 				data, len,
 				&clear, &clear_len);
 		if (r < 0)  {
-			sc_error(ctx, "Failed to unwrap privat key.");
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Failed to unwrap privat key.");
 			goto fail;
 		}
 		free(data);
@@ -443,11 +452,11 @@ sc_pkcs15_read_prkey(struct sc_pkcs15_card *p15card,
 
 	r = sc_pkcs15_decode_prkey(ctx, &key, data, len);
 	if (r < 0) {
-		sc_error(ctx, "Unable to decode private key");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Unable to decode private key");
 		goto fail;
 	}
 
-	*out = (struct sc_pkcs15_prkey *) malloc(sizeof(key));
+	*out = malloc(sizeof(key));
 	if (*out == NULL) {
 		r = SC_ERROR_OUT_OF_MEMORY;
 		goto fail;
@@ -488,6 +497,9 @@ sc_pkcs15_erase_prkey(struct sc_pkcs15_prkey *key)
 		assert(key->u.gostr3410.d.data);
 		free(key->u.gostr3410.d.data);
 		break;
+	case SC_ALGORITHM_EC:
+		/* TODO: -DEE may not need much */
+		break;
 	}
 	sc_mem_clear(key, sizeof(key));
 }
@@ -501,8 +513,8 @@ sc_pkcs15_free_prkey(struct sc_pkcs15_prkey *key)
 
 void sc_pkcs15_free_prkey_info(sc_pkcs15_prkey_info_t *key)
 {
-	if (key->subject)
-		free(key->subject);
+	if (key->subject.value)
+		free(key->subject.value);
 	if (key->params)
 		free(key->params);
 	free(key);

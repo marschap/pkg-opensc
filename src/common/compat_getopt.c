@@ -23,16 +23,15 @@
  *  DEALINGS IN THE SOFTWARE.
  */
 
-#ifdef HAVE_CONFIG_H
 #include "config.h"
-#endif
 
-#ifndef HAVE_GETOPT_H
+#if ! ( defined(HAVE_GETOPT_H) && defined(HAVE_GETOPT_LONG) && defined(HAVE_GETOPT_LONG_ONLY) )
 
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "compat_getopt.h"
 
 int my_optind=1, my_opterr=1, my_optopt=0;

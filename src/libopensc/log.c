@@ -19,12 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
+#include "config.h"
+
 #include <stdarg.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
+#include <time.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -34,78 +36,69 @@
 #ifdef HAVE_IO_H
 #include <io.h>
 #endif
+#ifdef HAVE_PTHREAD
+#include <pthread.h>
+#endif
 
-/* Although not used, we need this for consistent exports */
-void _sc_error(sc_context_t *ctx, const char *format, ...)
+#include "internal.h"
+
+void sc_do_log(sc_context_t *ctx, int level, const char *file, int line, const char *func, const char *format, ...)
 {
 	va_list ap;
 
 	va_start(ap, format);
-	sc_do_log_va(ctx, SC_LOG_TYPE_ERROR, NULL, 0, NULL, format, ap);
+	sc_do_log_va(ctx, level, file, line, func, format, ap);
 	va_end(ap);
 }
 
-/* Although not used, we need this for consistent exports */
-void _sc_debug(sc_context_t *ctx, const char *format, ...)
+void sc_do_log_va(sc_context_t *ctx, int level, const char *file, int line, const char *func, const char *format, va_list args)
 {
-	va_list ap;
-
-	va_start(ap, format);
-	sc_do_log_va(ctx, SC_LOG_TYPE_DEBUG, NULL, 0, NULL, format, ap);
-	va_end(ap);
-}
-
-void sc_do_log(sc_context_t *ctx, int type, const char *file, int line, const char *func, const char *format, ...)
-{
-	va_list ap;
-
-	va_start(ap, format);
-	sc_do_log_va(ctx, type, file, line, func, format, ap);
-	va_end(ap);
-}
-
-void sc_do_log_va(sc_context_t *ctx, int type, const char *file, int line, const char *func, const char *format, va_list args)
-{
-	int	(*display_fn)(sc_context_t *, const char *);
 	char	buf[1836], *p;
-	const char *tag = "";
 	int	r;
 	size_t	left;
+#ifdef _WIN32
+	SYSTEMTIME st;
+#else
+	struct tm *tm;
+	struct timeval tv;
+	char time_string[40];
+#endif
+	FILE		*outf = NULL;
+	int		n;
 
 	assert(ctx != NULL);
 
-	switch (type) {
-	case SC_LOG_TYPE_ERROR:
-		if (!ctx->suppress_errors) {
-			display_fn = &sc_ui_display_error;
-			tag = "error:";
-			break;
-		}
-		/* Fall thru - suppressed errors are logged as
-		 * debug messages */
-		tag = "error (suppressed):";
-		type = SC_LOG_TYPE_DEBUG;
-
-	case SC_LOG_TYPE_DEBUG:
-		if (ctx->debug == 0)
-			return;
-		display_fn = &sc_ui_display_debug;
-		break;
-
-	default:
+	if (ctx->debug < level)
 		return;
-	}
+
+	p = buf;
+	left = sizeof(buf);
+
+#ifdef _WIN32
+	GetLocalTime(&st);
+	r = snprintf(p, left,
+			"%i-%02i-%02i %02i:%02i:%02i.%03i ",
+			st.wYear, st.wMonth, st.wDay,
+			st.wHour, st.wMinute, st.wSecond, st.wMilliseconds);
+#else
+	gettimeofday (&tv, NULL);
+	tm = localtime (&tv.tv_sec);
+	strftime (time_string, sizeof(time_string), "%H:%M:%S", tm);
+	r = snprintf(p, left, "0x%lx %s.%03ld ", (unsigned long)pthread_self(), time_string, tv.tv_usec / 1000);
+#endif
+	p += r;
+	left -= r;
 
 	if (file != NULL) {
-		r = snprintf(buf, sizeof(buf), "[%s] %s:%d:%s: ", 
+		r = snprintf(p, left, "[%s] %s:%d:%s: ", 
 			ctx->app_name, file, line, func ? func : "");
 		if (r < 0 || (unsigned int)r > sizeof(buf))
 			return;
 	} else {
 		r = 0;
-	}
-	p = buf + r;
-	left = sizeof(buf) - r;
+	}	
+	p += r;
+	left -= r;
 
 	r = vsnprintf(p, left, format, args);
 	if (r < 0)
@@ -113,13 +106,39 @@ void sc_do_log_va(sc_context_t *ctx, int type, const char *file, int line, const
 	p += r;
 	left -= r;
 
-	display_fn(ctx, buf);
+	outf = ctx->debug_file;
+	if (outf == NULL)
+		return;
+
+	fprintf(outf, "%s", buf);
+	n = strlen(buf);
+	if (n == 0 || buf[n-1] != '\n')
+		fprintf(outf, "\n");
+	fflush(outf);
+
+	return;
 }
 
-void sc_hex_dump(sc_context_t *ctx, const u8 * in, size_t count, char *buf, size_t len)
+void _sc_debug(struct sc_context *ctx, int level, const char *format, ...)
+{	
+	va_list ap;
+
+        va_start(ap, format);
+        sc_do_log_va(ctx, level, NULL, 0, NULL, format, ap);
+        va_end(ap);
+}
+
+
+/* Although not used, we need this for consistent exports */
+void sc_hex_dump(struct sc_context *ctx, int level, const u8 * in, size_t count, char *buf, size_t len)
 {
 	char *p = buf;
 	int lines = 0;
+
+	assert(ctx != NULL);
+
+	if (ctx->debug < level)
+		return;
 
 	assert(buf != NULL && in != NULL);
 	buf[0] = 0;
@@ -150,4 +169,36 @@ void sc_hex_dump(sc_context_t *ctx, const u8 * in, size_t count, char *buf, size
 		p++;
 		lines++;
 	}
+}
+
+char *
+sc_dump_hex(const u8 * in, size_t count)
+{
+	static char dump_buf[0x1000];
+	size_t ii, size = sizeof(dump_buf) - 0x10;
+    	size_t offs = 0;
+
+	memset(dump_buf, 0, sizeof(dump_buf));
+	if (in == NULL)
+        	return dump_buf;
+
+	for (ii=0; ii<count; ii++) {
+		if (!(ii%16))   {
+			if (!(ii%48))
+				snprintf(dump_buf + offs, size - offs, "\n");
+			else
+				snprintf(dump_buf + offs, size - offs, " ");
+		}
+
+		snprintf(dump_buf + offs, size - offs, "%02X", *(in + ii));
+		offs = strlen(dump_buf);
+
+		if (offs > size)
+            		break;
+    	}
+
+    	if (ii<count)
+        	snprintf(dump_buf + offs, sizeof(dump_buf) - offs, "....\n");
+
+	return dump_buf;
 }

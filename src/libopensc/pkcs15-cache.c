@@ -18,8 +18,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
-#include "pkcs15.h"
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -30,6 +30,9 @@
 #include <limits.h>
 #include <errno.h>
 #include <assert.h>
+
+#include "internal.h"
+#include "pkcs15.h"
 
 static int generate_cache_filename(struct sc_pkcs15_card *p15card,
 				   const sc_path_t *path,
@@ -55,14 +58,14 @@ static int generate_cache_filename(struct sc_pkcs15_card *p15card,
 	}
 	for (i = 0; i < pathlen; i++)
 		sprintf(pathname + 2*i, "%02X", pathptr[i]);
-	if (p15card->serial_number != NULL) {
-		if (p15card->last_update != NULL)
+	if (p15card->tokeninfo->serial_number != NULL) {
+		if (p15card->tokeninfo->last_update != NULL)
 			r = snprintf(buf, bufsize, "%s/%s_%s_%s", dir,
-			     p15card->serial_number, p15card->last_update,
+			     p15card->tokeninfo->serial_number, p15card->tokeninfo->last_update,
 			     pathname);
 		else
 			r = snprintf(buf, bufsize, "%s/%s_DATE_%s", dir,
-			     p15card->serial_number, pathname);
+			     p15card->tokeninfo->serial_number, pathname);
 		if (r < 0)
 			return SC_ERROR_BUFFER_TOO_SMALL;
 	} else
@@ -97,7 +100,7 @@ int sc_pkcs15_read_cached_file(struct sc_pkcs15_card *p15card,
 			return SC_ERROR_FILE_NOT_FOUND; /* cache file bad? */
 	}
 	if (*buf == NULL) {
-		data = (u8 *) malloc((size_t)stbuf.st_size);
+		data = malloc((size_t)stbuf.st_size);
 		if (data == NULL)
 			return SC_ERROR_OUT_OF_MEMORY;
 	} else
@@ -154,7 +157,7 @@ int sc_pkcs15_cache_file(struct sc_pkcs15_card *p15card,
 	c = fwrite(buf, 1, bufsize, f);
         fclose(f);
 	if (c != bufsize) {
-		sc_error(p15card->card->ctx, "fwrite() wrote only %d bytes", c);
+		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "fwrite() wrote only %d bytes", c);
 		unlink(fname);
 		return SC_ERROR_INTERNAL;
 	}

@@ -18,9 +18,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #ifdef HAVE_UNISTD_H
@@ -30,20 +29,22 @@
 #include <errno.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#include <opensc/opensc.h>
-#include <opensc/cardctl.h>
+
+#include "libopensc/opensc.h"
+#include "libopensc/cardctl.h"
 #include "util.h"
 
 static const char *app_name = "opensc-tool";
 
-static int	opt_reader = -1,
-		opt_wait = 0;
+static int	opt_wait = 0;
 static char **	opt_apdus;
+static char	*opt_reader;
 static int	opt_apdu_count = 0;
 static int	verbose = 0;
 
 enum {
 	OPT_SERIAL = 0x100,
+	OPT_LIST_ALG
 };
 
 static const struct option options[] = {
@@ -55,11 +56,11 @@ static const struct option options[] = {
 	{ "set-conf-entry",	1, NULL,		'S' },
 	{ "list-readers",	0, NULL, 		'l' },
 	{ "list-drivers",	0, NULL,		'D' },
-	{ "list-rdrivers",	0, NULL,		'R' },
 	{ "list-files",		0, NULL,		'f' },
 	{ "send-apdu",		1, NULL,		's' },
 	{ "reader",		1, NULL,		'r' },
 	{ "card-driver",	1, NULL,		'c' },
+	{ "list-algorithms",    0, NULL,	OPT_LIST_ALG }, 
 	{ "wait",		0, NULL,		'w' },
 	{ "verbose",		0, NULL,		'v' },
 	{ NULL, 0, NULL, 0 }
@@ -72,13 +73,13 @@ static const char *option_help[] = {
 	"Identify the card and print its name",
 	"Get configuration key, format: section:name:key",
 	"Set configuration key, format: section:name:key:value",
-	"Lists all configured readers",
+	"Lists readers",
 	"Lists all installed card drivers",
-	"Lists all installed reader drivers",
 	"Recursively lists files stored on card",
 	"Sends an APDU in format AA:BB:CC:DD:EE:FF...",
 	"Uses reader number <arg> [0]",
 	"Forces the use of driver <arg> [auto-detect]",
+	"Lists algorithms supported by card",
 	"Wait for a card to be inserted",
 	"Verbose operation. Use several times to enable debug output.",
 };
@@ -103,6 +104,15 @@ static int opensc_info(void)
 		"unknown ",
 #endif
 		__VERSION__
+	);
+#elif defined(__SUNPRO_C)
+	printf (
+		"[Sun C %x.%x]\n",
+#if __SUNPRO_C > 0x590
+		(__SUNPRO_C >> 12), (__SUNPRO_C >> 4) & 0xFF
+#else
+		(__SUNPRO_C >>  8), (__SUNPRO_C >> 4) & 0xF
+#endif
 	);
 #elif defined(_MSC_VER)
 	printf ("[Microsoft %d]\n", _MSC_VER);
@@ -212,7 +222,7 @@ static int opensc_set_conf_entry(const char *config)
 			scconf_list *list;
 
 			if ((item->type != SCCONF_ITEM_TYPE_VALUE)
-			    || (strcmp(item->key, key) != 0))
+			   || (strcmp(item->key, key) != 0))
 				continue;
 			list = item->value.list;
 			scconf_list_destroy(list);
@@ -249,28 +259,13 @@ static int list_readers(void)
 		printf("No smart card readers found.\n");
 		return 0;
 	}
-	printf("Readers known about:\n");
-	printf("Nr.    Driver     Name\n");
+	printf("# Detected readers (%s)\n", ctx->reader_driver->short_name);
+	printf("Nr.  Card  Features  Name\n");
 	for (i = 0; i < rcount; i++) {
-		sc_reader_t *screader = sc_ctx_get_reader(ctx, i);
-		printf("%-7d%-11s%s\n", i, screader->driver->short_name,
-		       screader->name);
-	}
-	return 0;
-}
-
-static int list_reader_drivers(void)
-{
-	int i;
-	
-	if (ctx->reader_drivers[0] == NULL) {
-		printf("No reader drivers installed!\n");
-		return 0;
-	}
-	printf("Configured reader drivers:\n");
-	for (i = 0; ctx->reader_drivers[i] != NULL; i++) {
-		printf("  %-16s %s\n", ctx->reader_drivers[i]->short_name,
-		       ctx->reader_drivers[i]->name);
+		sc_reader_t *reader = sc_ctx_get_reader(ctx, i);
+		printf("%-5d%-6s%-10s%s\n", i, sc_detect_card_presence(reader) & SC_READER_CARD_PRESENT ? "Yes":"No",
+		      reader->capabilities & SC_READER_CAP_PIN_PAD ? "PIN pad":"",
+		      reader->name);
 	}
 	return 0;
 }
@@ -286,7 +281,7 @@ static int list_drivers(void)
 	printf("Configured card drivers:\n");
 	for (i = 0; ctx->card_drivers[i] != NULL; i++) {
 		printf("  %-16s %s\n", ctx->card_drivers[i]->short_name,
-		       ctx->card_drivers[i]->name);
+		      ctx->card_drivers[i]->name);
 	}
 	return 0;
 }
@@ -300,10 +295,18 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 		"select", "lock", "delete", "create", "rehab", "inval",
 		"list"
 	};
-	const char *ac_ops_ef[] = {
-		"read", "update", "erase", "write", "rehab", "inval"
+	struct ac_op_str {
+		unsigned int ac_op;
+		const char *str;
+	} const ac_ops_ef[] = {
+		{ SC_AC_OP_READ, "read" },
+		{ SC_AC_OP_UPDATE, "update" },
+		{ SC_AC_OP_ERASE, "erase" },
+		{ SC_AC_OP_WRITE, "write" },
+		{ SC_AC_OP_REHABILITATE, "rehab" },
+		{ SC_AC_OP_INVALIDATE, "inval" }
 	};
-	
+
 	for (r = 0; r < depth; r++)
 		printf("  ");
 	printf("%s ", sc_print_path(path));
@@ -345,16 +348,17 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 			printf("%s[%s] ", ac_ops_df[r], util_acl_to_str(sc_file_get_acl_entry(file, r)));
 	else
 		for (r = 0; r < (int) (sizeof(ac_ops_ef)/sizeof(ac_ops_ef[0])); r++)
-			printf("%s[%s] ", ac_ops_ef[r], util_acl_to_str(sc_file_get_acl_entry(file, r)));
+			printf("%s[%s] ", ac_ops_ef[r].str,
+					util_acl_to_str(sc_file_get_acl_entry(file, ac_ops_ef[r].ac_op)));
 
 	if (file->sec_attr_len) {
 		printf("sec: ");
 		/* Octets are as follows:
-		 *   DF: select, lock, delete, create, rehab, inval
-		 *   EF: read, update, write, erase, rehab, inval
-		 * 4 MSB's of the octet mean:			 
-		 *  0 = ALW, 1 = PIN1, 2 = PIN2, 4 = SYS,
-		 * 15 = NEV */
+		*   DF: select, lock, delete, create, rehab, inval
+		*   EF: read, update, write, erase, rehab, inval
+		* 4 MSB's of the octet mean:			
+		*  0 = ALW, 1 = PIN1, 2 = PIN2, 4 = SYS,
+		* 15 = NEV */
 		util_hex_dump(stdout, file->sec_attr, file->sec_attr_len, ":");
 	}
 	if (file->prop_attr_len) {
@@ -372,7 +376,7 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 	if (file->ef_structure == SC_FILE_EF_TRANSPARENT) {
 		unsigned char *buf;
 		
-		if (!(buf = (unsigned char *) malloc(file->size))) {
+		if (!(buf = malloc(file->size))) {
 			fprintf(stderr, "out of memory");
 			return 1;
 		}
@@ -446,7 +450,7 @@ static int send_apdu(void)
 {
 	sc_apdu_t apdu;
 	u8 buf[SC_MAX_APDU_BUFFER_SIZE], sbuf[SC_MAX_APDU_BUFFER_SIZE],
-	   rbuf[SC_MAX_APDU_BUFFER_SIZE], *p;
+	  rbuf[SC_MAX_APDU_BUFFER_SIZE], *p;
 	size_t len, len0, r;
 	int c;
 
@@ -511,7 +515,7 @@ static int send_apdu(void)
 			return 1;
 		}
 		printf("Received (SW1=0x%02X, SW2=0x%02X)%s\n", apdu.sw1, apdu.sw2,
-		       apdu.resplen ? ":" : "");
+		      apdu.resplen ? ":" : "");
 		if (apdu.resplen)
 			util_hex_dump_asc(stdout, apdu.resp, apdu.resplen, -1);
 	}
@@ -530,6 +534,96 @@ static void print_serial(sc_card_t *in_card)
 		util_hex_dump_asc(stdout, serial.value, serial.len, -1);
 }
 
+static int list_algorithms(void) 
+{
+	int i; 
+	const char *aname; 
+
+	if (verbose)
+		printf("Card supports %d algorithm(s)\n\n",card->algorithm_count); 
+  
+	for (i=0; i < card->algorithm_count; i++) { 
+		switch (card->algorithms[i].algorithm) { 
+		case SC_ALGORITHM_RSA: 
+			aname = "rsa"; 
+			break; 
+		case SC_ALGORITHM_DSA: 
+			aname = "dsa"; 
+			aname = "ec"; 
+			break; 
+		case SC_ALGORITHM_DES: 
+			aname = "des"; 
+			break; 
+		case SC_ALGORITHM_3DES: 
+			aname = "3des"; 
+			break; 
+		case SC_ALGORITHM_MD5: 
+			aname = "md5"; 
+			break; 
+		case SC_ALGORITHM_SHA1: 
+			aname = "sha1"; 
+			break; 
+		case SC_ALGORITHM_PBKDF2: 
+			aname = "pbkdf2"; 
+			break; 
+		case SC_ALGORITHM_PBES2: 
+			aname = "pbes2"; 
+			break; 
+		default: 
+			aname = "unknown"; 
+			break; 
+		} 
+  
+		printf("Algorithm: %s\n", aname); 
+		printf("Key length: %d\n", card->algorithms[i].key_length); 
+		printf("Flags:"); 
+		if (card->algorithms[i].flags & SC_ALGORITHM_ONBOARD_KEY_GEN) 
+			printf(" onboard key generation"); 
+		if (card->algorithms[i].flags & SC_ALGORITHM_NEED_USAGE) 
+			printf(" needs usage"); 
+		if ( card->algorithms[i].algorithm == SC_ALGORITHM_RSA) { 
+			int padding = card->algorithms[i].flags 
+					& SC_ALGORITHM_RSA_PADS; 
+			int hashes =  card->algorithms[i].flags 
+					& SC_ALGORITHM_RSA_HASHES; 
+					 
+			printf(" padding ("); 
+			if (padding == SC_ALGORITHM_RSA_PAD_NONE)  
+				printf(" none"); 
+			if (padding & SC_ALGORITHM_RSA_PAD_PKCS1) 
+				printf(" pkcs1"); 
+			if (padding & SC_ALGORITHM_RSA_PAD_ANSI) 
+				printf(" ansi"); 
+			if (padding & SC_ALGORITHM_RSA_PAD_ISO9796) 
+				printf(" iso9796"); 
+  
+			printf(" ) "); 
+			printf("hashes ("); 
+			if (hashes & SC_ALGORITHM_RSA_HASH_NONE) 
+				printf(" none"); 
+			if (hashes & SC_ALGORITHM_RSA_HASH_SHA1) 
+				printf(" sha1"); 
+			if (hashes & SC_ALGORITHM_RSA_HASH_MD5) 
+				printf(" MD5"); 
+			if (hashes & SC_ALGORITHM_RSA_HASH_MD5_SHA1) 
+				printf(" md5-sha1"); 
+			if (hashes & SC_ALGORITHM_RSA_HASH_RIPEMD160) 
+				printf(" ripemd160"); 
+			printf(" )"); 
+		} 
+		printf("\n"); 
+		if (card->algorithms[i].algorithm == SC_ALGORITHM_RSA  
+			&& card->algorithms[i].u._rsa.exponent) { 
+			printf("RSA public exponent: %lu\n", (unsigned long) 
+				card->algorithms[i].u._rsa.exponent);
+		} 
+  
+		if (i < card->algorithm_count) 
+			printf("\n"); 
+	} 
+	return 0; 
+} 
+
 int main(int argc, char * const argv[])
 {
 	int err = 0, r, c, long_optind = 0;
@@ -538,12 +632,12 @@ int main(int argc, char * const argv[])
 	int do_set_conf_entry = 0;
 	int do_list_readers = 0;
 	int do_list_drivers = 0;
-	int do_list_rdrivers = 0;
 	int do_list_files = 0;
 	int do_send_apdu = 0;
 	int do_print_atr = 0;
 	int do_print_serial = 0;
 	int do_print_name = 0;
+	int do_list_algorithms = 0;
 	int action_count = 0;
 	const char *opt_driver = NULL;
 	const char *opt_conf_entry = NULL;
@@ -553,7 +647,7 @@ int main(int argc, char * const argv[])
 	setbuf(stdout, NULL);
 
 	while (1) {
-		c = getopt_long(argc, argv, "inlG:S:fr:vs:DRc:aw", options, &long_optind);
+		c = getopt_long(argc, argv, "inlG:S:fr:vs:Dc:aw", options, &long_optind);
 		if (c == -1)
 			break;
 		if (c == '?')
@@ -581,10 +675,6 @@ int main(int argc, char * const argv[])
 			do_list_drivers = 1;
 			action_count++;
 			break;
-		case 'R':
-			do_list_rdrivers = 1;
-			action_count++;
-			break;
 		case 'f':
 			do_list_files = 1;
 			action_count++;
@@ -607,7 +697,7 @@ int main(int argc, char * const argv[])
 			action_count++;
 			break;
 		case 'r':
-			opt_reader = atoi(optarg);
+			opt_reader = optarg;
 			break;
 		case 'v':
 			verbose++;
@@ -621,6 +711,10 @@ int main(int argc, char * const argv[])
 		case OPT_SERIAL:
 			do_print_serial = 1;
 			action_count++;
+			break;
+		case OPT_LIST_ALG:
+			do_list_algorithms = 1; 
+			action_count++; 
 			break;
 		}
 	}
@@ -641,8 +735,12 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
-	if (verbose > 1)
-		ctx->debug = verbose-1;
+
+	if (verbose > 1) {
+		ctx->debug = verbose;
+		ctx->debug_file = stderr;
+	}
+
 	if (do_get_conf_entry) {
 		if ((err = opensc_get_conf_entry (opt_conf_entry)))
 			goto end;
@@ -650,11 +748,6 @@ int main(int argc, char * const argv[])
 	}
 	if (do_set_conf_entry) {
 		if ((err = opensc_set_conf_entry (opt_conf_entry)))
-			goto end;
-		action_count--;
-	}
-	if (do_list_rdrivers) {
-		if ((err = list_reader_drivers()))
 			goto end;
 		action_count--;
 	}
@@ -680,7 +773,7 @@ int main(int argc, char * const argv[])
 		}
 	}
 
-	err = util_connect_card(ctx, &card, opt_reader, 0, opt_wait, verbose);
+	err = util_connect_card(ctx, &card, opt_reader, opt_wait, verbose);
 	if (err)
 		goto end;
 
@@ -718,10 +811,16 @@ int main(int argc, char * const argv[])
 			goto end;
 		action_count--;
 	}
+
+	if (do_list_algorithms) { 
+		if ((err = list_algorithms())) 
+			goto end;
+		action_count--; 
+	} 
 end:
 	if (card) {
 		sc_unlock(card);
-		sc_disconnect_card(card, 0);
+		sc_disconnect_card(card);
 	}
 	if (ctx)
 		sc_release_context(ctx);

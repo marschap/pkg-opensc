@@ -6,8 +6,8 @@ cardinfo {
 	label           = "MyEID";
 	manufacturer    = "Aventra Ltd.";
 	min-pin-length	= 4;
-    max-pin-length	= 8;
-    pin-encoding	= ascii-numeric;
+	max-pin-length	= 8;
+	pin-encoding	= ascii-numeric;
    	pin-pad-char	= 0xFF;
 }
 
@@ -44,33 +44,32 @@ option default {
 # here; that is done dynamically.
 PIN user-pin {
     reference  = 1;
-    auth-id    = 1;    
     min-length = 4;
     max-length = 8;
-    attempts	= 3;
+    attempts   = 3;
     flags      = initialized, needs-padding;
 }
 
 PIN user-puk {
     min-length = 4;
     max-length = 8;
-    attempts	= 10;
-   flags       = needs-padding;
+    attempts   = 10;
+    flags      = needs-padding;
 }
 
 PIN so-pin {
-    reference  = 2;
-    auth-id    = 2;
+    reference  = 3;
+    auth-id    = FF;
     min-length = 4;
     max-length = 8;
-    attempts   = 4;
+    attempts   = 3;
     flags      = initialized, soPin, needs-padding;
 }
 
 PIN so-puk {
     min-length = 4;
     max-length = 8;
-    attempts   = 9;
+    attempts   = 10;
    flags       = needs-padding;
 }
 
@@ -79,114 +78,116 @@ PIN so-puk {
 # main profile.
 filesystem {
     DF MF {
-        path	= 3F00;
-        type	= DF;
-        acl    = DELETE=CHV2; #Erase PIN
+        path  = 3F00;
+        type  = DF;
+        acl	  = CREATE=$PIN, DELETE=$SOPIN;
 
-	# This is the DIR file
-	EF DIR {	    
-	    file-id	= 2F00;
-            structure   = transparent;
-	    size	= 128;
-	    acl		= READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	}
+    	# This is the DIR file
+        EF DIR {	    
+    	    file-id   = 2F00;
+            structure = transparent;
+	        size      = 128;
+	        acl	      = READ=NONE, UPDATE=$SOPIN, DELETE=$SOPIN;
+	    }
         DF PKCS15-AppDF {
- 		type	= DF;
-		file-id	= 5015;
-        	acl     = DELETE=NONE, CREATE=CHV1;
+ 	        type      = DF;
+	        file-id   = 5015;
+            acl       = DELETE=$PIN, CREATE=$PIN;
 	    
             EF PKCS15-ODF {
-	        file-id	  = 5031;
+        	    file-id   = 5031;
                 structure = transparent;
-		size	  = $odf-size;
-		ACL	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+        	    size      = $odf-size;
+	            acl       = READ=NONE, UPDATE=$PIN, DELETE=$SOPIN;
+        	}
 
-	    EF PKCS15-TokenInfo {
-		file-id	  = 5032;
-		structure = transparent;
-		ACL	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+            EF PKCS15-TokenInfo {
+        	   file-id	  = 5032;
+	           structure  = transparent;
+        	   acl	      = READ=NONE, UPDATE=$SOPIN, DELETE=$SOPIN;
+            }
 
-	    EF PKCS15-UnusedSpace {
-		file-id	  = 5033;
-		structure = transparent;
-		size	  = $unusedspace-size;
-		ACL	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+            EF PKCS15-UnusedSpace {
+                file-id	  = 5033;
+                structure = transparent;
+                size	  = $unusedspace-size;
+                acl	      = READ=NONE, UPDATE=$SOPIN, DELETE=$SOPIN;
+            }
 
-	    EF PKCS15-AODF {
-	        file-id	  = 4401;
-		structure = transparent;
-		size	  = $aodf-size;
-		ACL	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+            EF PKCS15-AODF {
+                file-id	  = 4401;
+                structure = transparent;
+                size	  = $aodf-size;
+                acl	      = READ=NONE, UPDATE=$SOPIN, DELETE=$SOPIN;
+            }
 
-	    EF PKCS15-PrKDF {
-	        file-id	  = 4402;
-		structure = transparent;
-		size	  = $prkdf-size;
-		acl	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+            EF PKCS15-PrKDF {
+                file-id	  = 4402;
+                structure = transparent;
+                size	  = $prkdf-size;
+                acl	      = *=NEVER, READ=NONE, UPDATE=$PIN, DELETE=$SOPIN;
+            }
 
-	    EF PKCS15-PuKDF {
-	        file-id	  = 4403;
-		structure = transparent;
-		size	  = $pukdf-size;
-		acl	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+            EF PKCS15-PuKDF {
+                file-id	  = 4403;
+                structure = transparent;
+                size	  = $pukdf-size;
+                acl	      = *=NEVER, READ=NONE, UPDATE=$PIN, DELETE=$SOPIN;
+            }
 
-	    EF PKCS15-CDF {
-	        file-id	  = 4404;
-		structure = transparent;
-		size	  = $cdf-size;
-		acl	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+            EF PKCS15-CDF {
+                file-id	  = 4404;
+                structure = transparent;
+                size	  = $cdf-size;
+                acl	      = *=NEVER, READ=NONE, UPDATE=$PIN, DELETE=$SOPIN;
+            }
 
-	    EF PKCS15-DODF {
-	        file-id	  = 4405;
-		structure = transparent;
-		size	  = $dodf-size;
-		ACL	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-	    }
+            EF PKCS15-DODF {
+                file-id	  = 4405;
+                structure = transparent;
+                size	  = $dodf-size;
+                acl       = *=NEVER, READ=NONE, UPDATE=$PIN, DELETE=$SOPIN;
+            }
+            
             EF template-private-key {
-			type	= internal-ef;
-	    	        file-id	= 4B01;	
-			size	= 1024;
-	    	        ACL		= CRYPTO=CHV1, UPDATE=CHV1, DELETE=CHV2;
+                type      = internal-ef;
+    	        file-id   = 4B01;	
+    	        acl       = CRYPTO=$PIN, UPDATE=$PIN, DELETE=$PIN, GENERATE=$PIN;
             }
-		    EF template-public-key {
-			structure = transparent;
-			file-id		= 5501;
-			ACL	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-		    }
-		    EF template-certificate {
-				file-id		= 4301;
-			structure = transparent;
-			ACL	  = READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-		}
+            
+            EF template-public-key {
+                structure = transparent;
+                file-id	  = 5501;
+                acl	      = READ=NONE, UPDATE=$PIN, DELETE=$PIN, GENERATE=$PIN;
+            }
 
-                template key-domain {
-		# This is a dummy entry - pkcs15-init insists that
-		# this is present
-		EF private-key {
-		    file-id	= 4B00;
-                    type	= internal-ef;
-		    ACL		= READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-		}
-		EF public-key {
-    	            file-id	= 4300;
-    	            structure	= transparent;
-		    ACL		= READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-                }   
-		
-		# Certificate template
-                EF certificate {
-    	            file-id	= 5300;
-    	            structure	= transparent;
-		    ACL		= READ=NONE, UPDATE=CHV1, DELETE=CHV2;
-		    }
+            EF template-certificate {
+                file-id   = 4301;
+                structure = transparent;
+                acl       = READ=NONE, UPDATE=$PIN, DELETE=$PIN;
             }
-	}
+
+            template key-domain {
+                # This is a dummy entry - pkcs15-init insists that
+                # this is present
+                EF private-key {
+                    file-id   = 4B01;
+                    type      = internal-ef;
+                    acl       = READ=NONE, UPDATE=$PIN, DELETE=$PIN, GENERATE=$PIN;
+                }
+                EF public-key {
+                    file-id	  = 5501;
+                    structure = transparent;
+                    acl       = READ=NONE, UPDATE=$PIN, DELETE=$PIN, GENERATE=$PIN;
+                }
+		
+                # Certificate template
+                EF certificate {
+                    file-id	  = 4301;
+                    structure = transparent;
+                    acl       = READ=NONE, UPDATE=$PIN, DELETE=$PIN;
+                }
+            }
+	    }
     }
 }

@@ -1,11 +1,9 @@
 TOPDIR = ..\..
 
-HEADERS = compat_getpass.h compat_getopt.h compat_strlcpy.h
-HEADERSDIR = $(TOPDIR)\src\include
 TARGET = common.lib
-OBJECTS = compat_getpass.obj compat_getopt.obj compat_strlcpy.obj
+OBJECTS = compat_getpass.obj compat_getopt.obj compat_strlcpy.obj compat_strlcat.obj simclist.obj
 
-all: install-headers $(TARGET)
+all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
 	lib /nologo /machine:ix86 /out:$(TARGET) $(OBJECTS)

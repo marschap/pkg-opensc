@@ -58,6 +58,12 @@
 			The PUK can be used to overwrite or unlock a PIN if too many incorrect values
 			have been entered in a row.
 		</para>
+		<para>
+			For some cards that use the PKCS#15 emulation, the attributes of private objects 
+			are protected and cannot be parsed without authentication (usually with User PIN).
+			This authentication need to be done immediately after the card binding.
+			In such cases <option>--verify-pin</option> has to be used.
+		</para>
 	</refsect1>
 	
 	<refsect1>
@@ -71,13 +77,12 @@
 			<para>
 				<command>pkcs15-init --create-pkcs15</command></para>
 			<para>
-				You will then be asked for several the security officer PIN and PUK. Simply
+				You will then be asked for the security officer PIN and PUK. Simply
 				pressing return at the SO PIN prompt will skip installation of an SO PIN.
 			</para>
 			<para>
-				If the card supports it, you can also request that the card is erased prior
-				to creating the PKCS #15 structure, by specifying the <option>--erase-card</option>
-				option.
+				If the card supports it, you should erase the contents of the card with
+				<command>pkcs15-init --erase-card</command> before creating the PKCS#15 structure.	
 			</para>
 		</refsect2>
 
@@ -127,12 +132,6 @@
 				In addition to storing the private portion of the key on the card,
 				<command>pkcs15-init</command> will also store the the public portion of the
 				key as a PKCS #15 public key object.
-			</para>
-			<para>
-				By default, <command>pkcs15-init</command> will try to use the card's
-				on-board key generation facilities, if available. If the card does not
-				support on-board key generation, <command>pkcs15-init</command> will fall
-				back to software key generation.
 			</para>
 		</refsect2>
 
@@ -195,7 +194,7 @@
 			<para>
 				You can download certificates to the card using the
 				<option>--store-certificate</option> option, which takes a filename as
-				an argument. This file is supposed to contain the DER encoded X.509
+				an argument. This file is supposed to contain the PEM encoded X.509
 				certificate.
 			</para>
 		</refsect2>
@@ -315,8 +314,7 @@
 				</varlistentry>
 
 				<varlistentry>
-					<term><option>--store-public-key</option> <emphasis>filename</emphasis>,
-					<option>-P</option> <emphasis>filename</emphasis></term>
+					<term><option>--store-public-key</option> <emphasis>filename</emphasis></term>
 					<listitem>
 						<para>
 							Tells <command>pkcs15-init</command> to download the specified
@@ -336,7 +334,35 @@
 							Tells <command>pkcs15-init</command> to store the certificate given
 							in <option>filename</option> on the card, creating a certificate
 							object with the ID specified via the <option>--id</option> option.
-							The file is assumed to contain the DER encoded certificate.
+							The file is assumed to contain the PEM encoded certificate.
+						</para>
+					</listitem>
+				</varlistentry>
+
+				<varlistentry>
+					<term><option>--update-certificate</option> <emphasis>filename</emphasis>,
+					<option>-U</option> <emphasis>filename</emphasis></term>
+					<listitem>
+						<para>
+							Tells <command>pkcs15-init</command> to update the certificate 
+							object with the ID specified via the <option>--id</option> option
+							with the certificate in <option>filename</option>.
+							The file is assumed to contain a PEM encoded certificate.
+						</para>
+						<para>Pay extra attention when updating mail decryption certificates, as 
+						missing certificates can render e-mail messages unreadable!
+						</para>
+					</listitem>
+				</varlistentry>
+
+
+				<varlistentry>
+					<term><option>--use-default-transport-keys</option>,
+					<option>-T</option></term>
+					<listitem>
+						<para>
+							Tells <command>pkcs15-init</command> to not ask for the transport
+							keys and use default keys, as known by the card driver.
 						</para>
 					</listitem>
 				</varlistentry>

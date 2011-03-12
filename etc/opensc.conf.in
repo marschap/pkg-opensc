@@ -16,19 +16,11 @@ app default {
 
 	# The file to which debug output will be written
 	#
-	# A special value of 'stdout' is recognized.
-	# Default: stdout
+	# Special values 'stdout' and 'stderr' are recognized.
+	# Default: stderr
 	#
 	# debug_file = /tmp/opensc-debug.log;
 	# debug_file = "C:\Documents and Settings\All Users\Documents\opensc-debug.log";
-
-	# The file to which errors will be written
-	#
-	# A special value of 'stderr' is recognized.
-	# Default: stderr
-	#
-	# error_file = /tmp/opensc-errors.log;
-	# error_file = "C:\Documents and Settings\All Users\Documents\opensc-errors.log";
 
 	# PKCS#15 initialization / personalization
 	# profiles directory for pkcs15-init.
@@ -36,18 +28,7 @@ app default {
 	#
 	# profile_dir = @pkgdatadir@;
 
-	# What reader drivers to load at start-up
-	#
-	# A special value of 'internal' will load all
-	# statically linked drivers. If an unknown (ie. not
-	# internal) driver is supplied, a separate configuration
-	# configuration block has to be written for the driver.
-	# Default: internal
-	# NOTE: if "internal" keyword is used, must be the
-	# last entry in reader_drivers list
-	#
-	# reader_drivers = openct, pcsc, ctapi;
-
+	# CT-API module configuration.
 	reader_driver ctapi {
 		# module /usr/local/towitoko/lib/libtowitoko.so {
 			# CT-API ports:
@@ -59,35 +40,37 @@ app default {
 		# }
 	}
 
-	# Define parameters specific to your readers.
-	# The following section shows definitions for PC/SC readers,
-	# but the same set of variables are applicable to ctapi and
-	# openct readers, simply by using "reader_driver ctapi" and
-	# "reader_driver openct", respectively.
+	# The following section shows definitions for PC/SC readers.
 	reader_driver pcsc {
-		# This sets the maximum send and receive sizes.
-		# Some reader drivers have limitations, so you need
-		# to set these values. For usb devices check the
-		# properties with lsusb -vv for dwMaxIFSD
+		# Limit command and response sizes.
+		# Default: n/a
+		# max_send_size = 255;
+		# max_recv_size = 256;
 		#
-		# max_send_size = 252;
-		# max_recv_size = 252;
-		
-		# Connect to reader in exclusive mode.
+		# Connect to reader in exclusive mode?
 		# Default: false
 		# connect_exclusive = true;
 		#
-		# Reset the card after disconnect.
-		# Default: true
-		# connect_reset = false;
+		# What to do when disconnecting from a card (SCardDisconnect)
+		# Valid values: leave, reset, unpower.
+		# Default: reset
+		# disconnect_action = unpower;
 		#
-		# Reset the card after each transaction.
-		# Default: false
-		# transaction_reset = true;
+		# What to do at the end of a transaction (SCardEndTransaction)
+		# Valid values: leave, reset, unpower.
+		# Default: leave
+		# transaction_end_action = reset;
+		#
+		# What to do when reconnection to a card (SCardReconnect)
+		# Valid values: leave, reset, unpower.
+		# Note that this affects only the internal reconnect (after a SCARD_W_RESET_CARD).
+		# A forced reset via sc_reset() always does a full powerup.
+		# Default: leave
+		# reconnect_action = reset;
 		#
 		# Enable pinpad if detected (PC/SC v2.0.2 Part 10)
-		# Default: false
-		# enable_pinpad = true;
+		# Default: true
+		# enable_pinpad = false;
 		#
 		# Use specific pcsc provider.
 		# Default: @DEFAULT_PCSC_PROVIDER@
@@ -99,14 +82,11 @@ app default {
 		# Virtual readers to allocate.
 		# Default: 2
 		# readers = 5;
-
-		# This sets the maximum send and receive sizes.
-		# Some reader drivers have limitations, so you need
-		# to set these values. For usb devices check the
-		# properties with lsusb -vv for dwMaxIFSD
 		#
-		# max_send_size = 252;
-		# max_recv_size = 252;
+		# Limit command and response sizes.
+		# Default: n/a
+		# max_send_size = 255;
+		# max_recv_size = 256;
 	};
 
 	# What card drivers to load at start-up
@@ -224,16 +204,47 @@ app default {
 	 	# driver = "piv";
 	# }
 
-	# Estonian ID card and Micardo driver currently play together with T=0
-	# only. In theory only the 'cold' ATR should be specified, as T=0 will
+	# Estonian ID card and Micardo driver sometimes only play together with T=0
+	# In theory only the 'cold' ATR should be specified, as T=0 will
 	# be the preferred protocol once you boot it up with T=0, but be
 	# paranoid.
+	# 
+	# Warm ATR v1
 	card_atr 3b:6e:00:ff:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
 		force_protocol = t0;
 	}
+	# Cold ATR v1
 	card_atr 3b:fe:94:00:ff:80:b1:fa:45:1f:03:45:73:74:45:49:44:20:76:65:72:20:31:2e:30:43 {
 		force_protocol = t0;
 	}
+	# Warm ATR v2
+	card_atr 3b:5e:11:ff:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
+		force_protocol = t0;
+	}
+	# Cold ATR v2
+	card_atr 3b:de:18:ff:c0:80:b1:fe:45:1f:03:45:73:74:45:49:44:20:76:65:72:20:31:2e:30:2b {
+		force_protocol = t0;
+	}
+	# Digi-ID cold ATR. The same card has the same warm ATR as "Cold ATR v1" above
+	# The card is claimed to only support T=0 but in fact (sometimes) works with T=1, even if not advertised in ATR.
+	card_atr 3b:6e:00:00:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
+		force_protocol = t0;
+	}
+	# Cold ATR v3 dev1
+	card_atr 3b:fe:18:00:00:80:31:fe:45:45:73:74:45:49:44:20:76:65:72:20:31:2e:30:a8 {
+		force_protocol = t0;
+	}
+	# Warm ATR v3 dev1
+	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:56:1b:16:83:01:90:00:86 {
+		force_protocol = t0;
+	}
+
+	# Warm ATR v3 dev2
+	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:16:2a:00:83:01:90:00:e1 {
+		force_protocol = t0;
+	}
+
+	
 
 	# D-Trust cards are also based on micardo and need T=0 for some reason
 	card_atr 3b:ff:94:00:ff:80:b1:fe:45:1f:03:00:68:d2:76:00:00:28:ff:05:1e:31:80:00:90:00:23 {
@@ -256,14 +267,25 @@ app default {
 		# WARNING: Caching shouldn't be used in setuid root
 		# applications.
 		# Default: false
-		use_caching = true;
-
+		# use_file_caching = true;
+		#
+		# Use PIN caching?
+		# Default: true
+		# use_pin_caching = false;
+		#
+		# How many times to use a PIN from cache before re-authenticating it?
+		# Default: 10
+		# pin_cache_counter = 3;
+		#
 		# Enable pkcs15 emulation.
 		# Default: yes
 		# enable_pkcs15_emulation = no;
 		#
 		# Prefer pkcs15 emulation code before
 		# the normal pkcs15 processing.
+		# Some cards (like esteid and pteid) work in emu-only mode,
+		# and do not depend on this option.
+		#
 		# Default: no
 		# try_emulation_first = yes;
 		
@@ -272,7 +294,7 @@ app default {
 		# enable_builtin_emulation = no;
 		#
 		# List of the builtin pkcs15 emulators to test
-		# Default: esteid, openpgp, tcos, starcert, infocamere, postecert, actalis, atrust-acos, gemsafeGPK, gemsafeV1, tccardos, PIV-II;
+		# Default: esteid, openpgp, tcos, starcert, itacns, infocamere, postecert, actalis, atrust-acos, gemsafeGPK, gemsafeV1, tccardos, PIV-II;
 		# builtin_emulators = openpgp;
 
 		# additional settings per driver
@@ -286,22 +308,13 @@ app default {
 			# module = /usr/lib/opensc/drivers/p15emu_custom.so;
 		# }
 		
-		# workaround: use rsa decrypt operation for signing
-		# some cardos cards need this, if initializes with certain
-		# versions of the siemens software
-		# we have an auto detection, but it is not 100% reliable,
-		# so you can turn it off, if it misbehaves.
-		# this option only affects cardos cards right now.
-		# Default: yes
-		# enable_sign_with_decrypt_workaround = no;
-
 		# workaround: fix keyReference and pinReference values
 		# OpenSC 0.11.4 and older have a bug: integers were not
 		# properly encoded in asn.1 structures. So far only
 		# starcos cards were found to have a problem with this,
 		# and only these two values were found to be filled with
 		# the wrong value.
-		#
+      		#
 		# Fortunatly those values (if present) need to be positive.
 		# Thus we can check if these are available and negative,
 		# and if so fix them by adding 256 to get the correct value.
@@ -347,53 +360,97 @@ app opensc-pkcs11 {
 		# Default: true
 		# hide_empty_tokens = false;
 
- 		# By default, the OpenSC PKCS#11 module will lock your card
- 		# once you authenticate to the card via C_Login.
- 		# This is to prevent other users or other applications
+ 		# By default, the OpenSC PKCS#11 module will not lock your card
+		# once you authenticate to the card via C_Login.
+		#
+ 		# Thus the other users or other applications is not prevented
  		# from connecting to the card and perform crypto operations
  		# (which may be possible because you have already authenticated
- 		# with the card). Thus this setting is very secure.
+ 		# with the card). This setting is not very secure.
 		#
-		# This behavior is a known violation of PKCS#11 specification,
-		# and is forced due to limitation of the OpenSC framework.
+		# Also, if your card is not locked, you can enconter problems 
+		# due to limitation of the OpenSC framework, that still is not 
+		# thoroughly tested in the multi threads environment.
  		#
- 		# However now once one application has started using your
- 		# card with C_Login, no other application can use it, until
- 		# the first is done and calls C_Logout or C_Finalize.
- 		# In the case of many PKCS#11 application this does not happen
-		# until you exit the application.  
+		# Your settings will be more secure if you choose to lock your 
+		# card. Nevertheless this behavior is a known violation of PKCS#11 
+		# specification. Now once one application has started using your 
+		# card with C_Login, no other application can use it, until 
+		# the first is done and calls C_Logout or C_Finalize. In the case 
+		# of many PKCS#11 application this does not happen until you exit 
+		# the application.  
+ 		# Thus it is impossible to use several smart card aware applications 
+		# at the same time, e.g. you cannot run both Firefox and Thunderbird at 
+		# the same time, if both are configured to use your smart card.
  		#
- 		# Thus it is impossible to use several smart card aware
- 		# applications at the same time, e.g. you cannot run both
- 		# Firefox and Thunderbird at the same time, if both are
- 		# configured to use your smart card.
- 		#
-		# Default: true
-		# lock_login = false;
+		# Default: false
+		# lock_login = true;
 
-		# Normally, the pkcs11 module will not cache PINs
-		# presented via C_Login. However, some cards
-		# may not work properly with OpenSC; for instance
-		# when you have two keys on your card that get
-		# stored in two different directories.
+		# User PIN unblock style
+		#    none:  PIN unblock is not possible with PKCS#11 API;
+		#    set_pin_in_unlogged_session:  C_SetPIN() in unlogged session:
+		#       PUK is passed as the 'OldPin' argument of the C_SetPIN() call.
+		#    set_pin_in_specific_context:  C_SetPIN() in the CKU_SPECIFIC_CONTEXT logged session:
+		#       PUK is passed as the 'OldPin' argument of the C_SetPIN() call.
+		#    init_pin_in_so_session:  C_InitPIN() in CKU_SO logged session:
+		#       User PIN 'UNBLOCK' is protected by SOPIN. (PUK == SOPIN).
+		#       # Actually this style works only for the PKCS15 contents without SOPIN.
+		#       # For those with SOPIN, this mode will be usefull for the cards without
+		#       #   modes 00 and 01 of ISO command 'RESET RETRY COUNTER'. --vt
 		#
-		# In this case, you can turn on PIN caching by setting
-		# cache_pins = true
-		#
-		# Default: true
-		# cache_pins = false;
+		# Default: none
+		# user_pin_unblock_style = set_pin_in_unlogged_session;
 
-		# Set this value to true if you want to allow off-card
-		# keypair generation (in software on your pc)
+		# Create slot for unblocking PIN with PUK
+		# This way PKCS#11 API can be used to login with PUK and
+		# change a PIN.
+		# Warning: causes problems with some applications like
+		# firefox and thunderbird. Thus turned off by default
 		#
 		# Default: false
-		# soft_keygen_allowed = true;
+		# create_puk_slot = true;
+
+		# Report as 'zero' the CKA_ID attribute of CA certificate
+		# For the unknown reason the middleware of the manufacturer of gemalto (axalto, gemplus) 
+		# card reports as '0' the CKA_ID of CA cartificates. 
+		# Maybe someone else will need it. (Would be nice to know who and what for -- VTA)
+		# 
+		# Default: false
+		# zero_ckaid_for_ca_certs = true;
+
+		# List of readers to ignore
+		# If any of the strings listed below is matched (case sensitive) in a reader name,
+		# the reader is ignored by the PKCS#11 module.
+		#
+		# Default: empty
+		# ignored_readers = "CardMan 1021", "SPR 532";
 	}
 }
 
+# Used by OpenSC.tokend on Mac OS X only.
 app tokend {
-	# Score for OpenSC.tokend
+	# The file to which debug log will be written
+	# Default: /tmp/opensc-tokend.log
+	#
+	# debug_file = /Library/Logs/OpenSC.tokend.log
+
 	framework tokend {
-		score = 10;
+		# Score for OpenSC.tokend
+		# The tokend with the highest score shall be used.
+		# Default: 300
+		#
+		# score = 10;
 	}
 }
+
+app cardmod {
+	# cardmod app name use special pcsc reader subset 
+	# fix options for this reader driver here. 
+
+	reader_driver cardmod {
+		# Enable pinpad if detected (PC/SC v2.0.2 Part 10)
+		# Default: true
+		# enable_pinpad = false;
+	}
+}
+

@@ -19,9 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#include "internal.h"
+#include "config.h"
+
 #include <string.h>
 #include <stdlib.h>
+
+#include "internal.h"
 
 /* TODO doxygen comments */
 
@@ -231,7 +234,7 @@ int sc_pkcs1_encode(sc_context_t *ctx, unsigned long flags,
 		i = sc_pkcs1_add_digest_info_prefix(hash_algo, in, in_len,
 						    out, &tmp_len);
 		if (i != SC_SUCCESS) {
-			sc_error(ctx, "Unable to add digest info 0x%x\n",
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Unable to add digest info 0x%x",
 			      hash_algo);
 			return i;
 		}
@@ -252,7 +255,7 @@ int sc_pkcs1_encode(sc_context_t *ctx, unsigned long flags,
 					       mod_len);
 	default:
 		/* currently only pkcs1 padding is supported */
-		sc_error(ctx, "Unsupported padding algorithm 0x%x\n", pad_algo);
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Unsupported padding algorithm 0x%x", pad_algo);
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 }
@@ -283,15 +286,16 @@ int sc_get_encoding_flags(sc_context_t *ctx,
 		else
 			*pflags |= SC_ALGORITHM_RSA_PAD_PKCS1;
 	} else if ((iflags & SC_ALGORITHM_RSA_PADS) == SC_ALGORITHM_RSA_PAD_NONE) {
-		if (!(caps & SC_ALGORITHM_RSA_RAW)) {
-			sc_error(ctx, "raw RSA is not supported");
+		
+		/* Work with RSA, EC and maybe GOSTR? */
+		if (!(caps & SC_ALGORITHM_RAW_MASK)) {
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "raw encryption is not supported");
 			return SC_ERROR_NOT_SUPPORTED;
 		}
-		*sflags |= SC_ALGORITHM_RSA_RAW;
-		/* in case of raw RSA there is nothing to pad */
+		*sflags |= (caps & SC_ALGORITHM_RAW_MASK); /* adds in the one raw type */
 		*pflags = 0;
 	} else {
-		sc_error(ctx, "unsupported algorithm");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "unsupported algorithm");
 		return SC_ERROR_NOT_SUPPORTED;
 	}
 
