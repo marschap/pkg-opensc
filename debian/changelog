@@ -3,6 +3,7 @@ opensc (0.12.0-0pm1) UNRELEASED; urgency=low
   [Peter Marschall]
   * Imported Upstream version 0.12.0
   * remove patches for CVE-2010-4523: applied upstream
+  * build without openct support
 
  -- Peter Marschall <peter@adpm.de>  Sat, 12 Mar 2011 21:42:23 +0100
 

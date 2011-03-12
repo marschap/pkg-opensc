@@ -7,7 +7,6 @@ override_dh_auto_configure:
 	dh_auto_configure -- --sysconfdir=/etc/opensc \
 		--enable-nsplugin \
 		--enable-pcsc \
-		--enable-openct \
 		--enable-doc \
 		--htmldir=/usr/share/doc/opensc/html
 
