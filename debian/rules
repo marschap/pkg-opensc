@@ -11,7 +11,7 @@ override_dh_auto_configure:
 		--htmldir=/usr/share/doc/opensc/html
 
 override_dh_strip:
-	dh_strip --dbg-package=libopensc2-dbg
+	dh_strip --dbg-package=libopensc3-dbg
 
 override_dh_installchangelogs:
 	dh_installchangelogs doc/nonpersistent/ChangeLog

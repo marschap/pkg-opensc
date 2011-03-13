@@ -29,14 +29,14 @@ Description: Smart card utilities with support for PKCS#15 compatible cards
  operations may be supported for your card. Card initialization may
  require third party proprietary software.
 
-#Package: libopensc2-dev
+#Package: libopensc3-dev
 #Section: libdevel
 #Priority: optional
 #Architecture: any
-#Conflicts: libopensc0-dev, libopensc1-dev
-#Replaces: libopensc0-dev, libopensc1-dev, libscam1 (<< 0.9.4-5)
+#Conflicts: libopensc0-dev, libopensc1-dev, libopensc2-dev
+#Replaces: libopensc0-dev, libopensc1-dev, libopensc2-dev, libscam1 (<< 0.9.4-5)
 #Provides: libopensc-dev
-#Depends: libopensc2 (= ${binary:Version}), libssl-dev, ${misc:Depends}
+#Depends: libopensc3 (= ${binary:Version}), libssl-dev, ${misc:Depends}
 #Description: OpenSC development files
 # OpenSC provides a set of libraries and utilities to access smart
 # cards.  It mainly focuses on cards that support cryptographic
@@ -50,12 +50,12 @@ Description: Smart card utilities with support for PKCS#15 compatible cards
 # This package contains files necessary for developing applications
 # with the libopensc libraries from OpenSC.org.
 
-Package: libopensc2
+Package: libopensc3
 Section: libs
 Priority: optional
 Architecture: any
-Conflicts: libopensc0, libopensc1
-Replaces: libopensc0, libopensc1
+Conflicts: libopensc0, libopensc1, libopensc2
+Replaces: libopensc0, libopensc1, libopensc2
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Smart card library with support for PKCS#15 compatible smart cards
  OpenSC provides a set of libraries and utilities to access smart
@@ -71,12 +71,14 @@ Description: Smart card library with support for PKCS#15 compatible smart cards
  .
  Card initialization can be performed by utilities in the opensc package.
 
-Package: libopensc2-dbg
+Package: libopensc3-dbg
 Section: debug
 Priority: extra
 Architecture: any
-Depends: libopensc2 (= ${binary:Version}), ${misc:Depends}
-Description: Debugging symbols for libopensc2
+Conflicts: libopensc2-dbg
+Replaces: libopensc2-dbg
+Depends: libopensc3 (= ${binary:Version}), ${misc:Depends}
+Description: Debugging symbols for libopensc3
  This package contains the debugging symbols for the libopensc library
  from OpenSC.org.
  .
