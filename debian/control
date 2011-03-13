@@ -83,15 +83,3 @@ Description: Debugging symbols for libopensc3
  from OpenSC.org.
  .
  Card initialization can be performed by utilities in the opensc package.
-
-Package: mozilla-opensc
-Section: web
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: pinentry-gtk2 | pinentry-x11
-Replaces: libopensc-openssl (<< 0.9.4-6)
-Description: Mozilla plugin for authentication using OpenSC
- A plugin for mozilla that allows S/MIME and SSL authentication using
- OpenSC.
- .
- Card initialization can be performed by utilities in the opensc package. 
