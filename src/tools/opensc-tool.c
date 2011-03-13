@@ -263,9 +263,27 @@ static int list_readers(void)
 	printf("Nr.  Card  Features  Name\n");
 	for (i = 0; i < rcount; i++) {
 		sc_reader_t *reader = sc_ctx_get_reader(ctx, i);
-		printf("%-5d%-6s%-10s%s\n", i, sc_detect_card_presence(reader) & SC_READER_CARD_PRESENT ? "Yes":"No",
+		int state = sc_detect_card_presence(reader);
+		printf("%-5d%-6s%-10s%s\n", i, state & SC_READER_CARD_PRESENT ? "Yes":"No",
 		      reader->capabilities & SC_READER_CAP_PIN_PAD ? "PIN pad":"",
 		      reader->name);
+		if (state & SC_READER_CARD_PRESENT && verbose) {
+			struct sc_card *card;
+			int r;
+			char tmp[SC_MAX_ATR_SIZE*3];
+			sc_bin_to_hex(reader->atr.value, reader->atr.len, tmp, sizeof(tmp) - 1, ':');
+
+			if (state & SC_READER_CARD_EXCLUSIVE)
+				printf("     %s [EXCLUSIVE]\n", tmp);
+			else {		
+				if ((r = sc_connect_card(reader, &card)) != SC_SUCCESS) {
+					fprintf(stderr, "     failed: %s\n", sc_strerror(r));
+				} else {
+					printf("     %s %s %s\n", tmp, card->name, state & SC_READER_CARD_INUSE ? "[IN USE]" : "");
+					sc_disconnect_card(card);
+				}
+			}
+		}
 	}
 	return 0;
 }
@@ -427,6 +445,7 @@ static int enum_dir(sc_path_t path, int depth)
 		for (i = 0; i < r/2; i++) {
 			sc_path_t tmppath;
 
+			memset(&tmppath, 0, sizeof(tmppath));
 			memcpy(&tmppath, &path, sizeof(path));
 			memcpy(tmppath.value + tmppath.len, files + 2*i, 2);
 			tmppath.len += 2;
@@ -568,7 +587,10 @@ static int list_algorithms(void)
 			break; 
 		case SC_ALGORITHM_PBES2: 
 			aname = "pbes2"; 
-			break; 
+			break;
+		case SC_ALGORITHM_GOSTR3410:
+			aname = "gost";
+			break;
 		default: 
 			aname = "unknown"; 
 			break; 
@@ -780,10 +802,10 @@ int main(int argc, char * const argv[])
 	if (do_print_atr) {
 		if (verbose) {
 			printf("Card ATR:\n");
-			util_hex_dump_asc(stdout, card->atr, card->atr_len, -1);		
+			util_hex_dump_asc(stdout, card->atr.value, card->atr.len, -1);		
 		} else {
 			char tmp[SC_MAX_ATR_SIZE*3];
-			sc_bin_to_hex(card->atr, card->atr_len, tmp, sizeof(tmp) - 1, ':');
+			sc_bin_to_hex(card->atr.value, card->atr.len, tmp, sizeof(tmp) - 1, ':');
 			fprintf(stdout,"%s\n",tmp);
 		}
 		action_count--;

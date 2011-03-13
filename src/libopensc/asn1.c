@@ -284,6 +284,13 @@ static void print_tags_recursive(const u8 * buf0, const u8 * buf,
 			}
 			printf("]");
 		}
+
+		if ((cla & SC_ASN1_TAG_CLASS) == SC_ASN1_TAG_APPLICATION)
+			printf(" <raw content> [%s]", sc_dump_hex(tagp, len));
+
+		if ((cla & SC_ASN1_TAG_CLASS) == SC_ASN1_TAG_CONTEXT)
+			printf(" <raw content> [%s]", sc_dump_hex(tagp, len));
+
 		putchar('\n');
 	}
 	return;
@@ -720,15 +727,33 @@ int sc_asn1_put_tag(int tag, const u8 * data, size_t datalen, u8 * out, size_t o
 static int asn1_write_element(sc_context_t *ctx, unsigned int tag,
 	const u8 * data, size_t datalen, u8 ** out, size_t * outlen)
 {
-	u8 t;
-	u8 *buf, *p;
-	int c = 0;
+	unsigned char t;
+	unsigned char *buf, *p;
+	int c = 0, ii;
+	unsigned short_tag;
+	unsigned char tag_char[3] = {0, 0, 0};
+	size_t tag_len;
 	
-	t = tag & 0x1F;
-	if (t != (tag & SC_ASN1_TAG_MASK)) {
-		sc_debug(ctx, SC_LOG_DEBUG_ASN1, "Long tags not supported\n");
-		return SC_ERROR_INVALID_ARGUMENTS;
+	short_tag = tag & SC_ASN1_TAG_MASK;
+	for (tag_len = 0; short_tag >> (8 * tag_len); tag_len++)
+		tag_char[tag_len] = (short_tag >> (8 * tag_len)) & 0xFF;
+	if (!tag_len)
+		tag_len = 1;
+
+	if (tag_len > 1)   {
+		if ((tag_char[tag_len - 1] & SC_ASN1_TAG_PRIMITIVE) != SC_ASN1_TAG_ESCAPE_MARKER)
+			SC_TEST_RET(ctx, SC_LOG_DEBUG_ASN1, SC_ERROR_INVALID_DATA, "First byte of the long tag is not 'escape marker'");
+
+		for (ii = 1; ii < tag_len - 1; ii++)
+			if (!(tag_char[ii] & 0x80))
+				SC_TEST_RET(ctx, SC_LOG_DEBUG_ASN1, SC_ERROR_INVALID_DATA, "MS bit expected to be 'one'");
+
+		if (tag_char[0] & 0x80)
+			SC_TEST_RET(ctx, SC_LOG_DEBUG_ASN1, SC_ERROR_INVALID_DATA, "MS bit of the last byte expected to be 'zero'");
 	}
+
+	t = tag_char[tag_len - 1] & 0x1F;
+
 	switch (tag & SC_ASN1_CLASS_MASK) {
 	case SC_ASN1_UNI:
 		break;
@@ -749,27 +774,45 @@ static int asn1_write_element(sc_context_t *ctx, unsigned int tag,
 		while (datalen >> (c << 3))
 			c++;
 	}
-	*outlen = 2 + c + datalen;
+
+	*outlen = tag_len + 1 + c + datalen;
 	buf = malloc(*outlen);
 	if (buf == NULL)
 		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_ASN1, SC_ERROR_OUT_OF_MEMORY);
+
 	*out = p = buf;
 	*p++ = t;
+	for (ii=1;ii<tag_len;ii++)
+		*p++ = tag_char[tag_len - ii - 1];
+
 	if (c) {
 		*p++ = 0x80 | c;
 		while (c--)
 			*p++ = (datalen >> (c << 3)) & 0xFF;
-	} else
+	} 
+	else   {
 		*p++ = datalen & 0x7F;
+	}
 	memcpy(p, data, datalen);
 	
-	return 0;
+	return SC_SUCCESS;
 }
 
-static const struct sc_asn1_entry c_asn1_path[4] = {
-	{ "path",   SC_ASN1_OCTET_STRING, SC_ASN1_TAG_OCTET_STRING, 0, NULL, NULL },
+static const struct sc_asn1_entry c_asn1_path_ext[3] = {
+	{ "aid",  SC_ASN1_OCTET_STRING, SC_ASN1_APP | 0x0F, 0, NULL, NULL },
+	{ "path", SC_ASN1_OCTET_STRING, SC_ASN1_TAG_OCTET_STRING, 0, NULL, NULL },
+	{ NULL, 0, 0, 0, NULL, NULL }
+};
+static const struct sc_asn1_entry c_asn1_path[5] = {
+	{ "path",   SC_ASN1_OCTET_STRING, SC_ASN1_TAG_OCTET_STRING, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "index",  SC_ASN1_INTEGER, SC_ASN1_TAG_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "length", SC_ASN1_INTEGER, SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL, NULL },
+/* For some multi-applications PKCS#15 card the ODF records can hold the references to 
+ * the xDF files and objects placed elsewhere then under the application DF of the ODF itself.
+ * In such a case the 'path' ASN1 data includes also the ID of the target application (AID).
+ * This path extension do not make a part of PKCS#15 standard. 
+ */
+	{ "pathExtended", SC_ASN1_STRUCT, SC_ASN1_CTX | 1 | SC_ASN1_CONS, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
@@ -777,40 +820,75 @@ static int asn1_decode_path(sc_context_t *ctx, const u8 *in, size_t len,
 			    sc_path_t *path, int depth)
 {
 	int idx, count, r;
-	struct sc_asn1_entry asn1_path[4];
+	struct sc_asn1_entry asn1_path_ext[3], asn1_path[5];
+	unsigned char path_value[SC_MAX_PATH_SIZE], aid_value[SC_MAX_AID_SIZE];
+	size_t path_len = sizeof(path_value), aid_len = sizeof(aid_value);
 	
+	memset(path, 0, sizeof(struct sc_path));
+
+	sc_copy_asn1_entry(c_asn1_path_ext, asn1_path_ext);
 	sc_copy_asn1_entry(c_asn1_path, asn1_path);
-	sc_format_asn1_entry(asn1_path + 0, &path->value, &path->len, 0);
+
+	sc_format_asn1_entry(asn1_path_ext + 0, aid_value, &aid_len, 0);
+	sc_format_asn1_entry(asn1_path_ext + 1, path_value, &path_len, 0);
+
+	sc_format_asn1_entry(asn1_path + 0, path_value, &path_len, 0);
 	sc_format_asn1_entry(asn1_path + 1, &idx, NULL, 0);
 	sc_format_asn1_entry(asn1_path + 2, &count, NULL, 0);
-	path->len = SC_MAX_PATH_SIZE;
+	sc_format_asn1_entry(asn1_path + 3, asn1_path_ext, NULL, 0);
+
 	r = asn1_decode(ctx, asn1_path, in, len, NULL, NULL, 0, depth + 1);
 	if (r)
 		return r;
+
+	if (asn1_path[3].flags & SC_ASN1_PRESENT)   {
+		/* extended path present: set 'path' and 'aid' */
+		memcpy(path->aid.value, aid_value, aid_len);
+		path->aid.len = aid_len;
+
+		memcpy(path->value, path_value, path_len);
+		path->len = path_len;
+	}
+	else if (asn1_path[0].flags & SC_ASN1_PRESENT)   {
+		/* path present: set 'path' */
+		memcpy(path->value, path_value, path_len);
+		path->len = path_len;
+	}
+	else   {
+		/* failed if both 'path' and 'pathExtended' are absent */
+		return SC_ERROR_ASN1_OBJECT_NOT_FOUND;
+	}
+
 	if (path->len == 2)
 		path->type = SC_PATH_TYPE_FILE_ID;
+	else   if (path->aid.len && path->len > 2)
+		path->type = SC_PATH_TYPE_FROM_CURRENT;
 	else
 		path->type = SC_PATH_TYPE_PATH;
-	if ((asn1_path[1].flags & SC_ASN1_PRESENT)
-	 && (asn1_path[2].flags & SC_ASN1_PRESENT)) {
+
+	if ((asn1_path[1].flags & SC_ASN1_PRESENT) && (asn1_path[2].flags & SC_ASN1_PRESENT)) {
 		path->index = idx;
 		path->count = count;
-	} else {
+	} 
+	else {
 		path->index = 0;
 		path->count = -1;
 	}
-	return 0;
+
+	return SC_SUCCESS;
 }
 
 static int asn1_encode_path(sc_context_t *ctx, const sc_path_t *path,
-			    u8 **buf, size_t *bufsize, int depth)
+			    u8 **buf, size_t *bufsize, int depth, unsigned int parent_flags)
 {
 	int r;
- 	struct sc_asn1_entry asn1_path[4];
+ 	struct sc_asn1_entry asn1_path[5];
 	sc_path_t tpath = *path;
 
 	sc_copy_asn1_entry(c_asn1_path, asn1_path);
 	sc_format_asn1_entry(asn1_path + 0, (void *) &tpath.value, (void *) &tpath.len, 1);
+
+	asn1_path[0].flags |= parent_flags;
 	if (path->count > 0) {
 		sc_format_asn1_entry(asn1_path + 1, (void *) &tpath.index, NULL, 1);
 		sc_format_asn1_entry(asn1_path + 2, (void *) &tpath.count, NULL, 1);
@@ -852,11 +930,11 @@ static int asn1_decode_se_info(sc_context_t *ctx, const u8 *obj, size_t objlen,
 			goto err;
 		}
 
-		si->aid_len = sizeof(si->aid);
+		si->aid.len = sizeof(si->aid.value);
 		sc_copy_asn1_entry(c_asn1_se_info, asn1_se_info);
 		sc_format_asn1_entry(asn1_se_info + 0, &si->se, NULL, 0);
 		sc_format_asn1_entry(asn1_se_info + 1, &si->owner, NULL, 0);
-		sc_format_asn1_entry(asn1_se_info + 2, &si->aid, &si->aid_len, 0);
+		sc_format_asn1_entry(asn1_se_info + 2, &si->aid.value, &si->aid.len, 0);
 		ret = asn1_decode(ctx, asn1_se_info, p, plen, &p, &plen, 0, depth+1);
 		if (ret != SC_SUCCESS) {
 			free(si);
@@ -1240,7 +1318,6 @@ static int asn1_decode(sc_context_t *ctx, struct sc_asn1_entry *asn1,
 
 	for (idx = 0; asn1[idx].name != NULL; idx++) {
 		entry = &asn1[idx];
-		r = 0;
 
 		sc_debug(ctx, SC_LOG_DEBUG_ASN1,
 			"Looking for '%s', tag 0x%x%s%s\n",
@@ -1428,7 +1505,7 @@ static int asn1_encode_entry(sc_context_t *ctx, const struct sc_asn1_entry *entr
 		r = sc_asn1_encode_object_id(&buf, &buflen, (struct sc_object_id *) parm);
 		break;
 	case SC_ASN1_PATH:
-		r = asn1_encode_path(ctx, (const sc_path_t *) parm, &buf, &buflen, depth);
+		r = asn1_encode_path(ctx, (const sc_path_t *) parm, &buf, &buflen, depth, entry->flags);
 		break;
 	case SC_ASN1_PKCS15_ID:
 		{

@@ -94,12 +94,6 @@ muscle_create_pin(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	sc_file_t *file;
 	sc_pkcs15_pin_info_t *pin_info = (sc_pkcs15_pin_info_t *) pin_obj->data;
 	int r;
-	int type;
-	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
-		type = SC_PKCS15INIT_SO_PIN;
-	} else {
-		type = SC_PKCS15INIT_USER_PIN;
-	}
 	if ((r = sc_select_file(p15card->card, &df->path, &file)) < 0)
 		return r;
 	if ((r = sc_pkcs15init_authenticate(profile, p15card, file, SC_AC_OP_WRITE)) < 0)
@@ -299,16 +293,17 @@ static struct sc_pkcs15init_operations sc_pkcs15init_muscle_operations = {
 	muscle_init_card,		/* init_card  */
 	muscle_create_dir,		/* create_dir */
 	NULL,				/* create_domain */
-	muscle_select_pin_reference,				/* select pin reference */
-	muscle_create_pin,				/* Create PIN */
-	muscle_select_key_reference,				/* select_key_reference */
-	muscle_create_key,				/* create_key */
-	muscle_store_key,				/* store_key */
-	muscle_generate_key,				/* generate_key */
+	muscle_select_pin_reference,	/* select pin reference */
+	muscle_create_pin,		/* Create PIN */
+	muscle_select_key_reference,	/* select_key_reference */
+	muscle_create_key,		/* create_key */
+	muscle_store_key,		/* store_key */
+	muscle_generate_key,		/* generate_key */
 	NULL, NULL,			/* encode private/public key */
 	NULL,				/* finalize_card */
 	NULL, 				/* delete_object */
-	NULL, NULL, NULL, NULL, NULL  /* pkcs15init emulation */
+	NULL, NULL, NULL, NULL, NULL,	/* pkcs15init emulation */
+	NULL				/* sanity_check */
 };
 
 struct sc_pkcs15init_operations *

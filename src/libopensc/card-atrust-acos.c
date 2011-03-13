@@ -85,9 +85,9 @@ static int atrust_acos_match_card(struct sc_card *card)
 			continue;
 		/* we may only verify part of ATR since */
 		/* part of the hist chars is variable */
-		if (len > card->atr_len)
+		if (len > card->atr.len)
 			continue;
-		if (memcmp(card->atr, defatr, len) != 0)
+		if (memcmp(card->atr.value, defatr, len) != 0)
 			continue;
 
 		match = 1;
@@ -393,7 +393,7 @@ static int atrust_acos_select_file(struct sc_card *card,
 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 		"current path (%s, %s): %s (len: %u)\n",
 		(card->cache.current_path.type==SC_PATH_TYPE_DF_NAME?"aid":"path"),
-		(card->cache_valid?"valid":"invalid"), pbuf,
+		(card->cache.valid?"valid":"invalid"), pbuf,
 		card->cache.current_path.len);
   
 	memcpy(path, in_path->value, in_path->len);
@@ -409,7 +409,7 @@ static int atrust_acos_select_file(struct sc_card *card,
 	else if (in_path->type == SC_PATH_TYPE_DF_NAME)
       	{	/* SELECT DF with AID */
 		/* Select with 1-16byte Application-ID */
-		if (card->cache_valid 
+		if (card->cache.valid 
 		    && card->cache.current_path.type == SC_PATH_TYPE_DF_NAME
 		    && card->cache.current_path.len == pathlen
 		    && memcmp(card->cache.current_path.value, pathbuf, pathlen) == 0 )
@@ -449,7 +449,7 @@ static int atrust_acos_select_file(struct sc_card *card,
 		}
 	
 		/* check current working directory */
-		if (card->cache_valid 
+		if (card->cache.valid 
 		    && card->cache.current_path.type == SC_PATH_TYPE_PATH
 		    && card->cache.current_path.len >= 2
 		    && card->cache.current_path.len <= pathlen )
@@ -461,7 +461,7 @@ static int atrust_acos_select_file(struct sc_card *card,
 					bMatch += 2;
 		}
 
-		if ( card->cache_valid && bMatch >= 0 )
+		if ( card->cache.valid && bMatch >= 0 )
 		{
 			if ( pathlen - bMatch == 2 )
 				/* we are in the rigth directory */
@@ -474,7 +474,8 @@ static int atrust_acos_select_file(struct sc_card *card,
 				/* first step: change directory */
 				r = atrust_acos_select_fid(card, path[bMatch], path[bMatch+1], NULL);
 				SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "SELECT FILE (DF-ID) failed");
-		
+	
+				memset(&new_path, 0, sizeof(sc_path_t));	
 				new_path.type = SC_PATH_TYPE_PATH;
 				new_path.len  = pathlen - bMatch-2;
 				memcpy(new_path.value, &(path[bMatch+2]), new_path.len);
@@ -537,14 +538,13 @@ static int atrust_acos_set_security_env(struct sc_card *card,
 				    const struct sc_security_env *env,
 				    int se_num)
 {
-	u8              *p, *pp, keyID;
+	u8              *p, *pp;
 	int              r, operation = env->operation;
 	struct sc_apdu   apdu;
 	u8               sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	atrust_acos_ex_data *ex_data = (atrust_acos_ex_data *)card->drv_data;
 
 	p     = sbuf;
-	keyID = env->key_ref[0];
 
 	/* copy key reference, if present */
 	if (env->flags & SC_SEC_ENV_KEY_REF_PRESENT) {

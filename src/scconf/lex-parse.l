@@ -1,6 +1,6 @@
 %{
 /*
- * $Id: lex-parse.l 1390 2003-08-25 09:29:42Z aet $
+ * $Id$
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

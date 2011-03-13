@@ -50,6 +50,7 @@ static char * opt_cert = NULL;
 static char * opt_data = NULL;
 static char * opt_pubkey = NULL;
 static char * opt_outfile = NULL;
+static char * opt_bind_to_aid = NULL;
 static u8 * opt_newpin = NULL;
 static u8 * opt_pin = NULL;
 static u8 * opt_puk = NULL;
@@ -71,6 +72,8 @@ enum {
 	OPT_NEWPIN,
 	OPT_PUK,
 	OPT_VERIFY_PIN,
+	OPT_BIND_TO_AID,
+	OPT_LIST_APPLICATIONS,
 };
 
 #define NELEMENTS(x)	(sizeof(x)/sizeof((x)[0]))
@@ -80,6 +83,7 @@ static int	pem_encode(int, sc_pkcs15_der_t *, sc_pkcs15_der_t *);
 
 static const struct option options[] = {
 	{ "learn-card",		no_argument, NULL,		'L' },
+	{ "list-applications",	no_argument, NULL,		OPT_LIST_APPLICATIONS },
 	{ "read-certificate",	required_argument, NULL, 	'r' },
 	{ "list-certificates",	no_argument, NULL,		'c' },
 	{ "read-data-object",	required_argument, NULL, 	'R' },
@@ -104,6 +108,7 @@ static const struct option options[] = {
 	{ "output",		required_argument, NULL,	'o' },
 	{ "no-cache",		no_argument, NULL,		OPT_NO_CACHE },
 	{ "auth-id",		required_argument, NULL,	'a' },
+	{ "aid",		required_argument, NULL,   	OPT_BIND_TO_AID },
 	{ "wait",		no_argument, NULL,		'w' },
 	{ "verbose",		no_argument, NULL,		'v' },
 	{ NULL, 0, NULL, 0 }
@@ -111,6 +116,7 @@ static const struct option options[] = {
 
 static const char *option_help[] = {
 	"Stores card info to cache",
+	"List the on-card PKCS#15 applications",
 	"Reads certificate with ID <arg>",
 	"Lists certificates",
 	"Reads data object with OID, applicationName or label <arg>",
@@ -135,6 +141,7 @@ static const char *option_help[] = {
 	"Outputs to file <arg>",
 	"Disable card caching",
 	"The auth ID of the PIN to use",
+	"Specify AID of the on-card PKCS#15 application to be binded to (in hexadecimal form)",
 	"Wait for card insertion",
 	"Verbose operation. Use several times to enable debug output.",
 };
@@ -503,19 +510,18 @@ static void print_prkey_info(const struct sc_pkcs15_object *obj)
 	printf("\n");
 
 	printf("\tAccess Flags   : [0x%X]", prkey->access_flags);
-	for (i = 0; i < af_count; i++)   {
-		if (prkey->access_flags & (1 << i)) {
-			printf(", %s", access_flags[i]);   
-		}
-	}
+	for (i = 0; i < af_count; i++)
+		if (prkey->access_flags & (1 << i))
+			printf(", %s", access_flags[i]); 
+	printf("\n");
 
 	print_access_rules(obj->access_rules, SC_PKCS15_MAX_ACCESS_RULES);
 
-	printf("\n");
 	printf("\tModLength      : %lu\n", (unsigned long)prkey->modulus_length);
 	printf("\tKey ref        : %d\n", prkey->key_reference);
 	printf("\tNative         : %s\n", prkey->native ? "yes" : "no");
-	printf("\tPath           : %s\n", sc_print_path(&prkey->path));
+	if (prkey->path.len || prkey->path.aid.len)
+		printf("\tPath           : %s\n", sc_print_path(&prkey->path));
 	if (obj->auth_id.len != 0)
 		printf("\tAuth ID        : %s\n", sc_pkcs15_print_id(&obj->auth_id));
 	printf("\tID             : %s\n", sc_pkcs15_print_id(&prkey->id));
@@ -568,19 +574,18 @@ static void print_pubkey_info(const struct sc_pkcs15_object *obj)
 	printf("\n");
 
 	printf("\tAccess Flags   : [0x%X]", pubkey->access_flags);
-	for (i = 0; i < af_count; i++)   {
-		if (pubkey->access_flags & (1 << i)) {
-			printf(", %s", access_flags[i]);   
-		}
-	}
+	for (i = 0; i < af_count; i++) 
+		if (pubkey->access_flags & (1 << i))
+			printf(", %s", access_flags[i]);
+	printf("\n");
 
 	print_access_rules(obj->access_rules, SC_PKCS15_MAX_ACCESS_RULES);
 
-	printf("\n");
 	printf("\tModLength      : %lu\n", (unsigned long)pubkey->modulus_length);
 	printf("\tKey ref        : %d\n", pubkey->key_reference);
 	printf("\tNative         : %s\n", pubkey->native ? "yes" : "no");
-	printf("\tPath           : %s\n", sc_print_path(&pubkey->path));
+	if (pubkey->path.len)
+		printf("\tPath           : %s\n", sc_print_path(&pubkey->path));
 	if (obj->auth_id.len != 0)
 		printf("\tAuth ID        : %s\n", sc_pkcs15_print_id(&obj->auth_id));
 	printf("\tID             : %s\n", sc_pkcs15_print_id(&pubkey->id));
@@ -1069,7 +1074,8 @@ static void print_pin_info(const struct sc_pkcs15_object *obj)
 		printf("\tType           : %s\n", pin_types[pin->type]);
 	else
 		printf("\tType           : [encoding %d]\n", pin->type);
-	printf("\tPath           : %s\n", sc_print_path(&pin->path));
+	if (pin->path.len || pin->path.aid.len)
+		printf("\tPath           : %s\n", sc_print_path(&pin->path));
 	if (pin->tries_left >= 0)
 		printf("\tTries left     : %d\n", pin->tries_left);
 }
@@ -1093,9 +1099,34 @@ static int list_pins(void)
 	return 0;
 }
 
+static int list_apps(FILE *fout)
+{
+	unsigned j;
+	int i;
+
+	for (i=0; i<p15card->card->app_count; i++)   {
+		struct sc_app_info *info = p15card->card->app[i];
+	
+		fprintf(fout, "Application '%s':\n", info->label);
+		fprintf(fout, "\tAID: ");
+		for(j=0;j<info->aid.len;j++)
+			fprintf(fout, "%02X", info->aid.value[j]);
+		fprintf(fout, "\n");
+
+		if (info->ddo.value && info->ddo.len)   {
+			fprintf(fout, "\tDDO: ");
+			for(j=0;j<info->ddo.len;j++)    
+				fprintf(fout, "%02X", info->ddo.value[j]);
+			fprintf(fout, "\n");
+		}
+
+		fprintf(fout, "\n");
+	}
+	return 0;
+}
+
 static int dump(void)
 {
-
 	const char *flags[] = {
 		"Read-only",
 		"Login required",
@@ -1208,6 +1239,17 @@ static int change_pin(void)
 	if (!(pin_obj = get_pin_info()))
 		return 2;
 	pinfo = (sc_pkcs15_pin_info_t *) pin_obj->data;
+
+	if (pinfo->tries_left != -1) {
+		if (pinfo->tries_left != pinfo->max_tries) {
+			if (pinfo->tries_left == 0) {
+				fprintf(stderr, "PIN code blocked!\n");
+				return 2;
+			} else {
+				fprintf(stderr, "%d PIN tries left.\n", pinfo->tries_left);
+			}
+		}
+	}
 
 	pincode = opt_pin;
 	if (pincode == NULL) {
@@ -1353,6 +1395,7 @@ static int learn_card(void)
 		
 		printf("[%s]\n", certs[i]->label);
 
+		memset(&tpath, 0, sizeof(tpath));
 		tpath = cinfo->path;
 		if (tpath.type == SC_PATH_TYPE_FILE_ID) {
 			/* prepend application DF path in case of a file id */
@@ -1581,6 +1624,7 @@ int main(int argc, char * const argv[])
 	int do_read_data_object = 0;
 	int do_list_data_objects = 0;
 	int do_list_pins = 0;
+	int do_list_apps = 0;
 	int do_dump = 0;
 	int do_list_prkeys = 0;
 	int do_list_pubkeys = 0;
@@ -1694,6 +1738,13 @@ int main(int argc, char * const argv[])
 		case 'a':
 			opt_auth_id = optarg;
 			break;
+		case OPT_BIND_TO_AID:
+			opt_bind_to_aid = optarg;
+			break;
+		case OPT_LIST_APPLICATIONS:
+			do_list_apps = 1;
+			action_count++;
+			break;
 		case OPT_NO_CACHE:
 			opt_no_cache++;
 			break;
@@ -1726,7 +1777,22 @@ int main(int argc, char * const argv[])
 
 	if (verbose)
 		fprintf(stderr, "Trying to find a PKCS#15 compatible card...\n");
-	r = sc_pkcs15_bind(card, &p15card);
+
+        if (opt_bind_to_aid)   {
+		struct sc_aid aid;
+
+		aid.len = sizeof(aid.value);
+		if (sc_hex_to_bin(opt_bind_to_aid, aid.value, &aid.len))   {
+			fprintf(stderr, "Invalid AID value: '%s'\n", opt_bind_to_aid);
+			return 1;
+		}
+
+		r = sc_pkcs15_bind(card, &aid, &p15card);
+	}
+	else   {
+		r = sc_pkcs15_bind(card, NULL, &p15card);
+	}
+
 	if (r) {
 		fprintf(stderr, "PKCS#15 binding failed: %s\n", sc_strerror(r));
 		err = 1;
@@ -1790,6 +1856,11 @@ int main(int argc, char * const argv[])
 #endif
 	if (do_list_pins) {
 		if ((err = list_pins()))
+			goto end;
+		action_count--;
+	}
+	if (do_list_apps) {
+		if ((err = list_apps(stdout)))
 			goto end;
 		action_count--;
 	}

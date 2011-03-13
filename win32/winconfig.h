@@ -84,7 +84,7 @@
 #define PATH_MAX FILENAME_MAX
 
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.12.0"
+#define PACKAGE_VERSION "0.12.1-svn"
 #endif
 
 #ifndef PACKAGE_NAME

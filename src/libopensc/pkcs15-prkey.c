@@ -35,6 +35,11 @@ static const struct sc_asn1_entry c_asn1_com_key_attr[] = {
 	{ "native",	 SC_ASN1_BOOLEAN, SC_ASN1_TAG_BOOLEAN, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "accessFlags", SC_ASN1_BIT_FIELD, SC_ASN1_TAG_BIT_STRING, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "keyReference",SC_ASN1_INTEGER, SC_ASN1_TAG_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
+/* IAS/ECC and ECC(CEN/TS 15480-2:2007) defines 'algReference' member of 'CommonKeyAttributes'.
+ * It's absent in PKCS#15 v1.1 .
+ * Will see if any card will really need it.
+ *	{ "algReference", SC_ASN1_STRUCT, SC_ASN1_CONS | SC_ASN1_CTX | 1, SC_ASN1_OPTIONAL, NULL, NULL },
+ */
 	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
@@ -45,7 +50,7 @@ static const struct sc_asn1_entry c_asn1_com_prkey_attr[] = {
 };
 
 static const struct sc_asn1_entry c_asn1_rsakey_attr[] = {
-	{ "value",	   SC_ASN1_PATH, SC_ASN1_TAG_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "value",	   SC_ASN1_PATH, SC_ASN1_TAG_SEQUENCE | SC_ASN1_CONS, SC_ASN1_EMPTY_ALLOWED, NULL, NULL },
 	{ "modulusLength", SC_ASN1_INTEGER, SC_ASN1_TAG_INTEGER, 0, NULL, NULL },
 	{ "keyInfo",	   SC_ASN1_INTEGER, SC_ASN1_TAG_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ NULL, 0, 0, 0, NULL, NULL }
@@ -200,21 +205,25 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Neither RSA or DSA or GOSTR3410 key in PrKDF entry.");
 		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ASN1_OBJECT);
 	}
-	r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
-	if (r < 0) {
-		if (info.params)
-			free(info.params);
-		return r;
+
+	if (!p15card->app || !p15card->app->ddo.aid.len)   {
+		r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
+		if (r < 0) {
+			if (info.params)
+				free(info.params);
+			return r;
+		}
 	}
+	else   {
+		info.path.aid = p15card->app->ddo.aid;
+	}
+	sc_debug(ctx, SC_LOG_DEBUG_ASN1, "PrivKey path '%s'", sc_print_path(&info.path));
 
         /* OpenSC 0.11.4 and older encoded "keyReference" as a negative
            value. Fixed in 0.11.5 we need to add a hack, so old cards
            continue to work. */
-        if (p15card->flags & SC_PKCS15_CARD_FLAG_FIX_INTEGERS) {
-                if (info.key_reference < -1) {
-                        info.key_reference += 256;
-                }
-        }
+      	if (info.key_reference < -1)
+		info.key_reference += 256;
 
 	obj->data = malloc(sizeof(info));
 	if (obj->data == NULL) {

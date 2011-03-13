@@ -1,5 +1,5 @@
 /*
- * $Id: write.c 4636 2010-08-18 15:08:51Z ludovic.rousseau $
+ * $Id$
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

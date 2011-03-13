@@ -71,6 +71,7 @@ sc_ctx_get_reader
 sc_ctx_get_reader_by_id
 sc_ctx_get_reader_by_name
 sc_ctx_get_reader_count
+sc_ctx_use_reader
 sc_decipher
 sc_delete_file
 sc_delete_record
@@ -80,6 +81,7 @@ sc_disconnect_card
 sc_do_log
 _sc_debug
 sc_enum_apps
+sc_parse_ef_atr
 sc_establish_context
 sc_file_add_acl_entry
 sc_file_clear_acl_entries
@@ -91,13 +93,12 @@ sc_file_set_prop_attr
 sc_file_set_sec_attr
 sc_file_set_type_attr
 sc_file_valid
-sc_find_app_by_aid
-sc_find_pkcs15_app
 sc_format_apdu
 sc_format_asn1_entry
 sc_format_oid
 sc_format_path
 sc_free_apps
+sc_free_ef_atr
 sc_get_cache_dir
 sc_get_challenge
 sc_get_conf_block
@@ -237,6 +238,7 @@ sc_verify
 sc_wait_for_event
 sc_write_binary
 sc_write_record
+sc_erase_binary
 sc_get_iso7816_driver
 sc_pkcs15init_add_app
 sc_pkcs15init_authenticate
@@ -284,4 +286,7 @@ sc_pkcs15init_update_certificate
 sc_pkcs15init_update_file
 sc_pkcs15init_verify_secret
 sc_pkcs15init_sanity_check
+sc_pkcs15init_finalize_profile
 sc_card_find_rsa_alg
+sc_print_cache
+sc_find_app

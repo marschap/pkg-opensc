@@ -1,5 +1,5 @@
 /*
- * $Id: sclex.c 4636 2010-08-18 15:08:51Z ludovic.rousseau $
+ * $Id$
  *
  * Copyright (C) 2003
  *  Jamie Honan <jhonan@optusnet.com.au>
