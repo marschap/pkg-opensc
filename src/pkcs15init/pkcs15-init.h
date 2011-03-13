@@ -138,6 +138,8 @@ struct sc_pkcs15init_operations {
 			struct sc_pkcs15_tokeninfo *);
 	int (*emu_write_info)(struct sc_profile *, struct sc_pkcs15_card *,
 		struct sc_pkcs15_object *);
+	int (*emu_store_data)(struct sc_pkcs15_card *, struct sc_profile *, struct sc_pkcs15_object *,
+			struct sc_pkcs15_der *, struct sc_path *);
 
 	int (*sanity_check)(struct sc_profile *, struct sc_pkcs15_card *);
 };
@@ -217,7 +219,6 @@ struct sc_pkcs15init_keygen_args {
 };
 
 #define SC_PKCS15INIT_NO_PASSPHRASE	0x0002
-#define SC_PKCS15INIT_SPLIT_KEY		0x0004
 
 struct sc_pkcs15init_pubkeyargs {
 	struct sc_pkcs15_id	id;
@@ -263,7 +264,7 @@ extern void	sc_pkcs15init_set_p15card(struct sc_profile *,
 				struct sc_pkcs15_card *);
 extern int	sc_pkcs15init_set_lifecycle(struct sc_card *, int);
 extern int	sc_pkcs15init_erase_card(struct sc_pkcs15_card *,
-				struct sc_profile *);
+				struct sc_profile *, struct sc_aid *);
 /* XXX could this function be merged with ..._set_lifecycle ?? */
 extern int	sc_pkcs15init_finalize_card(struct sc_card *,
 				struct sc_profile *);
@@ -367,6 +368,9 @@ extern int	sc_pkcs15init_get_pin_reference(struct sc_pkcs15_card *,
 
 extern int 	sc_pkcs15init_sanity_check(struct sc_pkcs15_card *, struct sc_profile *);
 
+extern int	sc_pkcs15init_finalize_profile(struct sc_card *card, struct sc_profile *profile,
+		                struct sc_aid *aid);
+
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_gpk_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_miocos_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_cryptoflex_ops(void);
@@ -384,6 +388,8 @@ extern struct sc_pkcs15init_operations *sc_pkcs15init_get_entersafe_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_rtecp_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_westcos_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_myeid_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_authentic_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_iasecc_ops(void);
 
 #ifdef __cplusplus
 }

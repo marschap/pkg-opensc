@@ -67,6 +67,7 @@ int sc_pkcs15_decode_aodf_entry(struct sc_pkcs15_card *p15card,
 	struct sc_asn1_entry asn1_pin[2];
 	struct sc_asn1_pkcs15_object pin_obj = { obj, asn1_com_ao_attr, NULL, asn1_type_pin_attr };
 	
+	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_ASN1);
 	sc_copy_asn1_entry(c_asn1_pin, asn1_pin);
 	sc_copy_asn1_entry(c_asn1_type_pin_attr, asn1_type_pin_attr);
 	sc_copy_asn1_entry(c_asn1_pin_attr, asn1_pin_attr);
@@ -114,18 +115,30 @@ int sc_pkcs15_decode_aodf_entry(struct sc_pkcs15_card *p15card,
 
 	/* OpenSC 0.11.4 and older encoded "pinReference" as a negative
 	   value. Fixed in 0.11.5 we need to add a hack, so old cards
-	   continue to work. */
-	if (p15card->flags & SC_PKCS15_CARD_FLAG_FIX_INTEGERS) {
-		if (info.reference < 0) {
-			info.reference += 256;
-		}
-	}
+	   continue to work. 
+	   The same invalid encoding has some models of the proprietary PKCS#15 cards.
+	*/
+	if (info.reference < 0)
+		info.reference += 256;
 
 	info.auth_method = SC_AC_CHV;
 
-	memcpy(obj->data, &info, sizeof(info));
+	if (info.flags & SC_PKCS15_PIN_FLAG_LOCAL)   {
+		/* In OpenSC pkcs#15 framework 'path' is mandatory for the 'Local' PINs. 
+		 * If 'path' do not present in PinAttributes, 
+		 * 	derive it from the PKCS#15 context. */
+		if (!info.path.len)   {
+			/* Give priority to AID defined in the application DDO */
+			if (p15card->app && p15card->app->ddo.aid.len)
+				info.path.aid = p15card->app->ddo.aid;
+			else if (p15card->file_app->path.len)
+				info.path = p15card->file_app->path;
+		}
+	}
+	sc_debug(ctx, SC_LOG_DEBUG_ASN1, "decoded PIN(ref:%X,path:%s)", info.reference, sc_print_path(&info.path));
 
-	return 0;
+	memcpy(obj->data, &info, sizeof(info));
+	SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_ASN1, SC_SUCCESS);
 }
 
 int sc_pkcs15_encode_aodf_entry(sc_context_t *ctx,
@@ -273,7 +286,7 @@ int sc_pkcs15_verify_pin(struct sc_pkcs15_card *p15card,
 		sc_pkcs15_pincache_add(p15card, pin_obj, pincode, pinlen);
 out:
 	sc_unlock(card);
-	return r;
+	SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
 /*
@@ -476,19 +489,35 @@ void sc_pkcs15_pincache_add(struct sc_pkcs15_card *p15card, struct sc_pkcs15_obj
 	const u8 *pin, size_t pinlen)
 {
 	struct sc_context *ctx = p15card->card->ctx;
+	struct sc_pkcs15_pin_info *pin_info = (struct sc_pkcs15_pin_info *)pin_obj->data;
+	struct sc_pkcs15_object *obj = NULL;
 	int r;
 
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_NORMAL);
 
 	if (!p15card->opts.use_pin_cache)   {
-		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "No PIN cache allowed");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "PIN caching not enabled");
 		return;
 	}
 
-	/* Is it a user consent protecting PIN ? */
-	if (pin_obj->user_consent) {
-		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Not caching a PIN requiring user consent");
-		return;
+	/* If the PIN protects an object with user consent, don't cache it */
+
+	obj = p15card->obj_list;
+	while (obj != NULL) {
+		/* Compare 'sc_pkcs15_object.auth_id' with 'sc_pkcs15_pin_info.auth_id'.
+		 * In accordance with PKCS#15 "6.1.8 CommonObjectAttributes" and
+		 * "6.1.16 CommonAuthenticationObjectAttributes" with the exception that
+		 * "CommonObjectAttributes.accessControlRules" are not taken into account. */
+
+		if (sc_pkcs15_compare_id(&obj->auth_id, &pin_info->auth_id)) {
+			/* Caching is refused, if the protected object requires user consent */
+			if (obj->user_consent > 0) {
+				sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "caching refused (user consent)");
+				return;
+			}
+		}
+
+		obj = obj->next;
 	}
 
 	r = sc_pkcs15_allocate_object_content(pin_obj, pin, pinlen);

@@ -1,5 +1,5 @@
 /*
- * $Id: test-conf.c 4163 2010-03-28 14:13:32Z ludovic.rousseau $
+ * $Id$
  *
  * Copyright (C) 2002
  *  Antti Tapaninen <aet@cc.hut.fi>

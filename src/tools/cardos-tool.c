@@ -83,10 +83,10 @@ static int cardos_info(void)
 
 	if (verbose) {
 		printf("Card ATR:\n");
-		util_hex_dump_asc(stdout, card->atr, card->atr_len, -1);      
+		util_hex_dump_asc(stdout, card->atr.value, card->atr.len, -1);      
 	} else {
 		char tmp[SC_MAX_ATR_SIZE*3];
-		sc_bin_to_hex(card->atr, card->atr_len, tmp, sizeof(tmp) - 1, ':');
+		sc_bin_to_hex(card->atr.value, card->atr.len, tmp, sizeof(tmp) - 1, ':');
 		fprintf(stdout,"%s\n",tmp);
 	}
 
@@ -592,7 +592,7 @@ static int cardos_format(const char *opt_startkey)
 		return 1;
 	}
 	if (apdu.resplen < 0x04) {
-		printf("expected 4-6 bytes form GET DATA for startkey data, but got only %ld\n", apdu.resplen);
+		printf("expected 4-6 bytes form GET DATA for startkey data, but got only %u\n", apdu.resplen);
 		printf("aborting\n");
 		return 1;
 	}
@@ -953,7 +953,7 @@ static int cardos_change_startkey(const char *change_startkey_apdu)
 		return 1;
 	}
 	if (apdu.resplen < 0x04) {
-		printf("expected 4-6 bytes form GET DATA for startkey data, but got only %ld\n", apdu.resplen);
+		printf("expected 4-6 bytes form GET DATA for startkey data, but got only %u\n", apdu.resplen);
 		printf("aborting\n");
 		return 1;
 	}
@@ -1048,7 +1048,7 @@ change_startkey:
 		return 1;
 	}
 	if (apdu.resplen < 0x04) {
-		printf("expected 4-6 bytes form GET DATA for startkey data, but got only %ld\n", apdu.resplen);
+		printf("expected 4-6 bytes form GET DATA for startkey data, but got only %u\n", apdu.resplen);
 		printf("aborting\n");
 		return 1;
 	}

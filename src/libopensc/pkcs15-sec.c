@@ -40,6 +40,10 @@ static int select_key_file(struct sc_pkcs15_card *p15card,
 
 	if (prkey->path.len < 2)
 		return SC_ERROR_INVALID_ARGUMENTS;
+
+	memset(&path, 0, sizeof(sc_path_t));
+	memset(&file_id, 0, sizeof(sc_path_t));
+
 	/* For pkcs15-emulated cards, the file_app may be NULL,
 	   in that case we allways assume an absolute path */
 	if (prkey->path.len == 2 && p15card->file_app != NULL) {
@@ -76,6 +80,10 @@ int sc_pkcs15_decipher(struct sc_pkcs15_card *p15card,
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
 
 	memset(&senv, 0, sizeof(senv));
+
+	/* Card driver should have the access to supported algorithms from 'tokenInfo'. So that  
+	 * it can get value of card specific 'AlgorithmInfo::algRef'. */
+	memcpy(&senv.supported_algos, &p15card->tokeninfo->supported_algos, sizeof(senv.supported_algos));
 
 	/* If the key is not native, we can't operate with it. */
 	if (!prkey->native)
@@ -187,6 +195,10 @@ int sc_pkcs15_compute_signature(struct sc_pkcs15_card *p15card,
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
 
 	memset(&senv, 0, sizeof(senv));
+
+	/* Card driver should have the access to supported algorithms from 'tokenInfo'. So that  
+	 * it can get value of card specific 'AlgorithmInfo::algRef'. */
+	memcpy(&senv.supported_algos, &p15card->tokeninfo->supported_algos, sizeof(senv.supported_algos));
 
 	if ((obj->type & SC_PKCS15_TYPE_CLASS_MASK) != SC_PKCS15_TYPE_PRKEY) {
 		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "This is not a private key\n");
@@ -314,7 +326,7 @@ int sc_pkcs15_compute_signature(struct sc_pkcs15_card *p15card,
 	}
 	senv.algorithm_flags = sec_flags;
 
-sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "DEE flags:0x%8.8x alg_info->flags:0x%8.8x pad:0x%8.8x sec:0x%8.8x",
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "DEE flags:0x%8.8x alg_info->flags:0x%8.8x pad:0x%8.8x sec:0x%8.8x",
 		flags, alg_info->flags, pad_flags, sec_flags);
  
 

@@ -99,6 +99,7 @@ typedef struct prdata_st {
 typedef struct common_key_info_st {
 	int cert_found;
 	int pubkey_found;
+	int pubkey_from_file;
 	int key_alg;
 	unsigned int pubkey_len;
 	int not_present;
@@ -277,7 +278,7 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 					SC_PKCS15_PRKEY_USAGE_NONREPUDIATION,
 			"9C06", 0x9C, "1", 0, "PIV_9C_KEY"},
 		{ "3", "KEY MAN pubkey", 
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT| SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"9D06", 0x9D, "1", 0, "PIV_9D_KEY"},
 		{ "4", "CARD AUTH pubkey", 
@@ -287,83 +288,83 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 			"9E06", 0x9E, "0", 0, "PIV_9E_KEY"},  /* no pin, and avail in contactless */
 
 		{ "5", "Retired KEY MAN 1",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8206", 0x82, "1", 0, NULL},
 		{ "6", "Retired KEY MAN 2",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8306", 0x83, "1", 0, NULL},
 		{ "7", "Retired KEY MAN 3",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8406", 0x84, "1", 0, NULL},
 		{ "8", "Retired KEY MAN 4",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8506", 0x85, "1", 0, NULL},
 		{ "9", "Retired KEY MAN 5",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8606", 0x86, "1", 0, NULL},
 		{ "10", "Retired KEY MAN 6",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8706", 0x87, "1", 0, NULL},
 		{ "11", "Retired KEY MAN 7",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8806", 0x88, "1", 0, NULL},
 		{ "12", "Retired KEY MAN 8",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8906", 0x89, "1", 0, NULL},
 		{ "13", "Retired KEY MAN 9",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8A06", 0x8A, "1", 0, NULL},
 		{ "14", "Retired KEY MAN 10",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8B06", 0x8B, "1", 0, NULL},
 		{ "15", "Retired KEY MAN 11",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8C06", 0x8C, "1", 0, NULL},
 		{ "16", "Retired KEY MAN 12",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8D06", 0x8D, "1", 0, NULL},
 		{ "17", "Retired KEY MAN 13",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8E06", 0x8E, "1", 0, NULL},
 		{ "18", "Retired KEY MAN 14",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "8F06", 0x8F, "1", 0, NULL},
 		{ "19", "Retired KEY MAN 15",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "9006", 0x90, "1", 0, NULL},
 		{ "20", "Retired KEY MAN 16",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "9106", 0x91, "1", 0, NULL},
 		{ "21", "Retired KEY MAN 17",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "9206", 0x92, "1", 0, NULL},
 		{ "22", "Retired KEY MAN 18",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "9306", 0x93, "1", 0, NULL},
 		{ "23", "Retired KEY MAN 19",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "9406", 0x94, "1", 0, NULL},
 		{ "24", "Retired KEY MAN 20",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_WRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_ENCRYPT | SC_PKCS15_PRKEY_USAGE_WRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			 "9506", 0x95, "1", 0, NULL} };
 
@@ -388,7 +389,7 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 					SC_PKCS15_PRKEY_USAGE_NONREPUDIATION,
 			"", 0x9C, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "3", "KEY MAN key", 
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x9D, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "4", "CARD AUTH key", 
@@ -397,83 +398,83 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 				/*EC*/SC_PKCS15_PRKEY_USAGE_SIGN,
 			"", 0x9E, NULL, 0, 0}, /* no PIN needed, works with wireless */
 		{ "5", "Retired KEY MAN 1",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x82, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "6", "Retired KEY MAN 2",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x83, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "7", "Retired KEY MAN 3",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x84, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "8", "Retired KEY MAN 4",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x85, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "9", "Retired KEY MAN 5",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x86, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "10", "Retired KEY MAN 6",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x87, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "11", "Retired KEY MAN 7",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x88, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "12", "Retired KEY MAN 8",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x89, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "13", "Retired KEY MAN 9",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x8A, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "14", "Retired KEY MAN 10",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x8B, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "15", "Retired KEY MAN 11",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x8C, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "16", "Retired KEY MAN 12",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x8D, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "17", "Retired KEY MAN 13",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x8E, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "18", "Retired KEY MAN 14",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x8F, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "19", "Retired KEY MAN 15",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x90, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "20", "Retired KEY MAN 16",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x91, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "21", "Retired KEY MAN 17",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x92, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "22", "Retired KEY MAN 18",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x93, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "23", "Retired KEY MAN 19",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x94, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1},
 		{ "24", "Retired KEY MAN 20",
-				/*RSA*/SC_PKCS15_PRKEY_USAGE_UNWRAP,
+				/*RSA*/SC_PKCS15_PRKEY_USAGE_DECRYPT | SC_PKCS15_PRKEY_USAGE_UNWRAP,
 				/*EC*/SC_PKCS15_PRKEY_USAGE_DERIVE,
 			"", 0x95, "1", SC_PKCS15_CO_FLAG_PRIVATE, 1}
 	};
@@ -481,7 +482,6 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 	int    r, i;
 	sc_card_t *card = p15card->card;
 	sc_file_t *file_out = NULL;
-	int exposed_cert[PIV_NUM_CERTS_AND_KEYS] = {1, 0, 0, 0};
 	sc_serial_number_t serial;
 	char buf[SC_MAX_SERIALNR * 2 + 1];
 	common_key_info ckis[PIV_NUM_CERTS_AND_KEYS];
@@ -579,10 +579,8 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 		ckis[i].cert_found = 0;
 		ckis[i].key_alg = -1;
 		ckis[i].pubkey_found = 0;
+		ckis[i].pubkey_from_file = 0;
 		ckis[i].pubkey_len = 0;
-
-		if ((card->flags & 0x20) &&  (exposed_cert[i] == 0))
-			continue;
 
 		memset(&cert_info, 0, sizeof(cert_info));
 		memset(&cert_obj,  0, sizeof(cert_obj));
@@ -702,9 +700,6 @@ sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "DEE Adding pin %d label=%s",i, label);
 		struct sc_pkcs15_object     pubkey_obj;
 		struct sc_pkcs15_pubkey *p15_key;
 
-		if ((card->flags & 0x20) &&  (exposed_cert[i] == 0))
-			continue;
-
 		memset(&pubkey_info, 0, sizeof(pubkey_info));
 		memset(&pubkey_obj,  0, sizeof(pubkey_obj));
 
@@ -778,11 +773,13 @@ sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "DEE Adding pin %d label=%s",i, label);
 					/* save pubkey_len in pub and priv */
 					ckis[i].pubkey_len = p15_key->u.rsa.modulus.len * 8;
 					ckis[i].pubkey_found = 1;
+					ckis[i].pubkey_from_file = 1;
 					break;
 				case SC_ALGORITHM_EC:
 					ckis[i].key_alg = SC_ALGORITHM_EC;
 					ckis[i].pubkey_len = p15_key->u.ec.field_length;
 					ckis[i].pubkey_found = 1;
+					ckis[i].pubkey_from_file = 1;
 					break;
 				default:
 					sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,"Unsupported key_alg %d",p15_key->algorithm);
@@ -828,9 +825,6 @@ sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "DEE Adding pin %d label=%s",i, label);
 		struct sc_pkcs15_prkey_info prkey_info;
 		struct sc_pkcs15_object     prkey_obj;
 
-		if ((card->flags & 0x20) &&  (exposed_cert[i] == 0))
-			continue;
-
 		memset(&prkey_info, 0, sizeof(prkey_info));
 		memset(&prkey_obj,  0, sizeof(prkey_obj));
 
@@ -849,14 +843,28 @@ sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "DEE Adding pin %d label=%s",i, label);
 		if (prkeys[i].auth_id)
 			sc_pkcs15_format_id(prkeys[i].auth_id, &prkey_obj.auth_id);
 
+		/*
+		 * When no cert is present and a pubkey in a file was found, 
+		 * means the caller is initilaizeing a card. A sign operation 
+		 * will be required to sign a certificate request even if 
+		 * normal usage would not allow it. Set SC_PKCS15_PRKEY_USAGE_SIGN 
+		 * TODO if code is added to allow key generation and reqest
+		 * sign in the same session, similiar code will be needed. 
+		 */
+
+		if (ckis[i].pubkey_from_file == 1) {
+			prkey_info.usage = SC_PKCS15_PRKEY_USAGE_SIGN;
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Adding SC_PKCS15_PRKEY_USAGE_SIGN");
+		}
+
 		switch (ckis[i].key_alg) {
 			case SC_ALGORITHM_RSA: 
-				prkey_info.usage         = prkeys[i].usage_rsa;
+				prkey_info.usage         |= prkeys[i].usage_rsa;
 				prkey_info.modulus_length= ckis[i].pubkey_len;
 				r = sc_pkcs15emu_add_rsa_prkey(p15card, &prkey_obj, &prkey_info);
 				break;
 		 	case SC_ALGORITHM_EC: 
-				prkey_info.usage         = prkeys[i].usage_ec;
+				prkey_info.usage         |= prkeys[i].usage_ec;
 				prkey_info.field_length = ckis[i].pubkey_len;
 				sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "DEE added key_alg %2.2x prkey_obj.flags %8.8x",
 					 ckis[i].key_alg, prkey_obj.flags);

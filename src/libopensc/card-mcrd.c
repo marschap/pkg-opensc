@@ -51,6 +51,7 @@ static struct sc_atr_table mcrd_atrs[] = {
 	{"3B:FE:18:00:00:80:31:FE:45:45:73:74:45:49:44:20:76:65:72:20:31:2E:30:A8", NULL, "EstEID 3.0 (dev1) cold", SC_CARD_TYPE_MCRD_ESTEID_V30, 0, NULL},
 	{"3B:FE:18:00:00:80:31:FE:45:80:31:80:66:40:90:A4:56:1B:16:83:01:90:00:86", NULL, "EstEID 3.0 (dev1) warm", SC_CARD_TYPE_MCRD_ESTEID_V30, 0, NULL},
 	{"3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:16:2a:00:83:01:90:00:e1", NULL, "EstEID 3.0 (dev2) warm", SC_CARD_TYPE_MCRD_ESTEID_V30, 0, NULL},
+	{"3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:16:2a:00:83:0f:90:00:ef", NULL, "EstEID 3.0 (18.01.2011) warm", SC_CARD_TYPE_MCRD_ESTEID_V30, 0, NULL},
 	{NULL, NULL, NULL, 0, 0, NULL}
 };
 
@@ -598,10 +599,6 @@ static void process_fcp(sc_card_t * card, sc_file_t * file,
 
 	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "processing FCI bytes\n");
 
-	/* Optional FCP in FCI */
-	if (card->type == SC_CARD_TYPE_MCRD_ESTEID_V30 && buf[0] == 0x62)
-		buf += 2;
-
 	/* File identifier. */
 	tag = sc_asn1_find_tag(ctx, p, len, 0x83, &taglen);
 	if (tag != NULL && taglen == 2) {
@@ -774,7 +771,8 @@ do_select(sc_card_t * card, u8 kind,
 		*file = sc_file_new();
 		if (!*file)
 			SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_OUT_OF_MEMORY);
-		if (card->type == SC_CARD_TYPE_MCRD_ESTEID_V30)
+		/* EstEID v3.0 cards are buggy and sometimes return a double 0x62 tag */
+		if (card->type == SC_CARD_TYPE_MCRD_ESTEID_V30 && apdu.resp[2] == 0x62)
 			process_fcp(card, *file, apdu.resp + 4, apdu.resp[3]);
 		else
 			process_fcp(card, *file, apdu.resp + 2, apdu.resp[1]);
@@ -1022,7 +1020,7 @@ mcrd_select_file(sc_card_t * card, const sc_path_t * path, sc_file_t ** file)
 	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 
 	{
-		char line[256], *linep = line;
+		char line[256], *linep;
 		size_t i;
 
 		linep = line;

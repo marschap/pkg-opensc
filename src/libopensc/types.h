@@ -31,14 +31,18 @@ typedef unsigned char u8;
 #define SC_MAX_CARD_DRIVERS		32
 #define SC_MAX_CARD_DRIVER_SNAME_SIZE	16
 #define SC_MAX_CARD_APPS		8
-#define SC_MAX_APDU_BUFFER_SIZE		258
+#define SC_MAX_APDU_BUFFER_SIZE		261 /* takes account of: CLA INS P1 P2 Lc [255 byte of data] Le */
 #define SC_MAX_EXT_APDU_BUFFER_SIZE	65538
 #define SC_MAX_PIN_SIZE			256 /* OpenPGP card has 254 max */
 #define SC_MAX_ATR_SIZE			33
 #define SC_MAX_AID_SIZE			16
+#define SC_MAX_AID_STRING_SIZE		(SC_MAX_AID_SIZE * 2 + 3)
+#define SC_MAX_IIN_SIZE			10
 #define SC_MAX_OBJECT_ID_OCTETS		16
 #define SC_MAX_PATH_SIZE		16
-#define SC_MAX_PATH_STRING_SIZE		(SC_MAX_PATH_SIZE * 2 + 1)
+#define SC_MAX_PATH_STRING_SIZE		(SC_MAX_PATH_SIZE * 2 + 3)
+#define SC_MAX_SDO_ACLS			8
+#define SC_MAX_CRTS_IN_SE		12
 
 /* When changing this value, pay attention to the initialization of the ASN1 
  * static variables that use this macro, like, for example, 
@@ -46,11 +50,46 @@ typedef unsigned char u8;
  */
 #define SC_MAX_SUPPORTED_ALGORITHMS     8
 
+struct sc_lv_data {
+	unsigned char *value;
+	size_t len;
+};
+
+struct sc_tlv_data {
+	unsigned tag;
+	unsigned char *value;
+	size_t len;
+};
 
 struct sc_object_id {
 	int value[SC_MAX_OBJECT_ID_OCTETS];
 };
 
+struct sc_aid {
+	unsigned char value[SC_MAX_AID_SIZE];
+	size_t len;
+};
+
+struct sc_atr {
+	unsigned char value[SC_MAX_ATR_SIZE];
+	size_t len;
+};
+
+/* Issuer ID */
+struct sc_iid {
+	unsigned char value[SC_MAX_IIN_SIZE];
+	size_t len;
+};
+
+/* Discretionary ASN.1 data object */
+struct sc_ddo {
+	struct sc_aid aid;
+	struct sc_iid iid;
+	struct sc_object_id oid;
+
+	size_t len;
+	unsigned char *value;
+};
 
 #define SC_PATH_TYPE_FILE_ID		0
 #define SC_PATH_TYPE_DF_NAME		1
@@ -72,8 +111,17 @@ typedef struct sc_path {
 	int count;
 
 	int type;
+
+	struct sc_aid aid;
 } sc_path_t;
 
+/* Control reference template */
+struct sc_crt {
+	unsigned tag;
+	unsigned usage;		/* Usage Qualifier Byte */
+	unsigned algo;		/* Algorithm ID */
+	unsigned refs[8];	/* Security Object References */
+};
 
 /* Access Control flags */
 #define SC_AC_NONE			0x00000000
@@ -82,6 +130,10 @@ typedef struct sc_path {
 #define SC_AC_PRO			0x00000004 /* Secure Messaging */
 #define SC_AC_AUT			0x00000008 /* Key auth. */
 #define SC_AC_SYMBOLIC			0x00000010 /* internal use only */
+#define SC_AC_SEN                       0x00000020 /* Security Environment. */
+#define SC_AC_SCB                       0x00000040 /* IAS/ECC SCB byte. */
+#define SC_AC_IDA                       0x00000080 /* PKCS#15 authentication ID */
+
 #define SC_AC_UNKNOWN			0xFFFFFFFE
 #define SC_AC_NEVER			0xFFFFFFFF
 
@@ -126,9 +178,10 @@ typedef struct sc_acl_entry {
 	unsigned int method;	/* See SC_AC_* */
 	unsigned int key_ref;	/* SC_AC_KEY_REF_NONE or an integer */
 
+	struct sc_crt crts[SC_MAX_CRTS_IN_SE];
+
 	struct sc_acl_entry *next;
 } sc_acl_entry_t;
-
 
 /* File types */
 #define SC_FILE_TYPE_DF			0x04
@@ -215,6 +268,8 @@ typedef struct sc_apdu {
 	unsigned int sw1, sw2;	/* Status words returned in R-APDU */
 
 	unsigned long flags;
+
+	struct sc_apdu *next;
 } sc_apdu_t;
 
 #ifdef __cplusplus

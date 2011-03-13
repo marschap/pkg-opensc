@@ -133,6 +133,7 @@ enum {
 	OPT_PUK_LABEL,
 	OPT_VERIFY_PIN,
 	OPT_SANITY_CHECK,
+	OPT_BIND_TO_AID,
 
 	OPT_PIN1     = 0x10000,	/* don't touch these values */
 	OPT_PUK1     = 0x10001,
@@ -174,6 +175,7 @@ const struct option	options[] = {
 	{ "cert-label",		required_argument, NULL,	OPT_CERT_LABEL },
 	{ "application-name",	required_argument, NULL,	OPT_APPLICATION_NAME },
 	{ "application-id",	required_argument, NULL,	OPT_APPLICATION_ID },
+	{ "aid",		required_argument, NULL,        OPT_BIND_TO_AID },
 	{ "output-file",	required_argument, NULL,	'o' },
 	{ "format",		required_argument, NULL,	'f' },
 	{ "passphrase",		required_argument, NULL,	OPT_PASSPHRASE },
@@ -230,6 +232,7 @@ static const char *		option_help[] = {
 	"Specify user cert label (use with --store-private-key)",
 	"Specify application name of data object (use with --store-data-object)",
 	"Specify application id of data object (use with --store-data-object)",
+	"Specify AID of the on-card PKCS#15 application to be binded to (in hexadecimal form)",
 	"Output public portion of generated key to file",
 	"Specify key/cert file format: PEM (=default), DER or PKCS12",
 	"Specify passphrase for unlocking secret key",
@@ -337,6 +340,7 @@ static char *			opt_newkey = NULL;
 static char *			opt_outkey = NULL;
 static char *			opt_application_id = NULL;
 static char *			opt_application_name = NULL;
+static char *			opt_bind_to_aid = NULL;
 static char *			opt_puk_authid = NULL;
 static unsigned int		opt_x509_usage = 0;
 static unsigned int		opt_delete_flags = 0;
@@ -450,11 +454,28 @@ main(int argc, char **argv)
 		 && action != ACTION_ASSERT_PRISTINE
 		 && p15card == NULL) {
 			/* Read the PKCS15 structure from the card */
-			r = sc_pkcs15_bind(card, &p15card);
+			if (opt_bind_to_aid)   {
+				struct sc_aid aid;
+
+				aid.len = sizeof(aid.value);
+				if (sc_hex_to_bin(opt_bind_to_aid, aid.value, &aid.len))   {
+					fprintf(stderr, "Invalid AID value: '%s'\n", opt_bind_to_aid);
+					return 1;
+				}
+
+				r = sc_pkcs15init_finalize_profile(card, profile, &aid);
+				if (r < 0)   {
+					fprintf(stderr, "Finalize profile error %s\n", sc_strerror(r));
+					break;
+				}
+
+				r = sc_pkcs15_bind(card, &aid, &p15card);
+			}
+			else   {	
+				r = sc_pkcs15_bind(card, NULL, &p15card);
+			}
 			if (r) {
-				fprintf(stderr,
-					"PKCS#15 binding failed: %s\n",
-					sc_strerror(r));
+				fprintf(stderr, "PKCS#15 binding failed: %s\n", sc_strerror(r));
 				break;
 			}
 
@@ -630,7 +651,21 @@ do_erase(sc_card_t *in_card, struct sc_profile *profile)
 	p15card->tokeninfo->label = strdup("Dummy PKCS#15 object");
 
 	ignore_cmdline_pins++;
-	r = sc_pkcs15init_erase_card(p15card, profile);
+	if (opt_bind_to_aid)   {
+		struct sc_aid aid;
+
+		aid.len = sizeof(aid.value);
+		if (sc_hex_to_bin(opt_bind_to_aid, aid.value, &aid.len))   {
+			fprintf(stderr, "Invalid AID value: '%s'\n", opt_bind_to_aid);
+			return 1;
+									                
+		}
+
+		r = sc_pkcs15init_erase_card(p15card, profile, &aid);
+	}
+	else   {
+		r = sc_pkcs15init_erase_card(p15card, profile, NULL);
+	}
 	ignore_cmdline_pins--;
 
 	sc_pkcs15_card_free(p15card);
@@ -2510,6 +2545,9 @@ handle_option(const struct option *opt)
 		break;
 	case OPT_APPLICATION_ID:
 		opt_application_id = optarg;
+		break;
+	case OPT_BIND_TO_AID:
+		opt_bind_to_aid = optarg;
 		break;
 	case OPT_PUK_ID:
 		opt_puk_authid = optarg;

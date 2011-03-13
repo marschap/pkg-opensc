@@ -163,7 +163,7 @@ static CK_RV pkcs15_bind(struct sc_pkcs11_card *p11card)
 		return CKR_HOST_MEMORY;
 	p11card->fw_data = fw_data;
 
-	rc = sc_pkcs15_bind(p11card->card, &fw_data->p15_card);
+	rc = sc_pkcs15_bind(p11card->card, NULL, &fw_data->p15_card);
 	if (rc != SC_SUCCESS) {
 		sc_debug(context, SC_LOG_DEBUG_NORMAL, "sc_pkcs15_bind failed: %d", rc);
 		return sc_to_cryptoki_error(rc, NULL);
@@ -1230,6 +1230,11 @@ static CK_RV pkcs15_logout(struct sc_pkcs11_card *p11card, void *fw_token)
 	sc_pkcs15_pincache_clear(fw_data->p15_card);
 
 	rc = sc_logout(fw_data->p15_card->card);
+
+	/* Ignore missing card specific logout functions. #302 */
+	if (rc == SC_ERROR_NOT_SUPPORTED)
+		rc = SC_SUCCESS;
+
 	if (rc != SC_SUCCESS)
 		ret = sc_to_cryptoki_error(rc, "C_Logout");
 
@@ -3243,8 +3248,8 @@ static int register_gost_mechanisms(struct sc_pkcs11_card *p11card, int flags)
 	return CKR_OK;
 }
 
-static int register_ec_mechanisms(struct sc_pkcs11_card *p11card, int flags, 
-			unsigned long ext_flags, int min_key_size, int max_key_size)
+static int register_ec_mechanisms(struct sc_pkcs11_card *p11card,
+			unsigned long ext_flags, CK_ULONG min_key_size, CK_ULONG max_key_size)
 {
 	CK_MECHANISM_INFO mech_info;
 	sc_pkcs11_mechanism_type_t *mt;
@@ -3307,7 +3312,7 @@ static CK_RV register_mechanisms(struct sc_pkcs11_card *p11card)
 	sc_card_t *card = p11card->card;
 	sc_algorithm_info_t *alg_info;
 	CK_MECHANISM_INFO mech_info;
-	int ec_min_key_size, ec_max_key_size;
+	CK_ULONG ec_min_key_size, ec_max_key_size;
 	unsigned long ec_ext_flags;
 	sc_pkcs11_mechanism_type_t *mt;
 	unsigned int num;
@@ -3364,7 +3369,7 @@ static CK_RV register_mechanisms(struct sc_pkcs11_card *p11card)
 	}
 
 	if (flags & SC_ALGORITHM_ECDSA_RAW) {
-		rc = register_ec_mechanisms(p11card, flags, ec_ext_flags, ec_min_key_size, ec_max_key_size);
+		rc = register_ec_mechanisms(p11card, ec_ext_flags, ec_min_key_size, ec_max_key_size);
 	}
 
 	if (flags & (SC_ALGORITHM_GOSTR3410_RAW

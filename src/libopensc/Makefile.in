@@ -86,8 +86,8 @@ libopensc_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/scconf/libscconf.la \
 	$(top_builddir)/src/common/libcompat.la $(am__DEPENDENCIES_1)
 am__libopensc_la_SOURCES_DIST = sc.c ctx.c log.c errors.c asn1.c \
-	base64.c sec.c card.c iso7816.c dir.c padding.c apdu.c \
-	pkcs15.c pkcs15-cert.c pkcs15-data.c pkcs15-pin.c \
+	base64.c sec.c card.c iso7816.c dir.c ef-atr.c padding.c \
+	apdu.c pkcs15.c pkcs15-cert.c pkcs15-data.c pkcs15-pin.c \
 	pkcs15-prkey.c pkcs15-pubkey.c pkcs15-sec.c pkcs15-wrap.c \
 	pkcs15-algo.c pkcs15-cache.c pkcs15-syn.c pkcs15-gemsafeV1.c \
 	muscle.c muscle-filesystem.c ctbcs.c reader-ctapi.c \
@@ -98,7 +98,8 @@ am__libopensc_la_SOURCES_DIST = sc.c ctx.c log.c errors.c asn1.c \
 	card-entersafe.c card-incrypto34.c card-piv.c card-muscle.c \
 	card-acos5.c card-asepcos.c card-akis.c card-gemsafeV1.c \
 	card-rutoken.c card-rtecp.c card-westcos.c card-myeid.c \
-	card-ias.c card-javacard.c card-itacns.c pkcs15-openpgp.c \
+	card-ias.c card-javacard.c card-itacns.c card-authentic.c \
+	card-iasecc.c iasecc-sdo.c pkcs15-openpgp.c \
 	pkcs15-infocamere.c pkcs15-starcert.c pkcs15-tcos.c \
 	pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafeGPK.c \
 	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c \
@@ -109,10 +110,10 @@ am__libopensc_la_SOURCES_DIST = sc.c ctx.c log.c errors.c asn1.c \
 am__dirstamp = $(am__leading_dot)dirstamp
 @WIN32_TRUE@am__objects_1 = $(top_builddir)/win32/versioninfo.lo
 am_libopensc_la_OBJECTS = sc.lo ctx.lo log.lo errors.lo asn1.lo \
-	base64.lo sec.lo card.lo iso7816.lo dir.lo padding.lo apdu.lo \
-	pkcs15.lo pkcs15-cert.lo pkcs15-data.lo pkcs15-pin.lo \
-	pkcs15-prkey.lo pkcs15-pubkey.lo pkcs15-sec.lo pkcs15-wrap.lo \
-	pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo \
+	base64.lo sec.lo card.lo iso7816.lo dir.lo ef-atr.lo \
+	padding.lo apdu.lo pkcs15.lo pkcs15-cert.lo pkcs15-data.lo \
+	pkcs15-pin.lo pkcs15-prkey.lo pkcs15-pubkey.lo pkcs15-sec.lo \
+	pkcs15-wrap.lo pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo \
 	pkcs15-gemsafeV1.lo muscle.lo muscle-filesystem.lo ctbcs.lo \
 	reader-ctapi.lo reader-pcsc.lo reader-openct.lo card-setcos.lo \
 	card-miocos.lo card-flex.lo card-gpk.lo card-cardos.lo \
@@ -122,13 +123,14 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo log.lo errors.lo asn1.lo \
 	card-piv.lo card-muscle.lo card-acos5.lo card-asepcos.lo \
 	card-akis.lo card-gemsafeV1.lo card-rutoken.lo card-rtecp.lo \
 	card-westcos.lo card-myeid.lo card-ias.lo card-javacard.lo \
-	card-itacns.lo pkcs15-openpgp.lo pkcs15-infocamere.lo \
-	pkcs15-starcert.lo pkcs15-tcos.lo pkcs15-esteid.lo \
-	pkcs15-postecert.lo pkcs15-gemsafeGPK.lo pkcs15-actalis.lo \
-	pkcs15-atrust-acos.lo pkcs15-tccardos.lo pkcs15-piv.lo \
-	pkcs15-esinit.lo pkcs15-westcos.lo pkcs15-pteid.lo \
-	pkcs15-oberthur.lo pkcs15-itacns.lo compression.lo \
-	p15card-helper.lo $(am__objects_1)
+	card-itacns.lo card-authentic.lo card-iasecc.lo iasecc-sdo.lo \
+	pkcs15-openpgp.lo pkcs15-infocamere.lo pkcs15-starcert.lo \
+	pkcs15-tcos.lo pkcs15-esteid.lo pkcs15-postecert.lo \
+	pkcs15-gemsafeGPK.lo pkcs15-actalis.lo pkcs15-atrust-acos.lo \
+	pkcs15-tccardos.lo pkcs15-piv.lo pkcs15-esinit.lo \
+	pkcs15-westcos.lo pkcs15-pteid.lo pkcs15-oberthur.lo \
+	pkcs15-itacns.lo compression.lo p15card-helper.lo \
+	$(am__objects_1)
 libopensc_la_OBJECTS = $(am_libopensc_la_OBJECTS)
 libopensc_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
@@ -320,7 +322,8 @@ noinst_HEADERS = cards.h ctbcs.h internal.h esteid.h muscle.h muscle-filesystem.
 	internal-winscard.h p15card-helper.h \
 	opensc.h pkcs15.h \
 	cardctl.h asn1.h log.h \
-	errors.h types.h compression.h itacns.h
+	errors.h types.h compression.h itacns.h iso7816.h \
+	authentic.h iasecc.h iasecc-sdo.h
 
 AM_CPPFLAGS = -DOPENSC_CONF_PATH=\"$(sysconfdir)/opensc.conf\"
 AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(OPTIONAL_OPENCT_CFLAGS) \
@@ -329,19 +332,20 @@ AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(OPTIONAL_OPENCT_CFLAGS) \
 
 INCLUDES = -I$(top_srcdir)/src
 libopensc_la_SOURCES = sc.c ctx.c log.c errors.c asn1.c base64.c sec.c \
-	card.c iso7816.c dir.c padding.c apdu.c pkcs15.c pkcs15-cert.c \
-	pkcs15-data.c pkcs15-pin.c pkcs15-prkey.c pkcs15-pubkey.c \
-	pkcs15-sec.c pkcs15-wrap.c pkcs15-algo.c pkcs15-cache.c \
-	pkcs15-syn.c pkcs15-gemsafeV1.c muscle.c muscle-filesystem.c \
-	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
-	card-setcos.c card-miocos.c card-flex.c card-gpk.c \
-	card-cardos.c card-tcos.c card-default.c card-mcrd.c \
-	card-starcos.c card-openpgp.c card-jcop.c card-oberthur.c \
-	card-belpic.c card-atrust-acos.c card-entersafe.c \
-	card-incrypto34.c card-piv.c card-muscle.c card-acos5.c \
-	card-asepcos.c card-akis.c card-gemsafeV1.c card-rutoken.c \
-	card-rtecp.c card-westcos.c card-myeid.c card-ias.c \
-	card-javacard.c card-itacns.c pkcs15-openpgp.c \
+	card.c iso7816.c dir.c ef-atr.c padding.c apdu.c pkcs15.c \
+	pkcs15-cert.c pkcs15-data.c pkcs15-pin.c pkcs15-prkey.c \
+	pkcs15-pubkey.c pkcs15-sec.c pkcs15-wrap.c pkcs15-algo.c \
+	pkcs15-cache.c pkcs15-syn.c pkcs15-gemsafeV1.c muscle.c \
+	muscle-filesystem.c ctbcs.c reader-ctapi.c reader-pcsc.c \
+	reader-openct.c card-setcos.c card-miocos.c card-flex.c \
+	card-gpk.c card-cardos.c card-tcos.c card-default.c \
+	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
+	card-oberthur.c card-belpic.c card-atrust-acos.c \
+	card-entersafe.c card-incrypto34.c card-piv.c card-muscle.c \
+	card-acos5.c card-asepcos.c card-akis.c card-gemsafeV1.c \
+	card-rutoken.c card-rtecp.c card-westcos.c card-myeid.c \
+	card-ias.c card-javacard.c card-itacns.c card-authentic.c \
+	card-iasecc.c iasecc-sdo.c pkcs15-openpgp.c \
 	pkcs15-infocamere.c pkcs15-starcert.c pkcs15-tcos.c \
 	pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafeGPK.c \
 	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c \
@@ -456,6 +460,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-akis.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-asepcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-atrust-acos.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-authentic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-belpic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-cardos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-default.Plo@am__quote@
@@ -464,6 +469,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-gemsafeV1.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-gpk.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-ias.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-iasecc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-incrypto34.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-itacns.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/card-javacard.Plo@am__quote@
@@ -486,7 +492,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctbcs.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ctx.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/dir.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ef-atr.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/errors.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iasecc-sdo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iso7816.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/log.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/muscle-filesystem.Plo@am__quote@

@@ -319,6 +319,8 @@ struct sc_pkcs15_prkey_info {
 	size_t modulus_length; /* RSA */
 	size_t field_length;   /* EC in bits */
 
+	int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
+
 	struct sc_pkcs15_der subject;
 
 	void   *params;
@@ -335,6 +337,8 @@ struct sc_pkcs15_pubkey_info {
 	/* convert to union if other types are supported */
 	size_t modulus_length; /* RSA */
 	size_t field_length;   /* EC in bits */
+
+	int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
 
 	struct sc_pkcs15_der subject;
 
@@ -438,8 +442,7 @@ typedef struct sc_pkcs15_unusedspace sc_pkcs15_unusedspace_t;
 typedef struct sc_pkcs15_sec_env_info {
 	int			se;
 	struct sc_object_id	owner;
-	u8			aid[SC_MAX_AID_SIZE];
-	size_t			aid_len;
+	struct sc_aid aid;
 } sc_pkcs15_sec_env_info_t;
 
 typedef struct sc_pkcs15_tokeninfo {
@@ -464,6 +467,8 @@ struct sc_pkcs15_operations   {
 typedef struct sc_pkcs15_card {
 	sc_card_t *card;
 	unsigned int flags;
+
+	struct sc_app_info *app;
 
 	sc_file_t *file_app;
 	sc_file_t *file_tokeninfo, *file_odf, *file_unusedspace;
@@ -497,13 +502,12 @@ typedef struct sc_pkcs15_card {
 
 /* flags suitable for sc_pkcs15_card_t */
 #define SC_PKCS15_CARD_FLAG_EMULATED			0x02000000
-#define SC_PKCS15_CARD_FLAG_FIX_INTEGERS		0x04000000
 
 /* sc_pkcs15_bind:  Binds a card object to a PKCS #15 card object
  * and initializes a new PKCS #15 card object.  Will return
  * SC_ERROR_PKCS15_APP_NOT_FOUND, if the card hasn't got a
  * valid PKCS #15 file structure. */
-int sc_pkcs15_bind(struct sc_card *card,
+int sc_pkcs15_bind(struct sc_card *card, struct sc_aid *aid,
 		   struct sc_pkcs15_card **pkcs15_card);
 /* sc_pkcs15_unbind:  Releases a PKCS #15 card object, and frees any
  * memory allocations done on the card object. */
@@ -779,6 +783,11 @@ void sc_pkcs15_free_object_content(struct sc_pkcs15_object *);
 /* Allocate and set object content */
 int sc_pkcs15_allocate_object_content(struct sc_pkcs15_object *,
 		const unsigned char *, size_t);
+
+struct sc_supported_algo_info *sc_pkcs15_get_supported_algo(struct sc_pkcs15_card *,
+		unsigned, unsigned);
+int sc_pkcs15_add_supported_algo_ref(struct sc_pkcs15_object *,
+		struct sc_supported_algo_info *);
 
 /* New object search API.
  * More complex, but also more powerful.

@@ -4,8 +4,8 @@ AC_PREREQ(2.60)
 
 define([PACKAGE_VERSION_MAJOR], [0])
 define([PACKAGE_VERSION_MINOR], [12])
-define([PACKAGE_VERSION_FIX], [0])
-define([PACKAGE_SUFFIX], [])
+define([PACKAGE_VERSION_FIX], [1])
+define([PACKAGE_SUFFIX], [-svn])
 
 AC_INIT([opensc],[PACKAGE_VERSION_MAJOR.PACKAGE_VERSION_MINOR.PACKAGE_VERSION_FIX[]PACKAGE_SUFFIX])
 AC_CONFIG_AUX_DIR([.])
@@ -264,23 +264,20 @@ AC_CHECK_LIB(
 	]
 )
 
+dnl check for libltdl. If libltdl is not found, native dlopen/LoadLibrary is used
 AC_ARG_VAR([LTLIB_CFLAGS], [C compiler flags for libltdl])
 AC_ARG_VAR([LTLIB_LIBS], [linker flags for libltdl])
 if test -z "${LTLIB_LIBS}"; then
 	AC_CHECK_LIB(
 		[ltdl],
 		[lt_dlopen],
-		[LTLIB_LIBS="-lltdl"],
-		[AC_MSG_ERROR([ltdl not found, please install libltdl and/or libtool])]
+		[LTLIB_LIBS="-lltdl"]
 	)
 fi
+
 saved_CFLAGS="${CFLAGS}"
 CFLAGS="${CFLAGS} ${LTLIB_CFLAGS}"
-AC_CHECK_HEADER(
-	[ltdl.h],
-	,
-	[AC_MSG_ERROR([ltdl.h not found, please install libltdl and/or libtool])]
-)
+AC_CHECK_HEADERS([ltdl.h])
 CFLAGS="${saved_CFLAGS}"
 
 if test "${WIN32}" = "no"; then
@@ -600,6 +597,7 @@ AC_CONFIG_FILES([
 	win32/Makefile
 	win32/versioninfo.rc
 	win32/winconfig.h
+	win32/OpenSC.iss
 ])
 AC_OUTPUT
 

@@ -515,7 +515,7 @@ static int asepcos_do_create_key(sc_card_t *card, size_t ksize, int fileid,
 	*p++ = 0x82;
 	p   += 2;
 	/* file id */
-	*p++ = (fileid >> 8) && 0xff;
+	*p++ = (fileid >> 8) & 0xff;
 	*p++ = fileid & 0xff;
 	/* key size */
 	*p++ = (ksize >> 8) & 0xff;
@@ -669,6 +669,7 @@ static int asepcos_do_store_rsa_key(sc_pkcs15_card_t *p15card, sc_profile_t *pro
 	}
 
 	/* select the rsa private key */
+	memset(&tpath, 0, sizeof(sc_path_t));
 	tpath.type = SC_PATH_TYPE_FILE_ID;
 	tpath.len  = 2;
 	tpath.value[0] = kinfo->path.value[kinfo->path.len-2];
@@ -765,6 +766,7 @@ static int asepcos_generate_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card
 		return r;
 
 	/* select the rsa private key */
+	memset(&tpath, 0, sizeof(sc_path_t));
 	tpath.type = SC_PATH_TYPE_FILE_ID;
 	tpath.len  = 2;
 	tpath.value[0] = kinfo->path.value[kinfo->path.len-2];
@@ -825,7 +827,8 @@ static struct sc_pkcs15init_operations sc_pkcs15init_asepcos_operations = {
 	NULL, NULL, 			/* encode private/public key */
 	NULL,				/* finalize_card */
 	NULL, 				/* delete_object */
-	NULL, NULL, NULL, NULL, NULL  /* pkcs15init emulation */
+	NULL, NULL, NULL, NULL, NULL, 	/* pkcs15init emulation */
+	NULL				/* sanity_check */
 };
 
 struct sc_pkcs15init_operations * sc_pkcs15init_get_asepcos_ops(void)

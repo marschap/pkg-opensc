@@ -77,13 +77,10 @@ am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkcs11dir)"
-LTLIBRARIES = $(lib_LTLIBRARIES) $(noinst_LTLIBRARIES)
+LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-libpkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am_libpkcs11_la_OBJECTS = libpkcs11.lo
-libpkcs11_la_OBJECTS = $(am_libpkcs11_la_OBJECTS)
 am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/common/libcompat.la \
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/common/libcompat.la \
 	$(top_builddir)/src/libopensc/libopensc.la
 onepin_opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am__onepin_opensc_pkcs11_la_SOURCES_DIST = pkcs11-global.c \
@@ -119,7 +116,7 @@ opensc_pkcs11_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(opensc_pkcs11_la_LDFLAGS) $(LDFLAGS) -o $@
 pkcs11_spy_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) libpkcs11.la
+	$(am__DEPENDENCIES_1) $(top_builddir)/src/common/libpkcs11.la
 am__pkcs11_spy_la_SOURCES_DIST = pkcs11-spy.c pkcs11-display.c \
 	pkcs11-display.h pkcs11-spy.exports \
 	$(top_builddir)/win32/versioninfo.rc
@@ -143,10 +140,9 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(libpkcs11_la_SOURCES) $(onepin_opensc_pkcs11_la_SOURCES) \
+SOURCES = $(onepin_opensc_pkcs11_la_SOURCES) \
 	$(opensc_pkcs11_la_SOURCES) $(pkcs11_spy_la_SOURCES)
-DIST_SOURCES = $(libpkcs11_la_SOURCES) \
-	$(am__onepin_opensc_pkcs11_la_SOURCES_DIST) \
+DIST_SOURCES = $(am__onepin_opensc_pkcs11_la_SOURCES_DIST) \
 	$(am__opensc_pkcs11_la_SOURCES_DIST) \
 	$(am__pkcs11_spy_la_SOURCES_DIST)
 DATA = $(pkcs11_DATA)
@@ -317,8 +313,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 EXTRA_DIST = Makefile.mak
 dist_noinst_SCRIPTS = opensc_pkcs11_install.js
 lib_LTLIBRARIES = opensc-pkcs11.la pkcs11-spy.la onepin-opensc-pkcs11.la
-noinst_LTLIBRARIES = libpkcs11.la
-AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(LTLIB_CFLAGS) $(PTHREAD_CFLAGS)
+AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(PTHREAD_CFLAGS)
 INCLUDES = -I$(top_srcdir)/src
 OPENSC_PKCS11_INC = sc-pkcs11.h pkcs11.h pkcs11-opensc.h
 OPENSC_PKCS11_SRC = pkcs11-global.c pkcs11-session.c pkcs11-object.c misc.c slot.c \
@@ -326,12 +321,10 @@ OPENSC_PKCS11_SRC = pkcs11-global.c pkcs11-session.c pkcs11-object.c misc.c slot
 	framework-pkcs15init.c debug.c opensc-pkcs11.exports \
 	pkcs11-display.c pkcs11-display.h
 
-OPENSC_PKCS11_LIBS = $(OPTIONAL_OPENSSL_LIBS) $(PTHREAD_LIBS) \
+OPENSC_PKCS11_LIBS = $(OPTIONAL_OPENSSL_LIBS) $(PTHREAD_LIBS) $(LTLIB_LIBS) \
 	$(top_builddir)/src/common/libcompat.la \
 	$(top_builddir)/src/libopensc/libopensc.la
 
-libpkcs11_la_SOURCES = libpkcs11.c
-libpkcs11_la_LIBADD = $(LTLIB_LIBS)
 opensc_pkcs11_la_SOURCES = $(OPENSC_PKCS11_SRC) $(OPENSC_PKCS11_INC) \
 	hack-disabled.c $(am__append_1)
 opensc_pkcs11_la_LIBADD = $(OPENSC_PKCS11_LIBS)
@@ -348,7 +341,7 @@ onepin_opensc_pkcs11_la_LDFLAGS = $(AM_LDFLAGS) \
 
 pkcs11_spy_la_SOURCES = pkcs11-spy.c pkcs11-display.c pkcs11-display.h \
 	pkcs11-spy.exports $(am__append_3)
-pkcs11_spy_la_LIBADD = $(OPTIONAL_OPENSSL_LIBS) $(LTLIB_LIBS) libpkcs11.la
+pkcs11_spy_la_LIBADD = $(OPTIONAL_OPENSSL_LIBS) $(LTLIB_LIBS) $(top_builddir)/src/common/libpkcs11.la
 pkcs11_spy_la_LDFLAGS = $(AM_LDFLAGS) \
 	-export-symbols "$(srcdir)/pkcs11-spy.exports" \
 	-module -shared -avoid-version -no-undefined
@@ -422,17 +415,6 @@ clean-libLTLIBRARIES:
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
-
-clean-noinstLTLIBRARIES:
-	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
-	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do \
-	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
-	  test "$$dir" != "$$p" || dir=.; \
-	  echo "rm -f \"$${dir}/so_locations\""; \
-	  rm -f "$${dir}/so_locations"; \
-	done
-libpkcs11.la: $(libpkcs11_la_OBJECTS) $(libpkcs11_la_DEPENDENCIES) 
-	$(LINK)  $(libpkcs11_la_OBJECTS) $(libpkcs11_la_LIBADD) $(LIBS)
 $(top_builddir)/win32/$(am__dirstamp):
 	@$(MKDIR_P) $(top_builddir)/win32
 	@: > $(top_builddir)/win32/$(am__dirstamp)
@@ -462,7 +444,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/framework-pkcs15init.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hack-disabled.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hack-enabled.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libpkcs11.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mechanism.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/openssl.Plo@am__quote@
@@ -641,7 +622,7 @@ maintainer-clean-generic:
 clean: clean-am
 
 clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
-	clean-noinstLTLIBRARIES mostlyclean-am
+	mostlyclean-am
 
 distclean: distclean-am
 	-rm -rf ./$(DEPDIR)
@@ -713,16 +694,15 @@ uninstall-am: uninstall-libLTLIBRARIES uninstall-pkcs11DATA
 .MAKE: install-am install-exec-am install-strip
 
 .PHONY: CTAGS GTAGS all all-am check check-am clean clean-generic \
-	clean-libLTLIBRARIES clean-libtool clean-noinstLTLIBRARIES \
-	ctags distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-exec-hook install-html install-html-am \
-	install-info install-info-am install-libLTLIBRARIES \
-	install-man install-pdf install-pdf-am install-pkcs11DATA \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
+	clean-libLTLIBRARIES clean-libtool ctags distclean \
+	distclean-compile distclean-generic distclean-libtool \
+	distclean-tags distdir dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-exec-hook \
+	install-html install-html-am install-info install-info-am \
+	install-libLTLIBRARIES install-man install-pdf install-pdf-am \
+	install-pkcs11DATA install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
 	tags uninstall uninstall-am uninstall-libLTLIBRARIES \

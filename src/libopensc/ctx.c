@@ -27,7 +27,6 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <limits.h>
-#include <ltdl.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -41,6 +40,18 @@ int _sc_add_reader(sc_context_t *ctx, sc_reader_t *reader)
 	assert(reader != NULL);
 	reader->ctx = ctx;
 	list_append(&ctx->readers, reader);
+	return SC_SUCCESS;
+}
+
+int _sc_delete_reader(sc_context_t *ctx, sc_reader_t *reader)
+{
+	assert(reader != NULL);
+	if (reader->ops->release)
+			reader->ops->release(reader);
+	if (reader->name)
+		free(reader->name);
+	list_delete(&ctx->readers, reader);
+	free(reader);
 	return SC_SUCCESS;
 }
 
@@ -62,10 +73,12 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 	{ "asepcos",	(void *(*)(void)) sc_get_asepcos_driver },
 	{ "starcos",	(void *(*)(void)) sc_get_starcos_driver },
 	{ "tcos",	(void *(*)(void)) sc_get_tcos_driver },
-	{ "opengpg",	(void *(*)(void)) sc_get_openpgp_driver },
+	{ "openpgp",	(void *(*)(void)) sc_get_openpgp_driver },
 	{ "jcop",	(void *(*)(void)) sc_get_jcop_driver },
 #ifdef ENABLE_OPENSSL
 	{ "oberthur",	(void *(*)(void)) sc_get_oberthur_driver },
+	{ "authentic",	(void *(*)(void)) sc_get_authentic_driver },
+	{ "iasecc",	(void *(*)(void)) sc_get_iasecc_driver },
 #endif
 	{ "belpic",	(void *(*)(void)) sc_get_belpic_driver },
 	{ "ias",		(void *(*)(void)) sc_get_ias_driver },
@@ -277,7 +290,7 @@ static const char *find_library(sc_context_t *ctx, const char *name)
 static void *load_dynamic_driver(sc_context_t *ctx, void **dll, const char *name)
 {
 	const char *version, *libname;
-	lt_dlhandle handle;
+	void *handle;
 	void *(*modinit)(const char *) = NULL;
 	void *(**tmodi)(const char *) = &modinit;
 	const char *(*modversion)(void) = NULL;
@@ -290,18 +303,18 @@ static void *load_dynamic_driver(sc_context_t *ctx, void **dll, const char *name
 	libname = find_library(ctx, name);
 	if (libname == NULL)
 		return NULL;
-	handle = lt_dlopen(libname);
+	handle = sc_dlopen(libname);
 	if (handle == NULL) {
-		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Module %s: cannot load %s library: %s", name, libname, lt_dlerror());
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Module %s: cannot load %s library: %s", name, libname, sc_dlerror());
 		return NULL;
 	}
 
 	/* verify correctness of module */
-	*(void **)tmodi = lt_dlsym(handle, "sc_module_init");
-	*(void **)tmodv = lt_dlsym(handle, "sc_driver_version");
+	*(void **)tmodi = sc_dlsym(handle, "sc_module_init");
+	*(void **)tmodv = sc_dlsym(handle, "sc_driver_version");
 	if (modinit == NULL || modversion == NULL) {
 		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "dynamic library '%s' is not a OpenSC module",libname);
-		lt_dlclose(handle);
+		sc_dlclose(handle);
 		return NULL;
 	}
 	/* verify module version */
@@ -309,7 +322,7 @@ static void *load_dynamic_driver(sc_context_t *ctx, void **dll, const char *name
 	/* XXX: We really need to have ABI version for each interface */
 	if (version == NULL || strncmp(version, PACKAGE_VERSION, strlen(PACKAGE_VERSION)) != 0) {
 		sc_debug(ctx, SC_LOG_DEBUG_NORMAL,"dynamic library '%s': invalid module version",libname);
-		lt_dlclose(handle);
+		sc_dlclose(handle);
 		return NULL;
 	}
 	*dll = handle;
@@ -534,7 +547,7 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 	if (strcmp(ctx->app_name, "default") != 0) {
 		blocks = scconf_find_blocks(ctx->conf, NULL, "app", "default");
 		if (blocks[0])
-		    	ctx->conf_blocks[count++] = blocks[0];
+		    	ctx->conf_blocks[count] = blocks[0];
 		free(blocks);
 	}
 	/* Above we add 2 blocks at most, but conf_blocks has 3 elements,
@@ -594,7 +607,7 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 	struct _sc_ctx_options	opts;
 	int			r;
 
-	if (ctx_out == NULL)
+	if (ctx_out == NULL || parm == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
 	ctx = calloc(1, sizeof(sc_context_t));
@@ -603,7 +616,7 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 	memset(&opts, 0, sizeof(opts));
 
 	/* set the application name if set in the parameter options */
-	if (parm != NULL && parm->app_name != NULL)
+	if (parm->app_name != NULL)
 		ctx->app_name = strdup(parm->app_name);
 	else
 		ctx->app_name = strdup("default");
@@ -616,7 +629,7 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 	list_init(&ctx->readers);
 	list_attributes_seeker(&ctx->readers, reader_list_seeker);
 	/* set thread context and create mutex object (if specified) */
-	if (parm != NULL && parm->thread_ctx != NULL)
+	if (parm->thread_ctx != NULL)
 		ctx->thread_ctx = parm->thread_ctx;
 	r = sc_mutex_create(ctx, &ctx->mutex);
 	if (r != SC_SUCCESS) {
@@ -628,12 +641,14 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "==================================="); /* first thing in the log */
 	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "opensc version: %s", sc_get_version());
 
-	/* initialize ltdl */
+#ifdef HAVE_LTDL_H
+	/* initialize ltdl, if available. See scdl.c for more information */
 	if (lt_dlinit() != 0) {
-		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "lt_dlinit failed");
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "lt_dlinit() failed");
 		sc_release_context(ctx);
-		return SC_ERROR_OUT_OF_MEMORY;
+		return SC_ERROR_INTERNAL;
 	}
+#endif
 
 #ifdef ENABLE_PCSC
 	ctx->reader_driver = sc_get_pcsc_driver();
@@ -664,6 +679,16 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 	return SC_SUCCESS;
 }
 
+/* use by cardmod to pass in provided handles to reader-pcsc */
+int sc_ctx_use_reader(sc_context_t *ctx, void * pcsc_context_handle, void * pcsc_card_handle)
+{
+	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_NORMAL);
+	if (ctx->reader_driver->ops->use_reader != NULL)
+		return ctx->reader_driver->ops->use_reader(ctx, pcsc_context_handle, pcsc_card_handle);
+
+	return SC_ERROR_NOT_SUPPORTED;
+}
+
 /* Following two are only implemented with internal PC/SC and don't consume a reader object */
 int sc_cancel(sc_context_t *ctx)
 {
@@ -691,12 +716,9 @@ int sc_release_context(sc_context_t *ctx)
 
 	assert(ctx != NULL);
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
-	for (i=0; i<list_size(&ctx->readers); i++) {
-		sc_reader_t *rdr = (sc_reader_t *) list_get_at(&ctx->readers, i);
-		if (rdr->ops->release != NULL)
-			rdr->ops->release(rdr);
-		free(rdr->name);
-		free(rdr);
+	while (list_size(&ctx->readers)) {
+		sc_reader_t *rdr = (sc_reader_t *) list_get_at(&ctx->readers, 0);
+		_sc_delete_reader(ctx, rdr);
 	}
 
 	if (ctx->reader_driver->ops->finish != NULL)
@@ -708,7 +730,7 @@ int sc_release_context(sc_context_t *ctx)
 		if (drv->atr_map)
 			_sc_free_atr(ctx, drv);
 		if (drv->dll)
-			lt_dlclose(drv->dll);
+			sc_dlclose(drv->dll);
 	}
 	if (ctx->preferred_language != NULL)
 		free(ctx->preferred_language);
