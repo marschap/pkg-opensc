@@ -7,6 +7,7 @@ opensc (0.12.0-0pm1) UNRELEASED; urgency=low
   * refresh lists of package contents
   * bump library soname
   * delete mozilla-opensc: removed from upstream
+  * build with readline support
 
  -- Peter Marschall <peter@adpm.de>  Sat, 12 Mar 2011 21:42:23 +0100
 
