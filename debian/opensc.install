@@ -1,4 +1,3 @@
-debian/tmp/usr/bin/cardos-info
 debian/tmp/usr/bin/cardos-tool
 debian/tmp/usr/bin/cryptoflex-tool
 debian/tmp/usr/bin/eidenv
@@ -9,6 +8,7 @@ debian/tmp/usr/bin/piv-tool
 debian/tmp/usr/bin/pkcs11-tool
 debian/tmp/usr/bin/pkcs15*
 debian/tmp/usr/bin/rutoken-tool
+debian/tmp/usr/bin/westcos-tool
 
 debian/tmp/usr/share/man/man5/*
 debian/tmp/usr/share/man/man1/cardos-tool.1
