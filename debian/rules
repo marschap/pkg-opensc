@@ -6,6 +6,7 @@
 override_dh_auto_configure:
 	dh_auto_configure -- --sysconfdir=/etc/opensc \
 		--enable-readline \
+		--enable-zlib \
 		--enable-pcsc \
 		--enable-doc \
 		--htmldir=/usr/share/doc/opensc/html
