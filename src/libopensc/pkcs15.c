@@ -254,7 +254,7 @@ static const struct sc_asn1_entry c_asn1_ddo[] = {
 	{ "odfPath",	   SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_TAG_SEQUENCE, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "tokenInfoPath", SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_CTX | 0, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "unusedPath",    SC_ASN1_PATH, SC_ASN1_CONS | SC_ASN1_CTX | 1, SC_ASN1_OPTIONAL, NULL, NULL },
-/* According to PKCS#15 v1.1 here is the place for the future extentions.
+/* According to PKCS#15 v1.1 here is the place for the future extensions.
  * The following data are used when ODF record points to the xDF files in a different application. 
  */
 	{ "ddoIIN",	   SC_ASN1_OCTET_STRING, SC_ASN1_APP | 0x02, SC_ASN1_OPTIONAL, NULL, NULL },
@@ -675,7 +675,7 @@ struct sc_app_info * sc_find_app(struct sc_card *card, struct sc_aid *aid)
 		return NULL;
 
 	if (!aid || !aid->len)
-		return card->app[card->app_count - 1];
+		return card->app[0];
 
 	for (ii=0; ii < card->app_count; ii++) {
 		if (card->app[ii]->aid.len != aid->len)
@@ -1487,10 +1487,6 @@ int sc_pkcs15_add_df(struct sc_pkcs15_card *p15card,
 {
 	struct sc_pkcs15_df *p, *newdf;
 	
-	for (p = p15card->df_list; p; p = p->next)
-		if (p->type == type)
-			return 0;
-
 	newdf = calloc(1, sizeof(struct sc_pkcs15_df));
 	if (newdf == NULL)
 		return SC_ERROR_OUT_OF_MEMORY;

@@ -20,6 +20,8 @@
 
 #include "config.h"
 
+#include "libscdl.h"
+
 #ifdef HAVE_LTDL_H
 #include <ltdl.h>
 /* libltdl is present, pass all calls to it */
@@ -34,7 +36,7 @@ void *sc_dlsym(void *handle, const char *symbol)
 	return lt_dlsym((lt_dlhandle)handle, symbol);
 }
 
-const char *sc_dlerror()
+const char *sc_dlerror(void)
 {
 	return lt_dlerror();
 }

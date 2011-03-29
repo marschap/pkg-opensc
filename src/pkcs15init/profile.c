@@ -214,10 +214,6 @@ static struct {
 	{ NULL, NULL }
 };
 
-typedef struct pin_info pin_info;
-typedef struct file_info file_info;
-typedef struct auth_info auth_info;
-
 static int		process_conf(struct sc_profile *, scconf_context *);
 static int		process_block(struct state *, struct block *,
 				const char *, scconf_block *);
@@ -233,23 +229,23 @@ static int		map_str2int(struct state *, const char *,
 static int		setstr(char **strp, const char *value);
 static void		parse_error(struct state *, const char *, ...);
 
-static file_info *	sc_profile_instantiate_file(sc_profile_t *,
+static struct file_info *	sc_profile_instantiate_file(sc_profile_t *,
 				struct file_info *, struct file_info *,
 				unsigned int);
-static file_info *	sc_profile_find_file(struct sc_profile *,
+static struct file_info *	sc_profile_find_file(struct sc_profile *,
 				const sc_path_t *, const char *);
-static file_info *	sc_profile_find_file_by_path(
+static struct file_info *	sc_profile_find_file_by_path(
 				struct sc_profile *,
 				const sc_path_t *);
 
-static pin_info *	new_pin(struct sc_profile *, int);
-static file_info *	new_file(struct state *, const char *,
+static struct pin_info *	new_pin(struct sc_profile *, int);
+static struct file_info *	new_file(struct state *, const char *,
 				unsigned int);
-static file_info *	add_file(sc_profile_t *, const char *,
-				sc_file_t *, file_info *);
+static struct file_info *	add_file(sc_profile_t *, const char *,
+				sc_file_t *, struct file_info *);
 static void		free_file_list(struct file_info **);
 static void		append_file(sc_profile_t *, struct file_info *);
-static auth_info *	new_key(struct sc_profile *,
+static struct auth_info *	new_key(struct sc_profile *,
 				unsigned int, unsigned int);
 static void		set_pin_defaults(struct sc_profile *,
 				struct pin_info *);
@@ -409,10 +405,10 @@ sc_profile_finish(struct sc_profile *profile, const struct sc_app_info *app_info
 		sc_log(ctx, "Look for file by path '%s'", sc_print_path(&path));
 		profile->df_info = sc_profile_find_file_by_path(profile, &path);
 		sc_log(ctx, "returned DF info %p", profile->df_info); 
-		if (profile->df_info && profile->df_info->profile_extention)   {
-			sc_log(ctx, "application profile extention '%s'", profile->df_info->profile_extention);
-			if (sc_profile_load(profile, profile->df_info->profile_extention))
-				LOG_TEST_RET(ctx, SC_ERROR_INCONSISTENT_PROFILE, "Cannot load application profile extention");
+		if (profile->df_info && profile->df_info->profile_extension)   {
+			sc_log(ctx, "application profile extension '%s'", profile->df_info->profile_extension);
+			if (sc_profile_load(profile, profile->df_info->profile_extension))
+				LOG_TEST_RET(ctx, SC_ERROR_INCONSISTENT_PROFILE, "Cannot load application profile extension");
 		}
 	}
 	
@@ -627,7 +623,7 @@ sc_profile_add_file(sc_profile_t *profile, const char *name, sc_file_t *file)
 {
 	struct sc_context *ctx = profile->card->ctx;
 	sc_path_t	path = file->path;
-	file_info	*parent;
+	struct file_info	*parent;
 
 	LOG_FUNC_CALLED(ctx);
 	if (!path.len)   {
@@ -703,7 +699,7 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	 */
 	assert(base_file->instance);
 	for (fi = tmpl->ef_list; fi; fi = fi->next) {
-		file_info	*parent, *instance;
+		struct file_info	*parent, *instance;
 		unsigned int	skew = 0;
 
 		fi->instance = NULL;
@@ -738,9 +734,9 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	return 0;
 }
 
-static file_info *
-sc_profile_instantiate_file(sc_profile_t *profile, file_info *ft,
-		file_info *parent, unsigned int skew)
+static struct file_info *
+sc_profile_instantiate_file(sc_profile_t *profile, struct file_info *ft,
+		struct file_info *parent, unsigned int skew)
 {
 	struct sc_context *ctx = profile->card->ctx;
 	struct file_info *fi;
@@ -1138,11 +1134,11 @@ static void append_file(sc_profile_t *profile, struct file_info *nfile)
  * Add a new file to the profile.
  * This function is called by sc_profile_add_file.
  */
-static file_info *
+static struct file_info *
 add_file(sc_profile_t *profile, const char *name,
-		sc_file_t *file, file_info *parent)
+		sc_file_t *file, struct file_info *parent)
 {
-	file_info	*info;
+	struct file_info	*info;
 
 	info = calloc(1, sizeof(*info));
 	if (info == NULL)
@@ -1183,7 +1179,7 @@ static struct file_info *
 new_file(struct state *cur, const char *name, unsigned int type)
 {
 	sc_profile_t	*profile = cur->profile;
-	file_info	*info;
+	struct file_info	*info;
 	sc_file_t	*file;
 	unsigned int	df_type = 0, dont_free = 0;
 
@@ -1396,9 +1392,9 @@ do_exclusive_aid(struct state *cur, int argc, char **argv)
 }
 
 static int
-do_profile_extention(struct state *cur, int argc, char **argv)
+do_profile_extension(struct state *cur, int argc, char **argv)
 {
-	return setstr(&cur->file->profile_extention, argv[0]);
+	return setstr(&cur->file->profile_extension, argv[0]);
 }
 
 /*
@@ -1724,7 +1720,7 @@ static struct command	fs_commands[] = {
  { "AID",		1,	1,	do_aid		},
  { "ACL",		1,	-1,	do_acl		},
 /* AID dependent sub-profile */
- { "profile-extention",	1,	1,	do_profile_extention	},
+ { "profile-extension",	1,	1,	do_profile_extension	},
 /* AID of the DFs without file-id */
  { "exclusive-aid",	1,	1,	do_exclusive_aid	},
 
