@@ -644,7 +644,6 @@ iasecc_select_file(struct sc_card *card, const struct sc_path *path,
 	sc_print_cache(card);
 	if (lpath.len >= 2 && lpath.value[0] == 0x3F && lpath.value[1] == 0x00)   {
 		struct sc_path mfpath;
-		int rv;
 
 		memset(&mfpath, 0, sizeof(struct sc_path));
 		sc_log(ctx, "EF.ATR(aid:'%s')", card->ef_atr ? sc_dump_hex(card->ef_atr->aid.value, card->ef_atr->aid.len) : "");
@@ -1526,7 +1525,7 @@ static int
 iasecc_chv_verify_pinpad(struct sc_card *card, struct sc_pin_cmd_data *pin_cmd, int *tries_left)
 {
 	struct sc_context *ctx = card->ctx;
-	unsigned char ffs[0x100];
+	unsigned char buffer[0x100];
 	int rv;
 
 	LOG_FUNC_CALLED(ctx);
@@ -1549,8 +1548,8 @@ iasecc_chv_verify_pinpad(struct sc_card *card, struct sc_pin_cmd_data *pin_cmd, 
 
 	pin_cmd->pin1.len = pin_cmd->pin1.min_length;
 
-	memset(ffs, 0xFF, sizeof(ffs));
-	pin_cmd->pin1.data = ffs;
+	memset(buffer, 0xFF, sizeof(buffer));
+	pin_cmd->pin1.data = buffer;
 
 	pin_cmd->cmd = SC_PIN_CMD_VERIFY;
 	pin_cmd->flags |= SC_PIN_CMD_USE_PINPAD;
@@ -2215,7 +2214,6 @@ iasecc_get_serialnr(struct sc_card *card, struct sc_serial_number *serial)
 
 	do  {
 		char txt[0x200];
-		size_t ii;
 
 		for (ii=0;ii<card->serialnr.len;ii++)
 			sprintf(txt + ii*2, "%02X", *(card->serialnr.value + ii));
