@@ -33,6 +33,7 @@
 #include "internal.h"
 #include "asn1.h"
 #include "cardctl.h"
+#include "errors.h"
 
 static struct sc_atr_table pgp_atrs[] = {
 	{ "3b:fa:13:00:ff:81:31:80:45:00:31:c1:73:c0:01:00:00:90:00:b1", NULL, "OpenPGP card v1.0/1.1", SC_CARD_TYPE_OPENPGP_V1, 0, NULL },
@@ -61,8 +62,8 @@ static struct sc_card_driver pgp_drv = {
  * Everything else is mapped to "file" IDs.
  */
 struct blob {
-	struct blob *	next;
-	struct blob *	parent;
+	struct blob *	next;	/* pointer to next sibling */
+	struct blob *	parent;	/* pointer to parent */
 	struct do_info *info;
 
 	sc_file_t *	file;
@@ -71,7 +72,7 @@ struct blob {
 
 	unsigned char *	data;
 	unsigned int	len;
-	struct blob *	files;
+	struct blob *	files;	/* pointer to 1st child */
 };
 
 struct do_info {
@@ -82,8 +83,12 @@ struct do_info {
 	int		(*put_fn)(sc_card_t *, unsigned int, const u8 *, size_t);
 };
 
+static int		pgp_finish(sc_card_t *card);
+static void		pgp_iterate_blobs(struct blob *, int, void (*func)());
+
 static struct blob *	pgp_new_blob(struct blob *, unsigned int, int,
 				struct do_info *);
+static void		pgp_free_blob(struct blob *);
 static int		pgp_get_pubkey(sc_card_t *, unsigned int,
 				u8 *, size_t);
 static int		pgp_get_pubkey_pem(sc_card_t *, unsigned int,
@@ -91,12 +96,17 @@ static int		pgp_get_pubkey_pem(sc_card_t *, unsigned int,
 
 static struct do_info		pgp_objects[] = {
       {	0x004f,		0, 0,	sc_get_data,	sc_put_data	},
-      {	0x005e,		1, 0,	sc_get_data,	sc_put_data	},
+      {	0x005e,		0, 0,	sc_get_data,	sc_put_data	},
       {	0x0065,		1, 0,	sc_get_data,	sc_put_data	},
       {	0x006e,		1, 0,	sc_get_data,	sc_put_data	},
-      {	0x0073,		1, 0,	sc_get_data,	sc_put_data	},
       {	0x007a,		1, 0,	sc_get_data,	sc_put_data	},
+      {	0x00c4,		0, 0,	sc_get_data,	sc_put_data	},
+      {	0x0101,		0, 0,	sc_get_data,	sc_put_data	},
+      {	0x0102,		0, 0,	sc_get_data,	sc_put_data	},
+//    {	0x0103,		0, 0,	sc_get_data,	sc_put_data	},	// needs verify with PW1
+//    {	0x0104,		0, 0,	sc_get_data,	sc_put_data	},	// needs verify with PW3
       {	0x5f50,		0, 0,	sc_get_data,	sc_put_data	},
+      {	0x7f21,		1, 0,	sc_get_data,	sc_put_data	},
       { 0xb600,		1, 0,	pgp_get_pubkey,	NULL		},
       { 0xb800,		1, 0,	pgp_get_pubkey,	NULL		},
       { 0xa400,		1, 0,	pgp_get_pubkey,	NULL		},
@@ -109,7 +119,7 @@ static struct do_info		pgp_objects[] = {
 
 #define DRVDATA(card)        ((struct pgp_priv_data *) ((card)->drv_data))
 struct pgp_priv_data {
-	struct blob		mf;
+	struct blob *		mf;
 	struct blob *		current;
 
 	sc_security_env_t	sec_env;
@@ -138,22 +148,43 @@ pgp_init(sc_card_t *card)
 	sc_file_t	*file = NULL;
 	struct do_info	*info;
 	int		r;
+	struct blob 	*child;
 
 	priv = calloc (1, sizeof *priv);
 	if (!priv)
 		return SC_ERROR_OUT_OF_MEMORY;
+	priv->mf = calloc(1, sizeof(struct blob));
+	if (!priv->mf) {
+		free(priv);
+		return SC_ERROR_OUT_OF_MEMORY;
+	}
+
 	card->drv_data = priv;
 	card->cla = 0x00;
 
 	/* Is this correct? */
+	/* OpenPGP card spec 1.1 & 2.0, section 2.1 */
         flags = SC_ALGORITHM_RSA_RAW;
+	/* OpenPGP card spec 1.1 & 2.0, section 7.2.9 & 7.2.10 */
         flags |= SC_ALGORITHM_RSA_PAD_PKCS1;
+	/* OpenPGP card 2.0 spec, section 7.2.8.1 */
+	/*
+	flags |= SC_ALGORITHM_RSA_HASH_SHA1 |
+		 SC_ALGORITHM_RSA_HASH_RIPEMD160;
+	if (card->type == SC_CARD_TYPE_OPENPGP_V2)
+		flags |= SC_ALGORITHM_RSA_HASH_SHA224 |
+			 SC_ALGORITHM_RSA_HASH_SHA256 |
+			 SC_ALGORITHM_RSA_HASH_SHA384 |
+			 SC_ALGORITHM_RSA_HASH_SHA512;
+	*/
         flags |= SC_ALGORITHM_RSA_HASH_NONE;
 
 	/* Is this correct? */
         _sc_card_add_rsa_alg(card, 512, flags, 0);
         _sc_card_add_rsa_alg(card, 768, flags, 0);
         _sc_card_add_rsa_alg(card, 1024, flags, 0);
+	if (card->type == SC_CARD_TYPE_OPENPGP_V2)
+		_sc_card_add_rsa_alg(card, 2048, flags, 0);
 
 	sc_format_path("D276:0001:2401", &aid);
 	aid.type = SC_PATH_TYPE_DF_NAME;
@@ -165,20 +196,29 @@ pgp_init(sc_card_t *card)
 	file->type = SC_FILE_TYPE_DF;
 	file->id = 0x3f00;
 
-	priv->mf.file = file;
-	priv->mf.id = 0x3F00;
+	priv->mf->file = file;
+	priv->mf->id = 0x3F00;
 
-	priv->current = &priv->mf;
+	priv->current = priv->mf;
 
-	/* Populate MF - add all blobs listed in the pgp_objects
-	 * table. */
+	/* Populate MF - add all blobs listed in the pgp_objects table. */
 	for (info = pgp_objects; info->id > 0; info++) {
-		pgp_new_blob(&priv->mf, info->id,
+		child = pgp_new_blob(priv->mf, info->id,
 			  	info->constructed? SC_FILE_TYPE_DF
 					  	 : SC_FILE_TYPE_WORKING_EF,
 				info);
+		/* catch out of memory condition */
+		if (child == NULL)
+			break;
 	}
-	return 0;
+
+	/* treat out of memory condition */
+	if (child == NULL) {
+		pgp_finish(card);
+		return SC_ERROR_OUT_OF_MEMORY;
+	}
+
+	return SC_SUCCESS;
 }
 
 static int
@@ -187,13 +227,15 @@ pgp_finish(sc_card_t *card)
         struct pgp_priv_data *priv;
 
         if (card == NULL)
-                return 0;
+                return SC_SUCCESS;
 	priv = DRVDATA (card);
 
-	/* XXX delete fake file hierarchy */
+	/* delete fake file hierarchy */
+	pgp_iterate_blobs(priv->mf, 99, pgp_free_blob);
 
 	free(priv);
-	return 0;
+	card->drv_data = NULL;
+	return SC_SUCCESS;
 }
 
 static int
@@ -201,13 +243,25 @@ pgp_set_blob(struct blob *blob, const u8 *data, size_t len)
 {
 	if (blob->data)
 		free(blob->data);
-	blob->len    = len;
+	blob->data = NULL;
+	blob->len    = 0;
 	blob->status = 0;
-	blob->data   = malloc(len);
-	memcpy(blob->data, data, len);
 
-	blob->file->size = len;
-	return 0;
+	if (len > 0) {
+		void *tmp = malloc(len);
+
+		if (tmp == NULL)
+			return SC_ERROR_OUT_OF_MEMORY;
+
+		blob->data = tmp;
+		blob->len  = len;
+		memcpy(blob->data, data, len);
+	}
+
+	if (blob->file)
+		blob->file->size = len;
+
+	return SC_SUCCESS;
 }
 
 static struct blob *
@@ -217,22 +271,54 @@ pgp_new_blob(struct blob *parent, unsigned int file_id,
 	sc_file_t	*file = sc_file_new();
 	struct blob	*blob, **p;
 
-	blob = calloc(1, sizeof(*blob));
-	blob->parent = parent;
-	blob->id     = file_id;
-	blob->file   = file;
-	blob->info   = info;
+	if ((blob = calloc(1, sizeof(*blob))) != NULL) {
+		blob->parent = parent;
+		blob->id     = file_id;
+		blob->file   = file;
+		blob->info   = info;
 
-	file->type   = file_type;
-	file->path   = parent->file->path;
-	file->ef_structure = SC_FILE_EF_TRANSPARENT;
-	sc_append_file_id(&file->path, file_id);
+		file->type   = file_type;
+		file->path   = parent->file->path;
+		file->ef_structure = SC_FILE_EF_TRANSPARENT;
+		sc_append_file_id(&file->path, file_id);
 
-	for (p = &parent->files; *p; p = &(*p)->next)
-		;
-	*p = blob;
+		for (p = &parent->files; *p; p = &(*p)->next)
+			;
+		*p = blob;
+	}
 
 	return blob;
+}
+
+static void
+pgp_free_blob(struct blob *blob)
+{
+	if (blob) {
+		if (blob->file)
+			sc_file_free(blob->file);
+		if (blob->data)
+			free(blob->data);
+		free(blob);
+	}
+}
+
+
+static void
+pgp_iterate_blobs(struct blob *blob, int level, void (*func)())
+{
+	if (blob) {
+		if (level > 0) {
+			struct blob *child = blob->files;
+
+			while (child != NULL) {
+				struct blob *next = child->next;
+
+				pgp_iterate_blobs(child, level-1, func);
+				child = next;
+			}
+		}
+		func(blob);
+	}
 }
 
 static int
@@ -242,13 +328,13 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
 	int		r;
 
 	if (blob->data != NULL)
-		return 0;
+		return SC_SUCCESS;
 	if (blob->info == NULL)
 		return blob->status;
 
 	r = blob->info->get_fn(card, blob->id, buffer, sizeof(buffer));
 
-	if (r < 0) {
+	if (r < 0) {	/* an error occurred */
 		blob->status = r;
 		return r;
 	}
@@ -258,67 +344,55 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
 
 /*
  * Enumerate contents of a data blob.
- * The OpenPGP card has a funny TLV encoding.
+ * The OpenPGP card has a TLV encoding according ASN.1 BER-encoding rules.
  */
 static int
 pgp_enumerate_blob(sc_card_t *card, struct blob *blob)
 {
-	const u8	*in, *end;
+	const u8	*in;
 	int		r;
 
 	if (blob->files != NULL)
-		return 0;
+		return SC_SUCCESS;
 
 	if ((r = pgp_read_blob(card, blob)) < 0)
 		return r;
 
 	in = blob->data;
-	end = blob->data + blob->len;
-	while (in < end) {
-		unsigned int	tag, len, type = SC_FILE_TYPE_WORKING_EF;
-		unsigned char	c;
 
-		c = *in++;
-		if (c == 0x00 || c == 0xFF)
-			continue;
+	while (blob->len > (in - blob->data)) {
+		unsigned int	cla, tag, tmptag;
+		unsigned int	type = SC_FILE_TYPE_WORKING_EF;
+		size_t		len;
+		u8		*data = in;
+		struct blob	*new;
 
-		tag = c;
-		if (tag & 0x20)
+		r = sc_asn1_read_tag(&data, blob->len - (in - blob->data),
+					&cla, &tag, &len);
+		if (r < 0) {
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+				 "Unexpected end of contents\n");
+			return SC_ERROR_OBJECT_NOT_VALID;
+		}
+
+		/* create fake file system hierarchy by
+		 * using constructed DOs as DF */
+		if (cla & SC_ASN1_TAG_CONSTRUCTED)
 			type = SC_FILE_TYPE_DF;
-		while ((c & 0x1f) == 0x1f) {
-			if (in >= end)
-				goto eoc;
-			c = *in++;
-			tag = (tag << 8) | c;
+
+		/* undo ASN1's split of tag & class */
+		for (tmptag = tag; tmptag > 0x0FF; tmptag >>= 8) {
+			cla <<= 8;
 		}
+		tag |= cla;
 
-		if (in >= end)
-			goto eoc;
-		c = *in++;
-		if (c < 0x80) {
-			len = c;
-		} else {
-			len = 0;
-			c &= 0x7F;
-			while (c--) {
-				if (in >= end)
-					goto eoc;
-				len = (len << 8) | *in++;
-			}
-		}
-
-		/* Don't search past end of content */
-		if (in + len > end)
-			goto eoc;
-
-		pgp_set_blob(pgp_new_blob(blob, tag, type, NULL), in, len);
-		in += len;
+		if ((new = pgp_new_blob(blob, tag, type, NULL)) == NULL)
+			return SC_ERROR_OUT_OF_MEMORY;
+		pgp_set_blob(new, data, len);
+		in = data + len;
 	}
 
-	return 0;
-
-eoc:	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Unexpected end of contents\n");
-	return SC_ERROR_OBJECT_NOT_VALID;
+	return SC_SUCCESS;
 }
 
 static int
@@ -339,7 +413,7 @@ pgp_get_blob(sc_card_t *card, struct blob *blob, unsigned int id,
 	if (child != NULL) {
 		(void) pgp_read_blob(card, child);
 		*ret = child;
-		return 0;
+		return SC_SUCCESS;
 	}
 
 	return SC_ERROR_FILE_NOT_FOUND;
@@ -368,7 +442,7 @@ pgp_select_file(sc_card_t *card, const sc_path_t *path, sc_file_t **ret)
 		path = &path_copy;
 	}
 
-	blob = &priv->mf;
+	blob = priv->mf;
 	for (n = 0; n < path->len; n += 2) {
 		r = pgp_get_blob(card, blob,
 				(path->value[n] << 8) | path->value[n+1],
@@ -383,7 +457,7 @@ pgp_select_file(sc_card_t *card, const sc_path_t *path, sc_file_t **ret)
 
 	if (ret)
 		sc_file_dup(ret, blob->file);
-	return 0;
+	return SC_SUCCESS;
 }
 
 static int
@@ -485,7 +559,7 @@ pgp_get_pubkey_pem(sc_card_t *card, unsigned int tag, u8 *buf, size_t buf_len)
 
 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "called, tag=%04x\n", tag);
 	
-	if ((r = pgp_get_blob(card, &priv->mf, tag & 0xFFFE, &blob)) < 0
+	if ((r = pgp_get_blob(card, priv->mf, tag & 0xFFFE, &blob)) < 0
 	 || (r = pgp_get_blob(card, blob, 0x7F49, &blob)) < 0
 	 || (r = pgp_get_blob(card, blob, 0x0081, &mod_blob)) < 0
 	 || (r = pgp_get_blob(card, blob, 0x0082, &exp_blob)) < 0
@@ -586,7 +660,7 @@ pgp_set_security_env(sc_card_t *card,
 	}
 
 	priv->sec_env = *env;
-	return 0;
+	return SC_SUCCESS;
 }
 
 static int

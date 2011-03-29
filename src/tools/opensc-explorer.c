@@ -164,17 +164,9 @@ static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
 
 static void print_file(const sc_file_t *file)
 {
-	const char *st;
+	const char *format = " %02X%02X ";
+	const char *st = "???";
 
-	if (file->type == SC_FILE_TYPE_DF)
-		printf("[");
-	else
-		printf(" ");
-	printf("%02X%02X", file->id >> 8, file->id & 0xFF);
-	if (file->type == SC_FILE_TYPE_DF)
-		printf("]");
-	else
-		printf(" ");
 	switch (file->type) {
 	case SC_FILE_TYPE_WORKING_EF:
 		st = "wEF";
@@ -183,12 +175,11 @@ static void print_file(const sc_file_t *file)
 		st = "iEF";
 		break;
 	case SC_FILE_TYPE_DF:
+		format = "[%02X%02X]";
 		st = "DF";
 		break;
-	default:
-		st = "???";
-		break;
 	}
+	printf(format, file->id >> 8, file->id & 0xFF);
 	printf("\t%4s", st);
 	printf(" %5lu", (unsigned long)file->size);
 	if (file->namelen) {
@@ -351,7 +342,6 @@ static int do_cat(int argc, char **argv)
 	sc_file_t *file = NULL;
 	int not_current = 1;
 	int sfi = 0;
-	const char sfi_prefix[] = "sfi:";
 
 	if (argc > 1)
 		goto usage;
@@ -360,17 +350,10 @@ static int do_cat(int argc, char **argv)
 		file = current_file;
 		not_current = 0;
 	} else {
-		if (strncmp(argv[0], sfi_prefix, sizeof(sfi_prefix)-1)) {
-			if (arg_to_path(argv[0], &path, 1) != 0)
-				goto usage;
-			r = sc_select_file(card, &path, &file);
-			if (r) {
-				check_ret(r, SC_AC_OP_SELECT, "unable to select file",
-					current_file);
-				goto err;
-			}
-		} else {
-			const char *sfi_n = &argv[0][sizeof(sfi_prefix)-1];
+		const char sfi_prefix[] = "sfi:";
+
+		if (strncasecmp(argv[0], sfi_prefix, strlen(sfi_prefix)) == 0) {
+			const char *sfi_n = argv[0] + strlen(sfi_prefix);
 
 			if(!current_file) {
 				printf("A DF must be selected to read by SFI\n");
@@ -383,6 +366,15 @@ static int do_cat(int argc, char **argv)
 			if ((sfi < 1) || (sfi > 30)) {
 				printf("Invalid SFI: %s\n", sfi_n);
 				goto usage;
+			}
+		} else {
+			if (arg_to_path(argv[0], &path, 0) != 0)
+				goto usage;
+			r = sc_select_file(card, &path, &file);
+			if (r) {
+				check_ret(r, SC_AC_OP_SELECT, "unable to select file",
+					current_file);
+				goto err;
 			}
 		}
 	}
@@ -903,7 +895,9 @@ static int do_get(int argc, char **argv)
 		fbuf[5*i-1] = 0;
 		filename = fbuf;
 	}
-	outf = fopen(filename, "wb");
+	outf = (strcmp(filename, "-") == 0)
+		? stdout
+		: fopen(filename, "wb");
 	if (outf == NULL) {
 		perror(filename);
 		goto err;
@@ -936,14 +930,19 @@ static int do_get(int argc, char **argv)
 		idx += r;
 		count -= r;
 	}
-	printf("Total of %d bytes read from %s and saved to %s.\n",
-	       idx, argv[0], filename);
+	if (outf == stdout) {
+		fwrite("\n", 1, 1, outf);
+	}
+	else {
+		printf("Total of %d bytes read from %s and saved to %s.\n",
+		       idx, argv[0], filename);
+	}
 	
 	err = 0;
 err:
 	if (file)
 		sc_file_free(file);
-	if (outf)
+	if (outf != NULL && outf != stdout)
 		fclose(outf);
 	select_current_path_or_die();
 	return -err;
