@@ -1,3 +1,12 @@
+opensc (0.12.0-1) unstable; urgency=low
+
+  * New upstream release.
+  * debian/control, debian/rules, debian/mozilla-opensc.install,
+    debian/mozilla-opensc.links: Remove the mozilla-opensc package, as
+    it's no longer present.
+
+ --
+
 opensc (0.11.13-1.1) unstable; urgency=high
 
   * Non-maintainer upload.
