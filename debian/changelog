@@ -6,6 +6,8 @@ opensc (0.12.0-1) unstable; urgency=low
     it's no longer present.
   * debian/control, debian/rules: Don't build with openct anymore.
   * debian/rules: Changelog no longer in a weird place.
+  * debian/source/options, debian/source/patch-header: Remove unnecessary
+    single-debian-patch setting.
 
  --
 
