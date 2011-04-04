@@ -12,6 +12,8 @@ Package: opensc
 Section: utils
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
+Replaces: libopensc2 (<< 0.12.0)
+Conflicts: libopensc2 (<< 0.12.0), mozilla-opensc
 Description: Smart card utilities with support for PKCS#15 compatible cards
  OpenSC provides a set of libraries and utilities to access smart
  cards.  It mainly focuses on cards that support cryptographic
@@ -28,56 +30,3 @@ Description: Smart card utilities with support for PKCS#15 compatible cards
  card OS version and preloaded applet. Only a subset of possible
  operations may be supported for your card. Card initialization may
  require third party proprietary software.
-
-Package: libopensc2-dev
-Section: libdevel
-Priority: optional
-Architecture: any
-Conflicts: libopensc0-dev, libopensc1-dev
-Replaces: libopensc0-dev, libopensc1-dev, libscam1 (<< 0.9.4-5)
-Provides: libopensc-dev
-Depends: libopensc2 (= ${binary:Version}), libssl-dev, ${misc:Depends}
-Description: OpenSC development files
- OpenSC provides a set of libraries and utilities to access smart
- cards.  It mainly focuses on cards that support cryptographic
- operations. It facilitates their use in security applications such as
- mail encryption, authentication, and digital signature. OpenSC
- implements the PKCS#11 API. Applications supporting this API, such as
- Iceweasel and Icedove, can use it. OpenSC implements the PKCS#15
- standard and aims to be compatible with all software that does so as
- well.
- .
- This package contains files necessary for developing applications
- with the libopensc libraries from OpenSC.org.
-
-Package: libopensc2
-Section: libs
-Priority: optional
-Architecture: any
-Conflicts: libopensc0, libopensc1
-Replaces: libopensc0, libopensc1
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: Smart card library with support for PKCS#15 compatible smart cards
- OpenSC provides a set of libraries and utilities to access smart
- cards.  It mainly focuses on cards that support cryptographic
- operations. It facilitates their use in security applications such as
- mail encryption, authentication, and digital signature. OpenSC
- implements the PKCS#11 API. Applications supporting this API, such as
- Iceweasel and Icedove, can use it. OpenSC implements the PKCS#15
- standard and aims to be compatible with all software that does so as
- well.
- .
- This package contains the libopensc libraries from OpenSC.org.
- .
- Card initialization can be performed by utilities in the opensc package.
-
-Package: libopensc2-dbg
-Section: debug
-Priority: extra
-Architecture: any
-Depends: libopensc2 (= ${binary:Version}), ${misc:Depends}
-Description: Debugging symbols for libopensc2
- This package contains the debugging symbols for the libopensc library
- from OpenSC.org.
- .
- Card initialization can be performed by utilities in the opensc package.

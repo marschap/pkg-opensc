@@ -10,6 +10,9 @@ debian/tmp/usr/bin/pkcs11-tool
 debian/tmp/usr/bin/pkcs15*
 debian/tmp/usr/bin/rutoken-tool
 
+debian/tmp/usr/lib/*
+etc/opensc.conf etc/opensc
+
 debian/tmp/usr/share/man/man5/*
 debian/tmp/usr/share/man/man1/cardos-tool.1
 debian/tmp/usr/share/man/man1/cryptoflex-tool.1
