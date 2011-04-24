@@ -1,9 +1,9 @@
-opensc (0.12.0+svn5227-0pm1) UNRELEASED; urgency=low
+opensc (0.12.0+svn5391-0pm1) UNRELEASED; urgency=low
 
   [Peter Marschall]
-  * Imported Upstream version 0.12.0+svn5227
+  * Imported Upstream version 0.12.0+svn5391
 
- -- Peter Marschall <peter@adpm.de>  Sun, 13 Mar 2011 11:54:33 +0100
+ -- Peter Marschall <peter@adpm.de>  Sun, 24 Apr 2011 14:25:11 +0100
 
 opensc (0.12.0-0pm1) unstable; urgency=low
 
