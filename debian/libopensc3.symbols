@@ -26,6 +26,7 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_base64_encode@Base 0.12.0
  sc_bin_to_hex@Base 0.12.0
  sc_build_pin@Base 0.12.0
+ sc_bytes2apdu@Base 0.12.0+svn5391
  sc_cancel@Base 0.12.0
  sc_card_ctl@Base 0.12.0
  sc_card_find_rsa_alg@Base 0.12.0
@@ -45,6 +46,7 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_ctx_get_reader_by_id@Base 0.12.0
  sc_ctx_get_reader_by_name@Base 0.12.0
  sc_ctx_get_reader_count@Base 0.12.0
+ sc_ctx_log_to_file@Base 0.12.0+svn5391
  sc_ctx_use_reader@Base 0.12.0
  sc_decipher@Base 0.12.0
  sc_delete_file@Base 0.12.0
@@ -54,6 +56,7 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_disconnect_card@Base 0.12.0
  sc_do_log@Base 0.12.0
  sc_dump_hex@Base 0.12.0
+ sc_encode_oid@Base 0.12.0+svn5391
  sc_enum_apps@Base 0.12.0
  sc_erase_binary@Base 0.12.0
  sc_establish_context@Base 0.12.0
@@ -147,6 +150,7 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_pkcs15_find_prkey_by_reference@Base 0.12.0
  sc_pkcs15_find_pubkey_by_id@Base 0.12.0
  sc_pkcs15_find_so_pin@Base 0.12.0
+ sc_pkcs15_fix_ec_parameters@Base 0.12.0+svn5391
  sc_pkcs15_format_id@Base 0.12.0
  sc_pkcs15_free_cert_info@Base 0.12.0
  sc_pkcs15_free_certificate@Base 0.12.0
@@ -158,6 +162,8 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_pkcs15_free_prkey_info@Base 0.12.0
  sc_pkcs15_free_pubkey@Base 0.12.0
  sc_pkcs15_free_pubkey_info@Base 0.12.0
+ sc_pkcs15_get_guid@Base 0.12.0+svn5391
+ sc_pkcs15_get_object_id@Base 0.12.0+svn5391
  sc_pkcs15_get_objects@Base 0.12.0
  sc_pkcs15_get_objects_cond@Base 0.12.0
  sc_pkcs15_hex_string_to_id@Base 0.12.0
