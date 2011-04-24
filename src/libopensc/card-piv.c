@@ -676,7 +676,7 @@ static int piv_select_aid(sc_card_t* card, u8* aid, size_t aidlen, u8* response,
 	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 		"Got args: aid=%x, aidlen=%d, response=%x, responselen=%d\n",
-		aid, aidlen, response, *responselen);
+		aid, aidlen, response, responselen ? *responselen : 0);
 
 	sc_format_apdu(card, &apdu, 
 		response == NULL ? SC_APDU_CASE_3_SHORT : SC_APDU_CASE_4_SHORT, 0xA4, 0x04, 0x00);
@@ -684,12 +684,13 @@ static int piv_select_aid(sc_card_t* card, u8* aid, size_t aidlen, u8* response,
 	apdu.data = aid;
 	apdu.datalen = aidlen;
 	apdu.resp = response;
-	apdu.resplen = *responselen;
+	apdu.resplen = responselen ? *responselen : 0;
 	apdu.le = response == NULL ? 0 : 256; /* could be 21  for fci */
 
 	r = sc_transmit_apdu(card, &apdu);
-	*responselen = apdu.resplen;
-	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, 4,  r);
+	if (responselen)
+		*responselen = apdu.resplen;
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "PIV select failed");
 	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE,  sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
 
@@ -1619,8 +1620,7 @@ static int piv_general_external_authenticate(sc_card_t *card,
 	*p++ = 0x00;
 
 	/* get a challenge */
-
-	r = piv_general_io(card, 0x87, 0x00, 0x00, sbuf, p - sbuf, &rbuf, &rbuflen); 
+	r = piv_general_io(card, 0x87, alg_id, key_ref, sbuf, p - sbuf, &rbuf, &rbuflen);
 
  	if (r < 0) goto err;
 	q = rbuf;
@@ -1690,6 +1690,10 @@ static int piv_get_serial_nr_from_CHUI(sc_card_t* card, sc_serial_number_t* seri
 	size_t templen = sizeof(temp);
 
 	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+	if (card->serialnr.len)   {
+		*serial = card->serialnr;
+		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, SC_SUCCESS);
+	}
 
 	/* ensure we've got the PIV selected, and nothing else is in process */
 	/* This fixes several problems due to previous incomplete APDUs during card detection */
@@ -1737,7 +1741,8 @@ static int piv_get_serial_nr_from_CHUI(sc_card_t* card, sc_serial_number_t* seri
 			}
 		}
 	}
-      
+
+	card->serialnr = *serial;	
 	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
@@ -2104,9 +2109,17 @@ static int piv_select_file(sc_card_t *card, const sc_path_t *in_path,
 	
 	/* only support single EF in current application */
 
-	if (pathlen > 2 && memcmp(path, "\x3F\x00", 2) == 0) {
-		path += 2;
-		pathlen -= 2;
+	if (memcmp(path, "\x3F\x00", 2) == 0) {
+		if (pathlen == 2)   {
+			r = piv_select_aid(card, piv_aids[0].value, piv_aids[0].len_short, NULL, NULL);
+			SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "Cannot select PIV AID");
+		
+			SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, r); 
+		}
+		else if (pathlen > 2) {
+			path += 2;
+			pathlen -= 2;
+		}
 	}
 	 
 	i = piv_find_obj_by_containerid(card, path);

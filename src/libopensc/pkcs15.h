@@ -149,18 +149,26 @@ struct sc_pkcs15_prkey_dsa {
 	sc_pkcs15_bignum_t priv;
 };
 
-	/* The ecParameters are kept in DER format
-	 * as certificates, and pkcs11 process them as DER 
-	 * If needed, they can be parsed
-	 */ 
+/* 
+ * The ecParameters can be presented as
+ * - named curve;
+ * - OID of named curve;
+ * - implicit parameters.
+ */
+struct sc_pkcs15_ec_parameters {
+	char *named_curve;
+	struct sc_object_id id;
+	sc_pkcs15_der_t der;
+	size_t field_length; /* in bits */
+};
+
 struct sc_pkcs15_pubkey_ec {
-	sc_pkcs15_der_t		ecparameters;
+	struct sc_pkcs15_ec_parameters params;
 	sc_pkcs15_der_t		ecpointQ; /* note this is der */
-	size_t 				field_length; /* in bits */
 };
 
 struct sc_pkcs15_prkey_ec {
-	sc_pkcs15_der_t     ecparameters;
+	struct sc_pkcs15_ec_parameters params;
 	sc_pkcs15_bignum_t	privateD; /* note this is bignum */
 };
 
@@ -319,7 +327,7 @@ struct sc_pkcs15_prkey_info {
 	size_t modulus_length; /* RSA */
 	size_t field_length;   /* EC in bits */
 
-	int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
+	unsigned int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
 
 	struct sc_pkcs15_der subject;
 
@@ -338,7 +346,7 @@ struct sc_pkcs15_pubkey_info {
 	size_t modulus_length; /* RSA */
 	size_t field_length;   /* EC in bits */
 
-	int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
+	unsigned int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
 
 	struct sc_pkcs15_der subject;
 
@@ -418,8 +426,6 @@ typedef struct sc_pkcs15_object sc_pkcs15_object_t;
 struct sc_pkcs15_card;
 
 struct sc_pkcs15_df {
-	struct sc_file *file;
-
 	struct sc_path path;
 	int record_length;
 	unsigned int type;
@@ -462,6 +468,8 @@ typedef struct sc_pkcs15_tokeninfo {
 struct sc_pkcs15_operations   {
 	int (*parse_df)(struct sc_pkcs15_card *, struct sc_pkcs15_df *);
 	void (*clear)(struct sc_pkcs15_card *);
+	int (*get_guid)(struct sc_pkcs15_card *, const struct sc_pkcs15_object *, 
+			char *, size_t);
 };
 
 typedef struct sc_pkcs15_card {
@@ -722,8 +730,7 @@ int sc_pkcs15_add_object(struct sc_pkcs15_card *p15card,
 			 struct sc_pkcs15_object *obj);
 void sc_pkcs15_remove_object(struct sc_pkcs15_card *p15card,
 			     struct sc_pkcs15_object *obj);
-int sc_pkcs15_add_df(struct sc_pkcs15_card *, unsigned int, 
-			const sc_path_t *, const struct sc_file *);
+int sc_pkcs15_add_df(struct sc_pkcs15_card *, unsigned int, const sc_path_t *);
 void sc_pkcs15_remove_df(struct sc_pkcs15_card *p15card,
 			 struct sc_pkcs15_df *df);
 
@@ -774,12 +781,19 @@ int sc_pkcs15_compare_id(const struct sc_pkcs15_id *id1,
 const char *sc_pkcs15_print_id(const struct sc_pkcs15_id *id);
 void sc_pkcs15_format_id(const char *id_in, struct sc_pkcs15_id *id_out);
 int sc_pkcs15_hex_string_to_id(const char *in, struct sc_pkcs15_id *out);
-void sc_der_copy(sc_pkcs15_der_t *, const sc_pkcs15_der_t *);
+int sc_der_copy(sc_pkcs15_der_t *, const sc_pkcs15_der_t *);
+int sc_pkcs15_get_object_id(const struct sc_pkcs15_object *, struct sc_pkcs15_id *);
+int sc_pkcs15_get_guid(struct sc_pkcs15_card *, const struct sc_pkcs15_object *, 
+		char *, size_t);
+int sc_encode_oid (struct sc_context *, struct sc_object_id *, 
+		unsigned char **, size_t *);
+
 /* Prepend 'parent' to 'child' in case 'child' is a relative path */
 int sc_pkcs15_make_absolute_path(const sc_path_t *parent, sc_path_t *child);
 
 /* Clean and free object content */
 void sc_pkcs15_free_object_content(struct sc_pkcs15_object *);
+
 /* Allocate and set object content */
 int sc_pkcs15_allocate_object_content(struct sc_pkcs15_object *,
 		const unsigned char *, size_t);
@@ -788,6 +802,8 @@ struct sc_supported_algo_info *sc_pkcs15_get_supported_algo(struct sc_pkcs15_car
 		unsigned, unsigned);
 int sc_pkcs15_add_supported_algo_ref(struct sc_pkcs15_object *,
 		struct sc_supported_algo_info *);
+
+int sc_pkcs15_fix_ec_parameters(struct sc_context *, struct sc_pkcs15_ec_parameters *);
 
 /* New object search API.
  * More complex, but also more powerful.

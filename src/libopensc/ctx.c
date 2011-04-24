@@ -190,6 +190,29 @@ static void set_defaults(sc_context_t *ctx, struct _sc_ctx_options *opts)
 	add_internal_drvs(opts);
 }
 
+/* In Windows, file handles can not be shared between DLL-s,
+ * each DLL has a separate file handle table. Thus tools and utilities
+ * can not set the file handle themselves when -v is specified on command line.
+ */
+int sc_ctx_log_to_file(sc_context_t *ctx, const char* filename)
+{
+	/* Close any existing handles */
+	if (ctx->debug_file && (ctx->debug_file != stderr && ctx->debug_file != stdout))
+		fclose(ctx->debug_file);
+
+	/* Handle special names */
+	if (!strcmp(filename, "stdout"))
+		ctx->debug_file = stdout;
+	else if (!strcmp(filename, "stderr"))
+		ctx->debug_file = stderr;
+	else {
+		ctx->debug_file = fopen(filename, "a");
+		if (ctx->debug_file == NULL)
+			return SC_ERROR_INTERNAL;
+	}
+	return SC_SUCCESS;
+}
+
 static int load_parameters(sc_context_t *ctx, scconf_block *block,
 			   struct _sc_ctx_options *opts)
 {
@@ -204,16 +227,9 @@ static int load_parameters(sc_context_t *ctx, scconf_block *block,
 		ctx->debug = atoi(debug);
 
 	val = scconf_get_str(block, "debug_file", NULL);
-	if (val) {
-		if (ctx->debug_file && (ctx->debug_file != stderr && ctx->debug_file != stdout))
-			fclose(ctx->debug_file);
-		if (!strcmp(val, "stdout"))
-			ctx->debug_file = stdout;
-		else if (!strcmp(val, "stderr"))
-			ctx->debug_file = stderr;
-		else
-			ctx->debug_file = fopen(val, "a");
-	}
+	if (val)
+		sc_ctx_log_to_file(ctx, val);
+
 	val = scconf_get_str(block, "force_card_driver", NULL);
 	if (val) {
 		if (opts->forced_card_driver)
@@ -447,7 +463,7 @@ static int load_card_atrs(sc_context_t *ctx)
 			t.atr = atr;
 			t.atrmask = (char *) scconf_get_str(b, "atrmask", NULL);
 			t.name = (char *) scconf_get_str(b, "name", NULL);
-			t.type = scconf_get_int(b, "type", -1);
+			t.type = scconf_get_int(b, "type", SC_CARD_TYPE_UNKNOWN);
 			list = scconf_find_list(b, "flags");
 			while (list != NULL) {
 				unsigned int flags;
@@ -457,9 +473,7 @@ static int load_card_atrs(sc_context_t *ctx)
 					continue;
 				}
 				flags = 0;
-				if (!strcmp(list->data, "keygen")) {
-					flags = SC_CARD_FLAG_ONBOARD_KEY_GEN;
-				} else if (!strcmp(list->data, "rng")) {
+				if (!strcmp(list->data, "rng")) {
 					flags = SC_CARD_FLAG_RNG;
 				} else {
 					if (sscanf(list->data, "%x", &flags) != 1)
@@ -656,11 +670,12 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 
 #ifdef ENABLE_PCSC
 	ctx->reader_driver = sc_get_pcsc_driver();
-	#ifdef ENABLE_CARDMOD
+/* XXX: remove cardmod pseudoreader driver */
+#ifdef ENABLE_MINIDRIVER
 	if(strcmp(ctx->app_name, "cardmod") == 0) {
 		ctx->reader_driver = sc_get_cardmod_driver();
 	}
-	#endif
+#endif
 #elif ENABLE_CTAPI
 	ctx->reader_driver = sc_get_ctapi_driver();
 #elif ENABLE_OPENCT
@@ -683,8 +698,8 @@ int sc_context_create(sc_context_t **ctx_out, const sc_context_param_t *parm)
 	return SC_SUCCESS;
 }
 
-/* use by cardmod to pass in provided handles to reader-pcsc */
-int sc_ctx_use_reader(sc_context_t *ctx, void * pcsc_context_handle, void * pcsc_card_handle)
+/* Used by minidriver to pass in provided handles to reader-pcsc */
+int sc_ctx_use_reader(sc_context_t *ctx, void *pcsc_context_handle, void *pcsc_card_handle)
 {
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_NORMAL);
 	if (ctx->reader_driver->ops->use_reader != NULL)

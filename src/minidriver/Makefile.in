@@ -40,9 +40,9 @@ build_triplet = @build@
 host_triplet = @host@
 DIST_COMMON = $(am__dist_noinst_DATA_DIST) \
 	$(am__dist_sbin_SCRIPTS_DIST) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/cardmod.inf.in \
+	$(srcdir)/Makefile.in $(srcdir)/opensc-minidriver.inf.in \
 	$(top_srcdir)/win32/ltrc.inc
-subdir = src/cardmod
+subdir = src/minidriver
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
@@ -52,7 +52,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = cardmod.inf
+CONFIG_CLEAN_FILES = opensc-minidriver.inf
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -78,21 +78,23 @@ am__base_list = \
 am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(sbindir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-opensc_cardmod@LIBRARY_BITNESS@_la_DEPENDENCIES =  \
+opensc_minidriver@LIBRARY_BITNESS@_la_DEPENDENCIES =  \
 	$(am__DEPENDENCIES_1) \
 	$(top_builddir)/src/libopensc/libopensc.la
 am__dirstamp = $(am__leading_dot)dirstamp
-am_opensc_cardmod@LIBRARY_BITNESS@_la_OBJECTS = cardmod.lo \
+am_opensc_minidriver@LIBRARY_BITNESS@_la_OBJECTS = minidriver.lo \
 	$(top_builddir)/win32/versioninfo.lo
-opensc_cardmod@LIBRARY_BITNESS@_la_OBJECTS =  \
-	$(am_opensc_cardmod@LIBRARY_BITNESS@_la_OBJECTS)
-opensc_cardmod@LIBRARY_BITNESS@_la_LINK = $(LIBTOOL) --tag=CC \
+opensc_minidriver@LIBRARY_BITNESS@_la_OBJECTS =  \
+	$(am_opensc_minidriver@LIBRARY_BITNESS@_la_OBJECTS)
+opensc_minidriver@LIBRARY_BITNESS@_la_LINK = $(LIBTOOL) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_CFLAGS) $(CFLAGS) \
-	$(opensc_cardmod@LIBRARY_BITNESS@_la_LDFLAGS) $(LDFLAGS) -o $@
-@ENABLE_CARDMOD_TRUE@am_opensc_cardmod@LIBRARY_BITNESS@_la_rpath =  \
-@ENABLE_CARDMOD_TRUE@	-rpath $(libdir)
-am__dist_sbin_SCRIPTS_DIST = cardmod.inf cardmod-westcos.reg
+	$(opensc_minidriver@LIBRARY_BITNESS@_la_LDFLAGS) $(LDFLAGS) -o \
+	$@
+@ENABLE_MINIDRIVER_TRUE@am_opensc_minidriver@LIBRARY_BITNESS@_la_rpath =  \
+@ENABLE_MINIDRIVER_TRUE@	-rpath $(libdir)
+am__dist_sbin_SCRIPTS_DIST = opensc-minidriver.inf \
+	minidriver-westcos.reg
 SCRIPTS = $(dist_sbin_SCRIPTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -107,9 +109,10 @@ CCLD = $(CC)
 LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
 	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
 	$(LDFLAGS) -o $@
-SOURCES = $(opensc_cardmod@LIBRARY_BITNESS@_la_SOURCES)
-DIST_SOURCES = $(opensc_cardmod@LIBRARY_BITNESS@_la_SOURCES)
-am__dist_noinst_DATA_DIST = cardmod.inf cardmod-westcos.reg
+SOURCES = $(opensc_minidriver@LIBRARY_BITNESS@_la_SOURCES)
+DIST_SOURCES = $(opensc_minidriver@LIBRARY_BITNESS@_la_SOURCES)
+am__dist_noinst_DATA_DIST = opensc-minidriver.inf \
+	minidriver-westcos.reg
 DATA = $(dist_noinst_DATA)
 ETAGS = etags
 CTAGS = ctags
@@ -158,6 +161,7 @@ LTLIBOBJS = @LTLIBOBJS@
 LTLIB_CFLAGS = @LTLIB_CFLAGS@
 LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -219,6 +223,7 @@ abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 acx_pthread_config = @acx_pthread_config@
@@ -252,7 +257,6 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
@@ -274,23 +278,23 @@ RCCOMPILE = $(RC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS)
 
 LTRCCOMPILE = $(LIBTOOL) --mode=compile --tag=RC $(RCCOMPILE)
-MAINTAINERCLEANFILES = $(srcdir)/Makefile.in 
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 EXTRA_DIST = Makefile.mak
-@ENABLE_CARDMOD_TRUE@lib_LTLIBRARIES = opensc-cardmod@LIBRARY_BITNESS@.la
+@ENABLE_MINIDRIVER_TRUE@lib_LTLIBRARIES = opensc-minidriver@LIBRARY_BITNESS@.la
 # Do we need this on bin? Why can't we
 # put it in dedicated directory
-@ENABLE_CARDMOD_TRUE@dist_sbin_SCRIPTS = cardmod.inf cardmod-westcos.reg
-@ENABLE_CARDMOD_FALSE@dist_noinst_DATA = cardmod.inf cardmod-westcos.reg
+@ENABLE_MINIDRIVER_TRUE@dist_sbin_SCRIPTS = opensc-minidriver.inf minidriver-westcos.reg
+@ENABLE_MINIDRIVER_FALSE@dist_noinst_DATA = opensc-minidriver.inf minidriver-westcos.reg
 INCLUDES = -I$(top_srcdir)/src
-opensc_cardmod@LIBRARY_BITNESS@_la_SOURCES = cardmod.c cardmod.exports \
+opensc_minidriver@LIBRARY_BITNESS@_la_SOURCES = minidriver.c minidriver.exports \
 	$(top_builddir)/win32/versioninfo.rc
 
-opensc_cardmod@LIBRARY_BITNESS@_la_LIBADD = $(LTLIB_LIBS) \
+opensc_minidriver@LIBRARY_BITNESS@_la_LIBADD = $(LTLIB_LIBS) \
 	$(top_builddir)/src/libopensc/libopensc.la \
 	-lcrypt32
 
-opensc_cardmod@LIBRARY_BITNESS@_la_LDFLAGS = $(AM_LDFLAGS) \
-	-export-symbols "$(srcdir)/cardmod.exports" \
+opensc_minidriver@LIBRARY_BITNESS@_la_LDFLAGS = $(AM_LDFLAGS) \
+	-export-symbols "$(srcdir)/minidriver.exports" \
 	-module -avoid-version -no-undefined
 
 all: all-am
@@ -306,9 +310,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/win32/ltrc.inc $(am_
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/cardmod/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign src/minidriver/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign src/cardmod/Makefile
+	  $(AUTOMAKE) --foreign src/minidriver/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
@@ -327,7 +331,7 @@ $(top_srcdir)/configure:  $(am__configure_deps)
 $(ACLOCAL_M4):  $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
-cardmod.inf: $(top_builddir)/config.status $(srcdir)/cardmod.inf.in
+opensc-minidriver.inf: $(top_builddir)/config.status $(srcdir)/opensc-minidriver.inf.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
@@ -369,8 +373,8 @@ $(top_builddir)/win32/$(DEPDIR)/$(am__dirstamp):
 $(top_builddir)/win32/versioninfo.lo:  \
 	$(top_builddir)/win32/$(am__dirstamp) \
 	$(top_builddir)/win32/$(DEPDIR)/$(am__dirstamp)
-opensc-cardmod@LIBRARY_BITNESS@.la: $(opensc_cardmod@LIBRARY_BITNESS@_la_OBJECTS) $(opensc_cardmod@LIBRARY_BITNESS@_la_DEPENDENCIES) 
-	$(opensc_cardmod@LIBRARY_BITNESS@_la_LINK) $(am_opensc_cardmod@LIBRARY_BITNESS@_la_rpath) $(opensc_cardmod@LIBRARY_BITNESS@_la_OBJECTS) $(opensc_cardmod@LIBRARY_BITNESS@_la_LIBADD) $(LIBS)
+opensc-minidriver@LIBRARY_BITNESS@.la: $(opensc_minidriver@LIBRARY_BITNESS@_la_OBJECTS) $(opensc_minidriver@LIBRARY_BITNESS@_la_DEPENDENCIES) 
+	$(opensc_minidriver@LIBRARY_BITNESS@_la_LINK) $(am_opensc_minidriver@LIBRARY_BITNESS@_la_rpath) $(opensc_minidriver@LIBRARY_BITNESS@_la_OBJECTS) $(opensc_minidriver@LIBRARY_BITNESS@_la_LIBADD) $(LIBS)
 install-dist_sbinSCRIPTS: $(dist_sbin_SCRIPTS)
 	@$(NORMAL_INSTALL)
 	test -z "$(sbindir)" || $(MKDIR_P) "$(DESTDIR)$(sbindir)"
@@ -414,7 +418,7 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cardmod.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/minidriver.Plo@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -561,7 +565,7 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
-@ENABLE_CARDMOD_FALSE@install-exec-hook:
+@ENABLE_MINIDRIVER_FALSE@install-exec-hook:
 clean: clean-am
 
 clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
@@ -659,8 +663,8 @@ uninstall-am: uninstall-dist_sbinSCRIPTS uninstall-libLTLIBRARIES
 .rc.o:
 	$(RCCOMPILE) -i "$<" -o "$@"
 
-@ENABLE_CARDMOD_TRUE@install-exec-hook:
-@ENABLE_CARDMOD_TRUE@	mv "$(DESTDIR)$(libdir)/opensc-cardmod@LIBRARY_BITNESS@.dll" "$(DESTDIR)$(bindir)/" 
+@ENABLE_MINIDRIVER_TRUE@install-exec-hook:
+@ENABLE_MINIDRIVER_TRUE@	mv "$(DESTDIR)$(libdir)/opensc-minidriver@LIBRARY_BITNESS@.dll" "$(DESTDIR)$(bindir)/"
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

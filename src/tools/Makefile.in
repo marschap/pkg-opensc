@@ -42,7 +42,7 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 bin_PROGRAMS = opensc-tool$(EXEEXT) opensc-explorer$(EXEEXT) \
 	pkcs15-tool$(EXEEXT) pkcs15-crypt$(EXEEXT) \
 	pkcs11-tool$(EXEEXT) cardos-tool$(EXEEXT) eidenv$(EXEEXT) \
-	rutoken-tool$(EXEEXT) $(am__EXEEXT_1)
+	$(am__EXEEXT_1)
 @ENABLE_OPENSSL_TRUE@am__append_1 = cryptoflex-tool pkcs15-init netkey-tool piv-tool westcos-tool
 @WIN32_TRUE@am__append_2 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_3 = $(top_builddir)/win32/versioninfo.rc
@@ -56,7 +56,6 @@ bin_PROGRAMS = opensc-tool$(EXEEXT) opensc-explorer$(EXEEXT) \
 @WIN32_TRUE@am__append_11 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_12 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_13 = $(top_builddir)/win32/versioninfo.rc
-@WIN32_TRUE@am__append_14 = $(top_builddir)/win32/versioninfo.rc
 subdir = src/tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
@@ -143,12 +142,6 @@ am_pkcs15_tool_OBJECTS = pkcs15-tool.$(OBJEXT) util.$(OBJEXT) \
 	$(am__objects_1)
 pkcs15_tool_OBJECTS = $(am_pkcs15_tool_OBJECTS)
 pkcs15_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
-am__rutoken_tool_SOURCES_DIST = rutoken-tool.c util.c \
-	$(top_builddir)/win32/versioninfo.rc
-am_rutoken_tool_OBJECTS = rutoken-tool.$(OBJEXT) util.$(OBJEXT) \
-	$(am__objects_1)
-rutoken_tool_OBJECTS = $(am_rutoken_tool_OBJECTS)
-rutoken_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__westcos_tool_SOURCES_DIST = westcos-tool.c util.c \
 	$(top_builddir)/win32/versioninfo.rc
 am_westcos_tool_OBJECTS = westcos-tool.$(OBJEXT) util.$(OBJEXT) \
@@ -173,8 +166,7 @@ SOURCES = $(cardos_tool_SOURCES) $(cryptoflex_tool_SOURCES) \
 	$(opensc_explorer_SOURCES) $(opensc_tool_SOURCES) \
 	$(piv_tool_SOURCES) $(pkcs11_tool_SOURCES) \
 	$(pkcs15_crypt_SOURCES) $(pkcs15_init_SOURCES) \
-	$(pkcs15_tool_SOURCES) $(rutoken_tool_SOURCES) \
-	$(westcos_tool_SOURCES)
+	$(pkcs15_tool_SOURCES) $(westcos_tool_SOURCES)
 DIST_SOURCES = $(am__cardos_tool_SOURCES_DIST) \
 	$(am__cryptoflex_tool_SOURCES_DIST) $(am__eidenv_SOURCES_DIST) \
 	$(am__netkey_tool_SOURCES_DIST) \
@@ -184,7 +176,6 @@ DIST_SOURCES = $(am__cardos_tool_SOURCES_DIST) \
 	$(am__pkcs15_crypt_SOURCES_DIST) \
 	$(am__pkcs15_init_SOURCES_DIST) \
 	$(am__pkcs15_tool_SOURCES_DIST) \
-	$(am__rutoken_tool_SOURCES_DIST) \
 	$(am__westcos_tool_SOURCES_DIST)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
@@ -236,6 +227,7 @@ LTLIBOBJS = @LTLIBOBJS@
 LTLIB_CFLAGS = @LTLIB_CFLAGS@
 LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -297,6 +289,7 @@ abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 acx_pthread_config = @acx_pthread_config@
@@ -330,7 +323,6 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
@@ -381,9 +373,7 @@ cardos_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 eidenv_SOURCES = eidenv.c util.c $(am__append_11)
 netkey_tool_SOURCES = netkey-tool.c $(am__append_12)
 netkey_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
-rutoken_tool_SOURCES = rutoken-tool.c util.c $(am__append_13)
-rutoken_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
-westcos_tool_SOURCES = westcos-tool.c util.c $(am__append_14)
+westcos_tool_SOURCES = westcos-tool.c util.c $(am__append_13)
 westcos_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 all: all-am
 
@@ -504,9 +494,6 @@ pkcs15-init$(EXEEXT): $(pkcs15_init_OBJECTS) $(pkcs15_init_DEPENDENCIES)
 pkcs15-tool$(EXEEXT): $(pkcs15_tool_OBJECTS) $(pkcs15_tool_DEPENDENCIES) 
 	@rm -f pkcs15-tool$(EXEEXT)
 	$(LINK) $(pkcs15_tool_OBJECTS) $(pkcs15_tool_LDADD) $(LIBS)
-rutoken-tool$(EXEEXT): $(rutoken_tool_OBJECTS) $(rutoken_tool_DEPENDENCIES) 
-	@rm -f rutoken-tool$(EXEEXT)
-	$(LINK) $(rutoken_tool_OBJECTS) $(rutoken_tool_LDADD) $(LIBS)
 westcos-tool$(EXEEXT): $(westcos_tool_OBJECTS) $(westcos_tool_DEPENDENCIES) 
 	@rm -f westcos-tool$(EXEEXT)
 	$(LINK) $(westcos_tool_OBJECTS) $(westcos_tool_LDADD) $(LIBS)
@@ -529,7 +516,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-crypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-init.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-tool.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rutoken-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/westcos-tool.Po@am__quote@
 

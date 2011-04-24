@@ -589,7 +589,7 @@ open_reader_and_card(char *reader)
 
 	if (verbose > 1) {
 		ctx->debug = verbose;
-		ctx->debug_file = stderr;
+		sc_ctx_log_to_file(ctx, "stderr");
 	}
 
 	if (util_connect_card(ctx, &card, reader, opt_wait, verbose))
@@ -648,7 +648,6 @@ do_erase(sc_card_t *in_card, struct sc_profile *profile)
 
 	p15card = sc_pkcs15_card_new();
 	p15card->card = in_card;
-	p15card->tokeninfo->label = strdup("Dummy PKCS#15 object");
 
 	ignore_cmdline_pins++;
 	if (opt_bind_to_aid)   {
@@ -856,7 +855,7 @@ do_store_private_key(struct sc_profile *profile)
 
 	if ((r = do_convert_private_key(&args.key, pkey)) < 0)
 		return r;
-	init_gost_params(&args.gost_params, pkey);
+	init_gost_params(&args.params.gost, pkey);
 
 	if (ncerts) {
 		unsigned int	usage;
@@ -1003,11 +1002,10 @@ do_store_public_key(struct sc_profile *profile, EVP_PKEY *pkey)
 	if (r >= 0) {
 		r = do_convert_public_key(&args.key, pkey);
 		if (r >= 0)
-			init_gost_params(&args.gost_params, pkey);
+			init_gost_params(&args.params.gost, pkey);
 	}
 	if (r >= 0)
-		r = sc_pkcs15init_store_public_key(p15card, profile,
-					&args, &dummy);
+		r = sc_pkcs15init_store_public_key(p15card, profile, &args, &dummy);
 
 	return r;
 }
@@ -1456,23 +1454,32 @@ do_generate_key(struct sc_profile *profile, const char *spec)
 		keygen_args.prkey_args.key.algorithm = SC_ALGORITHM_GOSTR3410;
 		keybits = SC_PKCS15_GOSTR3410_KEYSIZE;
 		/* FIXME: now only SC_PKCS15_PARAMSET_GOSTR3410_A */
-		keygen_args.prkey_args.gost_params.gostr3410 =
-			SC_PKCS15_PARAMSET_GOSTR3410_A;
+		keygen_args.prkey_args.params.gost.gostr3410 = SC_PKCS15_PARAMSET_GOSTR3410_A;
 		spec += strlen("gost2001");
+	} else if (!strncasecmp(spec, "ec", 2)) {
+		keygen_args.prkey_args.key.algorithm = SC_ALGORITHM_EC;
+		spec += 2;
 	} else {
 		util_error("Unknown algorithm \"%s\"", spec);
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 
-	if (*spec == '/' || *spec == '-')
+	if (*spec == '/' || *spec == '-' || *spec == ':')
 		spec++;
-	if (*spec) {
-		char	*end;
 
-		keybits = strtoul(spec, &end, 10);
-		if (*end) {
-			util_error("Invalid number of key bits \"%s\"", spec);
-			return SC_ERROR_INVALID_ARGUMENTS;
+	if (*spec)   {
+		if (isalpha(*spec) && keygen_args.prkey_args.key.algorithm == SC_ALGORITHM_EC)   {
+			keygen_args.prkey_args.params.ec.named_curve = strdup(spec);
+			keybits = 0;
+		}
+		else {
+			char	*end;
+
+			keybits = strtoul(spec, &end, 10);
+			if (*end) {
+				util_error("Invalid number of key bits \"%s\"", spec);
+				return SC_ERROR_INVALID_ARGUMENTS;
+			}
 		}
 	}
 	r = sc_pkcs15init_generate_key(p15card, profile, &keygen_args, keybits, NULL);
