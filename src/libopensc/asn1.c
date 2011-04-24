@@ -653,7 +653,7 @@ int sc_asn1_encode_object_id(u8 **buf, size_t *buflen,
 	int	i;
 	const int *value = (const int *) id->value;
 
-	for (i = 0; value[i] > 0 && i < SC_MAX_OBJECT_ID_OCTETS; i++) {
+	for (i = 0; i < SC_MAX_OBJECT_ID_OCTETS && value[i] >= 0; i++) {
 		unsigned int k, shift;
 
 		k = value[i];
@@ -729,10 +729,10 @@ static int asn1_write_element(sc_context_t *ctx, unsigned int tag,
 {
 	unsigned char t;
 	unsigned char *buf, *p;
-	int c = 0, ii;
+	int c = 0;
 	unsigned short_tag;
 	unsigned char tag_char[3] = {0, 0, 0};
-	size_t tag_len;
+	size_t tag_len, ii;
 	
 	short_tag = tag & SC_ASN1_TAG_MASK;
 	for (tag_len = 0; short_tag >> (8 * tag_len); tag_len++)
@@ -1645,16 +1645,37 @@ _sc_asn1_decode(sc_context_t *ctx, struct sc_asn1_entry *asn1,
 	return asn1_decode(ctx, asn1, in, len, newp, left, choice, depth);
 }
 
-void
+int
 sc_der_copy(sc_pkcs15_der_t *dst, const sc_pkcs15_der_t *src)
 {
 	memset(dst, 0, sizeof(*dst));
 	if (src->len) {
 		dst->value = malloc(src->len);
 		if (!dst->value)
-			return;
+			return SC_ERROR_OUT_OF_MEMORY;
 		dst->len = src->len;
 		memcpy(dst->value, src->value, src->len);
 	}
+	return SC_SUCCESS;
+}
+
+int
+sc_encode_oid (struct sc_context *ctx, struct sc_object_id *id, 
+		unsigned char **out, size_t *size)
+{
+	static const struct sc_asn1_entry c_asn1_object_id[2] = {
+        	{ "oid", SC_ASN1_OBJECT, SC_ASN1_TAG_OBJECT, SC_ASN1_ALLOC, NULL, NULL },
+		{ NULL, 0, 0, 0, NULL, NULL }
+	};
+	struct sc_asn1_entry asn1_object_id[2];
+	int rv;
+
+	sc_copy_asn1_entry(c_asn1_object_id, asn1_object_id);
+	sc_format_asn1_entry(asn1_object_id + 0, id, NULL, 1);
+
+	rv = _sc_asn1_encode(ctx, asn1_object_id, out, size, 1);
+	LOG_TEST_RET(ctx, rv, "Cannot encode object ID");
+
+	return SC_SUCCESS;
 }
 

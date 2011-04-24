@@ -213,6 +213,7 @@ static void print_cert_info(const struct sc_pkcs15_object *obj)
 {
 	struct sc_pkcs15_cert_info *cert_info = (struct sc_pkcs15_cert_info *) obj->data;
 	struct sc_pkcs15_cert *cert_parsed = NULL;
+	char guid[39];
 	int rv;
 
 	printf("X.509 Certificate [%s]\n", obj->label);
@@ -220,6 +221,10 @@ static void print_cert_info(const struct sc_pkcs15_object *obj)
 	printf("\tAuthority      : %s\n", cert_info->authority ? "yes" : "no");
 	printf("\tPath           : %s\n", sc_print_path(&cert_info->path));
 	printf("\tID             : %s\n", sc_pkcs15_print_id(&cert_info->id));
+
+	rv = sc_pkcs15_get_guid(p15card, obj, guid, sizeof(guid));
+	if (!rv)
+		printf("\tGUID           : %s\n", guid);
 
 	print_access_rules(obj->access_rules, SC_PKCS15_MAX_ACCESS_RULES);
 
@@ -249,6 +254,7 @@ static int list_certificates(void)
 		print_cert_info(objs[i]);
 		printf("\n");
 	}
+
 	return 0;
 }
 
@@ -487,7 +493,7 @@ static void print_prkey_info(const struct sc_pkcs15_object *obj)
 {
 	unsigned int i;
 	struct sc_pkcs15_prkey_info *prkey = (struct sc_pkcs15_prkey_info *) obj->data;
-	const char *types[] = { "", "RSA", "DSA", "GOSTR3410" };
+	const char *types[] = { "", "RSA", "DSA", "GOSTR3410", "EC", "", "", "" };
 	const char *usages[] = {
 		"encrypt", "decrypt", "sign", "signRecover",
 		"wrap", "unwrap", "verify", "verifyRecover",
@@ -499,8 +505,9 @@ static void print_prkey_info(const struct sc_pkcs15_object *obj)
 		"neverExtract", "local"
 	};
 	const unsigned int af_count = NELEMENTS(access_flags);
+	char guid[39];
 
-	printf("Private %s Key [%s]\n", types[3 & obj->type], obj->label);
+	printf("Private %s Key [%s]\n", types[7 & obj->type], obj->label);
 	print_common_flags(obj);
 	printf("\tUsage          : [0x%X]", prkey->usage);
 	for (i = 0; i < usage_count; i++)
@@ -517,14 +524,21 @@ static void print_prkey_info(const struct sc_pkcs15_object *obj)
 
 	print_access_rules(obj->access_rules, SC_PKCS15_MAX_ACCESS_RULES);
 
-	printf("\tModLength      : %lu\n", (unsigned long)prkey->modulus_length);
-	printf("\tKey ref        : %d\n", prkey->key_reference);
+	if (prkey->modulus_length)
+		printf("\tModLength      : %lu\n", (unsigned long)prkey->modulus_length);
+	else
+		printf("\tFieldLength      : %lu\n", (unsigned long)prkey->field_length);
+	printf("\tKey ref        : %d (0x%X)\n", prkey->key_reference, prkey->key_reference);
 	printf("\tNative         : %s\n", prkey->native ? "yes" : "no");
 	if (prkey->path.len || prkey->path.aid.len)
 		printf("\tPath           : %s\n", sc_print_path(&prkey->path));
 	if (obj->auth_id.len != 0)
 		printf("\tAuth ID        : %s\n", sc_pkcs15_print_id(&obj->auth_id));
 	printf("\tID             : %s\n", sc_pkcs15_print_id(&prkey->id));
+
+	if (!sc_pkcs15_get_guid(p15card, obj, guid, sizeof(guid)))
+		printf("\tGUID           : %s\n", guid);
+
 }
 
 
@@ -551,7 +565,7 @@ static void print_pubkey_info(const struct sc_pkcs15_object *obj)
 {
 	unsigned int i;
 	const struct sc_pkcs15_pubkey_info *pubkey = (const struct sc_pkcs15_pubkey_info *) obj->data;
-	const char *types[] = { "", "RSA", "DSA", "GOSTR3410" };
+	const char *types[] = { "", "RSA", "DSA", "GOSTR3410", "EC", "", "", "" };
 	const char *usages[] = {
 		"encrypt", "decrypt", "sign", "signRecover",
 		"wrap", "unwrap", "verify", "verifyRecover",
@@ -564,7 +578,7 @@ static void print_pubkey_info(const struct sc_pkcs15_object *obj)
 	};
 	const unsigned int af_count = NELEMENTS(access_flags);
 
-	printf("Public %s Key [%s]\n", types[3 & obj->type], obj->label);
+	printf("Public %s Key [%s]\n", types[7 & obj->type], obj->label);
 	print_common_flags(obj);
 	printf("\tUsage          : [0x%X]", pubkey->usage);
 	for (i = 0; i < usage_count; i++)
@@ -581,7 +595,10 @@ static void print_pubkey_info(const struct sc_pkcs15_object *obj)
 
 	print_access_rules(obj->access_rules, SC_PKCS15_MAX_ACCESS_RULES);
 
-	printf("\tModLength      : %lu\n", (unsigned long)pubkey->modulus_length);
+	if (pubkey->modulus_length)
+		printf("\tModLength      : %lu\n", (unsigned long)pubkey->modulus_length);
+	else
+		printf("\tFieldLength      : %lu\n", (unsigned long)pubkey->field_length);
 	printf("\tKey ref        : %d\n", pubkey->key_reference);
 	printf("\tNative         : %s\n", pubkey->native ? "yes" : "no");
 	if (pubkey->path.len)
@@ -1768,7 +1785,7 @@ int main(int argc, char * const argv[])
 
 	if (verbose > 1) {
 		ctx->debug = verbose;
-		ctx->debug_file = stderr;
+		sc_ctx_log_to_file(ctx, "stderr");
 	}
                                          
 	err = util_connect_card(ctx, &card, opt_reader, opt_wait, verbose);

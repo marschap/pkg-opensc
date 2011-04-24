@@ -34,6 +34,12 @@
 #include "libopensc/cardctl.h"
 #include "util.h"
 
+/* type for associations of IDs to names */
+typedef struct _id2str {
+	unsigned int id;
+	const char *str;
+} id2str_t;
+
 static const char *app_name = "opensc-tool";
 
 static int	opt_wait = 0;
@@ -309,21 +315,6 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 {
 	int r;
 	const char *tmps;
-	const char *ac_ops_df[] = {
-		"select", "lock", "delete", "create", "rehab", "inval",
-		"list"
-	};
-	struct ac_op_str {
-		unsigned int ac_op;
-		const char *str;
-	} const ac_ops_ef[] = {
-		{ SC_AC_OP_READ, "read" },
-		{ SC_AC_OP_UPDATE, "update" },
-		{ SC_AC_OP_ERASE, "erase" },
-		{ SC_AC_OP_WRITE, "write" },
-		{ SC_AC_OP_REHABILITATE, "rehab" },
-		{ SC_AC_OP_INVALIDATE, "inval" }
-	};
 
 	for (r = 0; r < depth; r++)
 		printf("  ");
@@ -349,25 +340,58 @@ static int print_file(sc_card_t *in_card, const sc_file_t *file,
 	}
 	printf("type: %-3s, ", tmps);
 	if (file->type != SC_FILE_TYPE_DF) {
-		const char *structs[] = {
-			"unknown", "transpnt", "linrfix", "linrfix(TLV)",
-			"linvar", "linvar(TLV)", "lincyc", "lincyc(TLV)"
+		const id2str_t ef_type_name[] = {
+			{ SC_FILE_EF_TRANSPARENT,         "transpnt"     },
+			{ SC_FILE_EF_LINEAR_FIXED,        "linrfix"      },
+			{ SC_FILE_EF_LINEAR_FIXED_TLV,    "linrfix(TLV)" },
+			{ SC_FILE_EF_LINEAR_VARIABLE,     "linvar"       },
+			{ SC_FILE_EF_LINEAR_VARIABLE_TLV, "linvar(TLV)"  },
+			{ SC_FILE_EF_CYCLIC,              "lincyc"       },
+			{ SC_FILE_EF_CYCLIC_TLV,          "lincyc(TLV)"  },
+			{ 0, NULL }
 		};
-		int ef_type = file->ef_structure;
-		if (ef_type < 0 || ef_type > 7)
-			ef_type = 0;	/* invalid or unknow ef type */
-		printf("ef structure: %s, ", structs[ef_type]);
+		const char *ef_type = "unknown";
+
+		for (r = 0; ef_type_name[r].str != NULL; r++)
+			if (file->ef_structure == ef_type_name[r].id)
+				ef_type = ef_type_name[r].str;
+
+		printf("ef structure: %s, ", ef_type);
 	}
 	printf("size: %lu\n", (unsigned long) file->size);
 	for (r = 0; r < depth; r++)
 		printf("  ");
-	if (file->type == SC_FILE_TYPE_DF)
-		for (r = 0; r < (int) (sizeof(ac_ops_df)/sizeof(ac_ops_df[0])); r++)
-			printf("%s[%s] ", ac_ops_df[r], util_acl_to_str(sc_file_get_acl_entry(file, r)));
-	else
-		for (r = 0; r < (int) (sizeof(ac_ops_ef)/sizeof(ac_ops_ef[0])); r++)
+	if (file->type == SC_FILE_TYPE_DF) {
+		const id2str_t ac_ops_df[] = {
+			{ SC_AC_OP_SELECT,       "select" },
+			{ SC_AC_OP_LOCK,         "lock"   },
+			{ SC_AC_OP_DELETE,       "delete" },
+			{ SC_AC_OP_CREATE,       "create" },
+			{ SC_AC_OP_REHABILITATE, "rehab"  },
+			{ SC_AC_OP_INVALIDATE,   "inval"  },
+			{ SC_AC_OP_LIST_FILES,   "list"   },
+			{ 0, NULL }
+		};
+
+		for (r = 0; ac_ops_df[r].str != NULL; r++)
+			printf("%s[%s] ", ac_ops_df[r].str,
+					 util_acl_to_str(sc_file_get_acl_entry(file, ac_ops_df[r].id)));
+	}
+	else {
+		const id2str_t ac_ops_ef[] = {
+			{ SC_AC_OP_READ,         "read"   },
+			{ SC_AC_OP_UPDATE,       "update" },
+			{ SC_AC_OP_ERASE,        "erase"  },
+			{ SC_AC_OP_WRITE,        "write"  },
+			{ SC_AC_OP_REHABILITATE, "rehab"  },
+			{ SC_AC_OP_INVALIDATE,   "inval"  },
+			{ 0, NULL }
+		};
+
+		for (r = 0; ac_ops_ef[r].str != NULL; r++)
 			printf("%s[%s] ", ac_ops_ef[r].str,
-					util_acl_to_str(sc_file_get_acl_entry(file, ac_ops_ef[r].ac_op)));
+					util_acl_to_str(sc_file_get_acl_entry(file, ac_ops_ef[r].id)));
+	}
 
 	if (file->sec_attr_len) {
 		printf("sec: ");
@@ -472,6 +496,7 @@ static int send_apdu(void)
 	  rbuf[SC_MAX_APDU_BUFFER_SIZE], *p;
 	size_t len, len0, r;
 	int c;
+	int cse = 0;
 
 	for (c = 0; c < opt_apdu_count; c++) {
 		len0 = sizeof(buf);
@@ -482,6 +507,8 @@ static int send_apdu(void)
 		}
 		len = len0;
 		p = buf;
+
+		/* TODO: move this to apdu.c as bytes2apdu or similar. See #237 */
 		memset(&apdu, 0, sizeof(apdu));
 		apdu.cla = *p++;
 		apdu.ins = *p++;
@@ -490,40 +517,73 @@ static int send_apdu(void)
 		apdu.resp = rbuf;
 		apdu.resplen = sizeof(rbuf);
 		len -= 4;
-		if (len > 1) {
-			apdu.lc = *p++;
-			len--;
-			memcpy(sbuf, p, apdu.lc);
-			apdu.data = sbuf;
-			apdu.datalen = apdu.lc;
-			if (len < apdu.lc) {
-				fprintf(stderr, "APDU too short (need %lu bytes).\n",
-					(unsigned long) apdu.lc-len);
-				return 2;
-			}
-			len -= apdu.lc;
-			p   += apdu.lc;
-			if (len) {
-				apdu.le = *p++;
-				if (apdu.le == 0)
-					apdu.le = 256;
-				len--;
-				apdu.cse = SC_APDU_CASE_4_SHORT;
-			} else
-				apdu.cse = SC_APDU_CASE_3_SHORT;
-			if (len) {
-				fprintf(stderr, "APDU too long (%lu bytes extra).\n",
-					(unsigned long) len);
-				return 2;
-			}
-		} else if (len == 1) {
-			apdu.le = *p++;
-			if (apdu.le == 0)
-				apdu.le = 256;
-			len--;
-			apdu.cse = SC_APDU_CASE_2_SHORT;
-		} else
+
+		if (len == 0) {
 			apdu.cse = SC_APDU_CASE_1;
+		}
+		else {
+			size_t size = 0;
+
+			if ((*p == 0) && (len >= 3)) {
+				cse |= SC_APDU_EXT;
+				p++;
+				size = (*p++) << 8;
+				size += *p++;
+				len -= 3;
+			}
+			else {
+				size = *p++;
+				len--;
+			}
+			if (len == 0) {
+				apdu.le = (size == 0) ? 256 : size;
+				if ((apdu.le == 0) && (cse & SC_APDU_EXT))
+					apdu.le <<= 8;
+				apdu.cse = SC_APDU_CASE_2_SHORT | cse;
+			}
+			else {
+				apdu.lc = size;
+				if (len < apdu.lc) {
+					printf("APDU too short (need %lu bytes)\n",
+						(unsigned long) apdu.lc - len);
+					return 1;
+				}
+				memcpy(sbuf, p, apdu.lc);
+				apdu.data = sbuf;
+				apdu.datalen = apdu.lc;
+				len -= apdu.lc;
+				p += apdu.lc;
+				if (len == 0) {
+					apdu.cse = SC_APDU_CASE_3_SHORT | cse;
+				}
+				else {
+					apdu.le = 0;
+					if (cse & SC_APDU_EXT) {
+						if (len < 2) {
+							printf("APDU too short (need %lu bytes)\n",
+								(unsigned long) apdu.lc - len);
+							return 1;
+						}
+						size = (*p++) << 8;
+						size += *p++;
+						len -= 2;
+						apdu.le = (size == 0) ? 65536 : size;
+					}
+					else {
+						size = *p++;
+						len--;
+						apdu.le = (size == 0) ? 256 : size;
+					}
+					apdu.cse = SC_APDU_CASE_4_SHORT | cse;
+					if (len) {
+						printf("APDU too long (%lu bytes extra)\n",
+							(unsigned long) len);
+						return 1;
+					}
+				}
+			}
+		}
+
 		printf("Sending: ");
 		for (r = 0; r < len0; r++)
 			printf("%02X ", buf[r]);
@@ -556,81 +616,88 @@ static void print_serial(sc_card_t *in_card)
 static int list_algorithms(void) 
 {
 	int i; 
-	const char *aname; 
+	const char *aname = "unknown";
+
+	const id2str_t alg_type_names[] = {
+		{ SC_ALGORITHM_RSA,       "rsa"       },
+		{ SC_ALGORITHM_DSA,       "dsa"       },
+		{ SC_ALGORITHM_EC,        "ec"        },
+		{ SC_ALGORITHM_GOSTR3410, "gostr3410" },
+		{ SC_ALGORITHM_DES,       "des"       },
+		{ SC_ALGORITHM_3DES,      "3des"      },
+		{ SC_ALGORITHM_GOST,      "gost"      },
+		{ SC_ALGORITHM_MD5,       "md5"       },
+		{ SC_ALGORITHM_SHA1,      "sha1"      },
+		{ SC_ALGORITHM_GOSTR3411, "gostr3411" },
+		{ SC_ALGORITHM_PBKDF2,    "pbkdf2"    },
+		{ SC_ALGORITHM_PBES2,     "pbes2"     },
+		{ 0, NULL }
+	};
+	const id2str_t alg_flag_names[] = {
+		{ SC_ALGORITHM_ONBOARD_KEY_GEN, "onboard key generation" },
+		{ SC_ALGORITHM_NEED_USAGE,      "needs usage"            },
+		{ 0, NULL }
+	};
+	const id2str_t rsa_flag_names[] = {
+		{ SC_ALGORITHM_RSA_PAD_PKCS1,      "pkcs1"     },
+		{ SC_ALGORITHM_RSA_PAD_ANSI,       "ansi"      },
+		{ SC_ALGORITHM_RSA_PAD_ISO9796,    "iso9796"   },
+		{ SC_ALGORITHM_RSA_HASH_SHA1,      "sha1"      },
+		{ SC_ALGORITHM_RSA_HASH_MD5,       "MD5"       },
+		{ SC_ALGORITHM_RSA_HASH_MD5_SHA1,  "md5-sha1"  },
+		{ SC_ALGORITHM_RSA_HASH_RIPEMD160, "ripemd160" },
+		{ SC_ALGORITHM_RSA_HASH_SHA256,    "sha256"    },
+		{ SC_ALGORITHM_RSA_HASH_SHA384,    "sha384"    },
+		{ SC_ALGORITHM_RSA_HASH_SHA512,    "sha512"    },
+		{ SC_ALGORITHM_RSA_HASH_SHA224,    "sha224"    },
+		{ 0, NULL }
+	};
 
 	if (verbose)
 		printf("Card supports %d algorithm(s)\n\n",card->algorithm_count); 
   
 	for (i=0; i < card->algorithm_count; i++) { 
-		switch (card->algorithms[i].algorithm) { 
-		case SC_ALGORITHM_RSA: 
-			aname = "rsa"; 
-			break; 
-		case SC_ALGORITHM_DSA: 
-			aname = "dsa"; 
-			aname = "ec"; 
-			break; 
-		case SC_ALGORITHM_DES: 
-			aname = "des"; 
-			break; 
-		case SC_ALGORITHM_3DES: 
-			aname = "3des"; 
-			break; 
-		case SC_ALGORITHM_MD5: 
-			aname = "md5"; 
-			break; 
-		case SC_ALGORITHM_SHA1: 
-			aname = "sha1"; 
-			break; 
-		case SC_ALGORITHM_PBKDF2: 
-			aname = "pbkdf2"; 
-			break; 
-		case SC_ALGORITHM_PBES2: 
-			aname = "pbes2"; 
-			break;
-		case SC_ALGORITHM_GOSTR3410:
-			aname = "gost";
-			break;
-		default: 
-			aname = "unknown"; 
-			break; 
-		} 
-  
+		int j;
+
+		/* find algorithm name */
+		for (j = 0; alg_type_names[j].str != NULL; j++) {
+			if (card->algorithms[i].algorithm == alg_type_names[j].id) {
+				aname = alg_type_names[j].str;
+				break;
+			}
+		}
+
 		printf("Algorithm: %s\n", aname); 
 		printf("Key length: %d\n", card->algorithms[i].key_length); 
 		printf("Flags:"); 
-		if (card->algorithms[i].flags & SC_ALGORITHM_ONBOARD_KEY_GEN) 
-			printf(" onboard key generation"); 
-		if (card->algorithms[i].flags & SC_ALGORITHM_NEED_USAGE) 
-			printf(" needs usage"); 
+
+		/* print general flags */
+		for (j = 0; alg_flag_names[j].str != NULL; j++)
+			if (card->algorithms[i].flags & alg_flag_names[j].id)
+				printf(" %s", alg_flag_names[j].str);
+
+		/* print RSA spcific flags */
 		if ( card->algorithms[i].algorithm == SC_ALGORITHM_RSA) { 
 			int padding = card->algorithms[i].flags 
 					& SC_ALGORITHM_RSA_PADS; 
 			int hashes =  card->algorithms[i].flags 
 					& SC_ALGORITHM_RSA_HASHES; 
 					 
+			/* print RSA padding flags */
 			printf(" padding ("); 
+			for (j = 0; rsa_flag_names[j].str != NULL; j++)
+				if (padding & rsa_flag_names[j].id)
+					printf(" %s", rsa_flag_names[j].str);
 			if (padding == SC_ALGORITHM_RSA_PAD_NONE)  
 				printf(" none"); 
-			if (padding & SC_ALGORITHM_RSA_PAD_PKCS1) 
-				printf(" pkcs1"); 
-			if (padding & SC_ALGORITHM_RSA_PAD_ANSI) 
-				printf(" ansi"); 
-			if (padding & SC_ALGORITHM_RSA_PAD_ISO9796) 
-				printf(" iso9796"); 
-  
 			printf(" ) "); 
+			/* print RSA hash flags */
 			printf("hashes ("); 
-			if (hashes & SC_ALGORITHM_RSA_HASH_NONE) 
+			for (j = 0; rsa_flag_names[j].str != NULL; j++)
+				if (hashes & rsa_flag_names[j].id)
+					printf(" %s", rsa_flag_names[j].str);
+			if (hashes == SC_ALGORITHM_RSA_HASH_NONE)
 				printf(" none"); 
-			if (hashes & SC_ALGORITHM_RSA_HASH_SHA1) 
-				printf(" sha1"); 
-			if (hashes & SC_ALGORITHM_RSA_HASH_MD5) 
-				printf(" MD5"); 
-			if (hashes & SC_ALGORITHM_RSA_HASH_MD5_SHA1) 
-				printf(" md5-sha1"); 
-			if (hashes & SC_ALGORITHM_RSA_HASH_RIPEMD160) 
-				printf(" ripemd160"); 
 			printf(" )"); 
 		} 
 		printf("\n"); 
@@ -760,7 +827,7 @@ int main(int argc, char * const argv[])
 
 	if (verbose > 1) {
 		ctx->debug = verbose;
-		ctx->debug_file = stderr;
+		sc_ctx_log_to_file(ctx, "stderr");
 	}
 
 	if (do_get_conf_entry) {

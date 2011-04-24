@@ -125,7 +125,7 @@ struct sc_pkcs15init_operations {
 	 * Delete object
 	 */
 	int (*delete_object)(struct sc_profile *, struct sc_pkcs15_card *,
-			unsigned int, const void *, const struct sc_path *);
+			struct sc_pkcs15_object *, const struct sc_path *);
 
 	/*
 	 * Support of pkcs15init emulation
@@ -205,7 +205,11 @@ struct sc_pkcs15init_prkeyargs {
 	unsigned long		x509_usage;
 	unsigned int		flags;
 	unsigned int		access_flags;
-	struct sc_pkcs15init_keyarg_gost_params gost_params;
+
+	union {
+		struct sc_pkcs15init_keyarg_gost_params gost;
+		struct sc_pkcs15_ec_parameters ec;
+	} params;
 
 	struct sc_pkcs15_prkey	key;
 
@@ -226,7 +230,11 @@ struct sc_pkcs15init_pubkeyargs {
 	const char *		label;
 	unsigned long		usage;
 	unsigned long		x509_usage;
-	struct sc_pkcs15init_keyarg_gost_params gost_params;
+
+	union {
+		struct sc_pkcs15init_keyarg_gost_params gost;
+		struct sc_pkcs15_ec_parameters ec;
+	} params;
 
 	struct sc_pkcs15_pubkey	key;
 };
@@ -312,6 +320,10 @@ extern int	sc_pkcs15init_change_attrib(struct sc_pkcs15_card *,
 				int,
 				void *,
 				int);
+extern int	sc_pkcs15init_add_object(struct sc_pkcs15_card *,
+			struct sc_profile *profile,
+			unsigned int,
+			struct sc_pkcs15_object *);
 extern int	sc_pkcs15init_delete_object(struct sc_pkcs15_card *,
 				struct sc_profile *,
 				struct sc_pkcs15_object *);
@@ -390,6 +402,7 @@ extern struct sc_pkcs15init_operations *sc_pkcs15init_get_westcos_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_myeid_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_authentic_ops(void);
 extern struct sc_pkcs15init_operations *sc_pkcs15init_get_iasecc_ops(void);
+extern struct sc_pkcs15init_operations *sc_pkcs15init_get_piv_ops(void);
 
 #ifdef __cplusplus
 }

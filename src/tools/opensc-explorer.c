@@ -155,6 +155,18 @@ static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
 				path->type = SC_PATH_TYPE_PATH;
 		} else {
 			*path = current_path;
+			if (path->type == SC_PATH_TYPE_DF_NAME)   {
+				if (path->len > sizeof(path->aid.value))   {
+					printf("Invalid length of DF_NAME path\n");
+					return -1;
+				}
+
+				memcpy(path->aid.value, path->value, path->len);
+				path->aid.len = path->len;
+
+				path->type = SC_PATH_TYPE_FILE_ID;
+				path->len = 0;
+			}
 			sc_append_path_id(path, cbuf, 2);
 		}
 	}
@@ -164,17 +176,9 @@ static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
 
 static void print_file(const sc_file_t *file)
 {
-	const char *st;
+	const char *format = " %02X%02X ";
+	const char *st = "???";
 
-	if (file->type == SC_FILE_TYPE_DF)
-		printf("[");
-	else
-		printf(" ");
-	printf("%02X%02X", file->id >> 8, file->id & 0xFF);
-	if (file->type == SC_FILE_TYPE_DF)
-		printf("]");
-	else
-		printf(" ");
 	switch (file->type) {
 	case SC_FILE_TYPE_WORKING_EF:
 		st = "wEF";
@@ -183,12 +187,11 @@ static void print_file(const sc_file_t *file)
 		st = "iEF";
 		break;
 	case SC_FILE_TYPE_DF:
+		format = "[%02X%02X]";
 		st = "DF";
 		break;
-	default:
-		st = "???";
-		break;
 	}
+	printf(format, file->id >> 8, file->id & 0xFF);
 	printf("\t%4s", st);
 	printf(" %5lu", (unsigned long)file->size);
 	if (file->namelen) {
@@ -254,12 +257,19 @@ static int do_cd(int argc, char **argv)
 	if (argc != 1)
 		goto usage;
 	if (strcmp(argv[0], "..") == 0) {
-		if (current_path.len < 4) {
+		path = current_path;
+		if (path.len < 4) {
 			printf("unable to go up, already in MF.\n");
 			return -1;
 		}
-		path = current_path;
-		path.len -= 2;
+
+		if (path.type == SC_PATH_TYPE_DF_NAME)   {
+			sc_format_path("3F00", &path);
+		}
+		else   {
+			path.len -= 2;
+		}
+
 		r = sc_select_file(card, &path, &file);
 		if (r) {
 			printf("unable to go up: %s\n", sc_strerror(r));
@@ -351,7 +361,6 @@ static int do_cat(int argc, char **argv)
 	sc_file_t *file = NULL;
 	int not_current = 1;
 	int sfi = 0;
-	const char sfi_prefix[] = "sfi:";
 
 	if (argc > 1)
 		goto usage;
@@ -360,17 +369,10 @@ static int do_cat(int argc, char **argv)
 		file = current_file;
 		not_current = 0;
 	} else {
-		if (strncmp(argv[0], sfi_prefix, sizeof(sfi_prefix)-1)) {
-			if (arg_to_path(argv[0], &path, 1) != 0)
-				goto usage;
-			r = sc_select_file(card, &path, &file);
-			if (r) {
-				check_ret(r, SC_AC_OP_SELECT, "unable to select file",
-					current_file);
-				goto err;
-			}
-		} else {
-			const char *sfi_n = &argv[0][sizeof(sfi_prefix)-1];
+		const char sfi_prefix[] = "sfi:";
+
+		if (strncasecmp(argv[0], sfi_prefix, strlen(sfi_prefix)) == 0) {
+			const char *sfi_n = argv[0] + strlen(sfi_prefix);
 
 			if(!current_file) {
 				printf("A DF must be selected to read by SFI\n");
@@ -383,6 +385,15 @@ static int do_cat(int argc, char **argv)
 			if ((sfi < 1) || (sfi > 30)) {
 				printf("Invalid SFI: %s\n", sfi_n);
 				goto usage;
+			}
+		} else {
+			if (arg_to_path(argv[0], &path, 0) != 0)
+				goto usage;
+			r = sc_select_file(card, &path, &file);
+			if (r) {
+				check_ret(r, SC_AC_OP_SELECT, "unable to select file",
+					current_file);
+				goto err;
 			}
 		}
 	}
@@ -903,7 +914,9 @@ static int do_get(int argc, char **argv)
 		fbuf[5*i-1] = 0;
 		filename = fbuf;
 	}
-	outf = fopen(filename, "wb");
+	outf = (strcmp(filename, "-") == 0)
+		? stdout
+		: fopen(filename, "wb");
 	if (outf == NULL) {
 		perror(filename);
 		goto err;
@@ -936,14 +949,19 @@ static int do_get(int argc, char **argv)
 		idx += r;
 		count -= r;
 	}
-	printf("Total of %d bytes read from %s and saved to %s.\n",
-	       idx, argv[0], filename);
+	if (outf == stdout) {
+		fwrite("\n", 1, 1, outf);
+	}
+	else {
+		printf("Total of %d bytes read from %s and saved to %s.\n",
+		       idx, argv[0], filename);
+	}
 	
 	err = 0;
 err:
 	if (file)
 		sc_file_free(file);
-	if (outf)
+	if (outf != NULL && outf != stdout)
 		fclose(outf);
 	select_current_path_or_die();
 	return -err;
@@ -1193,10 +1211,8 @@ static int do_debug(int argc, char **argv)
 			return -1;
 		printf("Debug level set to %d\n", i);
 		ctx->debug = i;
-		if (i) {
-			ctx->debug_file = stderr;
-		} else {
-			ctx->debug_file = NULL;
+		if (i > 1) {
+			sc_ctx_log_to_file(ctx, "stderr");
 		}
 	}
 	return 0;
@@ -1305,6 +1321,7 @@ static int do_apdu(int argc, char **argv)
 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
 	u8 *p;
 	size_t len, len0, r, ii;
+	int cse = 0;
 
 	if (argc < 1) {
 		puts("Usage: apdu [apdu:hex:codes:...]");
@@ -1323,6 +1340,7 @@ static int do_apdu(int argc, char **argv)
 	}
 	len0 = len;
 
+	/* TODO: move this to apdu.c as bytes2apdu or similar. See #237 */
 	memset(&apdu, 0, sizeof(apdu));
 	p = buf;
 	apdu.cla = *p++;
@@ -1330,41 +1348,71 @@ static int do_apdu(int argc, char **argv)
 	apdu.p1 = *p++;
 	apdu.p2 = *p++;
 	len -= 4;
-	if (len > 1) {
-		apdu.lc = *p++;
-		len--;
-		memcpy(sbuf, p, apdu.lc);
-		apdu.data = sbuf;
-		apdu.datalen = apdu.lc;
-		if (len < apdu.lc) {
-			printf("APDU too short (need %lu bytes)\n",
-				(unsigned long) apdu.lc - len);
-			return 1;
-		}
-		len -= apdu.lc;
-		p += apdu.lc;
-		if (len) {
-			apdu.le = *p++;
-			if (apdu.le == 0)
-				apdu.le = 256;
-			len--;
-			apdu.cse = SC_APDU_CASE_4_SHORT;
-		} else {
-			apdu.cse = SC_APDU_CASE_3_SHORT;
-		}
-		if (len) {
-			printf("APDU too long (%lu bytes extra)\n",
-				(unsigned long) len);
-			return 1;
-		}
-	} else if (len == 1) {
-		apdu.le = *p++;
-		if (apdu.le == 0)
-			apdu.le = 256;
-		len--;
-		apdu.cse = SC_APDU_CASE_2_SHORT;
-	} else {
+
+	if (len == 0) {
 		apdu.cse = SC_APDU_CASE_1;
+	}
+	else {
+		size_t size = 0;
+
+		if ((*p == 0) && (len >= 3)) {
+			cse |= SC_APDU_EXT;
+			p++;
+			size = (*p++) << 8;
+			size += *p++;
+			len -= 3;
+		}
+		else {
+			size = *p++;
+			len--;
+		}
+		if (len == 0) {
+			apdu.le = (size == 0) ? 256 : size;
+			if ((apdu.le == 0) && (cse & SC_APDU_EXT))
+				apdu.le <<= 8;
+			apdu.cse = SC_APDU_CASE_2_SHORT | cse;
+		}
+		else {
+			apdu.lc = size;
+			if (len < apdu.lc) {
+				printf("APDU too short (need %lu bytes)\n",
+					(unsigned long) apdu.lc - len);
+				return 1;
+			}
+			memcpy(sbuf, p, apdu.lc);
+			apdu.data = sbuf;
+			apdu.datalen = apdu.lc;
+			len -= apdu.lc;
+			p += apdu.lc;
+			if (len == 0) {
+				apdu.cse = SC_APDU_CASE_3_SHORT | cse;
+			}
+			else {
+				apdu.le = 0;
+				if (cse & SC_APDU_EXT) {
+					if (len < 2) {
+						printf("APDU too short (need %lu bytes)\n",
+							(unsigned long) apdu.lc - len);
+						return 1;
+					}
+					size = (*p++) << 8;
+					size += *p++;
+					len -= 2;
+					apdu.le = (size == 0) ? 65536 : size;
+				}
+				else {
+					size = *p++;
+					len--;
+					apdu.le = (size == 0) ? 256 : size;
+				}
+				apdu.cse = SC_APDU_CASE_4_SHORT | cse;
+				if (len) {
+					printf("APDU too long (%lu bytes extra)\n",
+						(unsigned long) len);
+					return 1;
+				}
+			}
+		}
 	}
 	apdu.resp = rbuf;
 	apdu.resplen = sizeof(rbuf);
