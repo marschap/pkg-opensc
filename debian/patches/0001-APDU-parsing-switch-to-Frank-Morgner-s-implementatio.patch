@@ -1,0 +1,490 @@
+From 66628858e5c89d857b9d1513402cf36168e05b17 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Fri, 22 Apr 2011 19:52:00 +0200
+Subject: [PATCH] APDU parsing: switch to Frank Morgner's implementation
+
+Patch by Frank Morgner, proposed in
+http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016419.html and
+http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016420.html:
+
+* replace partly incorrect extended APU parsing implementation
+  with one factored-out in function sc_bytes2apdu() in apdu.c
+* re-factor APDU parsing functions in
+  - opensc-explorer
+  - opensc-tool
+  - piv-tool
+  to make use of sc_bytes2apdu()
+---
+ src/libopensc/apdu.c            |  111 +++++++++++++++++++++++++++++++++++++++
+ src/libopensc/libopensc.exports |    1 +
+ src/libopensc/opensc.h          |   14 +++++
+ src/tools/opensc-explorer.c     |   85 ++----------------------------
+ src/tools/opensc-tool.c         |   90 +++----------------------------
+ src/tools/piv-tool.c            |   69 +++---------------------
+ 6 files changed, 147 insertions(+), 223 deletions(-)
+
+diff --git a/src/libopensc/apdu.c b/src/libopensc/apdu.c
+index 086997d..01a10ca 100644
+--- a/src/libopensc/apdu.c
++++ b/src/libopensc/apdu.c
+@@ -606,3 +606,114 @@ int sc_transmit_apdu(sc_card_t *card, sc_apdu_t *apdu)
+ 
+ 	return r;
+ }
++
++int sc_bytes2apdu(sc_context_t *ctx, const u8 *buf, size_t len, sc_apdu_t *apdu)
++{
++    const u8 *p;
++    size_t len0;
++
++    if (!buf || !apdu)
++        return SC_ERROR_INVALID_ARGUMENTS;
++
++    len0 = len;
++    if (len < 4) {
++        sc_debug(ctx, SC_LOG_DEBUG_VERBOSE, "APDU too short (must be at least 4 bytes)");
++        return SC_ERROR_INVALID_DATA;
++    }
++
++    memset(apdu, 0, sizeof *apdu);
++    p = buf;
++    apdu->cla = *p++;
++    apdu->ins = *p++;
++    apdu->p1 = *p++;
++    apdu->p2 = *p++;
++    len -= 4;
++    if (!len) {
++        apdu->cse = SC_APDU_CASE_1;
++    } else {
++        if (*p == 0 && len >= 3) {
++            /* ...must be an extended APDU */
++            p++;
++            if (len == 3) {
++                apdu->le = (*p++)<<8;
++                apdu->le += *p++;
++                if (apdu->le == 0)
++                    apdu->le = 0xffff+1;
++                len -= 3;
++                apdu->cse = SC_APDU_CASE_2_EXT;
++            } else {
++                /* len > 3 */
++                apdu->lc = (*p++)<<8;
++                apdu->lc += *p++;
++                len -= 3;
++                if (len < apdu->lc) {
++                    sc_debug(ctx, SC_LOG_DEBUG_VERBOSE, "APDU too short (need %lu more bytes)\n",
++                            (unsigned long) apdu->lc - len);
++                    return SC_ERROR_INVALID_DATA;
++                }
++                apdu->data = p;
++                apdu->datalen = apdu->lc;
++                len -= apdu->lc;
++                p += apdu->lc;
++                if (!len) {
++                    apdu->cse = SC_APDU_CASE_3_EXT;
++                } else {
++                    /* at this point the apdu has a Lc, so Le is on 2 bytes */
++                    if (len < 2) {
++                        sc_debug(ctx, SC_LOG_DEBUG_VERBOSE, "APDU too short (need 2 more bytes)\n");
++                        return SC_ERROR_INVALID_DATA;
++                    }
++                    apdu->le = (*p++)<<8;
++                    apdu->le += *p++;
++                    if (apdu->le == 0)
++                        apdu->le = 0xffff+1;
++                    len -= 2;
++                    apdu->cse = SC_APDU_CASE_4_EXT;
++                }
++            }
++        } else {
++            /* ...must be a short APDU */
++            if (len == 1) {
++                apdu->le = *p++;
++                if (apdu->le == 0)
++                    apdu->le = 0xff+1;
++                len--;
++                apdu->cse = SC_APDU_CASE_2_SHORT;
++            } else {
++                apdu->lc = *p++;
++                len--;
++                if (len < apdu->lc) {
++                    sc_debug(ctx, SC_LOG_DEBUG_VERBOSE, "APDU too short (need %lu more bytes)\n",
++                            (unsigned long) apdu->lc - len);
++                    return SC_ERROR_INVALID_DATA;
++                }
++                apdu->data = p;
++                apdu->datalen = apdu->lc;
++                len -= apdu->lc;
++                p += apdu->lc;
++                if (!len) {
++                    apdu->cse = SC_APDU_CASE_3_SHORT;
++                } else {
++                    apdu->le = *p++;
++                    if (apdu->le == 0)
++                        apdu->le = 0xff+1;
++                    len--;
++                    apdu->cse = SC_APDU_CASE_4_SHORT;
++
++                }
++            }
++        }
++        if (len) {
++            sc_debug(ctx, SC_LOG_DEBUG_VERBOSE, "APDU too long (%lu bytes extra)\n",
++                    (unsigned long) len);
++            return SC_ERROR_INVALID_DATA;
++        }
++    }
++
++    sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Case %d %s APDU, %lu bytes:\tins=%02x p1=%02x p2=%02x lc=%04x le=%04x",
++            apdu->cse & SC_APDU_SHORT_MASK,
++            (apdu->cse & SC_APDU_EXT) != 0 ? "extended" : "short",
++            (unsigned long) len0, apdu->ins, apdu->p1, apdu->p2, apdu->lc, apdu->le);
++
++    return SC_SUCCESS;
++}
+diff --git a/src/libopensc/libopensc.exports b/src/libopensc/libopensc.exports
+index e75160b..3227e8c 100644
+--- a/src/libopensc/libopensc.exports
++++ b/src/libopensc/libopensc.exports
+@@ -95,6 +95,7 @@ sc_file_set_sec_attr
+ sc_file_set_type_attr
+ sc_file_valid
+ sc_format_apdu
++sc_bytes2apdu
+ sc_format_asn1_entry
+ sc_format_oid
+ sc_format_path
+diff --git a/src/libopensc/opensc.h b/src/libopensc/opensc.h
+index 2976f03..4da9450 100644
+--- a/src/libopensc/opensc.h
++++ b/src/libopensc/opensc.h
+@@ -654,6 +654,20 @@ int sc_transmit_apdu(sc_card_t *card, sc_apdu_t *apdu);
+ void sc_format_apdu(sc_card_t *card, sc_apdu_t *apdu, int cse, int ins,
+ 		    int p1, int p2);
+ 
++/** Transforms an APDU from binary to its @c sc_apdu_t representation
++ *  @param  ctx     sc_context_t object (used for logging)
++ *  @param  buf     APDU to be encoded as an @c sc_apdu_t object
++ *  @param  len     length of @a buf
++ *  @param  apdu    @c sc_apdu_t object to initialize
++ *  @return SC_SUCCESS on success and an error code otherwise
++ *  @note On successful initialization apdu->data will point to @a buf with an
++ *  appropriate offset. Only free() @a buf, when apdu->data is not needed any
++ *  longer.
++ *  @note On successful initialization @a apdu->resp and apdu->resplen will be
++ *  0. You should modify both if you are expecting data in the response APDU.
++ */
++int sc_bytes2apdu(sc_context_t *ctx, const u8 *buf, size_t len, sc_apdu_t *apdu);
++
+ int sc_check_sw(struct sc_card *card, unsigned int sw1, unsigned int sw2);
+ 
+ /********************************************************************/
+diff --git a/src/tools/opensc-explorer.c b/src/tools/opensc-explorer.c
+index 252ca17..6ac9fa1 100644
+--- a/src/tools/opensc-explorer.c
++++ b/src/tools/opensc-explorer.c
+@@ -1298,11 +1298,8 @@ static int do_apdu(int argc, char **argv)
+ {
+ 	sc_apdu_t apdu;
+ 	u8 buf[SC_MAX_APDU_BUFFER_SIZE];
+-	u8 sbuf[SC_MAX_APDU_BUFFER_SIZE];
+ 	u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
+-	u8 *p;
+ 	size_t len, len0, r, ii;
+-	int cse = 0;
+ 
+ 	if (argc < 1) {
+ 		puts("Usage: apdu [apdu:hex:codes:...]");
+@@ -1315,86 +1312,12 @@ static int do_apdu(int argc, char **argv)
+ 		len += len0;
+ 	}
+ 
+-	if (len < 4) {
+-		puts("APDU too short (must be at least 4 bytes)");
+-		return 1;
++	r = sc_bytes2apdu(card->ctx, buf, len, &apdu);
++	if (r) {
++		fprintf(stderr, "Invalid APDU: %s\n", sc_strerror(r));
++		return 2;
+ 	}
+-	len0 = len;
+ 
+-	/* TODO: move this to apdu.c as bytes2apdu or similar. See #237 */
+-	memset(&apdu, 0, sizeof(apdu));
+-	p = buf;
+-	apdu.cla = *p++;
+-	apdu.ins = *p++;
+-	apdu.p1 = *p++;
+-	apdu.p2 = *p++;
+-	len -= 4;
+-
+-	if (len == 0) {
+-		apdu.cse = SC_APDU_CASE_1;
+-	}
+-	else {
+-		size_t size = 0;
+-
+-		if ((*p == 0) && (len >= 3)) {
+-			cse |= SC_APDU_EXT;
+-			p++;
+-			size = (*p++) << 8;
+-			size += *p++;
+-			len -= 3;
+-		}
+-		else {
+-			size = *p++;
+-			len--;
+-		}
+-		if (len == 0) {
+-			apdu.le = (size == 0) ? 256 : size;
+-			if ((apdu.le == 0) && (cse & SC_APDU_EXT))
+-				apdu.le <<= 8;
+-			apdu.cse = SC_APDU_CASE_2_SHORT | cse;
+-		}
+-		else {
+-			apdu.lc = size;
+-			if (len < apdu.lc) {
+-				printf("APDU too short (need %lu bytes)\n",
+-					(unsigned long) apdu.lc - len);
+-				return 1;
+-			}
+-			memcpy(sbuf, p, apdu.lc);
+-			apdu.data = sbuf;
+-			apdu.datalen = apdu.lc;
+-			len -= apdu.lc;
+-			p += apdu.lc;
+-			if (len == 0) {
+-				apdu.cse = SC_APDU_CASE_3_SHORT | cse;
+-			}
+-			else {
+-				apdu.le = 0;
+-				if (cse & SC_APDU_EXT) {
+-					if (len < 2) {
+-						printf("APDU too short (need %lu bytes)\n",
+-							(unsigned long) apdu.lc - len);
+-						return 1;
+-					}
+-					size = (*p++) << 8;
+-					size += *p++;
+-					len -= 2;
+-					apdu.le = (size == 0) ? 65536 : size;
+-				}
+-				else {
+-					size = *p++;
+-					len--;
+-					apdu.le = (size == 0) ? 256 : size;
+-				}
+-				apdu.cse = SC_APDU_CASE_4_SHORT | cse;
+-				if (len) {
+-					printf("APDU too long (%lu bytes extra)\n",
+-						(unsigned long) len);
+-					return 1;
+-				}
+-			}
+-		}
+-	}
+ 	apdu.resp = rbuf;
+ 	apdu.resplen = sizeof(rbuf);
+ 
+diff --git a/src/tools/opensc-tool.c b/src/tools/opensc-tool.c
+index 001c107..76b4bbf 100644
+--- a/src/tools/opensc-tool.c
++++ b/src/tools/opensc-tool.c
+@@ -492,97 +492,23 @@ static int list_files(void)
+ static int send_apdu(void)
+ {
+ 	sc_apdu_t apdu;
+-	u8 buf[SC_MAX_APDU_BUFFER_SIZE], sbuf[SC_MAX_APDU_BUFFER_SIZE],
+-	  rbuf[SC_MAX_APDU_BUFFER_SIZE], *p;
+-	size_t len, len0, r;
++	u8 buf[SC_MAX_APDU_BUFFER_SIZE],
++	  rbuf[SC_MAX_APDU_BUFFER_SIZE];
++	size_t len0, r;
+ 	int c;
+-	int cse = 0;
+ 
+ 	for (c = 0; c < opt_apdu_count; c++) {
+ 		len0 = sizeof(buf);
+ 		sc_hex_to_bin(opt_apdus[c], buf, &len0);
+-		if (len0 < 4) {
+-			fprintf(stderr, "APDU too short (must be at least 4 bytes).\n");
++
++		r = sc_bytes2apdu(card->ctx, buf, len0, &apdu);
++		if (r) {
++			fprintf(stderr, "Invalid APDU: %s\n", sc_strerror(r));
+ 			return 2;
+ 		}
+-		len = len0;
+-		p = buf;
+-
+-		/* TODO: move this to apdu.c as bytes2apdu or similar. See #237 */
+-		memset(&apdu, 0, sizeof(apdu));
+-		apdu.cla = *p++;
+-		apdu.ins = *p++;
+-		apdu.p1 = *p++;
+-		apdu.p2 = *p++;
++
+ 		apdu.resp = rbuf;
+ 		apdu.resplen = sizeof(rbuf);
+-		len -= 4;
+-
+-		if (len == 0) {
+-			apdu.cse = SC_APDU_CASE_1;
+-		}
+-		else {
+-			size_t size = 0;
+-
+-			if ((*p == 0) && (len >= 3)) {
+-				cse |= SC_APDU_EXT;
+-				p++;
+-				size = (*p++) << 8;
+-				size += *p++;
+-				len -= 3;
+-			}
+-			else {
+-				size = *p++;
+-				len--;
+-			}
+-			if (len == 0) {
+-				apdu.le = (size == 0) ? 256 : size;
+-				if ((apdu.le == 0) && (cse & SC_APDU_EXT))
+-					apdu.le <<= 8;
+-				apdu.cse = SC_APDU_CASE_2_SHORT | cse;
+-			}
+-			else {
+-				apdu.lc = size;
+-				if (len < apdu.lc) {
+-					printf("APDU too short (need %lu bytes)\n",
+-						(unsigned long) apdu.lc - len);
+-					return 1;
+-				}
+-				memcpy(sbuf, p, apdu.lc);
+-				apdu.data = sbuf;
+-				apdu.datalen = apdu.lc;
+-				len -= apdu.lc;
+-				p += apdu.lc;
+-				if (len == 0) {
+-					apdu.cse = SC_APDU_CASE_3_SHORT | cse;
+-				}
+-				else {
+-					apdu.le = 0;
+-					if (cse & SC_APDU_EXT) {
+-						if (len < 2) {
+-							printf("APDU too short (need %lu bytes)\n",
+-								(unsigned long) apdu.lc - len);
+-							return 1;
+-						}
+-						size = (*p++) << 8;
+-						size += *p++;
+-						len -= 2;
+-						apdu.le = (size == 0) ? 65536 : size;
+-					}
+-					else {
+-						size = *p++;
+-						len--;
+-						apdu.le = (size == 0) ? 256 : size;
+-					}
+-					apdu.cse = SC_APDU_CASE_4_SHORT | cse;
+-					if (len) {
+-						printf("APDU too long (%lu bytes extra)\n",
+-							(unsigned long) len);
+-						return 1;
+-					}
+-				}
+-			}
+-		}
+ 
+ 		printf("Sending: ");
+ 		for (r = 0; r < len0; r++)
+diff --git a/src/tools/piv-tool.c b/src/tools/piv-tool.c
+index 63d1a76..d8f9608 100644
+--- a/src/tools/piv-tool.c
++++ b/src/tools/piv-tool.c
+@@ -529,75 +529,24 @@ static int containers_discovery(void)
+ static int send_apdu(void)
+ {
+ 	sc_apdu_t apdu;
+-	u8 buf[SC_MAX_APDU_BUFFER_SIZE+3], sbuf[SC_MAX_APDU_BUFFER_SIZE];
+-	u8 rbuf[8192], *p;
+-	size_t len, len0, r;
++	u8 buf[SC_MAX_APDU_BUFFER_SIZE+3];
++	u8 rbuf[8192];
++	size_t len0, r;
+ 	int c;
+ 
+ 	for (c = 0; c < opt_apdu_count; c++) {
+ 		len0 = sizeof(buf);
+ 		sc_hex_to_bin(opt_apdus[c], buf, &len0);
+-		if (len0 > SC_MAX_APDU_BUFFER_SIZE+2) {
+-			fprintf(stderr, "APDU too long, (must be at most %d bytes).\n",
+-				SC_MAX_APDU_BUFFER_SIZE+2);
+-				return 2;
+-		}
+-		if (len0 < 4) {
+-			fprintf(stderr, "APDU too short (must be at least 4 bytes).\n");
++
++		r = sc_bytes2apdu(card->ctx, buf, len0, &apdu);
++		if (r) {
++			fprintf(stderr, "Invalid APDU: %s\n", sc_strerror(r));
+ 			return 2;
+ 		}
+-		len = len0;
+-		p = buf;
+-		/* TODO: move this to apdu.c as bytes2apdu or similar. See #237 */
+-		memset(&apdu, 0, sizeof(apdu));
+-		apdu.cla = *p++;
+-		apdu.ins = *p++;
+-		apdu.p1 = *p++;
+-		apdu.p2 = *p++;
++
+ 		apdu.resp = rbuf;
+ 		apdu.resplen = sizeof(rbuf);
+-		len -= 4;
+-		if (len > 1) {
+-			apdu.lc = *p++;
+-			len--;
+-			memcpy(sbuf, p, apdu.lc);
+-			apdu.data = sbuf;
+-			apdu.datalen = apdu.lc;
+-			if (len < apdu.lc) {
+-				fprintf(stderr, "APDU too short (need %lu bytes).\n",
+-					(unsigned long) apdu.lc-len);
+-				return 2;
+-			}
+-			len -= apdu.lc;
+-			if (len) {
+-				apdu.le = *p++;
+-				if (apdu.le == 0)
+-					apdu.le = 256;
+-				len--;
+-				apdu.cse = SC_APDU_CASE_4_SHORT;
+-			} else
+-				apdu.cse = SC_APDU_CASE_3_SHORT;
+-			if (len) {
+-				fprintf(stderr, "APDU too long (%lu bytes extra).\n", (unsigned long)len);
+-				return 2;
+-			}
+-		} else if (len == 1) {
+-			apdu.le = *p++;
+-			if (apdu.le == 0)
+-				apdu.le = 256;
+-			len--;
+-			apdu.cse = SC_APDU_CASE_2_SHORT;
+-		} else
+-			apdu.cse = SC_APDU_CASE_1;
+-		printf("Sending: ");
+-		for (r = 0; r < len0; r++)
+-			printf("%02X ", buf[r]);
+-		printf("\n");
+-		r = sc_transmit_apdu(card, &apdu);
+-		if (r) {
+-			fprintf(stderr, "APDU transmit failed: %s\n", sc_strerror(r));
+-			return 1;
+-		}
++
+ 		printf("Received (SW1=0x%02X, SW2=0x%02X)%s\n", apdu.sw1, apdu.sw2,
+ 		       apdu.resplen ? ":" : "");
+ 		if (apdu.resplen)
+-- 
+1.7.4.1
+

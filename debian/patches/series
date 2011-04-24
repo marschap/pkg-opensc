@@ -1,0 +1,16 @@
+0001-APDU-parsing-switch-to-Frank-Morgner-s-implementatio.patch
+0001-OpenPGP-fix-top-level-DOs-according-to-spec.patch
+0002-OpenPGP-add-indication-of-2048-RSA-agorithm-for-Open.patch
+0003-OpenPGP-try-to-match-flags-with-specification.patch
+0004-OpenPGP-re-factor-pgp_enumerate_blob.patch
+0005-OpenPGP-implement-function-to-free-the-fake-file-sys.patch
+0006-OpenPGP-NULL-ify-free-d-pointer.patch
+0007-OpenPGP-re-factor-pgp_set_blob.patch
+0008-OpenPGP-add-some-comments.patch
+0009-OpenPGP-use-symbolic-names-for-errors-success.patch
+0010-OpenPGP-catch-calloc-errors-in-pgp_new_blob.patch
+0011-OpenPGP-update-card-capabilities-from-historical-byt.patch
+0012-OpenPGP-use-card-extended-Lc-Le-capabilities.patch
+0013-OpenPGP-allow-extended-APDUs-in-all-functions.patch
+0014-OpenPGP-free-memory-when-selecting-the-application-f.patch
+0015-OpenPGP-implement-card_ctl-command-SC_CARDCTL_GET_SE.patch

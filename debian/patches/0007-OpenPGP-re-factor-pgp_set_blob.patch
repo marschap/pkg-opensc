@@ -1,0 +1,49 @@
+From cb4b396a3a933ae0d0b643d548c44a7116e42834 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sun, 13 Mar 2011 19:26:35 +0100
+Subject: [PATCH 07/15] OpenPGP: re-factor pgp_set_blob()
+
+* NULL-ify freed data pointer
+* avoid unnecessary malloc() calls
+* cope with malloc() errors
+* do not rely on blob->file for be set
+---
+ src/libopensc/card-openpgp.c |   20 ++++++++++++++++----
+ 1 files changed, 16 insertions(+), 4 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index b7379f2..c0c0e55 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -230,12 +230,24 @@ pgp_set_blob(struct blob *blob, const u8 *data, size_t len)
+ {
+ 	if (blob->data)
+ 		free(blob->data);
+-	blob->len    = len;
++	blob->data = NULL;
++	blob->len    = 0;
+ 	blob->status = 0;
+-	blob->data   = malloc(len);
+-	memcpy(blob->data, data, len);
+ 
+-	blob->file->size = len;
++	if (len > 0) {
++		void *tmp = malloc(len);
++
++		if (tmp == NULL)
++			return SC_ERROR_OUT_OF_MEMORY;
++
++		blob->data = tmp;
++		blob->len  = len;
++		memcpy(blob->data, data, len);
++	}
++
++	if (blob->file)
++		blob->file->size = len;
++
+ 	return 0;
+ }
+ 
+-- 
+1.7.4.1
+

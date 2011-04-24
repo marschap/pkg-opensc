@@ -1,0 +1,24 @@
+From 23620d14f674f0883d0f7c1efebfb733dd47d57c Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sun, 13 Mar 2011 19:08:16 +0100
+Subject: [PATCH 06/15] OpenPGP: NULL-ify free()'d pointer
+
+---
+ src/libopensc/card-openpgp.c |    1 +
+ 1 files changed, 1 insertions(+), 0 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index 111b948..b7379f2 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -221,6 +221,7 @@ pgp_finish(sc_card_t *card)
+ 	pgp_iterate_blobs(priv->mf, 99, pgp_free_blob);
+ 
+ 	free(priv);
++	card->drv_data = NULL;
+ 	return 0;
+ }
+ 
+-- 
+1.7.4.1
+

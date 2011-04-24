@@ -1,0 +1,113 @@
+From 8727aa3c3faf6b90860848b1baa4294d9c44b4eb Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Fri, 15 Apr 2011 20:30:48 +0200
+Subject: [PATCH 13/15] OpenPGP: allow extended APDUs in all functions
+
+Depending on the card's capabilities and the necessity (requested response
+size > 256) allow extended APDUs in all functions talking to the card.
+---
+ src/libopensc/card-openpgp.c |   39 ++++++++++++++++++++++++++++-----------
+ 1 files changed, 28 insertions(+), 11 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index cdaddbe..c968170 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -632,10 +632,16 @@ pgp_get_data(sc_card_t *card, unsigned int tag, u8 *buf, size_t buf_len)
+ {
+ 	sc_apdu_t	apdu;
+ 	int		r;
++	int		cse = SC_APDU_CASE_2_SHORT;
++	size_t		le = buf_len;
+ 
+-	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT,
+-				0xCA, tag >> 8, tag);
+-	apdu.le = (buf_len <= 255)? buf_len : 256;
++	if ((buf_len > 256) && (card->caps & SC_CARD_CAP_APDU_EXT))
++		cse |= SC_APDU_EXT;
++	else
++		le = (le >= 256) ? 256 : le;
++
++	sc_format_apdu(card, &apdu, cse, 0xCA, tag >> 8, tag);
++	apdu.le = le;
+ 	apdu.resp = buf;
+ 	apdu.resplen = buf_len;
+ 
+@@ -714,20 +720,25 @@ pgp_compute_signature(sc_card_t *card, const u8 *data,
+ 	sc_security_env_t	*env = &priv->sec_env;
+ 	sc_apdu_t		apdu;
+ 	int			r;
++	int			cse = SC_APDU_CASE_4_SHORT;
++	size_t			le = outlen;
+ 
+ 	if (env->operation != SC_SEC_OPERATION_SIGN)
+ 		return SC_ERROR_INVALID_ARGUMENTS;
+ 
++	if ((outlen > 256) && (card->caps & SC_CARD_CAP_APDU_EXT))
++		cse |= SC_APDU_EXT;
++	else
++		le = (le >= 256) ? 256 : le;
++
+ 	switch (env->key_ref[0]) {
+ 	case 0x00: /* signature key */
+ 		/* PSO SIGNATURE */
+-		sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT,
+-				0x2A, 0x9E, 0x9A);
++		sc_format_apdu(card, &apdu, cse, 0x2A, 0x9E, 0x9A);
+ 		break;
+ 	case 0x02: /* authentication key */
+ 		/* INTERNAL AUTHENTICATE */
+-		sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT,
+-				0x88, 0, 0);
++		sc_format_apdu(card, &apdu, cse, 0x88, 0, 0);
+ 		break;
+ 	case 0x01:
+ 		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
+@@ -742,7 +753,7 @@ pgp_compute_signature(sc_card_t *card, const u8 *data,
+ 	apdu.lc = data_len;
+ 	apdu.data = data;
+ 	apdu.datalen = data_len;
+-	apdu.le      = outlen > 256 ? 256 : outlen;
++	apdu.le      = le;
+ 	apdu.resp    = out;
+ 	apdu.resplen = outlen;
+ 
+@@ -763,6 +774,8 @@ pgp_decipher(sc_card_t *card, const u8 *in, size_t inlen,
+ 	sc_apdu_t	apdu;
+ 	u8		*temp = NULL;
+ 	int		r;
++	int		cse = SC_APDU_CASE_4_SHORT;
++	size_t		le = outlen;
+ 
+ 	/* There's some funny padding indicator that must be
+ 	 * prepended... hmm. */
+@@ -778,11 +791,15 @@ pgp_decipher(sc_card_t *card, const u8 *in, size_t inlen,
+ 		return SC_ERROR_INVALID_ARGUMENTS;
+ 	}
+ 
++	if ((outlen > 256) && (card->caps & SC_CARD_CAP_APDU_EXT))
++		cse |= SC_APDU_EXT;
++	else
++		le = (le >= 256) ? 256 : le;
++
+ 	switch (env->key_ref[0]) {
+ 	case 0x01: /* Decryption key */
+ 		/* PSO DECIPHER */
+-		sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT,
+-				0x2A, 0x80, 0x86);
++		sc_format_apdu(card, &apdu, cse, 0x2A, 0x80, 0x86);
+ 		break;
+ 	case 0x00: /* signature key */
+ 	case 0x02: /* authentication key */
+@@ -800,7 +817,7 @@ pgp_decipher(sc_card_t *card, const u8 *in, size_t inlen,
+ 	apdu.lc = inlen;
+ 	apdu.data = in;
+ 	apdu.datalen = inlen;
+-	apdu.le = 256;
++	apdu.le = le;
+ 	apdu.resp = out;
+ 	apdu.resplen = outlen;
+ 
+-- 
+1.7.4.1
+
