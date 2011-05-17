@@ -55,6 +55,7 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_detect_card_presence@Base 0.12.0
  sc_disconnect_card@Base 0.12.0
  sc_do_log@Base 0.12.0
+ sc_do_log_noframe@Base 0.12.0+svn5446
  sc_dump_hex@Base 0.12.0
  sc_encode_oid@Base 0.12.0+svn5391
  sc_enum_apps@Base 0.12.0
@@ -156,6 +157,7 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_pkcs15_free_certificate@Base 0.12.0
  sc_pkcs15_free_data_info@Base 0.12.0
  sc_pkcs15_free_data_object@Base 0.12.0
+ sc_pkcs15_free_key_params@Base 0.12.0+svn5446
  sc_pkcs15_free_object@Base 0.12.0
  sc_pkcs15_free_pin_info@Base 0.12.0
  sc_pkcs15_free_prkey@Base 0.12.0
@@ -246,12 +248,14 @@ libopensc.so.3 libopensc3 #MINVER#
  sc_pkcs15init_update_certificate@Base 0.12.0
  sc_pkcs15init_update_file@Base 0.12.0
  sc_pkcs15init_verify_secret@Base 0.12.0
+ sc_pkcs1_encode@Base 0.12.0+svn5446
  sc_print_cache@Base 0.12.0
  sc_print_path@Base 0.12.0
  sc_put_data@Base 0.12.0
  sc_read_binary@Base 0.12.0
  sc_read_record@Base 0.12.0
  sc_release_context@Base 0.12.0
+ sc_remote_data_init@Base 0.12.0+svn5446
  sc_reset@Base 0.12.0
  sc_reset_retry_counter@Base 0.12.0
  sc_restore_security_env@Base 0.12.0

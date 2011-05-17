@@ -339,23 +339,6 @@ struct sc_pin_cmd_data {
 	struct sc_apdu *apdu;		/* APDU of the PIN command */
 };
 
-/* 'Issuer Identification Number' is a part of ISO/IEC 7812 PAN definition */
-struct sc_iin {	
-	unsigned char mii;		/* industry identifier */
-	unsigned country;		/* country identifier */
-	unsigned long issuer_id;	/* issuer identifier */
-};
-
-/* structure for the card serial number (normally the ICCSN) */
-#define SC_MAX_SERIALNR		32
-
-typedef struct sc_serial_number {
-	unsigned char value[SC_MAX_SERIALNR];
-	size_t len;
-
-	struct sc_iin iin;
-} sc_serial_number_t;
-
 struct sc_reader_operations {
 	/* Called during sc_establish_context(), when the driver
 	 * is loaded */
@@ -653,6 +636,20 @@ int sc_transmit_apdu(sc_card_t *card, sc_apdu_t *apdu);
 
 void sc_format_apdu(sc_card_t *card, sc_apdu_t *apdu, int cse, int ins,
 		    int p1, int p2);
+
+/** Transforms an APDU from binary to its @c sc_apdu_t representation
+ *  @param  ctx     sc_context_t object (used for logging)
+ *  @param  buf     APDU to be encoded as an @c sc_apdu_t object
+ *  @param  len     length of @a buf
+ *  @param  apdu    @c sc_apdu_t object to initialize
+ *  @return SC_SUCCESS on success and an error code otherwise
+ *  @note On successful initialization apdu->data will point to @a buf with an
+ *  appropriate offset. Only free() @a buf, when apdu->data is not needed any
+ *  longer.
+ *  @note On successful initialization @a apdu->resp and apdu->resplen will be
+ *  0. You should modify both if you are expecting data in the response APDU.
+ */
+int sc_bytes2apdu(sc_context_t *ctx, const u8 *buf, size_t len, sc_apdu_t *apdu);
 
 int sc_check_sw(struct sc_card *card, unsigned int sw1, unsigned int sw2);
 
@@ -1174,6 +1171,13 @@ struct sc_algorithm_info * sc_card_find_ec_alg(sc_card_t *card,
 		unsigned int field_length);
 struct sc_algorithm_info * sc_card_find_gostr3410_alg(sc_card_t *card,
 		unsigned int key_length);
+
+/**
+ * Used to initialize the @c sc_remote_data structure -- 
+ * reset the header of the 'remote APDUs' list, set the handlers 
+ * to manipulate the list. 
+ */
+void sc_remote_data_init(struct sc_remote_data *rdata);
 
 struct sc_card_error {
 	unsigned int SWs;
