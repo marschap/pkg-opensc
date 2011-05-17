@@ -72,7 +72,8 @@ static struct sc_card_driver iasecc_drv = {
 };
 
 static struct sc_atr_table iasecc_known_atrs[] = {
-	{ "3B:7F:96:00:00:00:31:B8:64:40:70:14:10:73:94:01:80:82:90:00", NULL, 
+	{ "3B:7F:96:00:00:00:31:B8:64:40:70:14:10:73:94:01:80:82:90:00",
+	  "FF:FF:FF:FF:FF:FF:FF:FE:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF:FF", 
 		"IAS/ECC Gemalto", SC_CARD_TYPE_IASECC_GEMALTO,  0, NULL },
         { "3B:DD:18:00:81:31:FE:45:80:F9:A0:00:00:00:77:01:08:00:07:90:00:FE", NULL,
 		"IAS/ECC v1.0.1 Oberthur", SC_CARD_TYPE_IASECC_OBERTHUR,  0, NULL },
@@ -110,6 +111,8 @@ static int iasecc_sdo_get_data(struct sc_card *card, struct iasecc_sdo *sdo);
 static int iasecc_pin_get_policy (struct sc_card *card, struct sc_pin_cmd_data *data);
 static int iasecc_pin_is_verified(struct sc_card *card, struct sc_pin_cmd_data *pin_cmd, int *tries_left);
 static int iasecc_get_free_reference(struct sc_card *card, struct iasecc_ctl_get_free_reference *ctl_data);
+static int iasecc_sdo_put_data(struct sc_card *card, struct iasecc_sdo_update *update);
+
 
 static int 
 iasecc_chv_cache_verified(struct sc_card *card, struct sc_pin_cmd_data *pin_cmd)
@@ -266,7 +269,7 @@ iasecc_select_aid(struct sc_card *card, struct sc_aid *aid, unsigned char *out, 
 	unsigned char apdu_resp[SC_MAX_APDU_BUFFER_SIZE];
 	int rv;
 
-	/* Select Card Manager (to deselect previously selected application) */
+	/* Select application (deselect previously selected application) */
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xA4, 0x04, 0x00);
 	apdu.lc = aid->len;
 	apdu.data = aid->value;
@@ -337,6 +340,14 @@ static int iasecc_parse_ef_atr(struct sc_card *card)
 
 	card->max_send_size = sizes->send;
 	card->max_recv_size = sizes->recv;
+
+	/* Most of the card producers interpret 'send' values as "maximum APDU data size".
+	 * Oberthur strictly follows specification and interpret these values as "maximum APDU command size".
+	 * Here we need 'data size'.
+	 */
+	if (card->max_send_size > 0xFF)
+		card->max_send_size -= 5;
+
 	sc_log(ctx, "EF.ATR: max send/recv sizes %X/%X", card->max_send_size, card->max_recv_size);
 
 	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
@@ -624,6 +635,36 @@ iasecc_erase_binary(struct sc_card *card, unsigned int offs, size_t count, unsig
 
 
 static int
+iasecc_emulate_fcp(struct sc_context *ctx, struct sc_apdu *apdu)
+{
+	unsigned char dummy_df_fcp[] = {
+		0x62,0xFF,
+			0x82,0x01,0x38,
+			0x8A,0x01,0x05,
+			0xA1,0x04,0x8C,0x02,0x02,0x00,
+			0x84,0xFF,
+				0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+				0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF
+	};
+
+	LOG_FUNC_CALLED(ctx);
+
+	if (apdu->p1 != 0x04)
+		LOG_TEST_RET(ctx, SC_ERROR_NOT_SUPPORTED, "FCP emulation supported only for the DF-NAME selection type");
+	if (apdu->datalen > 16)
+		LOG_TEST_RET(ctx, SC_ERROR_INVALID_DATA, "Invalid DF-NAME length");
+	if (apdu->resplen < apdu->datalen + 16)
+		LOG_TEST_RET(ctx, SC_ERROR_BUFFER_TOO_SMALL, "not enough space for FCP data");
+
+	memcpy(dummy_df_fcp + 16, apdu->data, apdu->datalen);
+	dummy_df_fcp[15] = apdu->datalen;
+	dummy_df_fcp[1] = apdu->datalen + 14;
+	memcpy(apdu->resp, dummy_df_fcp, apdu->datalen + 16);
+
+	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
+}
+
+static int
 iasecc_select_file(struct sc_card *card, const struct sc_path *path,
 		 struct sc_file **file_out)
 {
@@ -735,40 +776,24 @@ iasecc_select_file(struct sc_card *card, const struct sc_path *path,
 			apdu.data = lpath.value;
 			apdu.datalen = pathlen;
 
-			if (apdu.cse == SC_APDU_CASE_4_SHORT || apdu.cse == SC_APDU_CASE_2_SHORT)   {
-				apdu.resp = rbuf;
-				apdu.resplen = sizeof(rbuf);
-				apdu.le = 256;
-			}
+			apdu.resp = rbuf;
+			apdu.resplen = sizeof(rbuf);
+			apdu.le = 256;
 
 			rv = sc_transmit_apdu(card, &apdu);
 			LOG_TEST_RET(ctx, rv, "APDU transmit failed");
 			rv = sc_check_sw(card, apdu.sw1, apdu.sw2);
-			if (rv == SC_ERROR_INCORRECT_PARAMETERS && lpath.type == SC_PATH_TYPE_DF_NAME && apdu.p2 == 0x00)   {
+			if (rv == SC_ERROR_INCORRECT_PARAMETERS && 
+					lpath.type == SC_PATH_TYPE_DF_NAME && apdu.p2 == 0x00)   {
 				apdu.p2 = 0x0C;
 				continue;
 			}
 
 			if (ii)   {
-				/* 'SELECT AID' do not returned FCP. 
-				 * Use dummy FCP with NONE 'create file' ACL.
-				 */
-				unsigned char dummy_df_fcp[] = {
-					0x62,0xFF,
-						0x82,0x01,0x38,
-						0x8A,0x01,0x05,
-						0xA1,0x04,0x8C,0x02,0x02,0x00,
-						0x84,0xFF,
-							0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
-							0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF
-				};
-
-				memcpy(dummy_df_fcp + 16, apdu.data, apdu.datalen);
-				dummy_df_fcp[15] = apdu.datalen;
-				dummy_df_fcp[1] = apdu.datalen + 14;
-
-				memcpy(apdu.resp, dummy_df_fcp, apdu.datalen + 16);
-				apdu.resplen = apdu.datalen + 16;
+				/* 'SELECT AID' do not returned FCP. Try to emulate. */
+				apdu.resplen = sizeof(rbuf);
+				rv = iasecc_emulate_fcp(ctx, &apdu);
+				LOG_TEST_RET(ctx, rv, "Failed to emulate DF FCP");
 			}
 
 			break;
@@ -2227,6 +2252,105 @@ end:
 
 
 static int
+iasecc_sdo_create(struct sc_card *card, struct iasecc_sdo *sdo)
+{
+	struct sc_context *ctx = card->ctx;
+	struct sc_apdu apdu;
+	unsigned char *data = NULL, sdo_class = sdo->sdo_class;
+	struct iasecc_sdo_update update;
+	struct iasecc_extended_tlv *field = NULL;
+	int rv = SC_ERROR_NOT_SUPPORTED, data_len;
+
+	LOG_FUNC_CALLED(ctx);
+	if (sdo->magic != SC_CARDCTL_IASECC_SDO_MAGIC)
+		LOG_TEST_RET(ctx, SC_ERROR_INVALID_DATA, "Invalid SDO data");
+
+	sc_log(ctx, "iasecc_sdo_create(card:%p) %02X%02X%02X", card,
+			IASECC_SDO_TAG_HEADER, sdo->sdo_class | 0x80, sdo->sdo_ref);
+
+	data_len = iasecc_sdo_encode_create(ctx, sdo, &data);
+	LOG_TEST_RET(ctx, data_len, "iasecc_sdo_create() cannot encode SDO create data");
+	sc_log(ctx, "iasecc_sdo_create() create data(%i):%s", data_len, sc_dump_hex(data, data_len));
+
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xDB, 0x3F, 0xFF);
+	apdu.data = data;
+	apdu.datalen = data_len;
+	apdu.lc = data_len;
+	apdu.flags |= SC_APDU_FLAGS_CHAINING;
+
+	rv = sc_transmit_apdu(card, &apdu);
+	LOG_TEST_RET(ctx, rv, "APDU transmit failed");
+	rv = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	LOG_TEST_RET(ctx, rv, "iasecc_sdo_create() SDO put data error");
+
+	memset(&update, 0, sizeof(update));
+	update.magic = SC_CARDCTL_IASECC_SDO_MAGIC_PUT_DATA;
+	update.sdo_class = sdo->sdo_class;
+	update.sdo_ref = sdo->sdo_ref;
+
+	if (sdo_class == IASECC_SDO_CLASS_RSA_PRIVATE)   {
+		update.fields[0] = sdo->data.prv_key.compulsory;
+		update.fields[0].parent_tag = IASECC_SDO_PRVKEY_TAG;
+		field = &sdo->data.prv_key.compulsory;
+	}
+	else if (sdo_class == IASECC_SDO_CLASS_RSA_PUBLIC)   { 
+		update.fields[0] = sdo->data.pub_key.compulsory;
+		update.fields[0].parent_tag = IASECC_SDO_PUBKEY_TAG;
+		field = &sdo->data.pub_key.compulsory;
+	}
+	else if (sdo_class == IASECC_SDO_CLASS_KEYSET)   { 
+		update.fields[0] = sdo->data.keyset.compulsory;
+		update.fields[0].parent_tag = IASECC_SDO_KEYSET_TAG;
+		field = &sdo->data.keyset.compulsory;
+	}
+
+	if (update.fields[0].value && !update.fields[0].on_card)   {
+		rv = iasecc_sdo_put_data(card, &update);
+		LOG_TEST_RET(ctx, rv, "failed to update 'Compulsory usage' data");
+
+		field->on_card = 1;
+	}
+
+	free(data);
+	LOG_FUNC_RETURN(ctx, rv);
+}
+
+/* Oberthur's specific */
+static int
+iasecc_sdo_delete(struct sc_card *card, struct iasecc_sdo *sdo)
+{
+	struct sc_context *ctx = card->ctx;
+	struct sc_apdu apdu;
+	unsigned char data[6] = {
+		0x70, 0x04, 0xBF, 0xFF, 0xFF, 0x00
+	};
+	int rv;
+
+	LOG_FUNC_CALLED(ctx);
+	if (sdo->magic != SC_CARDCTL_IASECC_SDO_MAGIC)
+		LOG_TEST_RET(ctx, SC_ERROR_INVALID_DATA, "Invalid SDO data");
+
+	data[2] = IASECC_SDO_TAG_HEADER;
+	data[3] = sdo->sdo_class | 0x80;
+	data[4] = sdo->sdo_ref;
+	sc_log(ctx, "delete SDO %02X%02X%02X", data[2], data[3], data[4]);
+
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0xDB, 0x3F, 0xFF);
+	apdu.data = data;
+	apdu.datalen = sizeof(data);
+	apdu.lc = sizeof(data);
+	apdu.flags |= SC_APDU_FLAGS_CHAINING;
+
+	rv = sc_transmit_apdu(card, &apdu);
+	LOG_TEST_RET(ctx, rv, "APDU transmit failed");
+	rv = sc_check_sw(card, apdu.sw1, apdu.sw2);
+	LOG_TEST_RET(ctx, rv, "delete SDO error");
+
+	LOG_FUNC_RETURN(ctx, rv);
+}
+
+
+static int
 iasecc_sdo_put_data(struct sc_card *card, struct iasecc_sdo_update *update)
 {
 	struct sc_context *ctx = card->ctx;
@@ -2531,6 +2655,12 @@ iasecc_card_ctl(struct sc_card *card, unsigned long cmd, void *ptr)
 	switch (cmd) {
 	case SC_CARDCTL_GET_SERIALNR:
 		return iasecc_get_serialnr(card, (struct sc_serial_number *)ptr);
+	case SC_CARDCTL_IASECC_SDO_CREATE:
+		sc_log(ctx, "CMD SC_CARDCTL_IASECC_SDO_CREATE: sdo_class %X", sdo->sdo_class);
+		return iasecc_sdo_create(card, (struct iasecc_sdo *) ptr);
+	case SC_CARDCTL_IASECC_SDO_DELETE:
+		sc_log(ctx, "CMD SC_CARDCTL_IASECC_SDO_DELETE: sdo_class %X", sdo->sdo_class);
+		return iasecc_sdo_delete(card, (struct iasecc_sdo *) ptr);
 	case SC_CARDCTL_IASECC_SDO_PUT_DATA:
 		sc_log(ctx, "CMD SC_CARDCTL_IASECC_SDO_PUT_DATA: sdo_class %X", sdo->sdo_class);
 		return iasecc_sdo_put_data(card, (struct iasecc_sdo_update *) ptr);
@@ -2604,58 +2734,104 @@ iasecc_decipher(struct sc_card *card,
 
 
 static int
-iasecc_get_qsign_data (struct sc_context *ctx, const unsigned char *in, size_t in_len,
-				struct iasecc_qsign_data *out, unsigned hash_type)
+iasecc_qsign_data_sha1(struct sc_context *ctx, const unsigned char *in, size_t in_len,
+				struct iasecc_qsign_data *out)
 {
 	SHA_CTX sha;
-	SHA_LONG *hh[5] = {
+	SHA_LONG pre_hash_Nl, *hh[5] = {
 		&sha.h0, &sha.h1, &sha.h2, &sha.h3, &sha.h4
 	};
 	int jj, ii;
 	int hh_size = sizeof(SHA_LONG), hh_num = SHA_DIGEST_LENGTH / sizeof(SHA_LONG);
-	unsigned long len;
 
 	LOG_FUNC_CALLED(ctx);
-	if (hash_type != SC_ALGORITHM_RSA_HASH_SHA1)
-		LOG_FUNC_RETURN(ctx, SC_ERROR_NOT_SUPPORTED);
-
-	SHA1_Init(&sha);
 
 	if (!in || !in_len || !out)
 		LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);
-	
+
 	sc_log(ctx, "sc_pkcs15_get_qsign_data() input data length %i", in_len);
+	memset(out, 0, sizeof(struct iasecc_qsign_data));
 
-	for (ii=0; ii<in_len; )   {
-		len = in_len - ii > 64 ? 64 : in_len - ii;
-		SHA1_Update(&sha, in + ii, len);
-		ii += len;
-	}
-
-	sha.Nl -= sha.Nl % 0x200;
+	SHA1_Init(&sha);
+	SHA1_Update(&sha, in, in_len);
 
 	for (jj=0; jj<hh_num; jj++) 
 		for(ii=0; ii<hh_size; ii++) 
 			out->pre_hash[jj*hh_size + ii] = ((*hh[jj] >> 8*(hh_size-1-ii)) & 0xFF);
 	out->pre_hash_size = SHA_DIGEST_LENGTH;
+	sc_log(ctx, "Pre SHA1:%s", sc_dump_hex(out->pre_hash, out->pre_hash_size));
 
+	pre_hash_Nl = sha.Nl - (sha.Nl % (sizeof(sha.data) * 8));
 	for (ii=0; ii<hh_size; ii++)   {
 		out->counter[ii] = (sha.Nh >> 8*(hh_size-1-ii)) &0xFF;
-		out->counter[hh_size+ii] = (sha.Nl >> 8*(hh_size-1-ii)) &0xFF;
+		out->counter[hh_size+ii] = (pre_hash_Nl >> 8*(hh_size-1-ii)) &0xFF;
 	}
+	for (ii=0, out->counter_long=0; ii<sizeof(out->counter); ii++)
+		out->counter_long = out->counter_long*0x100 + out->counter[ii];
+	sc_log(ctx, "Pre counter(%li):%s", out->counter_long, sc_dump_hex(out->counter, sizeof(out->counter)));
 
-	sc_log(ctx, "Pre SHA1:%s", sc_dump_hex(out->pre_hash, out->pre_hash_size));
-	sc_log(ctx, "Pre counter:%s", sc_dump_hex(out->counter, sizeof(out->counter)));
-
-	for (ii=0;ii<sha.num; ii++)
-		out->last_block[ii] = (sha.data[ii/hh_size] >> 8*(hh_size-1-(ii%hh_size))) &0xFF;
-	out->last_block_size = sha.num;
+	if (sha.num)   {
+		memcpy(out->last_block, in + in_len - sha.num, sha.num);
+		out->last_block_size = sha.num;
+		sc_log(ctx, "Last block(%i):%s", out->last_block_size, sc_dump_hex(out->last_block, out->last_block_size));
+	}
 
 	SHA1_Final(out->hash, &sha);
 	out->hash_size = SHA_DIGEST_LENGTH;
+	sc_log(ctx, "Expected digest %s\n", sc_dump_hex(out->hash, out->hash_size));
 
 	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 }
+
+
+#if OPENSSL_VERSION_NUMBER >= 0x00908000L
+static int
+iasecc_qsign_data_sha256(struct sc_context *ctx, const unsigned char *in, size_t in_len,
+				struct iasecc_qsign_data *out)
+{
+	SHA256_CTX sha256;
+	SHA_LONG pre_hash_Nl;
+	int jj, ii;
+	int hh_size = sizeof(SHA_LONG), hh_num = SHA256_DIGEST_LENGTH / sizeof(SHA_LONG);
+
+	LOG_FUNC_CALLED(ctx);
+	if (!in || !in_len || !out)
+		LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);
+	
+	sc_log(ctx, "sc_pkcs15_get_qsign_data() input data length %i", in_len);
+	memset(out, 0, sizeof(struct iasecc_qsign_data));
+
+	SHA256_Init(&sha256);
+	SHA256_Update(&sha256, in, in_len);
+
+	for (jj=0; jj<hh_num; jj++) 
+		for(ii=0; ii<hh_size; ii++) 
+			out->pre_hash[jj*hh_size + ii] = ((sha256.h[jj] >> 8*(hh_size-1-ii)) & 0xFF);
+	out->pre_hash_size = SHA256_DIGEST_LENGTH;
+	sc_log(ctx, "Pre hash:%s", sc_dump_hex(out->pre_hash, out->pre_hash_size));
+
+	pre_hash_Nl = sha256.Nl - (sha256.Nl % (sizeof(sha256.data) * 8));
+	for (ii=0; ii<hh_size; ii++)   {
+		out->counter[ii] = (sha256.Nh >> 8*(hh_size-1-ii)) &0xFF;
+		out->counter[hh_size+ii] = (pre_hash_Nl >> 8*(hh_size-1-ii)) &0xFF;
+	}
+	for (ii=0, out->counter_long=0; ii<sizeof(out->counter); ii++)
+		out->counter_long = out->counter_long*0x100 + out->counter[ii];
+	sc_log(ctx, "Pre counter(%li):%s", out->counter_long, sc_dump_hex(out->counter, sizeof(out->counter)));
+
+	if (sha256.num)   {
+		memcpy(out->last_block, in + in_len - sha256.num, sha256.num);
+		out->last_block_size = sha256.num;
+		sc_log(ctx, "Last block(%i):%s", out->last_block_size, sc_dump_hex(out->last_block, out->last_block_size));
+	}
+
+	SHA256_Final(out->hash, &sha256);
+	out->hash_size = SHA256_DIGEST_LENGTH;
+	sc_log(ctx, "Expected digest %s\n", sc_dump_hex(out->hash, out->hash_size));
+
+	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
+}
+#endif
 
 
 static int 
@@ -2681,11 +2857,14 @@ iasecc_compute_signature_dst(struct sc_card *card,
 
 	memset(&qsign_data, 0, sizeof(qsign_data));
 	if (env->algorithm_flags & SC_ALGORITHM_RSA_HASH_SHA1)   {
-		rv = iasecc_get_qsign_data(card->ctx, in, in_len, &qsign_data, SC_ALGORITHM_RSA_HASH_SHA1);
+		rv = iasecc_qsign_data_sha1(card->ctx, in, in_len, &qsign_data);
 	}
 	else if (env->algorithm_flags & SC_ALGORITHM_RSA_HASH_SHA256)   {
-		LOG_TEST_RET(ctx, SC_ERROR_NOT_SUPPORTED, "RSA_HASH_SHA256 not yet supported");
-		rv = iasecc_get_qsign_data(card->ctx, in, in_len, &qsign_data, SC_ALGORITHM_RSA_HASH_SHA256);
+#if OPENSSL_VERSION_NUMBER >= 0x00908000L
+		rv = iasecc_qsign_data_sha256(card->ctx, in, in_len, &qsign_data);
+#else
+		LOG_TEST_RET(ctx, SC_ERROR_NOT_SUPPORTED, "SHA256 is not supported by OpenSSL previous to v0.9.8");
+#endif
 	}
 	else
 		LOG_TEST_RET(ctx, SC_ERROR_INVALID_ARGUMENTS, "Need RSA_HASH_SHA1 or RSA_HASH_SHA256 algorithm");
@@ -2695,11 +2874,16 @@ iasecc_compute_signature_dst(struct sc_card *card,
 
 	memset(sbuf, 0, sizeof(sbuf));
 	sbuf[offs++] = 0x90;
-	sbuf[offs++] = qsign_data.hash_size + 8;
-	memcpy(sbuf + offs, qsign_data.pre_hash, qsign_data.pre_hash_size);
-	offs += qsign_data.pre_hash_size;
-	memcpy(sbuf + offs, qsign_data.counter, sizeof(qsign_data.counter));
-	offs += sizeof(qsign_data.counter);
+	if (qsign_data.counter_long)   {
+		sbuf[offs++] = qsign_data.hash_size + 8;
+		memcpy(sbuf + offs, qsign_data.pre_hash, qsign_data.pre_hash_size);
+		offs += qsign_data.pre_hash_size;
+		memcpy(sbuf + offs, qsign_data.counter, sizeof(qsign_data.counter));
+		offs += sizeof(qsign_data.counter);
+	}
+	else   {
+		sbuf[offs++] = 0;
+	}
 
 	sbuf[offs++] = 0x80;
 	sbuf[offs++] = qsign_data.last_block_size;

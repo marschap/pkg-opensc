@@ -79,6 +79,9 @@
 #define TEMPLATE_INSTANTIATE_MIN_INDEX	0x0
 #define TEMPLATE_INSTANTIATE_MAX_INDEX	0xFE
 
+/* Maximal number of access conditions that can be defined for one card operation. */
+#define SC_MAX_OP_ACS                   16
+
 /* Handle encoding of PKCS15 on the card */
 typedef int	(*pkcs15_encoder)(struct sc_context *,
 			struct sc_pkcs15_card *, u8 **, size_t *);
@@ -150,7 +153,6 @@ static struct profile_operations {
 #ifdef ENABLE_OPENSSL
 	{ "authentic", (void *) sc_pkcs15init_get_authentic_ops },
 	{ "iasecc", (void *) sc_pkcs15init_get_iasecc_ops },
-/*	{ "piv", (void *) sc_pkcs15init_get_piv_ops }, */
 #endif
 	{ NULL, NULL },
 };
@@ -161,6 +163,9 @@ static struct sc_pkcs15init_callbacks callbacks = {
 	NULL,
 };
 
+void sc_pkcs15init_empty_callback(void *ptr)
+{
+}
 
 /*
  * Set the application callbacks
@@ -1126,16 +1131,22 @@ sc_pkcs15init_init_prkdf(struct sc_pkcs15_card *p15card,
 	key_info->id = keyargs->id;
 
 	if (key->algorithm == SC_ALGORITHM_GOSTR3410) {
-		key_info->params_len = sizeof(*keyinfo_gostparams);
+		key_info->params.len = sizeof(*keyinfo_gostparams);
 		/* FIXME: malloc() call in pkcs15init, but free() call
 		 * in libopensc (sc_pkcs15_free_prkey_info) */
-		key_info->params = malloc(key_info->params_len);
-		if (!key_info->params)
+		key_info->params.data = malloc(key_info->params.len);
+		if (!key_info->params.data)
 			LOG_TEST_RET(ctx, SC_ERROR_OUT_OF_MEMORY, "Cannot allocate memory for GOST parameters");
-		keyinfo_gostparams = key_info->params;
+		keyinfo_gostparams = key_info->params.data;
 		keyinfo_gostparams->gostr3410 = keyargs->params.gost.gostr3410;
 		keyinfo_gostparams->gostr3411 = keyargs->params.gost.gostr3411;
 		keyinfo_gostparams->gost28147 = keyargs->params.gost.gost28147;
+	}
+	else if (key->algorithm == SC_ALGORITHM_EC)  {
+		struct sc_pkcs15_ec_parameters *ecparams = &keyargs->params.ec;
+		key_info->params.data = &keyargs->params.ec;
+		key_info->params.free_params = sc_pkcs15init_empty_callback;
+		key_info->field_length = ecparams->field_length;
 	}
 
 	r = select_object_path(p15card, profile, object, &key_info->path);
@@ -1236,12 +1247,11 @@ sc_pkcs15init_generate_key(struct sc_pkcs15_card *p15card, struct sc_profile *pr
 		r = select_intrinsic_id(p15card, profile, SC_PKCS15_TYPE_PUBKEY, &iid, &pubkey_args.key);
 		LOG_TEST_RET(ctx, r, "Select intrinsic ID error");
 
-		if (iid.len)   {
+		if (iid.len)
 			key_info->id = iid;
-			pubkey_args.id = iid;
-		}
 	}
 
+	pubkey_args.id = key_info->id;
 	r = sc_pkcs15_encode_pubkey(ctx, &pubkey_args.key, &object->content.value, &object->content.len);
 	LOG_TEST_RET(ctx, r, "Failed to encode public key");
 
@@ -1441,13 +1451,13 @@ sc_pkcs15init_store_public_key(struct sc_pkcs15_card *p15card,
 	key_info->modulus_length = keybits;
 
 	if (key.algorithm == SC_ALGORITHM_GOSTR3410) {
-		key_info->params_len = sizeof(*keyinfo_gostparams);
+		key_info->params.len = sizeof(*keyinfo_gostparams);
 		/* FIXME: malloc() call in pkcs15init, but free() call
 		 * in libopensc (sc_pkcs15_free_prkey_info) */
-		key_info->params = malloc(key_info->params_len);
-		if (!key_info->params)
+		key_info->params.data = malloc(key_info->params.len);
+		if (!key_info->params.data)
 			return SC_ERROR_OUT_OF_MEMORY;
-		keyinfo_gostparams = key_info->params;
+		keyinfo_gostparams = key_info->params.data;
 		keyinfo_gostparams->gostr3410 = keyargs->params.gost.gostr3410;
 		keyinfo_gostparams->gostr3411 = keyargs->params.gost.gostr3411;
 		keyinfo_gostparams->gost28147 = keyargs->params.gost.gost28147;
@@ -1461,6 +1471,13 @@ sc_pkcs15init_store_public_key(struct sc_pkcs15_card *p15card,
 	 * otherwise make sure it's unique */
 	r = select_id(p15card, SC_PKCS15_TYPE_PUBKEY, &keyargs->id);
 	LOG_TEST_RET(ctx, r, "Failed to select public key object ID");
+
+	/* Make sure that private key's ID is the unique inside the PKCS#15 application */
+	r = sc_pkcs15_find_pubkey_by_id(p15card, &keyargs->id, NULL);
+	if (!r)
+		LOG_TEST_RET(ctx, SC_ERROR_NON_UNIQUE_ID, "Non unique ID of the public key object");
+	else if (r != SC_ERROR_OBJECT_NOT_FOUND)
+		LOG_TEST_RET(ctx, r, "Find public key error");
 
 	key_info->id = keyargs->id;
 
@@ -1851,7 +1868,7 @@ check_keygen_params_consistency(struct sc_card *card, struct sc_pkcs15init_keyge
 		if (info->key_length != keybits)
 			continue;
 
-		return SC_SUCCESS;
+		LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 	}
 
 	LOG_FUNC_RETURN(ctx, SC_ERROR_NOT_SUPPORTED);
@@ -2543,10 +2560,8 @@ sc_pkcs15init_update_any_df(struct sc_pkcs15_card *p15card,
  * Add an object to one of the pkcs15 directory files.
  */
 int
-sc_pkcs15init_add_object(struct sc_pkcs15_card *p15card,
-		struct sc_profile *profile,
-		unsigned int df_type,
-		struct sc_pkcs15_object *object)
+sc_pkcs15init_add_object(struct sc_pkcs15_card *p15card, struct sc_profile *profile,
+		unsigned int df_type, struct sc_pkcs15_object *object)
 {
 	struct sc_context *ctx = p15card->card->ctx;
 	struct sc_pkcs15_df *df;
@@ -2650,13 +2665,10 @@ sc_pkcs15init_new_object(int type, const char *label, struct sc_pkcs15_id *auth_
 
 
 int
-sc_pkcs15init_change_attrib(struct sc_pkcs15_card *p15card,
-		struct sc_profile *profile,
-		struct sc_pkcs15_object *object,
-		int new_attrib_type,
-		void *new_value,
-		int new_len)
+sc_pkcs15init_change_attrib(struct sc_pkcs15_card *p15card, struct sc_profile *profile, struct sc_pkcs15_object *object,
+		int new_attrib_type, void *new_value, int new_len)
 {
+	struct sc_context *ctx = p15card->card->ctx;
 	struct sc_card	*card = p15card->card;
 	unsigned char	*buf = NULL;
 	size_t		bufsize;
@@ -2665,17 +2677,17 @@ sc_pkcs15init_change_attrib(struct sc_pkcs15_card *p15card,
 	struct sc_pkcs15_id new_id = *((struct sc_pkcs15_id *) new_value);
 
 	if (object == NULL || object->df == NULL)
-		return SC_ERROR_OBJECT_NOT_FOUND;
+		LOG_TEST_RET(ctx, SC_ERROR_INVALID_ARGUMENTS, "Cannot change attribute");
 	df_type = object->df->type;
 
 	df = find_df_by_type(p15card, df_type);
 	if (df == NULL)
-		return SC_ERROR_OBJECT_NOT_FOUND;
+		LOG_TEST_RET(ctx, SC_ERROR_OBJECT_NOT_FOUND, "Cannot change attribute");
 
 	switch(new_attrib_type)   {
 	case P15_ATTR_TYPE_LABEL:
 		if (new_len >= SC_PKCS15_MAX_LABEL_SIZE)
-			return SC_ERROR_INVALID_ARGUMENTS;
+			LOG_TEST_RET(ctx, SC_ERROR_INVALID_ARGUMENTS, "New label too long");
 		memcpy(object->label, new_value, new_len);
 		object->label[new_len] = '\0';
 		break;
@@ -2694,16 +2706,16 @@ sc_pkcs15init_change_attrib(struct sc_pkcs15_card *p15card,
 			((struct sc_pkcs15_cert_info *) object->data)->id = new_id;
 			break;
 		default:
-			return SC_ERROR_NOT_SUPPORTED;
+			LOG_TEST_RET(ctx, SC_ERROR_NOT_SUPPORTED, "Cannot change ID attribute");
 		}
 		break;
 	default:
-		return SC_ERROR_NOT_SUPPORTED;
+		LOG_TEST_RET(ctx, SC_ERROR_NOT_SUPPORTED, "Only 'LABEL' or 'ID' attributes can be changed");
 	}
 
 	if (profile->ops->emu_update_any_df)   {
 		r = profile->ops->emu_update_any_df(profile, p15card, SC_AC_OP_CREATE, object);
-		LOG_TEST_RET(card->ctx, r, "Card specific DF update failed");
+		LOG_TEST_RET(ctx, r, "Card specific DF update failed");
 	}
 	else   {
 		r = sc_pkcs15_encode_df(card->ctx, p15card, df, &buf, &bufsize);
@@ -2711,8 +2723,7 @@ sc_pkcs15init_change_attrib(struct sc_pkcs15_card *p15card,
 			struct sc_file *file = NULL;
 
 			r = sc_profile_get_file_by_path(profile, &df->path, &file);
-			if(r < 0) 
-				return r;
+			LOG_TEST_RET(ctx, r, "Cannot instantiate file by path");
 
 			r = sc_pkcs15init_update_file(profile, p15card, file, buf, bufsize);
 			free(buf);
@@ -3359,14 +3370,14 @@ sc_pkcs15init_fixup_acls(struct sc_pkcs15_card *p15card, struct sc_file *file,
 
 	LOG_FUNC_CALLED(ctx);
 	for (op = 0; r == 0 && op < SC_MAX_AC_OPS; op++) {
-		struct sc_acl_entry acls[16];
+		struct sc_acl_entry acls[SC_MAX_OP_ACS];
 		const struct sc_acl_entry *acl;
 		const char	*what;
 		int		added = 0, num, ii;
 
 		/* First, get original ACLs */
 		acl = sc_file_get_acl_entry(file, op);
-		for (num = 0; num < 16 && acl; num++, acl = acl->next)
+		for (num = 0; num < SC_MAX_OP_ACS && acl; num++, acl = acl->next)
 			acls[num] = *acl;
 
 		sc_file_clear_acl_entries(file, op);

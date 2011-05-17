@@ -169,6 +169,17 @@ static void sc_asn1_print_integer(const u8 * buf, size_t buflen)
 	printf("%lld", a);
 }
 
+static void sc_asn1_print_boolean(const u8 * buf, size_t buflen)
+{
+	if (!buflen)
+		return;
+
+	if (buf[0])
+		printf("true");
+	else
+		printf("false");
+}
+
 static void sc_asn1_print_bit_string(const u8 * buf, size_t buflen)
 {
 #ifndef _WIN32
@@ -280,6 +291,9 @@ static void print_tags_recursive(const u8 * buf0, const u8 * buf,
 			case SC_ASN1_TAG_PRINTABLESTRING:
 			case SC_ASN1_TAG_UTF8STRING:
 				sc_asn1_print_utf8string(tagp, len);
+				break;
+			case SC_ASN1_TAG_BOOLEAN:
+				sc_asn1_print_boolean(tagp, len);
 				break;
 			}
 			printf("]");
@@ -651,7 +665,13 @@ int sc_asn1_encode_object_id(u8 **buf, size_t *buflen,
 	u8 temp[SC_MAX_OBJECT_ID_OCTETS*5], *p = temp;
 	size_t	count = 0;
 	int	i;
-	const int *value = (const int *) id->value;
+	int value[SC_MAX_OBJECT_ID_OCTETS];
+
+	/* set the unused ID part to '-1' */
+	memcpy(value, &id->value[0], sizeof(value));
+	for (i = SC_MAX_OBJECT_ID_OCTETS - 1; i>=0; i--)
+		if (!value[i])
+			value[i] = -1;
 
 	for (i = 0; i < SC_MAX_OBJECT_ID_OCTETS && value[i] >= 0; i++) {
 		unsigned int k, shift;

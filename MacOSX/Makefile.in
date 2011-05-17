@@ -207,6 +207,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 xslstylesheetsdir = @xslstylesheetsdir@
+MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 EXTRA_DIST = build build-package.in libtool-bundle opensc-uninstall \
 	10.5/resources \
 	10.5/resources/background.jpg \
@@ -332,6 +333,7 @@ distclean-generic:
 maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
+	-test -z "$(MAINTAINERCLEANFILES)" || rm -f $(MAINTAINERCLEANFILES)
 clean: clean-am
 
 clean-am: clean-generic clean-libtool mostlyclean-am
