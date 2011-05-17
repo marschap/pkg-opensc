@@ -127,7 +127,7 @@ static void logprintf(PCARD_DATA pCardData, int level, const char* format, ...)
 		if(vs != NULL && vs->ctx != NULL)
 		{
 #ifdef _MSC_VER
-			sc_do_log_va(vs->ctx, level, NULL, 0, NULL, format, arg);
+			sc_do_log_noframe(vs->ctx, level, format, arg);
 #else
 			/* FIXME: trouble in vsprintf with %S arg under
 			mingw32
@@ -603,7 +603,13 @@ DWORD WINAPI CardAuthenticatePin(__in PCARD_DATA pCardData,
 	logprintf(pCardData, 1, "CardAuthenticatePin %.20s, %d, %d\n", NULLSTR(type), \
 		cbPin, (pcAttemptsRemaining==NULL?-2:*pcAttemptsRemaining));
 
-	pin_obj = vs->pin_objs[0];
+	r = get_pin_by_role(pCardData, ROLE_USER, &pin_obj);
+	if (r != SCARD_S_SUCCESS)
+	{
+		logprintf(pCardData, 2, "Cannot get User PIN object");
+		return r;
+	}
+
 	r = sc_pkcs15_verify_pin(vs->p15card, pin_obj, (const u8 *) pbPin, cbPin);
 	if (r)
 	{
@@ -2128,3 +2134,4 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 #pragma managed(pop)
 #endif
 #endif
+
