@@ -1,7 +1,8 @@
-From 5796bfa97ac2066b41424b64dfff6861198b8d50 Mon Sep 17 00:00:00 2001
+From a3c65345d5baaae55e9b168bda78cc68130a3e4b Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sat, 19 Mar 2011 20:06:42 +0100
-Subject: [PATCH 05/15] OpenPGP: implement function to free the fake file system
+Subject: [PATCH 05/32] OpenPGP: implement function to free the fake file
+ system
 
 * pgp_iterate_blobs(): walk through the blob tree
 * pgp_free_blob(): free a blob
@@ -10,7 +11,7 @@ Subject: [PATCH 05/15] OpenPGP: implement function to free the fake file system
  1 files changed, 49 insertions(+), 8 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index e2b0229..111b948 100644
+index 2472161..e0abe68 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
 @@ -82,8 +82,11 @@ struct do_info {
@@ -25,7 +26,7 @@ index e2b0229..111b948 100644
  static int		pgp_get_pubkey(sc_card_t *, unsigned int,
  				u8 *, size_t);
  static int		pgp_get_pubkey_pem(sc_card_t *, unsigned int,
-@@ -115,7 +118,7 @@ static struct do_info		pgp_objects[] = {
+@@ -113,7 +116,7 @@ static struct do_info		pgp_objects[] = {
  
  #define DRVDATA(card)        ((struct pgp_priv_data *) ((card)->drv_data))
  struct pgp_priv_data {
@@ -34,7 +35,7 @@ index e2b0229..111b948 100644
  	struct blob *		current;
  
  	sc_security_env_t	sec_env;
-@@ -148,6 +151,12 @@ pgp_init(sc_card_t *card)
+@@ -146,6 +149,12 @@ pgp_init(sc_card_t *card)
  	priv = calloc (1, sizeof *priv);
  	if (!priv)
  		return SC_ERROR_OUT_OF_MEMORY;
@@ -47,7 +48,7 @@ index e2b0229..111b948 100644
  	card->drv_data = priv;
  	card->cla = 0x00;
  
-@@ -183,15 +192,15 @@ pgp_init(sc_card_t *card)
+@@ -173,15 +182,15 @@ pgp_init(sc_card_t *card)
  	file->type = SC_FILE_TYPE_DF;
  	file->id = 0x3f00;
  
@@ -67,7 +68,7 @@ index e2b0229..111b948 100644
  			  	info->constructed? SC_FILE_TYPE_DF
  					  	 : SC_FILE_TYPE_WORKING_EF,
  				info);
-@@ -208,7 +217,8 @@ pgp_finish(sc_card_t *card)
+@@ -198,7 +207,8 @@ pgp_finish(sc_card_t *card)
                  return 0;
  	priv = DRVDATA (card);
  
@@ -77,7 +78,7 @@ index e2b0229..111b948 100644
  
  	free(priv);
  	return 0;
-@@ -253,6 +263,37 @@ pgp_new_blob(struct blob *parent, unsigned int file_id,
+@@ -243,6 +253,37 @@ pgp_new_blob(struct blob *parent, unsigned int file_id,
  	return blob;
  }
  
@@ -115,7 +116,7 @@ index e2b0229..111b948 100644
  static int
  pgp_read_blob(sc_card_t *card, struct blob *blob)
  {
-@@ -374,7 +415,7 @@ pgp_select_file(sc_card_t *card, const sc_path_t *path, sc_file_t **ret)
+@@ -364,7 +405,7 @@ pgp_select_file(sc_card_t *card, const sc_path_t *path, sc_file_t **ret)
  		path = &path_copy;
  	}
  
@@ -124,7 +125,7 @@ index e2b0229..111b948 100644
  	for (n = 0; n < path->len; n += 2) {
  		r = pgp_get_blob(card, blob,
  				(path->value[n] << 8) | path->value[n+1],
-@@ -491,7 +532,7 @@ pgp_get_pubkey_pem(sc_card_t *card, unsigned int tag, u8 *buf, size_t buf_len)
+@@ -481,7 +522,7 @@ pgp_get_pubkey_pem(sc_card_t *card, unsigned int tag, u8 *buf, size_t buf_len)
  
  	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "called, tag=%04x\n", tag);
  	
@@ -134,5 +135,5 @@ index e2b0229..111b948 100644
  	 || (r = pgp_get_blob(card, blob, 0x0081, &mod_blob)) < 0
  	 || (r = pgp_get_blob(card, blob, 0x0082, &exp_blob)) < 0
 -- 
-1.7.4.1
+1.7.4.4
 

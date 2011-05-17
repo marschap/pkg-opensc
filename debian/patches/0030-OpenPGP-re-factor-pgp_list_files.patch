@@ -1,0 +1,31 @@
+From ad0dc05bcb14d66bffe03bc8c9f81933dd2f4d91 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Mon, 16 May 2011 11:19:16 +0200
+Subject: [PATCH 30/32] OpenPGP: re-factor pgp_list_files()
+
+Use ushort2bebytes instead of calculating the mapping to IDs ourselves.
+---
+ src/libopensc/card-openpgp.c |    7 ++-----
+ 1 files changed, 2 insertions(+), 5 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index 95f732d..92a3311 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -709,11 +709,8 @@ pgp_list_files(sc_card_t *card, u8 *buf, size_t buflen)
+ 	if ((r = pgp_enumerate_blob(card, blob)) < 0)
+ 		LOG_FUNC_RETURN(card->ctx, r);
+ 
+-	for (k = 0, blob = blob->files; blob; blob = blob->next) {
+-		if (k + 2 > buflen)
+-			break;
+-		buf[k++] = blob->id >> 8;
+-		buf[k++] = blob->id;
++	for (k = 0, blob = blob->files; (blob != NULL) && (k + 2 <= buflen); blob = blob->next, k += 2) {
++		ushort2bebytes(buf + k, blob->id);
+ 	}
+ 
+ 	LOG_FUNC_RETURN(card->ctx, k);
+-- 
+1.7.4.4
+

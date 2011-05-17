@@ -1,7 +1,7 @@
-From 68488ef7f5f033d9d2bc33bc834fcac75e8f39cd Mon Sep 17 00:00:00 2001
+From e4e9eb85646d3ad79fadecef94c1121eff6b7700 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sat, 19 Mar 2011 21:28:49 +0100
-Subject: [PATCH 04/15] OpenPGP: re-factor pgp_enumerate_blob()
+Subject: [PATCH 04/32] OpenPGP: re-factor pgp_enumerate_blob()
 
 Leverage the fact that OpenPGP cards use TLV encoding according to
 ASN.1 BER-encoding rules and use sc_asn1_read_tag() as the workhorse
@@ -15,10 +15,10 @@ This is done manually after calling sc_asn1_read_tag().
  1 files changed, 27 insertions(+), 39 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index 8b893d5..e2b0229 100644
+index b3f3d62..2472161 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -276,12 +276,12 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
+@@ -266,12 +266,12 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
  
  /*
   * Enumerate contents of a data blob.
@@ -33,7 +33,7 @@ index 8b893d5..e2b0229 100644
  	int		r;
  
  	if (blob->files != NULL)
-@@ -291,52 +291,40 @@ pgp_enumerate_blob(sc_card_t *card, struct blob *blob)
+@@ -281,52 +281,40 @@ pgp_enumerate_blob(sc_card_t *card, struct blob *blob)
  		return r;
  
  	in = blob->data;
@@ -112,5 +112,5 @@ index 8b893d5..e2b0229 100644
  
  static int
 -- 
-1.7.4.1
+1.7.4.4
 

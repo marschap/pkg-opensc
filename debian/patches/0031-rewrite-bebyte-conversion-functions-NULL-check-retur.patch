@@ -1,0 +1,93 @@
+From 5a3842b919c0486ae2edb21cbf3a1ffed0cb6b26 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Mon, 16 May 2011 11:26:24 +0200
+Subject: [PATCH 31/32] rewrite bebyte conversion functions: NULL check,
+ return buffer
+
+Rewrite bebyte conversion functions:
+* check whether the buffer passed is non-NULL
+* for conversions to bebytes, return the buffer passed
+---
+ src/libopensc/internal.h |    6 ++++--
+ src/libopensc/sc.c       |   30 ++++++++++++++++++++----------
+ 2 files changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/src/libopensc/internal.h b/src/libopensc/internal.h
+index e1fecb1..18e132c 100644
+--- a/src/libopensc/internal.h
++++ b/src/libopensc/internal.h
+@@ -86,14 +86,16 @@ int _sc_free_atr(struct sc_context *ctx, struct sc_card_driver *driver);
+  * Convert an unsigned long into 4 bytes in big endian order
+  * @param  buf   the byte array for the result, should be 4 bytes long
+  * @param  x     the value to be converted
++ * @return       the buffer passed, containing the converted value
+  */
+-void ulong2bebytes(u8 *buf, unsigned long x);
++u8 *ulong2bebytes(u8 *buf, unsigned long x);
+ /**
+  * Convert an unsigned long into 2 bytes in big endian order
+  * @param  buf   the byte array for the result, should be 2 bytes long
+  * @param  x     the value to be converted
++ * @return       the buffer passed, containing the converted value
+  */
+-void ushort2bebytes(u8 *buf, unsigned short x);
++u8 *ushort2bebytes(u8 *buf, unsigned short x);
+ /**
+  * Convert 4 bytes in big endian order into an unsigned long
+  * @param  buf   the byte array of 4 bytes
+diff --git a/src/libopensc/sc.c b/src/libopensc/sc.c
+index d53b977..db328bf 100644
+--- a/src/libopensc/sc.c
++++ b/src/libopensc/sc.c
+@@ -111,28 +111,38 @@ int sc_bin_to_hex(const u8 *in, size_t in_len, char *out, size_t out_len,
+ 	return 0;
+ }
+ 
+-void ulong2bebytes(u8 *buf, unsigned long x)
++u8 *ulong2bebytes(u8 *buf, unsigned long x)
+ {
+-    buf[3] = (u8) (x & 0xff);
+-    buf[2] = (u8) ((x >> 8) & 0xff);
+-    buf[1] = (u8) ((x >> 16) & 0xff);
+-    buf[0] = (u8) ((x >> 24) & 0xff);
++	if (buf != NULL) {
++		buf[3] = (u8) (x & 0xff);
++		buf[2] = (u8) ((x >> 8) & 0xff);
++		buf[1] = (u8) ((x >> 16) & 0xff);
++		buf[0] = (u8) ((x >> 24) & 0xff);
++	}
++	return(buf);
+ }
+ 
+-void ushort2bebytes(u8 *buf, unsigned short x)
++u8 *ushort2bebytes(u8 *buf, unsigned short x)
+ {
+-    buf[1] = (u8) (x & 0xff);
+-    buf[0] = (u8) ((x >> 8) & 0xff);
++	if (buf != NULL) {
++		buf[1] = (u8) (x & 0xff);
++		buf[0] = (u8) ((x >> 8) & 0xff);
++	}
++	return(buf);
+ }
+ 
+ unsigned long bebytes2ulong(const u8 *buf)
+ {
+-    return (unsigned long) (buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]);
++	if (buf == NULL)
++		return (unsigned long) 0L;
++	return (unsigned long) (buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3]);
+ }
+ 
+ unsigned short bebytes2ushort(const u8 *buf)
+ {
+-    return (unsigned short) (buf[0] << 8 | buf[1]);
++	if (buf == NULL)
++		return (unsigned short) 0;
++	return (unsigned short) (buf[0] << 8 | buf[1]);
+ }
+ 
+ int sc_format_oid(struct sc_object_id *oid, const char *in)
+-- 
+1.7.4.4
+

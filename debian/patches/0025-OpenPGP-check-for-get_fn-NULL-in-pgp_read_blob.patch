@@ -1,0 +1,57 @@
+From 19d4c831a1c87662e61a2d35dd1503ce89f20558 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sat, 30 Apr 2011 21:20:11 +0200
+Subject: [PATCH 25/32] OpenPGP: check for get_fn != NULL in pgp_read_blob()
+
+In pgp_read_blob(), check if the pointer to the function we want to call
+is defined.
+---
+ src/libopensc/card-openpgp.c |   25 ++++++++++++++-----------
+ 1 files changed, 14 insertions(+), 11 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index 57deba4..472aed8 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -481,24 +481,27 @@ pgp_iterate_blobs(struct blob *blob, int level, void (*func)())
+ static int
+ pgp_read_blob(sc_card_t *card, struct blob *blob)
+ {
+-	unsigned char	buffer[2048];
+-	size_t		buf_len = (card->caps & SC_CARD_CAP_APDU_EXT)
+-				  ? sizeof(buffer) : 256;
+-	int		r;
+-
+ 	if (blob->data != NULL)
+ 		return SC_SUCCESS;
+ 	if (blob->info == NULL)
+ 		return blob->status;
+ 
+-	r = blob->info->get_fn(card, blob->id, buffer, buf_len);
++	if (blob->info->get_fn) {	/* readable, top-level DO */
++		u8 	buffer[2048];
++		size_t	buf_len = (card->caps & SC_CARD_CAP_APDU_EXT)
++				  ? sizeof(buffer) : 256;
++		int	r = blob->info->get_fn(card, blob->id, buffer, buf_len);
+ 
+-	if (r < 0) {	/* an error occurred */
+-		blob->status = r;
+-		return r;
+-	}
++		if (r < 0) {	/* an error occurred */
++			blob->status = r;
++			return r;
++		}
+ 
+-	return pgp_set_blob(blob, buffer, r);
++		return pgp_set_blob(blob, buffer, r);
++	}
++	else {		/* un-readable DO or part of a constrcuted DO */
++		return SC_SUCCESS;
++	}
+ }
+ 
+ 
+-- 
+1.7.4.4
+

@@ -1,7 +1,8 @@
-From a28bc7817d34d2e3e8e5fec1f104d6d180dede97 Mon Sep 17 00:00:00 2001
+From baf9ff2bc48e9c0c0eb97644ecaef62bd730e496 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sat, 16 Apr 2011 19:56:03 +0200
-Subject: [PATCH 14/15] OpenPGP: free memory when selecting the application fails
+Subject: [PATCH 14/32] OpenPGP: free memory when selecting the application
+ fails
 
 free() the memory already reserved when the file identifying the OpenPGP
 application fails & reset the pointers in the card strcuture back to NULL.
@@ -10,10 +11,10 @@ application fails & reset the pointers in the card strcuture back to NULL.
  1 files changed, 5 insertions(+), 1 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index c968170..20be8c7 100644
+index 3bd61ee..4d7fe35 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -190,8 +190,12 @@ pgp_init(sc_card_t *card)
+@@ -178,8 +178,12 @@ pgp_init(sc_card_t *card)
  	/* select application "OpenPGP" */
  	sc_format_path("D276:0001:2401", &aid);
  	aid.type = SC_PATH_TYPE_DF_NAME;
@@ -28,5 +29,5 @@ index c968170..20be8c7 100644
  	sc_format_path("3f00", &file->path);
  	file->type = SC_FILE_TYPE_DF;
 -- 
-1.7.4.1
+1.7.4.4
 

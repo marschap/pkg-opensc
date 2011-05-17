@@ -1,0 +1,46 @@
+From d32192a2757b3382418681bf7d437a5b7a570da3 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sat, 30 Apr 2011 19:57:26 +0200
+Subject: [PATCH 19/32] OpenPGP: re-factor pgp_finish()
+
+Re-structure pgp_finish() for easier reading.
+While at it, check for priv != NULL before free()ing it.
+---
+ src/libopensc/card-openpgp.c |   19 ++++++++++---------
+ 1 files changed, 10 insertions(+), 9 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index fcb6c87..5408d69 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -243,17 +243,18 @@ pgp_init(sc_card_t *card)
+ static int
+ pgp_finish(sc_card_t *card)
+ {
+-        struct pgp_priv_data *priv;
+-
+-        if (card == NULL)
+-                return SC_SUCCESS;
+-	priv = DRVDATA (card);
++	if (card != NULL) {
++		struct pgp_priv_data *priv = DRVDATA (card);
+ 
+-	/* delete fake file hierarchy */
+-	pgp_iterate_blobs(priv->mf, 99, pgp_free_blob);
++		if (priv != NULL) {
++			/* delete fake file hierarchy */
++			pgp_iterate_blobs(priv->mf, 99, pgp_free_blob);
+ 
+-	free(priv);
+-	card->drv_data = NULL;
++			/* delete private data */
++			free(priv);
++		}
++		card->drv_data = NULL;
++	}
+ 	return SC_SUCCESS;
+ }
+ 
+-- 
+1.7.4.4
+

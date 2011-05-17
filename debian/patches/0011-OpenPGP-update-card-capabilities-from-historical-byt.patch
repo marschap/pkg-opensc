@@ -1,34 +1,22 @@
-From 2ce0adb282a5cdd4e0ef54f1a82d3147f1d5a102 Mon Sep 17 00:00:00 2001
+From 7a745292b503d4be5caf848f2aaeefef81d56772 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Fri, 15 Apr 2011 18:10:07 +0200
-Subject: [PATCH 11/15] OpenPGP: update card capabilities from historical bytes
+Subject: [PATCH 11/32] OpenPGP: update card capabilities from historical
+ bytes
 
 According to OpenPGP card specs 1.1 & 2.0 historical bytes in the ATR
 indicate capabilities:
 * bit 0x40 of the 3rd byte of the compact-TLV entry with TL 0x73 tells
   whether the card supports extended Lc/Le fields in APDUs.
-
-In addition, OpenPGP card 2.0 spec specifies the optional DO 5f52
-which also contains the histoirical bytes (just in case).
-If available use this value to override capabilties from ATR.
 ---
- src/libopensc/card-openpgp.c |   35 +++++++++++++++++++++++++++++++++++
- 1 files changed, 35 insertions(+), 0 deletions(-)
+ src/libopensc/card-openpgp.c |   15 +++++++++++++++
+ 1 files changed, 15 insertions(+), 0 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index ca6ca3e..5b0b4c7 100644
+index f81d943..8ba3475 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -89,6 +89,8 @@ static void		pgp_iterate_blobs(struct blob *, int, void (*func)());
- static struct blob *	pgp_new_blob(struct blob *, unsigned int, int,
- 				struct do_info *);
- static void		pgp_free_blob(struct blob *);
-+static int		pgp_get_blob(sc_card_t *, struct blob *, unsigned int,
-+				struct blob **);
- static int		pgp_get_pubkey(sc_card_t *, unsigned int,
- 				u8 *, size_t);
- static int		pgp_get_pubkey_pem(sc_card_t *, unsigned int,
-@@ -217,6 +219,39 @@ pgp_init(sc_card_t *card)
+@@ -207,6 +207,21 @@ pgp_init(sc_card_t *card)
  		return SC_ERROR_OUT_OF_MEMORY;
  	}
  
@@ -46,28 +34,10 @@ index ca6ca3e..5b0b4c7 100644
 +		    (hist_bytes[i+3] & 0x40))
 +			card->caps |= SC_CARD_CAP_APDU_EXT;
 +	}
-+	/* allow capability override from DO for v2.0 cards */
-+	if (card->type == SC_CARD_TYPE_OPENPGP_V2) {
-+		struct blob *blob;
-+
-+		/* get card capabilities from "historical bytes" DO */
-+		if ((pgp_get_blob(card, priv->mf, 0x5f52, &blob) >= 0) &&
-+		    (blob != NULL) && (blob->data != NULL) && (blob->data[0] == 0x00)) {
-+			unsigned int i = 0;
-+
-+			while ((i < blob->len) && (blob->data[i] != 0x73))
-+				i++;
-+
-+			/* bit 0x40 in byte 3 of TL 0x73 means "extended Le/Lc" */
-+			if ((blob->data[i] == 0x73) && (blob->len > i+3) &&
-+			    (blob->data[i+3] & 0x40))
-+				card->caps |= SC_CARD_CAP_APDU_EXT;
-+		}
-+	}
 +
  	return SC_SUCCESS;
  }
  
 -- 
-1.7.4.1
+1.7.4.4
 

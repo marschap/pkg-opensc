@@ -1,17 +1,17 @@
-From 5b30dacb9bbbcd0efc1850c91f450a70f475475e Mon Sep 17 00:00:00 2001
+From 8a0cb4550b222a17959b1338dbcd172565632aaa Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sun, 13 Mar 2011 19:04:29 +0100
-Subject: [PATCH 03/15] OpenPGP: try to match flags with specification
+Subject: [PATCH 03/32] OpenPGP: try to match flags with specification
 
 ---
- src/libopensc/card-openpgp.c |   10 ++++++++++
- 1 files changed, 10 insertions(+), 0 deletions(-)
+ src/libopensc/card-openpgp.c |    2 ++
+ 1 files changed, 2 insertions(+), 0 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index f123914..8b893d5 100644
+index 11e51c4..b3f3d62 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -152,8 +152,18 @@ pgp_init(sc_card_t *card)
+@@ -150,7 +150,9 @@ pgp_init(sc_card_t *card)
  	card->cla = 0x00;
  
  	/* Is this correct? */
@@ -19,17 +19,8 @@ index f123914..8b893d5 100644
          flags = SC_ALGORITHM_RSA_RAW;
 +	/* OpenPGP card spec 1.1 & 2.0, section 7.2.9 & 7.2.10 */
          flags |= SC_ALGORITHM_RSA_PAD_PKCS1;
-+	/* OpenPGP card 2.0 spec, section 7.2.8.1 */
-+	flags |= SC_ALGORITHM_RSA_HASH_SHA1 |
-+		 SC_ALGORITHM_RSA_HASH_RIPEMD160;
-+	if (card->type == SC_CARD_TYPE_OPENPGP_V2)
-+		flags |= SC_ALGORITHM_RSA_HASH_SHA224 |
-+			 SC_ALGORITHM_RSA_HASH_SHA256 |
-+			 SC_ALGORITHM_RSA_HASH_SHA384 |
-+			 SC_ALGORITHM_RSA_HASH_SHA512;
          flags |= SC_ALGORITHM_RSA_HASH_NONE;
  
- 	/* Is this correct? */
 -- 
-1.7.4.1
+1.7.4.4
 

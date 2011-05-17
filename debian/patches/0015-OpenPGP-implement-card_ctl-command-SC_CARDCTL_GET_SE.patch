@@ -1,7 +1,8 @@
-From 5affceda193ba0482d3fcc4dc00e1b0ef83c76c2 Mon Sep 17 00:00:00 2001
+From a47f3f327504d369b2aa3303362f4f308744e2c2 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sat, 16 Apr 2011 22:59:42 +0200
-Subject: [PATCH 15/15] OpenPGP: implement card_ctl() command SC_CARDCTL_GET_SERIALNR
+Subject: [PATCH 15/32] OpenPGP: implement card_ctl() command
+ SC_CARDCTL_GET_SERIALNR
 
 Implement card_ctl(), crrently restricted only to SC_CARDCTL_GET_SERIALNR.
 The card's serial number is copied from the respective bytes in the AID.
@@ -10,10 +11,10 @@ The card's serial number is copied from the respective bytes in the AID.
  1 files changed, 22 insertions(+), 0 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index 20be8c7..b38f447 100644
+index 4d7fe35..ee820f6 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -197,6 +197,13 @@ pgp_init(sc_card_t *card)
+@@ -185,6 +185,13 @@ pgp_init(sc_card_t *card)
  		return r;
  	}
  
@@ -27,7 +28,7 @@ index 20be8c7..b38f447 100644
  	sc_format_path("3f00", &file->path);
  	file->type = SC_FILE_TYPE_DF;
  	file->id = 0x3f00;
-@@ -835,6 +842,20 @@ pgp_decipher(sc_card_t *card, const u8 *in, size_t inlen,
+@@ -777,6 +784,20 @@ pgp_decipher(sc_card_t *card, const u8 *in, size_t inlen,
  	return apdu.resplen;
  }
  
@@ -48,7 +49,7 @@ index 20be8c7..b38f447 100644
  /* Driver binding stuff */
  static struct sc_card_driver *
  sc_get_driver(void)
-@@ -857,6 +878,7 @@ sc_get_driver(void)
+@@ -799,6 +820,7 @@ sc_get_driver(void)
  	pgp_ops.set_security_env= pgp_set_security_env;
  	pgp_ops.compute_signature= pgp_compute_signature;
  	pgp_ops.decipher	= pgp_decipher;
@@ -57,5 +58,5 @@ index 20be8c7..b38f447 100644
  	return &pgp_drv;
  }
 -- 
-1.7.4.1
+1.7.4.4
 

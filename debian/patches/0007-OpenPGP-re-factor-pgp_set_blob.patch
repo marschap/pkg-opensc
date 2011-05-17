@@ -1,7 +1,7 @@
-From cb4b396a3a933ae0d0b643d548c44a7116e42834 Mon Sep 17 00:00:00 2001
+From b22cf381a7771fefda60deae8e129e4a510bddb1 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sun, 13 Mar 2011 19:26:35 +0100
-Subject: [PATCH 07/15] OpenPGP: re-factor pgp_set_blob()
+Subject: [PATCH 07/32] OpenPGP: re-factor pgp_set_blob()
 
 * NULL-ify freed data pointer
 * avoid unnecessary malloc() calls
@@ -12,10 +12,10 @@ Subject: [PATCH 07/15] OpenPGP: re-factor pgp_set_blob()
  1 files changed, 16 insertions(+), 4 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index b7379f2..c0c0e55 100644
+index 6b4e604..879f5fe 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -230,12 +230,24 @@ pgp_set_blob(struct blob *blob, const u8 *data, size_t len)
+@@ -220,12 +220,24 @@ pgp_set_blob(struct blob *blob, const u8 *data, size_t len)
  {
  	if (blob->data)
  		free(blob->data);
@@ -45,5 +45,5 @@ index b7379f2..c0c0e55 100644
  }
  
 -- 
-1.7.4.1
+1.7.4.4
 

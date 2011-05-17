@@ -1,0 +1,39 @@
+From 453e5209d0d6ac8721aa83082b79ceaa530dd0c6 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sun, 8 May 2011 18:00:23 +0200
+Subject: [PATCH 29/32] OpenPGP: re-factor pgp_get_blob()
+
+Instead of jumping out of the loop when the correct child is found,
+and checking afterwards again if we found the correct object,
+do everything directly in the loop and return from there.
+---
+ src/libopensc/card-openpgp.c |   13 +++++--------
+ 1 files changed, 5 insertions(+), 8 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index 442a839..95f732d 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -629,14 +629,11 @@ pgp_get_blob(sc_card_t *card, struct blob *blob, unsigned int id,
+ 		return r;
+ 
+ 	for (child = blob->files; child; child = child->next) {
+-		if (child->id == id)
+-			break;
+-	}
+-
+-	if (child != NULL) {
+-		(void) pgp_read_blob(card, child);
+-		*ret = child;
+-		return SC_SUCCESS;
++		if (child->id == id) {
++			(void) pgp_read_blob(card, child);
++			*ret = child;
++			return SC_SUCCESS;
++		}
+ 	}
+ 
+ 	return SC_ERROR_FILE_NOT_FOUND;
+-- 
+1.7.4.4
+

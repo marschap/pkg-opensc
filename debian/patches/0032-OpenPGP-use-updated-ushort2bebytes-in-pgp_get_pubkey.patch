@@ -1,0 +1,31 @@
+From 116a16e5c2499eca40d3b6d468ea4b9752c134f5 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Mon, 16 May 2011 11:22:01 +0200
+Subject: [PATCH 32/32] OpenPGP: use updated ushort2bebytes() in
+ pgp_get_pubkey()
+
+---
+ src/libopensc/card-openpgp.c |    5 +----
+ 1 files changed, 1 insertions(+), 4 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index 92a3311..6f4d656 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -770,12 +770,9 @@ pgp_get_pubkey(sc_card_t *card, unsigned int tag, u8 *buf, size_t buf_len)
+ 
+ 	sc_log(card->ctx, "called, tag=%04x\n", tag);
+ 
+-	idbuf[0] = tag >> 8;
+-	idbuf[1] = tag;
+-
+ 	sc_format_apdu(card, &apdu, SC_APDU_CASE_4, 0x47, 0x81, 0);
+ 	apdu.lc = 2;
+-	apdu.data = idbuf;
++	apdu.data = ushort2bebytes(idbuf, tag);
+ 	apdu.datalen = 2;
+ 	apdu.le = ((buf_len >= 256) && !(card->caps & SC_CARD_CAP_APDU_EXT)) ? 256 : buf_len;
+ 	apdu.resp = buf;
+-- 
+1.7.4.4
+

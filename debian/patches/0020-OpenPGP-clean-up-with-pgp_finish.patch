@@ -1,0 +1,45 @@
+From 9d8f3bfc786480f546314055fb7c659a514ed7ac Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sat, 30 Apr 2011 20:50:53 +0200
+Subject: [PATCH 20/32] OpenPGP: clean up with pgp_finish()
+
+Use pgp_finish() wherever possible to clean up.
+---
+ src/libopensc/card-openpgp.c |    9 ++++-----
+ 1 files changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index 5408d69..41e5f25 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -154,13 +154,14 @@ pgp_init(sc_card_t *card)
+ 	priv = calloc (1, sizeof *priv);
+ 	if (!priv)
+ 		return SC_ERROR_OUT_OF_MEMORY;
++	card->drv_data = priv;
++
+ 	priv->mf = calloc(1, sizeof(struct blob));
+ 	if (!priv->mf) {
+-		free(priv);
++		pgp_finish(card);
+ 		return SC_ERROR_OUT_OF_MEMORY;
+ 	}
+ 
+-	card->drv_data = priv;
+ 	card->cla = 0x00;
+ 
+ 	/* Is this correct? */
+@@ -181,9 +182,7 @@ pgp_init(sc_card_t *card)
+ 	sc_format_path("D276:0001:2401", &aid);
+ 	aid.type = SC_PATH_TYPE_DF_NAME;
+ 	if ((r = iso_ops->select_file(card, &aid, &file)) < 0) {
+-		free(priv->mf);
+-		free(priv);
+-		card->drv_data = NULL;
++		pgp_finish(card);
+ 		return r;
+ 	}
+ 
+-- 
+1.7.4.4
+

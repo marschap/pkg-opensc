@@ -1,21 +1,21 @@
-From 622984695bf07f0e2caadf3749da4ce183c7473f Mon Sep 17 00:00:00 2001
+From 09d59c90947177ecc1a5e79f82ef1767fcde1904 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Fri, 15 Apr 2011 18:29:46 +0200
-Subject: [PATCH 12/15] OpenPGP: use card "extended Lc/Le" capabilities
+Subject: [PATCH 12/32] OpenPGP: use card "extended Lc/Le" capabilities
 
 adapt pgp_get_pubkey() and pgp_read_blob() to make use of the information
 about the "extended Lc/Le" capabilities.
 
 This allows reading OpenPGP Card v2.0 keys!
 ---
- src/libopensc/card-openpgp.c |   17 +++++++++++++----
- 1 files changed, 13 insertions(+), 4 deletions(-)
+ src/libopensc/card-openpgp.c |   10 ++++++----
+ 1 files changed, 6 insertions(+), 4 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index 5b0b4c7..cdaddbe 100644
+index 8ba3475..09b2d81 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -358,7 +358,9 @@ pgp_iterate_blobs(struct blob *blob, int level, void (*func)())
+@@ -328,7 +328,9 @@ pgp_iterate_blobs(struct blob *blob, int level, void (*func)())
  static int
  pgp_read_blob(sc_card_t *card, struct blob *blob)
  {
@@ -26,7 +26,7 @@ index 5b0b4c7..cdaddbe 100644
  	int		r;
  
  	if (blob->data != NULL)
-@@ -366,7 +368,7 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
+@@ -336,7 +338,7 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
  	if (blob->info == NULL)
  		return blob->status;
  
@@ -35,33 +35,20 @@ index 5b0b4c7..cdaddbe 100644
  
  	if (r < 0) {	/* an error occurred */
  		blob->status = r;
-@@ -559,17 +561,24 @@ pgp_get_pubkey(sc_card_t *card, unsigned int tag, u8 *buf, size_t buf_len)
- 	sc_apdu_t	apdu;
- 	u8		idbuf[2];
- 	int		r;
-+	int		cse = SC_APDU_CASE_4_SHORT;
-+	size_t		le = buf_len;
- 
- 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "called, tag=%04x\n", tag);
- 
+@@ -535,11 +537,11 @@ pgp_get_pubkey(sc_card_t *card, unsigned int tag, u8 *buf, size_t buf_len)
  	idbuf[0] = tag >> 8;
  	idbuf[1] = tag;
  
 -	sc_format_apdu(card, &apdu, SC_APDU_CASE_4_SHORT, 0x47, 0x81, 0);
-+	if ((buf_len > 256) && (card->caps & SC_CARD_CAP_APDU_EXT))
-+		cse |= SC_APDU_EXT;
-+	else
-+		le = (le >= 256) ? 256 : le;
-+
-+	sc_format_apdu(card, &apdu, cse, 0x47, 0x81, 0);
++	sc_format_apdu(card, &apdu, SC_APDU_CASE_4, 0x47, 0x81, 0);
  	apdu.lc = 2;
  	apdu.data = idbuf;
  	apdu.datalen = 2;
 -	apdu.le = (buf_len > 256)? 256 : buf_len;
-+	apdu.le = le;
++	apdu.le = ((buf_len >= 256) && !(card->caps & SC_CARD_CAP_APDU_EXT)) ? 256 : buf_len;
  	apdu.resp = buf;
  	apdu.resplen = buf_len;
  
 -- 
-1.7.4.1
+1.7.4.4
 

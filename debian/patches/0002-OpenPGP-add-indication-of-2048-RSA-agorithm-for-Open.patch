@@ -1,17 +1,18 @@
-From ae71acb63daeca58391dde415d6228a78a6c53b1 Mon Sep 17 00:00:00 2001
+From 4064520bc76635290d75082d8a377d9315fb6613 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sun, 13 Mar 2011 18:51:33 +0100
-Subject: [PATCH 02/15] OpenPGP: add indication of 2048 RSA agorithm for OpenPGP 2.0 cards
+Subject: [PATCH 02/32] OpenPGP: add indication of 2048 RSA agorithm for
+ OpenPGP 2.0 cards
 
 ---
  src/libopensc/card-openpgp.c |    2 ++
  1 files changed, 2 insertions(+), 0 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index 0bb7f07..f123914 100644
+index 02a9561..11e51c4 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
-@@ -160,6 +160,8 @@ pgp_init(sc_card_t *card)
+@@ -158,6 +158,8 @@ pgp_init(sc_card_t *card)
          _sc_card_add_rsa_alg(card, 512, flags, 0);
          _sc_card_add_rsa_alg(card, 768, flags, 0);
          _sc_card_add_rsa_alg(card, 1024, flags, 0);
@@ -21,5 +22,5 @@ index 0bb7f07..f123914 100644
  	sc_format_path("D276:0001:2401", &aid);
  	aid.type = SC_PATH_TYPE_DF_NAME;
 -- 
-1.7.4.1
+1.7.4.4
 

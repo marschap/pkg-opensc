@@ -1,14 +1,14 @@
-From 156018704669e356d2e0031572be78b54ddde861 Mon Sep 17 00:00:00 2001
+From 327aa5c435f3165f72abdf652b7014ff74bd4513 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Thu, 24 Mar 2011 08:57:31 +0100
-Subject: [PATCH 09/15] OpenPGP: use symbolic names for errors/success
+Subject: [PATCH 09/32] OpenPGP: use symbolic names for errors/success
 
 ---
  src/libopensc/card-openpgp.c |   23 ++++++++++++-----------
  1 files changed, 12 insertions(+), 11 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index 54dd607..b1fa41e 100644
+index 8effaf7..9bba25b 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
 @@ -33,6 +33,7 @@
@@ -19,7 +19,7 @@ index 54dd607..b1fa41e 100644
  
  static struct sc_atr_table pgp_atrs[] = {
  	{ "3b:fa:13:00:ff:81:31:80:45:00:31:c1:73:c0:01:00:00:90:00:b1", NULL, "OpenPGP card v1.0/1.1", SC_CARD_TYPE_OPENPGP_V1, 0, NULL },
-@@ -205,7 +206,7 @@ pgp_init(sc_card_t *card)
+@@ -195,7 +196,7 @@ pgp_init(sc_card_t *card)
  					  	 : SC_FILE_TYPE_WORKING_EF,
  				info);
  	}
@@ -28,7 +28,7 @@ index 54dd607..b1fa41e 100644
  }
  
  static int
-@@ -214,7 +215,7 @@ pgp_finish(sc_card_t *card)
+@@ -204,7 +205,7 @@ pgp_finish(sc_card_t *card)
          struct pgp_priv_data *priv;
  
          if (card == NULL)
@@ -37,7 +37,7 @@ index 54dd607..b1fa41e 100644
  	priv = DRVDATA (card);
  
  	/* delete fake file hierarchy */
-@@ -222,7 +223,7 @@ pgp_finish(sc_card_t *card)
+@@ -212,7 +213,7 @@ pgp_finish(sc_card_t *card)
  
  	free(priv);
  	card->drv_data = NULL;
@@ -46,7 +46,7 @@ index 54dd607..b1fa41e 100644
  }
  
  static int
-@@ -248,7 +249,7 @@ pgp_set_blob(struct blob *blob, const u8 *data, size_t len)
+@@ -238,7 +239,7 @@ pgp_set_blob(struct blob *blob, const u8 *data, size_t len)
  	if (blob->file)
  		blob->file->size = len;
  
@@ -55,7 +55,7 @@ index 54dd607..b1fa41e 100644
  }
  
  static struct blob *
-@@ -314,13 +315,13 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
+@@ -304,13 +305,13 @@ pgp_read_blob(sc_card_t *card, struct blob *blob)
  	int		r;
  
  	if (blob->data != NULL)
@@ -71,7 +71,7 @@ index 54dd607..b1fa41e 100644
  		blob->status = r;
  		return r;
  	}
-@@ -339,7 +340,7 @@ pgp_enumerate_blob(sc_card_t *card, struct blob *blob)
+@@ -329,7 +330,7 @@ pgp_enumerate_blob(sc_card_t *card, struct blob *blob)
  	int		r;
  
  	if (blob->files != NULL)
@@ -80,7 +80,7 @@ index 54dd607..b1fa41e 100644
  
  	if ((r = pgp_read_blob(card, blob)) < 0)
  		return r;
-@@ -378,7 +379,7 @@ pgp_enumerate_blob(sc_card_t *card, struct blob *blob)
+@@ -368,7 +369,7 @@ pgp_enumerate_blob(sc_card_t *card, struct blob *blob)
  		in = data + len;
  	}
  
@@ -89,7 +89,7 @@ index 54dd607..b1fa41e 100644
  }
  
  static int
-@@ -399,7 +400,7 @@ pgp_get_blob(sc_card_t *card, struct blob *blob, unsigned int id,
+@@ -389,7 +390,7 @@ pgp_get_blob(sc_card_t *card, struct blob *blob, unsigned int id,
  	if (child != NULL) {
  		(void) pgp_read_blob(card, child);
  		*ret = child;
@@ -98,7 +98,7 @@ index 54dd607..b1fa41e 100644
  	}
  
  	return SC_ERROR_FILE_NOT_FOUND;
-@@ -443,7 +444,7 @@ pgp_select_file(sc_card_t *card, const sc_path_t *path, sc_file_t **ret)
+@@ -433,7 +434,7 @@ pgp_select_file(sc_card_t *card, const sc_path_t *path, sc_file_t **ret)
  
  	if (ret)
  		sc_file_dup(ret, blob->file);
@@ -107,7 +107,7 @@ index 54dd607..b1fa41e 100644
  }
  
  static int
-@@ -646,7 +647,7 @@ pgp_set_security_env(sc_card_t *card,
+@@ -636,7 +637,7 @@ pgp_set_security_env(sc_card_t *card,
  	}
  
  	priv->sec_env = *env;
@@ -117,5 +117,5 @@ index 54dd607..b1fa41e 100644
  
  static int
 -- 
-1.7.4.1
+1.7.4.4
 

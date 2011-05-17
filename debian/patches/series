@@ -1,4 +1,3 @@
-0001-APDU-parsing-switch-to-Frank-Morgner-s-implementatio.patch
 0001-OpenPGP-fix-top-level-DOs-according-to-spec.patch
 0002-OpenPGP-add-indication-of-2048-RSA-agorithm-for-Open.patch
 0003-OpenPGP-try-to-match-flags-with-specification.patch
@@ -14,3 +13,20 @@
 0013-OpenPGP-allow-extended-APDUs-in-all-functions.patch
 0014-OpenPGP-free-memory-when-selecting-the-application-f.patch
 0015-OpenPGP-implement-card_ctl-command-SC_CARDCTL_GET_SE.patch
+0016-OpenPGP-remove-unused-element-from-structure.patch
+0017-OpenPGP-briefly-document-each-function.patch
+0018-OpenPGP-sprinkle-with-LOG_.-macros.patch
+0019-OpenPGP-re-factor-pgp_finish.patch
+0020-OpenPGP-clean-up-with-pgp_finish.patch
+0021-OpenPGP-comment-use-of-current.patch
+0022-OpenPGP-re-factor-pgp_select_file.patch
+0023-OpenPGP-read-BCD-version-from-card.patch
+0024-OpenPGP-deal-with-DOs-depending-on-card-version.patch
+0025-OpenPGP-check-for-get_fn-NULL-in-pgp_read_blob.patch
+0026-OpenPGP-new-function-to-get-card-s-features.patch
+0027-OpenPGP-extend-pgp_get_card_features.patch
+0028-OpenPGP-get-flags-algorithms-in-pgp_get_card_feature.patch
+0029-OpenPGP-re-factor-pgp_get_blob.patch
+0030-OpenPGP-re-factor-pgp_list_files.patch
+0031-rewrite-bebyte-conversion-functions-NULL-check-retur.patch
+0032-OpenPGP-use-updated-ushort2bebytes-in-pgp_get_pubkey.patch

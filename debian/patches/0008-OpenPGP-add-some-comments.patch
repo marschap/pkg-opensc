@@ -1,14 +1,14 @@
-From b81b0fea544c83cb7d0bd094e9ab1851f304e1cb Mon Sep 17 00:00:00 2001
+From 0de803b61fae19846a06b9d7f374f677899adeb0 Mon Sep 17 00:00:00 2001
 From: Peter Marschall <peter@adpm.de>
 Date: Sun, 13 Mar 2011 19:32:05 +0100
-Subject: [PATCH 08/15] OpenPGP: add some comments
+Subject: [PATCH 08/32] OpenPGP: add some comments
 
 ---
  src/libopensc/card-openpgp.c |    8 ++++----
  1 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
-index c0c0e55..54dd607 100644
+index 879f5fe..8effaf7 100644
 --- a/src/libopensc/card-openpgp.c
 +++ b/src/libopensc/card-openpgp.c
 @@ -61,8 +61,8 @@ static struct sc_card_driver pgp_drv = {
@@ -31,7 +31,7 @@ index c0c0e55..54dd607 100644
  };
  
  struct do_info {
-@@ -182,9 +182,9 @@ pgp_init(sc_card_t *card)
+@@ -172,9 +172,9 @@ pgp_init(sc_card_t *card)
  	if (card->type == SC_CARD_TYPE_OPENPGP_V2)
  		_sc_card_add_rsa_alg(card, 2048, flags, 0);
  
@@ -43,5 +43,5 @@ index c0c0e55..54dd607 100644
  		return r;
  
 -- 
-1.7.4.1
+1.7.4.4
 
