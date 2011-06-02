@@ -3,6 +3,7 @@ opensc (0.12.1-1) unstable; urgency=low
   * New upstream release. (Closes: #627241)
   * debian/control: Upgrade Standards-Version to 3.9.2.
   * debian/opensc.install: rutoken-tool has been removed.
+  * debian/opensc.install: Add eidenv and piv-tool manpages.
 
  -- Eric Dorland <eric@debian.org>  Thu, 02 Jun 2011 01:31:38 -0400
 
