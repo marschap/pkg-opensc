@@ -55,7 +55,7 @@ static const struct sc_card_error starcos_errors[] =
 	{ 0x6F01, SC_ERROR_CARD_CMD_FAILED, "public key not complete"},
 	{ 0x6F02, SC_ERROR_CARD_CMD_FAILED, "data overflow"},
 	{ 0x6F03, SC_ERROR_CARD_CMD_FAILED, "invalid command sequence"},
-	{ 0x6F05, SC_ERROR_CARD_CMD_FAILED, "security enviroment invalid"},
+	{ 0x6F05, SC_ERROR_CARD_CMD_FAILED, "security environment invalid"},
 	{ 0x6F07, SC_ERROR_FILE_NOT_FOUND, "key part not found"},
 	{ 0x6F08, SC_ERROR_CARD_CMD_FAILED, "signature failed"},
 	{ 0x6F0A, SC_ERROR_INCORRECT_PARAMETERS, "key format does not match key length"},
@@ -63,7 +63,7 @@ static const struct sc_card_error starcos_errors[] =
 	{ 0x6F81, SC_ERROR_CARD_CMD_FAILED, "system error"}
 };
 
-/* internal structure to save the current security enviroment */
+/* internal structure to save the current security environment */
 typedef struct starcos_ex_data_st {
 	int    sec_ops;	/* the currently selected security operation,
 			 * i.e. SC_SEC_OPERATION_AUTHENTICATE etc. */
@@ -96,7 +96,6 @@ static int starcos_init(sc_card_t *card)
 
 	flags = SC_ALGORITHM_RSA_PAD_PKCS1 
 		| SC_ALGORITHM_ONBOARD_KEY_GEN
-		| SC_CARD_FLAG_RNG
 		| SC_ALGORITHM_RSA_PAD_ISO9796
 		| SC_ALGORITHM_RSA_HASH_NONE
 		| SC_ALGORITHM_RSA_HASH_SHA1
@@ -375,7 +374,7 @@ static int starcos_select_file(sc_card_t *card,
 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 		"current path (%s, %s): %s (len: %u)\n",
 		(card->cache.current_path.type==SC_PATH_TYPE_DF_NAME?"aid":"path"),
-		(card->cache_valid?"valid":"invalid"), pbuf,
+		(card->cache.valid?"valid":"invalid"), pbuf,
 		card->cache.current_path.len);
   
 	memcpy(path, in_path->value, in_path->len);
@@ -391,7 +390,7 @@ static int starcos_select_file(sc_card_t *card,
 	else if (in_path->type == SC_PATH_TYPE_DF_NAME)
       	{	/* SELECT DF with AID */
 		/* Select with 1-16byte Application-ID */
-		if (card->cache_valid 
+		if (card->cache.valid 
 		    && card->cache.current_path.type == SC_PATH_TYPE_DF_NAME
 		    && card->cache.current_path.len == pathlen
 		    && memcmp(card->cache.current_path.value, pathbuf, pathlen) == 0 )
@@ -431,7 +430,7 @@ static int starcos_select_file(sc_card_t *card,
 		}
 	
 		/* check current working directory */
-		if (card->cache_valid 
+		if (card->cache.valid 
 		    && card->cache.current_path.type == SC_PATH_TYPE_PATH
 		    && card->cache.current_path.len >= 2
 		    && card->cache.current_path.len <= pathlen )
@@ -443,7 +442,7 @@ static int starcos_select_file(sc_card_t *card,
 					bMatch += 2;
 		}
 
-		if ( card->cache_valid && bMatch >= 0 )
+		if ( card->cache.valid && bMatch >= 0 )
 		{
 			if ( pathlen - bMatch == 2 )
 				/* we are in the rigth directory */
@@ -456,7 +455,8 @@ static int starcos_select_file(sc_card_t *card,
 				/* first step: change directory */
 				r = starcos_select_fid(card, path[bMatch], path[bMatch+1], NULL);
 				SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "SELECT FILE (DF-ID) failed");
-		
+	
+				memset(&new_path, 0, sizeof(sc_path_t));	
 				new_path.type = SC_PATH_TYPE_PATH;
 				new_path.len  = pathlen - bMatch-2;
 				memcpy(new_path.value, &(path[bMatch+2]), new_path.len);
@@ -568,7 +568,7 @@ static int starcos_process_acl(sc_card_t *card, sc_file_t *file,
 			tmp = 0x00;	/* no sm */
 		*p++ = tmp;	/* use the same sm mode for all ops */
 		*p++ = tmp;
-		*p++ = tmp;
+		*p = tmp;
 		data->type = SC_STARCOS_MF_DATA;
 
 		return SC_SUCCESS;
@@ -605,7 +605,7 @@ static int starcos_process_acl(sc_card_t *card, sc_file_t *file,
 		else
 			tmp = 0x00;
 		*p++ = tmp;	/* SM CR  */
-		*p++ = tmp;	/* SM ISF */
+		*p = tmp;	/* SM ISF */
 
 		data->data.df.size[0] = (file->size >> 8) & 0xff;
 		data->data.df.size[1] = file->size & 0xff;
@@ -643,17 +643,17 @@ static int starcos_process_acl(sc_card_t *card, sc_file_t *file,
 		case SC_FILE_EF_TRANSPARENT:
 			*p++ = 0x81;
 			*p++ = (file->size >> 8) & 0xff;
-			*p++ = file->size & 0xff;
+			*p = file->size & 0xff;
 			break;
 		case SC_FILE_EF_LINEAR_FIXED:
 			*p++ = 0x82;
 			*p++ = file->record_count  & 0xff;
-			*p++ = file->record_length & 0xff;
+			*p = file->record_length & 0xff;
 			break;
 		case SC_FILE_EF_CYCLIC:
 			*p++ = 0x84;
 			*p++ = file->record_count  & 0xff;
-			*p++ = file->record_length & 0xff;
+			*p = file->record_length & 0xff;
 			break;
 		default:
 			return SC_ERROR_INVALID_ARGUMENTS;
@@ -859,7 +859,7 @@ static int starcos_erase_card(sc_card_t *card)
 	r = sc_transmit_apdu(card, &apdu);
 	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 	/* invalidate cache */
-	card->cache_valid = 0;
+	card->cache.valid = 0;
 	if (apdu.sw1 == 0x69 && apdu.sw2 == 0x85)
 		/* no MF to delete, ignore error */
 		return SC_SUCCESS;
@@ -997,14 +997,14 @@ static int starcos_gen_key(sc_card_t *card, sc_starcos_gen_key_data *data)
 }
 
 /** starcos_set_security_env
- * sets the security enviroment
+ * sets the security environment
  * \param card pointer to the sc_card object
  * \param env pointer to a sc_security_env object
  * \param se_num not used here
  * \return SC_SUCCESS on success or an error code
  *
- * This function sets the security enviroment (using the starcos spk 2.3
- * command MANAGE SECURITY ENVIROMENT). In case a COMPUTE SIGNATURE
+ * This function sets the security environment (using the starcos spk 2.3
+ * command MANAGE SECURITY ENVIRONMENT). In case a COMPUTE SIGNATURE
  * operation is requested , this function tries to detect whether
  * COMPUTE SIGNATURE or INTERNAL AUTHENTICATE must be used for signature
  * calculation.
@@ -1013,14 +1013,13 @@ static int starcos_set_security_env(sc_card_t *card,
 				    const sc_security_env_t *env,
 				    int se_num)
 {
-	u8              *p, *pp, keyID;
+	u8              *p, *pp;
 	int              r, operation = env->operation;
 	sc_apdu_t   apdu;
 	u8               sbuf[SC_MAX_APDU_BUFFER_SIZE];
 	starcos_ex_data *ex_data = (starcos_ex_data *)card->drv_data;
 
 	p     = sbuf;
-	keyID = env->key_ref[0];
 
 	/* copy key reference, if present */
 	if (env->flags & SC_SEC_ENV_KEY_REF_PRESENT) {

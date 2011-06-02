@@ -65,6 +65,8 @@ extern "C" {
 #define SC_ERROR_FILE_ALREADY_EXISTS		-1215
 #define SC_ERROR_DATA_OBJECT_NOT_FOUND		-1216
 #define SC_ERROR_NOT_ENOUGH_MEMORY		-1217
+#define SC_ERROR_CORRUPTED_DATA			-1218
+#define SC_ERROR_FILE_END_REACHED		-1219
 
 /* Returned by OpenSC library when called with invalid arguments */
 #define SC_ERROR_INVALID_ARGUMENTS		-1300
@@ -99,12 +101,25 @@ extern "C" {
 #define SC_ERROR_INCONSISTENT_PROFILE		-1502
 #define SC_ERROR_INCOMPATIBLE_KEY		-1503
 #define SC_ERROR_NO_DEFAULT_KEY			-1504
-/* Unused: -1505 */
+#define SC_ERROR_NON_UNIQUE_ID			-1505
 #define SC_ERROR_CANNOT_LOAD_KEY		-1506
 /* Unused: -1007 */
 #define SC_ERROR_TEMPLATE_NOT_FOUND		-1508
 #define SC_ERROR_INVALID_PIN_REFERENCE		-1509
 #define SC_ERROR_FILE_TOO_SMALL			-1510
+
+/* Related to secure messaging */
+#define SC_ERROR_SM                             -1600
+#define SC_ERROR_SM_ENCRYPT_FAILED              -1601
+#define SC_ERROR_SM_INVALID_LEVEL               -1602
+#define SC_ERROR_SM_NO_SESSION_KEYS             -1603
+#define SC_ERROR_SM_INVALID_SESSION_KEY         -1604
+#define SC_ERROR_SM_NOT_INITIALIZED             -1605
+#define SC_ERROR_SM_AUTHENTICATION_FAILED       -1606
+#define SC_ERROR_SM_RAND_FAILED                 -1607
+#define SC_ERROR_SM_KEYSET_NOT_FOUND            -1608
+#define SC_ERROR_SM_IFD_DATA_MISSING            -1609
+
 
 /* Errors that do not fit the categories above */
 #define SC_ERROR_UNKNOWN			-1900

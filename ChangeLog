@@ -1,6 +1,3188 @@
-2010-12-22 17:13  martin
+2011-05-18 05:35  martin
 
-	* releases/opensc-0.12.0: Release 0.12.0
+	* releases/opensc-0.12.1/MacOSX/build-package.in: MacInstaller:
+	  fix distribution style, which accidentially got changed in
+	  r5376. This only affects (corrects) Mac OS X binary packaging.
+
+2011-05-17 17:02  martin
+
+	* releases/opensc-0.12.1: Release OpenSC 0.12.1
+
+2011-05-17 16:59  martin
+
+	* trunk/NEWS, trunk/configure.ac: Release r5449 as OpenSC 0.12.1
+
+2011-05-17 14:04  martin
+
+	* trunk/NEWS: NEWS: add pkcs11-tool change to NEWS file
+
+2011-05-17 13:27  martin
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool: correct typos about
+	  --login-type option, change id -> ID in help texts.
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool: move --module to the
+	  first position in help text and make it mandatory.
+
+2011-05-16 08:32  vtarasov
+
+	* trunk/src/libopensc/asn1.c: tools: print value of 'BOOLEAN' asn1
+	  type
+
+2011-05-14 18:00  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: for PIN object print
+	  'Auth ID'
+
+2011-05-13 16:11  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c: iasecc: no support for SHA256
+	  in the OpenSSL previous to v0.9.8
+
+2011-05-13 15:34  vtarasov
+
+	* trunk/src/libopensc/opensc.h, trunk/src/libopensc/types.h:
+	  libopensc: add description for the 'remote data' data types
+
+2011-05-13 14:04  vtarasov
+
+	* trunk/configure.ac: suspend commit of SM support until the
+	  nearest release
+
+2011-05-13 13:27  vtarasov
+
+	* trunk/configure.ac: configure: add configuration option for
+	  support of 'Secure Messaging', desabled by default
+
+2011-05-13 12:57  vtarasov
+
+	* trunk/src/libopensc/authentic.h,
+	  trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/iasecc-sdo.c: libopensc: authentIC: use
+	  macros; use common CPLC data type
+
+2011-05-13 12:50  vtarasov
+
+	* trunk/src/libopensc/errors.c, trunk/src/libopensc/errors.h:
+	  libopensc: SM related errors
+
+2011-05-13 12:44  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/sc.c:
+	  libopensc: 'remote data' related procedures: init, allocate, free
+
+2011-05-13 12:19  vtarasov
+
+	* trunk/src/libopensc/opensc.h, trunk/src/libopensc/types.h:
+	  libopensc: move declaration of 'serial number' related data
+	  types from 'opensc.h' to 'types.h'... also define CPLC and
+	  'remote_data' data types.
+
+2011-05-11 16:52  vtarasov
+
+	* trunk/src/minidriver/minidriver.c: minidriver: in
+	  CardAuthenticatePin() the PIN to verify is selected by
+	  ROLE_USER, thanks to HOURY William
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-May/016633.html
+
+2011-05-10 08:24  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c: iasecc: when getting data for
+	  qualified signature, take the last SHAxx block from the input
+	  data ... ... and not from the SHAxx-CTX, to avoid big/little
+	  endian uncertainty
+
+2011-05-09 17:11  vtarasov
+
+	* trunk/src/pkcs11/framework-pkcs15init.c,
+	  trunk/src/pkcs11/slot.c: pkcs11: Ticket #353: in pkcs15init
+	  framework allocate only one slot with uninitialized token ...
+	  aldo, when allocating existing slot to the card, return an error
+	  if there is no more free virtual slot.
+
+2011-05-09 15:31  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c: iasecc: support the digital
+	  signature with RSA scheme PKCS#1 SHA-256 ... in this mode the
+	  final digest (SHA-256) step has to be performed by card.
+
+2011-05-08 15:53  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: non-unique ID is
+	  forbidden for the public key objects
+
+2011-05-08 08:10  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports: libopensc: export
+	  'sc_do_log_noframe' instead of internal 'sc_do_log_va'
+
+2011-05-08 08:07  vtarasov
+
+	* trunk/src/libopensc/log.c, trunk/src/libopensc/log.h,
+	  trunk/src/minidriver/minidriver.c: libopensc: export the wrapper
+	  for the internal log function dedicated to minidriver
+	  http://www.opensc-project.org/pipermail/opensc-commits/2011-May/011049.html
+
+2011-05-08 07:59  vtarasov
+
+	* trunk/src/libopensc/asn1.c: asn1: when encoding the OID, make
+	  sure that unused part of input data is properly initialized it's
+	  a supplement to r5355.
+
+2011-05-05 14:26  martin
+
+	* trunk/src/libopensc/libopensc.exports: MiniDriver: add two
+	  exports used by MiniDriver. PKCS#1 related functions could be
+	  exported, internal logging should be eventually fixed in
+	  MiniDriver instead.
+
+2011-05-05 14:03  martin
+
+	* trunk/src/libopensc/Makefile.mak,
+	  trunk/src/minidriver/Makefile.mak,
+	  trunk/src/pkcs11/Makefile.mak: WindowsInstaller: don't link
+	  against winscard.lib, winscard.dll is loaded on runtime. Link
+	  minidriver against correct opensc.lib
+
+2011-05-04 17:17  andre
+
+	* trunk/src/tools/piv-tool.c: piv-tool.c: Leftover from r5412.
+
+2011-05-04 16:45  andre
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool.c:54: warning:
+	  missing initializer
+	* trunk/src/libopensc/pkcs15-pubkey.c: pkcs15-pubkey.c:975:
+	  warning: missing initializer
+
+2011-05-04 16:28  vtarasov
+
+	* trunk/doc/tools/pkcs11-tool.xml: doc: pkcs11-tool: precise the
+	  usage of 'write-object' argument
+
+2011-05-04 11:41  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-iasecc.c: iasecc: pkcs15init: test
+	  for the wrong error code was used ... in 'Delete SDO' procedure
+	  to ignore the 'SDO don not exist' error. Thanks to Gilles Blanc.
+
+2011-05-04 07:17  vtarasov
+
+	* trunk/src/pkcs11/pkcs11-global.c: pkcs11: hide empty slots ...
+	  The list of slots returned by C_GetSlotList() contains: - if
+	  present, virtual hotplug slot; - any slot with token; - without
+	  token(s), one empty slot per reader;
+
+2011-05-03 07:55  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: pkcs15init
+	  emulator for PIV card will not be commited
+
+2011-05-03 07:54  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-iasecc.c: iasecc: pkcs15init: when
+	  deleting SDO, do not try to overwrite 'non-updateable' SDO
+	  attribut
+
+2011-05-03 07:50  vtarasov
+
+	* trunk/src/pkcs15init/ias_adele_common.profile: iasecc: obsolete
+	  syntax of the 'Adele Common' card profile
+
+2011-05-03 05:39  martin
+
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer: use relative
+	  addressing in do_asn1 'asn1' takes a file_id as argument. This
+	  should be selected relative to the currently selected DF instead
+	  of being treated as an ID. (compare with 'get' & 'cat' that also
+	  take a file_id argument) Patch from Peter Marschall
+	  <peter@adpm.de>
+
+2011-05-03 05:38  martin
+
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer: more room
+	  for commands in 'help' In the output of the interacive command
+	  'help', leave more room for the command names so that they do
+	  not flow into the descrition. Patch from Peter Marschall
+	  <peter@adpm.de>
+
+2011-05-01 20:21  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: more of debug
+	  messages
+
+2011-05-01 20:14  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: for the EC key
+	  put the EC specific data into the 'params' member of 'key-info'
+	  data ... ; more of debug messages;
+
+2011-05-01 19:18  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/pkcs15-prkey.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h,
+	  trunk/src/pkcs11/framework-pkcs15.c,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-rtecp.c: libopensc: introduce
+	  'key-params' data type that contains pointer, size and 'free'
+	  handler ...
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016441.html
+
+2011-05-01 18:44  vtarasov
+
+	* trunk/src/tools/piv-tool.c: piv-tool: remove the Oberthur's
+	  specific features of the PIV card
+
+2011-04-30 17:51  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c: iasecc: use atr mask to
+	  accept the Gemalto's IAS/ECC card without MF
+
+2011-04-29 12:15  martin
+
+	* trunk/doc/tools/cardos-tool.xml,
+	  trunk/doc/tools/cryptoflex-tool.xml,
+	  trunk/doc/tools/netkey-tool.xml,
+	  trunk/doc/tools/opensc-explorer.xml,
+	  trunk/doc/tools/opensc-tool.xml,
+	  trunk/doc/tools/pkcs11-tool.xml,
+	  trunk/doc/tools/pkcs15-profile.xml,
+	  trunk/doc/tools/pkcs15-tool.xml, trunk/doc/tools/tools.xml,
+	  trunk/doc/tools/westcos-tool.xml: manpages: unify the look and
+	  feel of "See also" sections, removing references to missing
+	  manual pages.
+
+2011-04-29 09:47  martin
+
+	* trunk/NEWS: PreReleases: update NEWS file for 0.12.1-rc1
+
+2011-04-29 09:02  martin
+
+	* trunk/configure.ac: NightlyBuilds: prepare for OpenSC 0.12.1-rc1
+	  PreReleases
+
+2011-04-27 15:01  vtarasov
+
+	* trunk/doc/tools/pkcs15-tool.xml: doc: describe the 'verify-pin'
+	  option in pkcs15-tool documentation ... Thanks to Juan Antonio.
+
+2011-04-27 14:45  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: use macro for the
+	  maximal number of linked ACL for one operation ... Thanks to
+	  NdK.
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016448.html
+
+2011-04-27 14:37  vtarasov
+
+	* trunk/src/libopensc/iso7816.c: libopensc: in 'READ BINARY'
+	  ignore the 'FILE_END_REACHED' error ... see discussion
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016413.html
+
+2011-04-27 14:28  vtarasov
+
+	* trunk/src/libopensc/errors.c, trunk/src/libopensc/errors.h:
+	  libopensc: new error code macros -- 'corrupted data' and 'file
+	  end reached'
+
+2011-04-27 14:12  vtarasov
+
+	* trunk/src/libopensc/iasecc-sdo.c,
+	  trunk/src/libopensc/iasecc-sdo.h: iasecc: when preparing data to
+	  update PRIVATE KEY SDO use index to enumerate the SDO components
+
+2011-04-27 14:06  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c: iasecc: write 'compulsorily
+	  use' data for the new key slot ... Once written the
+	  'compulsorily use' data cannot be changed. Write this data
+	  immediately after a new key slot has been created. It helps to
+	  avoid further confusion between 'use new key slot' and 'reuse
+	  existing slot'.
+
+2011-04-27 13:56  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c, trunk/src/libopensc/iasecc.h:
+	  iasecc: when signing short data sequence with PSO_DST ... ...
+	  'last-hash-step' APDU do not includes the 'pre-hash' and
+	  'counter' data -- only the 'last-data-block'.
+
+2011-04-27 13:45  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-iasecc.c: iasecc pkcs15init: when
+	  creating key slot, there is no needs to write zero value
+	  components
+
+2011-04-26 17:32  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-iasecc.c: iasecc pkcs15init:
+	  create/delete SDO private/public RSA key
+
+2011-04-26 17:29  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c,
+	  trunk/src/libopensc/cardctl.h: iasecc: 'DELETE SDO' card ctl ...
+	  to be used by Obertbur's IAS/ECC card.
+
+2011-04-26 16:42  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c,
+	  trunk/src/libopensc/cardctl.h: iasecc: 'CREATE SDO' card ctl ...
+	  ; static function dedicated to emulate FCP data of application
+	  DF when it's not returned by card
+
+2011-04-26 16:34  vtarasov
+
+	* trunk/src/libopensc/iasecc-sdo.c,
+	  trunk/src/libopensc/iasecc-sdo.h: iasecc: encode data for the
+	  SDO creation, ... ; dedicated function to parse ACLs from DOCP
+	  data; ; when converting ACL chack and parse ACLs; ; change
+	  prototype of the internal static functions.
+
+2011-04-26 16:27  vtarasov
+
+	* trunk/src/pkcs15init/iasecc.profile,
+	  trunk/src/pkcs15init/iasecc_generic_oberthur.profile: iasecc:
+	  pkcs15init profiles: add 'CREATE' acl for the Oberthur's
+	  application DF ... Obertbur's card do not returns FCP for
+	  selected application DF. Newly introduced option will supply the
+	  missing ACL when creating new objects or files.
+
+2011-04-26 07:29  martin
+
+	* trunk/src/libopensc/apdu.c,
+	  trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h, trunk/src/tools/opensc-explorer.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/piv-tool.c: APDU
+	  parsing: switch to Frank Morgner's implementation Patch by Frank
+	  Morgner, proposed in
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016419.html
+	  and
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016420.html:
+	  * replace partly incorrect extended APU parsing implementation
+	  with one factored-out in function sc_bytes2apdu() in apdu.c *
+	  re-factor APDU parsing functions in - opensc-explorer -
+	  opensc-tool - piv-tool to make use of sc_bytes2apdu() Thanks to
+	  Peter Marschall and Frank Morgner This fixes #260 and #351.
+
+2011-04-25 09:45  alonbl
+
+	* trunk/MacOSX/Makefile.am: maintainer-clean cleanup, thanks to
+	  JONSITO
+
+2011-04-24 17:57  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c: iasecc: Oberthur's card
+	  strictly follows specification in 'IO buffer size' ... Most of
+	  the card producers interpret 'send' values in 'IO buffer size'
+	  data as "maximum APDU data size" . The last Oberthur's card
+	  strictly follows specification and interpret these values as
+	  "maximum APDU command size".
+
+2011-04-23 06:32  vtarasov
+
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer: DF_NAME type
+	  path value should not be appended by the file ID ... When
+	  composing path to file (for ex. to be read), if the type of
+	  parent DF is DF_NAME, the value of the parent path is moved to
+	  the aid path member and file ID takes place of the path value. ;
+	  'cd ..' command takes into account the parent can be presented
+	  by DF_NAME
+
+2011-04-22 14:02  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: little correction
+	  of r5386
+
+2011-04-22 14:00  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: in
+	  'change-attribute' procedure use card specific 'update DF'
+	  handler ... ... when it's available. 'Change-attribute' is used
+	  by pkcs15 framework for PKCS#11.
+
+2011-04-22 13:50  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: use dedicated
+	  function to fix the EC parameters ... ; use pointQ data to
+	  calculate intrinsic ID for the EC keys/certs
+
+2011-04-22 13:35  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.h: EC support: new exported function
+	  to fill up the EC parameters data ... for ex. with the given
+	  named curve fills the 'OID' and 'encoded OID' members
+
+2011-04-22 13:08  vtarasov
+
+	* trunk/src/libopensc/pkcs15-piv.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.h,
+	  trunk/src/pkcs11/framework-pkcs15.c,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/tools/pkcs15-init.c: EC support: introduce data type
+	  dedicated to EC parameters ... EC parameters can be presented in
+	  a three forms: namedCurve, OID and implicit data. This new data
+	  type will facilitate manipulation of ec-parameters in the OpenSC
+	  tools and library.
+
+2011-04-21 17:20  vtarasov
+
+	* trunk/src/pkcs15init/iasecc_generic_oberthur.profile: pkcs15init
+	  iasecc: old syntax in the profile of the Oberthur's generic
+	  application
+
+2011-04-21 16:29  vtarasov
+
+	* trunk/src/pkcs11/framework-pkcs15.c: pkcs11 framework-pkcs15:
+	  add EC key generation mechanism
+
+2011-04-21 16:18  vtarasov
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool: add test procedure
+	  for EC keys ... ... for a while it includes key generation and
+	  data signing.
+
+2011-04-21 16:14  vtarasov
+
+	* trunk/src/pkcs11/framework-pkcs15.c: pkcs11: copy&past issue in
+	  r5356
+
+2011-04-21 14:29  vtarasov
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool: prepare
+	  'gen_keypair' procedure to generate also the EC keys ... ...
+	  'prime256v1' and 'secp384r1'
+
+2011-04-21 14:12  vtarasov
+
+	* trunk/src/libopensc/asn1.c,
+	  trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/pkcs15.h: pkcs15: new function to encode an
+	  OID in DER format
+
+2011-04-21 13:46  vtarasov
+
+	* trunk/src/libopensc/asn1.c, trunk/src/libopensc/pkcs15.h: asn1:
+	  now sc_der_copy() returns int value
+
+2011-04-20 14:53  martin
+
+	* trunk/win32/versioninfo.rc.in: WindowsInstaller: Use OpenSC
+	  version information in Windows file version resource. * Fix
+	  license information in file info (GPL->LGPL)
+
+2011-04-20 13:41  martin
+
+	* trunk/MacOSX/build: MacInstaller: fix 10.5 build script, broken
+	  with previous change.
+
+2011-04-20 12:14  martin
+
+	* trunk/MacOSX/10.5/resources/ReadMe.html,
+	  trunk/MacOSX/10.5/resources/ReadMe.html.in,
+	  trunk/MacOSX/10.6/resources/ReadMe.html,
+	  trunk/MacOSX/10.6/resources/ReadMe.html.in,
+	  trunk/MacOSX/Makefile.am, trunk/MacOSX/build,
+	  trunk/MacOSX/build-package.in, trunk/Makefile.am,
+	  trunk/configure.ac: MacInstaller: use autoconf to write the
+	  correct version to ReadMe files of installers. * Better version
+	  tagging of generated files * Bundle files necessary for OS X
+	  installer generation to the distribution targzip
+
+2011-04-19 13:45  andre
+
+	* trunk/src/tools/opensc-tool.c: opensc-tool.c: Fixes literal
+	  names in 'const id2str_t alg_type_names[]'.
+
+2011-04-19 13:03  andre
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool.c: Avoid warning:
+	  pkcs11-tool.c:1978: warning: &#8216;getPUBLIC_EXPONENT&#8217; defined but
+	  not used
+
+2011-04-19 12:59  andre
+
+	* trunk/src/pkcs15init/profile.c: profile.c: Avoid warning:
+	  profile.c:1212: warning: comparison between signed and unsigned
+
+2011-04-19 12:34  andre
+
+	* trunk/src/libopensc/types.h: types.h: Avoid warning:
+	  opensc-tool.c:356: warning: comparison between signed and
+	  unsigned
+
+2011-04-19 11:19  martin
+
+	* trunk/doc/tools/eidenv.xml, trunk/doc/tools/tools.xml: manpages:
+	  add a rudimentary manual page for eidenv command. Fixes #339
+
+2011-04-19 10:51  martin
+
+	* trunk/src/tools/opensc-explorer.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/piv-tool.c: Add
+	  reminders to bytes2apdu style code blocks.
+	* trunk/src/tools/opensc-explorer.c,
+	  trunk/src/tools/opensc-tool.c: opensc-{explorer,tool}: allow
+	  sending extended APDUs In do_apdu() resp send_apdu/(,
+	  flexibilize parsing the APDU string passed so that extended
+	  APDUs are accepted a valid APDUs too. While at it, fix a bug
+	  where more data than available would have been copied,
+	  potentially leading to a SIGSEGV. Signed-off-by: Peter Marschall
+	  <peter@adpm.de>
+	* trunk/src/tools/opensc-tool.c: opensc-tool: convert print_file()
+	  to using tables Use ID<->name tables in print_file() innstead of
+	  arrays of strings where the index was treated like some "magic"
+	  constant. With the new mapping tables, the meaning is obvious.
+	  While on it, fix a bug with ac_ops_df[]: before the conversion,
+	  it was a list of pointers to strings but was in one case treated
+	  like it was a mapping table. With the conversion to a mapping
+	  table, and the adaption of other code parts this bug got fixed
+	  "automagically" ;-) Signed-off-by: Peter Marschall
+	  <peter@adpm.de>
+	* trunk/src/tools/opensc-tool.c: opensc-tool: make
+	  list_algorithms() table driven Use easily extensible tables
+	  instead of explicit coding to display algorithm names and
+	  options in list_algorithms. Leverage the new tables to add more
+	  RSA hashes. Signed-off-by: Peter Marschall <peter@adpm.de>
+	* trunk/src/tools/pkcs15-init.c: Fix a crash on Windows, where
+	  pkcs15-tool -E would always crash in sc_pkcs15_free_card()
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: Fix warning
+	  CNDL1069 about deprecated attribute
+
+2011-04-19 10:50  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: Fix Wix warning:
+	  Z:\opensc\win32\OpenSC.wxs(22) : warning CNDL1121 :
+	  Package/@InstallerVersion must be 200 or greater for a 64-bit
+	  package. The value will be changed to 200. Please specify a
+	  value of 200 or greater in order to eliminate this warning.
+
+2011-04-19 09:18  andre
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool.c: Avoid warning:
+	  pkcs11-tool.c:2000: warning: comparison between signed and
+	  unsigned
+
+2011-04-19 09:12  andre
+
+	* trunk/src/pkcs15init/pkcs15-init.h: pkcs15-init.h: Avoid
+	  warning: pkcs15-init.c:1473: warning: assignment discards
+	  qualifiers from pointer target type
+
+2011-04-18 12:29  andre
+
+	* trunk/src/libopensc/asn1.c: asn1.c: Check boundaries __before__
+	  accessing memory.
+
+2011-04-18 10:01  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: split the
+	  UpgradeCode for x86 and x64, so that both versions could be
+	  installed in parallel on x64
+	* trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h, trunk/src/tools/cardos-tool.c,
+	  trunk/src/tools/cryptoflex-tool.c,
+	  trunk/src/tools/netkey-tool.c,
+	  trunk/src/tools/opensc-explorer.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/piv-tool.c,
+	  trunk/src/tools/pkcs15-crypt.c, trunk/src/tools/pkcs15-init.c,
+	  trunk/src/tools/pkcs15-tool.c, trunk/src/tools/westcos-tool.c:
+	  Introduce sc_ctx_log_to_file to set the debug file of libopensc.
+	  On Windows every DLL has their own file descriptor table, thus
+	  specifying -v from any of the OpenSC tools resulted in a crash
+	  when the tool tried to override ctx->debug_file with stderr.
+
+2011-04-18 09:29  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: fix "parallel
+	  installs" Before this change, installing a new MSI would create
+	  a new OpenSC entry in "Add/Remove programs". Now correctly a
+	  single instance exists and a seamless upgrade can be done. Make
+	  the URL-s for support information more specific and add the
+	  OpenSC icon to the programs list.
+
+2011-04-17 18:48  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-init.h: pkcs15init: different
+	  possible kinds of EC generate key parameters ... named curve,
+	  oid and der
+
+2011-04-17 18:45  vtarasov
+
+	* trunk/src/pkcs11/framework-pkcs15.c: pkcs11: process the EC key
+	  generation type
+
+2011-04-17 18:39  vtarasov
+
+	* trunk/src/libopensc/asn1.c: asn1: in encode-object-id procedure
+	  do not stop on zero -- it's a valid value
+
+2011-04-17 16:58  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: fix x86 build after
+	  r5351 error CNDL0150 : Undefined preprocessor variable
+	  '$(var.PlatformProgramFilesFolder)'. NMAKE : fatal error U1077:
+	  '"C:\Program Files\Windows Installer XML v3.6\bin\candle.exe"' :
+	  return code '0x96'
+
+2011-04-17 16:12  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: Always use a
+	  canonical name for OpenSC related registry entries. This fixes
+	  the 64bit build looking for registry keys under "OpenSC (64
+	  bit)" which is the name of the package.
+
+2011-04-17 13:18  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: One more fix for
+	  x64 installer: opensc.conf
+	  c:\jenkins\workspace\OpenSC_win64_nightly\win32\OpenSC.wxs(61) :
+	  error LGHT0204 : ICE80: This 32BitComponent opensc.conf uses
+	  64BitDirectory INSTALLDIR NMAKE : fatal error U1077:
+	  '"C:\Program Files (x86)\Windows Installer XML
+	  v3.6\bin\light.exe"' : return code '0xcc'
+
+2011-04-17 13:05  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: Add win64 flag even
+	  to platform-independent files. * Install to "System64Folder" on
+	  x64
+
+2011-04-17 12:50  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: fix typo, causing
+	  the x86 installer to claim to be x64
+
+2011-04-16 17:57  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-setcos.c: pkcs15init setcos: no need
+	  of card specific 'delete-object' callback ... there is nothing
+	  specific inside and it's never called by pkcs15init
+
+2011-04-16 17:35  vtarasov
+
+	* trunk/src/libopensc/card-piv.c: card-piv: store serial number
+	  into the 'serialnr' member of sc_card structure ... ... when
+	  serial number was asked for the first time. Then return the
+	  stored value for the every next request of serial number.
+
+2011-04-16 14:25  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: amend r5345, Win64
+	  is a property of a Component, not File
+
+2011-04-16 14:14  martin
+
+	* trunk/win32/OpenSC.wxs.in: Add back removed product name
+
+2011-04-16 14:10  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: set Win64 flag for
+	  binaries when building for win64 and use the right program files
+	  folder.
+
+2011-04-15 17:11  vtarasov
+
+	* trunk/src/pkcs15init/myeid.profile,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-myeid.c: pkcs15init myEID: in
+	  profile increase size of xDF files, also ... during
+	  initialization add the all xxDF to the ODF
+
+2011-04-15 16:50  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-authentic.c,
+	  trunk/src/pkcs15init/pkcs15-iasecc.c,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-myeid.c,
+	  trunk/src/pkcs15init/pkcs15-setcos.c: pkcs15init: sipmlify the
+	  'delete-object' callaback prototype ... now it takes
+	  'sc_pkcs15_object' argument instead of two arguments - object's
+	  type and object's data.
+
+2011-04-15 16:35  vtarasov
+
+	* trunk/src/pkcs11/framework-pkcs15.c: framework-pkcs15: minor
+	  coding style issues
+
+2011-04-15 16:34  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: print title and size
+	  of the EC public keys
+
+2011-04-15 16:33  vtarasov
+
+	* trunk/src/tools/piv-tool.c: piv-tool: increase receive buffer
+	  for the 'send-apdu' command
+
+2011-04-14 16:51  dengert
+
+	* trunk/src/libopensc/pkcs15-piv.c: PIV piv_get_uid to derive a
+	  better guid from the FASCN or the GUID so that most of the
+	  uniquness is maintained.
+
+2011-04-12 21:58  alonbl
+
+	* trunk/src/tests/regression/Makefile.am: Use check target for
+	  tests
+
+2011-04-12 18:08  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: prepare
+	  pkcs15-lib for the EC key type ... use keygen consistency
+	  procedure to return the EC key size;
+
+2011-04-12 17:59  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: when deleting
+	  object, do not try to select object file without valid path
+
+2011-04-12 17:55  vtarasov
+
+	* trunk/src/tools/pkcs15-init.c: pkcs15-init tool: in keygen
+	  parameters use 'curve' name without leading separators
+
+2011-04-12 17:51  vtarasov
+
+	* trunk/src/tools/piv-tool.c: piv-tool: add containers discovery
+
+2011-04-12 13:23  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: remove useless
+	  function, use OpenSC standard convention for return value
+
+2011-04-12 11:36  vtarasov
+
+	* trunk/src/pkcs11/framework-pkcs15.c,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/tools/pkcs15-init.c: pkcs15init: introduce EC key
+	  generation parameters
+
+2011-04-12 07:49  martin
+
+	* trunk/src/minidriver/Makefile.mak: WindowsInstaller: amend
+	  r5329, object name is not the target name.
+
+2011-04-12 07:48  martin
+
+	* trunk/win32/Make.rules.mak: WindowsInstaller: enable zlib by
+	  default.
+
+2011-04-12 07:40  martin
+
+	* trunk/configure.ac, trunk/etc/opensc.conf.in,
+	  trunk/src/Makefile.am, trunk/src/Makefile.mak,
+	  trunk/src/cardmod/Makefile.am, trunk/src/cardmod/Makefile.mak,
+	  trunk/src/cardmod/cardmod-westcos.reg,
+	  trunk/src/cardmod/cardmod.c, trunk/src/cardmod/cardmod.exports,
+	  trunk/src/cardmod/cardmod.inf.in, trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/reader-pcsc.c,
+	  trunk/src/minidriver, trunk/src/minidriver/Makefile.am,
+	  trunk/src/minidriver/Makefile.mak,
+	  trunk/src/minidriver/minidriver-westcos.reg,
+	  trunk/src/minidriver/minidriver.c,
+	  trunk/src/minidriver/minidriver.exports,
+	  trunk/src/minidriver/opensc-minidriver.inf.in,
+	  trunk/win32/Make.rules.mak, trunk/win32/OpenSC.wxs.in:
+	  MiniDriver: rename cardmod to minidriver in source. Also change
+	  some grammar, whitespace (reported by git) and wording
+	  (Opensc->OpenSC) issues. Add some comments here and there. See
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-April/016261.html
+
+2011-04-11 14:42  martin
+
+	* trunk/src/tools/Makefile.am, trunk/src/tools/Makefile.mak,
+	  trunk/src/tools/rutoken-tool.c: Fix #337 rutoken-tool is
+	  obsolete and can be removed, thus no manpage is needed.
+	* trunk/win32/Make.rules.mak, trunk/win32/Makefile.mak:
+	  WindowsInstaller: Correct support for x64 builds
+
+2011-04-11 13:07  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: print EC key label
+
+2011-04-11 13:00  vtarasov
+
+	* trunk/src/tools/pkcs11-tool.c: pkcs11-tool: now it's possible to
+	  show only the objects of a given type ... when 'type' option is
+	  used with the 'list-objects' actions
+
+2011-04-11 12:02  vtarasov
+
+	* trunk/doc/tools/piv-tool.xml, trunk/src/tools/piv-tool.c:
+	  piv-tool: new action to print the key slots properties
+
+2011-04-11 11:55  vtarasov
+
+	* trunk/doc/tools/piv-tool.xml, trunk/src/tools/piv-tool.c: piv:
+	  no 'usepin' authentication mode in PIV tools
+
+2011-04-11 11:30  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15: include EC private/public
+	  key types into the pkcs#15 object search procedures
+
+2011-04-11 10:34  andre
+
+	* trunk/src/libopensc/ctx.c: ctx.c: Replaces magic integer -1 with
+	  defined constant value. See
+	  [http://www.opensc-project.org/opensc/browser/trunk/src/libopensc/cards.h?rev=5320#L32
+	  cards.h]
+
+2011-04-10 20:08  vtarasov
+
+	* trunk/src/tools/piv-tool.c: piv-tool: in 'send-apdu' command
+	  increase size of response buffer ... 'GET DATA' apdu can return
+	  the code 'data still available'
+
+2011-04-10 09:20  vtarasov
+
+	* trunk/src/libopensc/card.c: libopensc: use short debug macros in
+	  card.c
+
+2011-04-10 09:18  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: libopensc: use short debug macros
+	  in pkcs15.c
+
+2011-04-10 08:47  vtarasov
+
+	* trunk/src/libopensc/card-piv.c: card-piv: 'emulate' MF selection
+	  by selection of the PIV applet ... so that, PIV card can be used
+	  with the 'opensc-explorer' interactive tool
+
+2011-04-10 04:09  andre
+
+	* trunk/src/libopensc/pkcs15-gemsafeV1.c,
+	  trunk/src/libopensc/pkcs15-oberthur.c,
+	  trunk/src/libopensc/pkcs15-syn.c, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/pkcs15.h, trunk/src/pkcs15init/pkcs15-lib.c:
+	  libopensc: Removes useless attribute 'file' in 'struct
+	  sc_pkcs15_df' There is no need to carry around that attribute,
+	  because it's easy to look up the 'file' as needed. This is done
+	  by issuing a single sc_select_file command in
+	  sc_pkcs15init_update_any_df (pkcs15-lib.c). The parameter 'file'
+	  of sc_pkcs15_add_df (pkcs15.c) became useless too and was
+	  removed in turn.
+
+2011-04-09 19:26  vtarasov
+
+	* trunk/src/libopensc/card-piv.c: card-pin: make working 'external
+	  authenticate' ... 'key-ref' and 'algo' arguments of the
+	  piv_general_external_authenticate() function were not used
+
+2011-04-08 15:16  vtarasov
+
+	* trunk/src/libopensc/card-piv.c: card-piv: invalid arguments for
+	  SC_TEST_RET macro
+
+2011-04-08 13:50  andre
+
+	* trunk/src/pkcs11/misc.c, trunk/src/pkcs11/sc-pkcs11.h: pkcs11:
+	  Fixes leftover from r4646.
+
+2011-04-08 13:30  andre
+
+	* trunk/etc/opensc.conf.in, trunk/src/libopensc/card-flex.c,
+	  trunk/src/libopensc/card-muscle.c, trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/opensc.h: libopensc: Re-defines
+	  SC_CARD_FLAG_ONBOARD_KEY_GEN to be local to the file
+	  card-flex.c, because that flag is used nowhere else. In
+	  principle, this patch only reverts some changes made by r2192.
+	  Relates to #296.
+
+2011-04-08 12:28  vtarasov
+
+	* trunk/src/tools/piv-tool.c: piv-tool: 'admin' and 'genkey'
+	  options need an argument ...
+
+2011-04-08 10:03  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: print GUID for
+	  private key
+
+2011-04-08 09:57  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: print key reference
+	  in a decimal and hexadecimal formats
+
+2011-04-07 18:16  andre
+
+	* trunk/src/libopensc/card-asepcos.c,
+	  trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/card-cardos.c,
+	  trunk/src/libopensc/card-iasecc.c,
+	  trunk/src/libopensc/card-muscle.c,
+	  trunk/src/libopensc/card-rtecp.c,
+	  trunk/src/libopensc/card-tcos.c, trunk/src/libopensc/opensc.h,
+	  trunk/src/pkcs15init/pkcs15-cardos.c: libopensc: Removes unused
+	  flag SC_CARD_CAP_RSA_2048. Relates to
+	  [http://www.opensc-project.org/opensc/ticket/296#comment:1 #296].
+
+2011-04-07 17:14  vtarasov
+
+	* trunk/win32/OpenSC.wxs.in: msi: no need backslash after
+	  [INSTALLDIR]
+
+2011-04-07 16:58  vtarasov
+
+	* trunk/src/cardmod/cardmod.c: minidriver: use common routines to
+	  get serialized GUID
+
+2011-04-07 16:55  vtarasov
+
+	* trunk/src/cardmod/cardmod.c: minidriver: resolve 'unreferenced
+	  variable' and 'comparaison signed with unsigned' warnings
+
+2011-04-07 16:46  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports: libopensc: export names
+	  of the 'get GUID' routines
+
+2011-04-07 16:43  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: include GUID to the
+	  printed certificate info
+
+2011-04-07 16:42  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h:
+	  libopensc: general routines to get serialized GUID
+
+2011-04-07 16:18  andre
+
+	* trunk/src/libopensc/opensc.h: opensc.h: Removes unused flag
+	  SC_CARD_CAP_EMV. Relates to
+	  [http://www.opensc-project.org/opensc/ticket/296#comment:1 #296].
+
+2011-04-07 15:38  andre
+
+	* trunk/src/libopensc/card-setcos.c: card-setcos.c: Fixes misuse
+	  of SC_CARD_FLAG_ONBOARD_KEY_GEN. From
+	  [http://www.opensc-project.org/opensc/browser/trunk/src/libopensc/opensc.h?rev=5299#L411
+	  opensc.h]: #define SC_CARD_FLAG_ONBOARD_KEY_GEN 0x00000001
+	  #define SC_CARD_CAP_APDU_EXT 0x00000001
+
+2011-04-06 22:46  andre
+
+	* trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h:
+	  pkcs15.h: Fixes type inconsistency, because in
+	  [http://www.opensc-project.org/opensc/browser/trunk/src/libopensc/opensc.h?rev=5190#L148
+	  opensc.h] algo_ref is defined as unsigned int.
+
+2011-04-06 15:11  andre
+
+	* trunk/src/libopensc/dir.c: dir.c: Avoid warnings: dir.c:212:
+	  warning: comparison between signed and unsigned dir.c:220:
+	  warning: comparison between signed and unsigned
+
+2011-04-06 15:06  andre
+
+	* trunk/src/libopensc/asn1.c: asn1.c: Avoid warnings: asn1.c:747:
+	  warning: comparison between signed and unsigned asn1.c:785:
+	  warning: comparison between signed and unsigned
+
+2011-04-06 08:22  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: remove variable,
+	  added too early.
+
+2011-04-06 08:10  martin
+
+	* trunk/win32/Make.rules.mak: WindowsInstaller: reduce the warning
+	  level, parsing error output on level 4 takes Jenkins warnings
+	  plugin 25 minutes.
+
+2011-04-06 08:07  martin
+
+	* trunk/win32/OpenSC.wxs.in: WindowsInstaller: Simplify the wix
+	  script even further. Thanks to Kalev Lember.
+
+2011-04-04 10:35  martin
+
+	* trunk/configure.ac, trunk/win32/Makefile.am,
+	  trunk/win32/OpenSC.wxs, trunk/win32/OpenSC.wxs.in:
+	  WindowsInstaller: set the product version programmatically for
+	  MSI
+
+2011-04-04 08:29  martin
+
+	* trunk/win32/license.rtf: WindowsInstaller: display the LGPL
+	  license in the installer.
+
+2011-04-04 08:04  martin
+
+	* trunk/win32/OpenSC.wxs: WindowsInstaller: re-work WiX installer
+	  file for OpenSC. Add meaningful components.
+	* trunk/win32/Make.rules.mak: WindowsInstaller: Using /Wall was a
+	  bad idea, use /W4 instead.
+	  http://stackoverflow.com/questions/4001736/what-with-the-thousands-of-warnings-in-standard-headers-in-msvc-wall
+
+2011-04-04 07:44  martin
+
+	* trunk/win32/Make.rules.mak: Enable all warnings on MSVC
+
+2011-04-04 06:42  martin
+
+	* trunk/win32/Makefile.mak: WindowsInstaller: create an internet
+	  shortcut to start menu. Wix invocation change.
+
+2011-04-03 07:41  martin
+
+	* trunk/win32/Make.rules.mak: WindowsInstaller: Separate makefile
+	  changes for building for x64 and building on x64.
+
+2011-04-01 08:06  martin
+
+	* trunk/src/common/Makefile.mak,
+	  trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/scconf/Makefile.mak, trunk/win32/Make.rules.mak:
+	  WindowsInstaller: build for x64 with nmake -f Makefile.mak
+	  BUILD_TYPE=WIN64
+
+2011-03-31 12:04  martin
+
+	* trunk/win32/Make.rules.mak: WindowsInstaller: link against
+	  crypt32.lib libeay32MT.lib(e_capi.obj) : error LNK2019:
+	  unresolved external symbol __imp__CertFreeCertificateContext@4
+	  referenced in function _capi_free_key
+
+2011-03-31 11:28  martin
+
+	* trunk/win32/Make.rules.mak, trunk/win32/Makefile.mak,
+	  trunk/win32/opensc-msi/Make.rules.mak.works-for-vt,
+	  trunk/win32/opensc-msi/Makefile.mak,
+	  trunk/win32/opensc-msi/README: WindowsInstaller: tune for
+	  default build * remove opensc-msi folder, everything related to
+	  building on/for Windows is in /win32 * OpenSC shall be built in
+	  static mode * set default paths for OpenSSL Win32 installer
+	  locations * build with OpenSSL by default
+
+2011-03-31 10:34  martin
+
+	* trunk/win32/OpenSC.wxs: WindowsInstaller: opensc.conf is
+	  (incorrectly) generated with make. This is not run on Windows.
+	  Use opensc.conf.in as the template for the *example* config file
+	  on Windows.
+
+2011-03-31 10:24  martin
+
+	* trunk/win32/OpenSC.wxs: WindowsInstaller: fix .ico path.
+	  Everything related to building on/for Windows is in win32/
+
+2011-03-31 09:18  martin
+
+	* trunk/win32/Make.rules.mak, trunk/win32/Makefile.mak,
+	  trunk/win32/OpenSC.ico, trunk/win32/OpenSC.wxs,
+	  trunk/win32/opensc-msi/OpenSC.ico,
+	  trunk/win32/opensc-msi/OpenSC.wxs: WindowsInstaller: Build MSI
+	  by default on native Windows build.
+
+2011-03-31 07:45  martin
+
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer: use relative
+	  addressing in do_cat 'cat' takes a file_id as argument. This
+	  should be selected relative to the currently selected DF instead
+	  of being treated as an ID. (compare with 'get' that also takes a
+	  file_id argument) See
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016172.html
+	  Signed-off-by: Peter Marschall <peter@adpm.de>
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer: re-factor
+	  do_cat() * use strlen(..) instead of sizeof(..)-1 - easier to
+	  read - avoids errors if string is defined with explicit size *
+	  bring sfi:-related code closer together See
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016172.html
+	  Signed-off-by: Peter Marschall <peter@adpm.de>
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer: re-factor
+	  print_file() See
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016172.html
+	  Signed-off-by: Peter Marschall <peter@adpm.de>
+
+2011-03-31 07:44  martin
+
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer: support
+	  writing to stdout in 'get' Treat the value '-' of the second
+	  parameter to get special. If it is given, use stdout as the file
+	  to write to. See
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016172.html
+	  Signed-off-by: Peter Marschall <peter@adpm.de>
+
+2011-03-30 10:36  martin
+
+	* trunk/doc/tools/piv-tool.xml: man pages: fix piv-tool XML syntax
+	  tools/piv-tool.xml:28: parser error : Opening and ending tag
+	  mismatch: refsect1 line 21 and para </para> ^ Thanks to Juan
+	  Antonio for noticing:
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016227.html
+
+2011-03-29 18:11  dengert
+
+	* trunk/doc/tools/tools.xml: Add piv-tool.xml to list of man pages
+	  to be built
+
+2011-03-29 18:08  dengert
+
+	* trunk/doc/tools/piv-tool.xml: Add a piv-tool.xml for man page.
+	  See #338
+
+2011-03-29 11:36  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: Fix #340: ignore pinpad
+	  properties of readers known to be broken. On Mac OS X the HP
+	  smart card keyboard claims secure PIN entry support but the PIN
+	  is transmitted to host. Disregard the pinpad flag for this
+	  reader. Other readers claiming pinpad support but having
+	  problems to follow in this list.
+	* trunk/src/tools/eidenv.c: eidenv: update copyright and correct
+	  used license to match the rest of OpenSC.
+
+2011-03-25 18:19  vtarasov
+
+	* trunk/src/cardmod/cardmod.c: cardmod: when getting serial number
+	  use GET_SERIAL ctl call ... rather then card->serialnr value.
+	  Not all card drivers initialize this member.
+
+2011-03-23 18:37  vtarasov
+
+	* trunk/src/cardmod/cardmod.c: cardmod: adopt classic form for
+	  container's GUID ... also: - debug function to dump the objects;
+	  - function to get pin by role, used in CardAuthenticateEx(); -
+	  CALG_* flags are not translated into the SC_ALGORITHM_RSA_HASH_*
+	  flags
+	  (http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016130.html);
+	  - minor changes to the procedure to find the keys. tested with
+	  'ruToken ECP' and 'IAS/ECC' from Sagem
+
+2011-03-23 17:17  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-oberthur.c: Fix a real bug (and a
+	  compiler warning) pkcs15-oberthur.c: In function
+	  'sc_pkcs15emu_oberthur_add_pubkey': pkcs15-oberthur.c:585:
+	  warning: statement with no effect pkcs15-oberthur.c: In function
+	  'sc_pkcs15emu_oberthur_add_cert': pkcs15-oberthur.c:654:
+	  warning: statement with no effect
+
+2011-03-23 16:12  ludovic.rousseau
+
+	* trunk/src/tools/pkcs15-init.c: Fix compiler warning
+	  pkcs15-init.c: In function 'verify_pin': pkcs15-init.c:2840:
+	  warning: declaration of 'r' shadows a previous local
+	  pkcs15-init.c:2836: warning: shadowed declaration is here
+
+2011-03-23 16:05  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-itacns.c: Fix compiler warning
+	  pkcs15-itacns.c: In function 'itacns_add_data_files':
+	  pkcs15-itacns.c:478: warning: declaration of 'list_size' shadows
+	  a global declaration ../../src/common/simclist.h:497: warning:
+	  shadowed declaration is here
+
+2011-03-23 16:02  ludovic.rousseau
+
+	* trunk/src/libopensc/card-iasecc.c: Fix compiler warning
+	  card-iasecc.c: In function 'iasecc_get_serialnr':
+	  card-iasecc.c:2218: warning: declaration of 'ii' shadows a
+	  previous local card-iasecc.c:2165: warning: shadowed declaration
+	  is here
+
+2011-03-23 16:01  ludovic.rousseau
+
+	* trunk/src/libopensc/card-iasecc.c: Fix compiler warning
+	  card-iasecc.c: In function 'iasecc_select_file':
+	  card-iasecc.c:647: warning: declaration of 'rv' shadows a
+	  previous local card-iasecc.c:635: warning: shadowed declaration
+	  is here
+
+2011-03-23 16:00  ludovic.rousseau
+
+	* trunk/src/libopensc/card-iasecc.c: Fix compiler warning
+	  card-iasecc.c:1529: warning: declaration of 'ffs' shadows a
+	  global declaration /usr/include/string.h:121: warning: shadowed
+	  declaration is here
+
+2011-03-23 15:58  ludovic.rousseau
+
+	* trunk/src/libopensc/card-authentic.c: Fix compiler warning by
+	  commenting dead code card-authentic.c:510: warning:
+	  'authentic_resize_file' defined but not used
+
+2011-03-23 15:57  ludovic.rousseau
+
+	* trunk/src/libopensc/card-authentic.c: Fix compiler warning
+	  card-authentic.c: In function 'authentic_chv_verify_pinpad':
+	  card-authentic.c:1255: warning: declaration of 'ffs' shadows a
+	  global declaration /usr/include/string.h:121: warning: shadowed
+	  declaration is here
+
+2011-03-23 15:55  ludovic.rousseau
+
+	* trunk/src/libopensc/card-westcos.c: Fix compiler warning
+	  card-westcos.c: In function 'westcos_init': card-westcos.c:255:
+	  warning: declaration of 'priv_data' shadows a previous local
+	  card-westcos.c:210: warning: shadowed declaration is here
+
+2011-03-23 15:53  ludovic.rousseau
+
+	* trunk/src/libopensc/card-piv.c: Fix compiler warning by
+	  commenting dead code card-piv.c:179: warning: 'oid_prime256v1'
+	  defined but not used card-piv.c:180: warning: 'oid_secp384r1'
+	  defined but not used
+
+2011-03-23 15:51  ludovic.rousseau
+
+	* trunk/src/libopensc/card-oberthur.c: Fix compiler warnings
+	  card-oberthur.c: In function 'auth_pin_verify_pinpad':
+	  card-oberthur.c:1581: warning: declaration of 'ffs' shadows a
+	  global declaration /usr/include/string.h:121: warning: shadowed
+	  declaration is here card-oberthur.c: In function
+	  'auth_pin_reset_oberthur_style': card-oberthur.c:1802: warning:
+	  declaration of 'ffs' shadows a global declaration
+	  /usr/include/string.h:121: warning: shadowed declaration is here
+
+2011-03-23 15:46  ludovic.rousseau
+
+	* trunk/src/libopensc/reader-pcsc.c: Fix compiler warning
+	  reader-pcsc.c: In function 'refresh_attributes':
+	  reader-pcsc.c:339: warning: declaration of 'rv' shadows a
+	  previous local reader-pcsc.c:273: warning: shadowed declaration
+	  is here
+
+2011-03-23 15:45  ludovic.rousseau
+
+	* trunk/src/libopensc/reader-pcsc.c: Fix compiler warning
+	  reader-pcsc.c: In function 'refresh_attributes':
+	  reader-pcsc.c:337: warning: declaration of 'state' shadows a
+	  previous local reader-pcsc.c:272: warning: shadowed declaration
+	  is here
+
+2011-03-23 15:43  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-pubkey.c: Fix compiler warning
+	  pkcs15-pubkey.c: In function
+	  'sc_pkcs15_pubkey_from_spki_filename': pkcs15-pubkey.c:944:
+	  warning: 'buflen' may be used uninitialized in this function
+
+2011-03-23 15:41  ludovic.rousseau
+
+	* trunk/src/libopensc/ctx.c: Fix compiler warning ctx.c: In
+	  function 'sc_context_create': ctx.c:646: warning: implicit
+	  declaration of function 'lt_dlinit' ctx.c:646: warning: nested
+	  extern declaration of 'lt_dlinit'
+
+2011-03-23 15:19  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-iasecc.c: Fix compiler warning
+	  pkcs15-iasecc.c:63: warning: no previous prototype for
+	  'iasecc_reference_to_pkcs15_id'
+
+2011-03-23 15:16  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: Fix compiler warning
+	  pkcs15-lib.c: In function 'prkey_fixup_rsa': pkcs15-lib.c:1936:
+	  warning: declaration of 'ctx' shadows a previous local
+	  pkcs15-lib.c:1911: warning: shadowed declaration is here
+
+2011-03-23 15:15  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: Fix compiler warning
+	  pkcs15-lib.c: In function 'sc_pkcs15init_store_private_key':
+	  pkcs15-lib.c:1339: warning: declaration of &#8216;ctx&#8217; shadows a
+	  previous local pkcs15-lib.c:1278: warning: shadowed declaration
+	  is here The ctx variable was already declared with the correct
+	  value.
+
+2011-03-23 15:12  ludovic.rousseau
+
+	* trunk/src/pkcs15init/profile.c: Remove typedef file_info to
+	  complete the change/cleanup in revision 5250
+
+2011-03-23 15:10  ludovic.rousseau
+
+	* trunk/src/pkcs15init/profile.c: Fix compiler warning profile.c:
+	  In function 'sc_profile_get_pin_id_by_reference': profile.c:785:
+	  warning: declaration of &#8216;pin_info&#8217; shadows a global declaration
+	  profile.c:217: warning: shadowed declaration is here Avoid using
+	  a typedef with a "common" name
+
+2011-03-23 15:02  ludovic.rousseau
+
+	* trunk/src/common/libscdl.c: Fix compiler warning ibscdl.c:30:
+	  warning: no previous prototype for 'sc_dlopen' libscdl.c:35:
+	  warning: no previous prototype for 'sc_dlsym' libscdl.c:40:
+	  warning: no previous prototype for 'sc_dlerror' libscdl.c:45:
+	  warning: no previous prototype for 'sc_dlclose'
+
+2011-03-23 15:00  ludovic.rousseau
+
+	* trunk/src/common/libscdl.c: Fix compiler warning libscdl.c: In
+	  function 'sc_dlerror': libscdl.c:38: warning: old-style function
+	  definition
+
+2011-03-23 14:58  ludovic.rousseau
+
+	* trunk/src/common/libpkcs11.c: Fix compiler warning libpkcs11.c:
+	  In function 'C_LoadModule': libpkcs11.c:37: warning: implicit
+	  declaration of function 'lt_dlinit' libpkcs11.c:37: warning:
+	  nested extern declaration of 'lt_dlinit'
+
+2011-03-23 14:56  ludovic.rousseau
+
+	* trunk/src/libopensc/cards.h: Fix compiler warning cards.h:221:
+	  warning: function declaration isn&#8217;t a prototype
+
+2011-03-23 14:55  ludovic.rousseau
+
+	* trunk/src/common/libscdl.h: Fix compiler warning libscdl.h:24:
+	  warning: function declaration isn&#8217;t a prototype
+
+2011-03-21 06:54  martin
+
+	* trunk/src/libopensc/reader-ctapi.c: Fix building CT-API after
+	  r5061, noticed by Jenkins autobuild reader-ctapi.c:255: error:
+	  &#8216;sc_reader_t&#8217; has no member named &#8216;atr_len&#8217;
+
+2011-03-20 14:50  ludovic.rousseau
+
+	* trunk/src/libopensc/card-piv.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c: typo: dont -> don't
+
+2011-03-20 13:17  martin
+
+	* trunk/doc/tools/westcos-tool.xml,
+	  trunk/src/tools/westcos-tool.c: Fix some of the spelling errors
+	  in westcos-tool man page and utility, triggered by lintian I:
+	  opensc: spelling-error-in-manpage
+	  usr/share/man/man1/westcos-tool.1.gz authentification
+	  authentication I: opensc: spelling-error-in-binary
+	  ./usr/bin/westcos-tool attemps attempts Make text in
+	  westcos-tool manpage more readable, harmonize PIN/PUK
+	  capitalization.
+
+2011-03-20 12:19  martin
+
+	* trunk/src/tools/pkcs15-init.c: Fix a typo reported by lintian I:
+	  opensc: spelling-error-in-binary ./usr/bin/pkcs15-init dont don't
+	* trunk/doc/tools/netkey-tool.xml: Fix a typo reported by lintian
+	  I: opensc: spelling-error-in-manpage
+	  usr/share/man/man1/netkey-tool.1.gz diplay display
+	* trunk/src/libopensc/card-atrust-acos.c,
+	  trunk/src/libopensc/card-starcos.c: Fix a typo reported by
+	  lintian I: libopensc3: spelling-error-in-binary
+	  ./usr/lib/libopensc.so.3.0.0 enviroment environment
+
+2011-03-20 12:18  martin
+
+	* trunk/src/libopensc/pkcs15.c,
+	  trunk/src/pkcs15init/iasecc.profile,
+	  trunk/src/pkcs15init/pkcs15-oberthur-awp.c,
+	  trunk/src/pkcs15init/profile.c, trunk/src/pkcs15init/profile.h:
+	  Fix a typo reported by lintian I: libopensc3:
+	  spelling-error-in-binary ./usr/lib/libopensc.so.3.0.0 extention
+	  extension
+
+2011-03-15 12:18  vtarasov
+
+	* trunk/src/libopensc/iso7816.c: iso7816: try to read full amount
+	  of the requested data ... actually, if an error 'Wrong Le'
+	  happens, the APDU with the reduced size is re-transmitted
+	  (http://www.opensc-project.org/opensc/browser/trunk/src/libopensc/apdu.c#L401)
+	  . iso7816_read_binary() returns this reduced amount of data and
+	  do not trying to read the missing part .
+
+2011-03-15 09:39  vtarasov
+
+	* trunk/src/pkcs15init/entersafe.profile: pkcs15init: EnterSafe:
+	  increase size of the xDF files
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-February/016051.html
+
+2011-03-14 20:18  alonbl
+
+	* trunk/src/libopensc/reader-openct.c: openct: Wrong size
+
+2011-03-14 19:45  alonbl
+
+	* trunk/src/libopensc/reader-openct.c: Make openct compile again
+
+2011-03-14 18:19  vtarasov
+
+	* trunk/src/libopensc/card-rtecp.c: rtecp: in non-extended APDUs
+	  the 'Le' value cannot be more then 256 bytes ... after r5186 the
+	  SC_MAX_APDU_BUFFER_SIZE has been increased and so existing
+	  defintion of Le value became invalid.
+
+2011-03-14 18:13  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15: without AID specified
+	  return the first available PKCS#15 application ... revert
+	  accidential commit, thanks to Pierre Ossman.
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016149.html
+
+2011-03-14 18:09  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15: accept more then one xDF
+	  file of the same type ... partial revert of r4096, thanks to
+	  Pierre Ossman
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016148.html
+
+2011-03-14 18:02  vtarasov
+
+	* trunk/src/libopensc/padding.c: libopensc: fix debug message
+
+2011-03-14 18:01  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: use dedicated
+	  function to free the object memory
+
+2011-03-13 18:11  vtarasov
+
+	* trunk/src/libopensc/padding.c, trunk/src/libopensc/pkcs15-sec.c:
+	  pkcs15: more of the debug messages
+
+2011-03-12 15:17  vtarasov
+
+	* trunk/win32/opensc-msi/OpenSC.wxs: msi: fix component ID of the
+	  rutoken profiles
+
+2011-03-12 14:20  vtarasov
+
+	* trunk/win32/opensc-msi/OpenSC.wxs: msi: include 'cardmod.dll'
+	  and 'rutoken' PKCS#15 profiles into MSI
+
+2011-03-11 17:57  vtarasov
+
+	* trunk/src/libopensc/card-rutoken.c: ruToken: in non-extended
+	  APDUs the 'Le' value cannot be more then 256 bytes ... in r5186
+	  the SC_MAX_APDU_BUFFER_SIZE has been increased and so the
+	  previous defintion of Le value became invalid.
+
+2011-03-07 18:14  andre
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool.c: Avoid compiler
+	  warnings: pkcs15-tool.c:1111: warning: comparison between signed
+	  and unsigned pkcs15-tool.c:1117: warning: comparison between
+	  signed and unsigned
+
+2011-03-07 18:10  andre
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15.c: Avoid compiler warning:
+	  pkcs15.c:286: warning: unused variable &#8216;conf_block&#8217;
+
+2011-03-07 16:15  andre
+
+	* trunk/src/libopensc/pkcs15-pin.c: pkcs15-pin: Fixing the method
+	  of obtaining objects protected by a particular PIN. Now it's in
+	  accordance with PKCS15. See
+	  [http://www.opensc-project.org/pipermail/opensc-devel/2011-January/015818.html
+	  discussion].
+
+2011-03-07 16:00  andre
+
+	* trunk/src/libopensc/pkcs15-piv.c: pkcs15-piv: Remove unused
+	  functionality. These lines made use of the attribute card->flags
+	  which is mostly unused in the whole framework. That attribute
+	  becomes nearly obsolete without these lines. See
+	  [http://www.opensc-project.org/pipermail/opensc-devel/2011-March/016104.html
+	  discussion].
+
+2011-03-06 12:35  vtarasov
+
+	* trunk/etc/opensc.conf.in, trunk/src/libopensc/pkcs15-pin.c,
+	  trunk/src/libopensc/pkcs15-prkey.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c,
+	  trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h:
+	  pkcs15: pin references are always positive integers ... In the
+	  OpenSC versions previous to 0.11.5 the references greater then
+	  127 were erroneously encoded by one byte (negative value
+	  ecording to the ASN.1 rules). Actually some other proprietary
+	  PKCS#15 cards have also this infirmity. Actual commit makes
+	  general the application of the hack used for 'starcos' card.
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-February/016062.html
+
+2011-03-06 11:34  vtarasov
+
+	* trunk/src/libopensc/errors.c, trunk/src/libopensc/errors.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: #327: unique ID
+	  for the private key objects. Thanks a Diego (NdK) ...
+	  http://www.opensc-project.org/opensc/ticket/327
+
+2011-03-04 16:23  andre
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/card-iasecc.c,
+	  trunk/src/libopensc/card-starcos.c: Fixing misuse of
+	  SC_CARD_FLAG_RNG. From opensc.h :
+	  [http://www.opensc-project.org/opensc/browser/trunk/src/libopensc/opensc.h?rev=5190#L88
+	  #define SC_ALGORITHM_RSA_PAD_PKCS1 0x00000002]
+	  [http://www.opensc-project.org/opensc/browser/trunk/src/libopensc/opensc.h?rev=5190#L413
+	  #define SC_CARD_FLAG_RNG 0x00000002]
+
+2011-03-02 14:18  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: PC/SC: Add "PIN length not in
+	  range" interpretation to PC/SC pinpad code. This way this
+	  condition won't get translated to a generic -1200 error, as
+	  0x6403 is not a known SW.
+
+2011-03-01 11:19  martin
+
+	* trunk/etc/opensc.conf.in: EstonianEid: Force T=0 for the newest
+	  ATR as well.
+
+2011-02-25 17:20  dengert
+
+	* trunk/src/libopensc/pkcs15-piv.c: Allow a key to be used to sign
+	  a certificate request even if the normal usage does not allow
+	  sign. This is need when initializing a card when called by
+	  OpenSSL req -engine
+
+2011-02-23 08:57  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c: ias/ecc: do not throw an
+	  error when there is SM or Auth.Ext protection
+
+2011-02-22 19:00  vtarasov
+
+	* trunk/src/cardmod/cardmod.c: cardmod: fix log printing into the
+	  'debug_file' ... compiled with VS 10.0 and tested on Vista,
+	  probably can be extended for mingw32
+	  http://www.opensc-project.org/opensc/browser/trunk/src/cardmod/cardmod.c#L131
+	  also fix warning C4715: 'check_reader_status' : not all control
+	  paths return a value'
+
+2011-02-18 20:48  dengert
+
+	* trunk/src/Makefile.mak, trunk/src/cardmod/Makefile.mak,
+	  trunk/win32/Make.rules.mak: opensc-cardmod.dll can now by built
+	  as "static" using the VS. The dll will contain all of OpenSC,
+	  OpenSSL and zlib in a single dll, and thus can reside anywere.
+	  Without this, winlogin would require it to reside in system32.
+
+2011-02-18 20:37  dengert
+
+	* trunk/src/libopensc/card-piv.c: Fix malloc warning by using
+	  stdlib.h
+
+2011-02-17 20:46  martin
+
+	* trunk/src/common/Makefile.am, trunk/src/pkcs11/Makefile.am:
+	  Amend r5201: put libscdl.h/libpkcs11.h to distribution package
+	  and link against libltdl where needed.
+
+2011-02-17 17:26  vtarasov
+
+	* trunk/win32/opensc-msi/Makefile.mak,
+	  trunk/win32/opensc-msi/OpenSC.wxs: opensc-msi: do not install
+	  libltdl
+
+2011-02-17 17:24  vtarasov
+
+	* trunk/src/libopensc/authentic.h,
+	  trunk/src/libopensc/iasecc-sdo.h, trunk/src/libopensc/iasecc.h:
+	  ias/ecc: use extended path in the 'include' macros
+
+2011-02-17 14:50  dengert
+
+	* trunk/src/libopensc/card-piv.c: void issues with ssize_t See
+	  r5135 and r5195
+
+2011-02-17 13:35  vtarasov
+
+	* trunk/src/libopensc/Makefile.mak,
+	  trunk/src/pkcs15init/pkcs15-lib.c: libopensc: include 'scdl'
+	  library when linking with Visual Studio ... missing 'scdl'
+	  header file in 'pkcs15-lib'
+
+2011-02-17 09:36  vtarasov
+
+	* trunk/etc/opensc.conf.in: opensc.conf: by default comment out
+	  all IAS/ECC specific configuration lines ...
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-February/016013.html
+
+2011-02-17 09:28  vtarasov
+
+	* trunk/src/libopensc/ctx.c: libopensc: fix name of 'LTDL' macro
+
+2011-02-17 07:45  martin
+
+	* trunk/src/common/Makefile.am,
+	  trunk/src/libopensc/reader-ctapi.c,
+	  trunk/src/pkcs11/Makefile.am, trunk/src/pkcs15init/Makefile.am,
+	  trunk/src/tools/Makefile.am: Amend r5201: also move libltdl
+	  build properties to the right Makefile and other leftovers.
+
+2011-02-16 21:05  dengert
+
+	* trunk/src/common/Makefile.am: Allow use of seperate build and
+	  source dir when building common/libpkcs11
+
+2011-02-16 19:02  martin
+
+	* trunk/configure.ac, trunk/src/common/Makefile.am,
+	  trunk/src/common/Makefile.mak, trunk/src/common/libpkcs11.c,
+	  trunk/src/common/libpkcs11.h, trunk/src/common/libscdl.c,
+	  trunk/src/common/libscdl.h, trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/ctx.c, trunk/src/libopensc/internal.h,
+	  trunk/src/libopensc/pkcs15-syn.c, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/reader-ctapi.c,
+	  trunk/src/libopensc/reader-pcsc.c, trunk/src/pkcs11/Makefile.am,
+	  trunk/src/pkcs11/Makefile.mak, trunk/src/pkcs11/libpkcs11.c,
+	  trunk/src/pkcs15init/pkcs15-lib.c, trunk/src/tools/Makefile.am,
+	  trunk/src/tools/Makefile.mak, trunk/win32/Make.rules.mak: core:
+	  reanimate the sc_dlopen API for dynamic loading * shift
+	  libpkcs11 from src/pkcs11 to src/common as it is not used to
+	  implement the OpenSC PKCS#11 module * invent a "libscdl" mini
+	  library that implements either libltdl based dynamic loading or
+	  uses native interfaces * drop hard requirement for libltl to
+	  build OpenSC * native Windows build does not need libltdl any
+	  more * specify CNGSDK include dir to find cardmod.h. CNGSDK only
+	  registers with a handful of compilers Deals with #323
+
+2011-02-16 14:05  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c,
+	  trunk/src/libopensc/iasecc-sdo.c,
+	  trunk/src/pkcs15init/pkcs15-iasecc.c: IAS/ECC: remove dead code
+	  and '//' coments, resolve some warnings ... to be continued,
+	  thanks to Martin
+
+2011-02-16 11:01  vtarasov
+
+	* trunk/etc/opensc.conf.in: IAS/ECC: for the IAS/ECC cards include
+	  into the OpenSC configuration the 'card_atr' sections
+
+2011-02-16 10:59  vtarasov
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak, trunk/src/libopensc/cardctl.h,
+	  trunk/src/libopensc/cards.h, trunk/src/libopensc/ctx.c,
+	  trunk/src/pkcs15init/Makefile.am,
+	  trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c: IAS/ECC: include support of
+	  the IAS/ECC v1.0.1 cards ...
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-January/015756.html
+
+2011-02-16 10:55  vtarasov
+
+	* trunk/src/libopensc/card-iasecc.c,
+	  trunk/src/libopensc/iasecc-sdo.c,
+	  trunk/src/libopensc/iasecc-sdo.h, trunk/src/libopensc/iasecc.h,
+	  trunk/src/pkcs15init/ias_adele_admin1.profile,
+	  trunk/src/pkcs15init/ias_adele_admin2.profile,
+	  trunk/src/pkcs15init/ias_adele_common.profile,
+	  trunk/src/pkcs15init/iasecc.profile,
+	  trunk/src/pkcs15init/iasecc_admin_eid.profile,
+	  trunk/src/pkcs15init/iasecc_generic_oberthur.profile,
+	  trunk/src/pkcs15init/iasecc_generic_pki.profile,
+	  trunk/src/pkcs15init/pkcs15-iasecc.c: IAS/ECC: add IAS/ECC card
+	  specific files ... as it was announced in
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-January/015756.html
+
+2011-02-16 10:46  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-myeid.c: pkcs15init: for MyEID card
+	  set tokenInfo flags ... it's a part of demand of the card
+	  driver's maintainer
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-February/015994.html
+
+2011-02-16 10:31  vtarasov
+
+	* trunk/src/libopensc/card-piv.c: card-piv: 'ssize_t' is not
+	  defined when compiling with Visual Studio
+
+2011-02-10 20:31  martin
+
+	* trunk/src/libopensc/pkcs15.c: libopensc: correct ASN.1 parsing
+	  of EF(TokenInfo). Two fields should be optional. This also fixes
+	  #322 Thanks to Toni for finding and Andre for fixing the
+	  problem. See
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-January/015613.html
+
+2011-02-10 13:40  martin
+
+	* trunk/MacOSX/build: MacInstaller: use the pre-built
+	  libopensc.dylib for building OpenSC.tokend This way it can be
+	  built without installing OpenSC on a clean machine.
+
+2011-02-09 17:52  dengert
+
+	* trunk/src/cardmod/cardmod.c, trunk/src/libopensc/reader-pcsc.c:
+	  Fixes to cardmod: The registry in no longer used to pass the
+	  handles provided by BaseCSP. sc_ctx_use_reader is used instead.
+	  (uses r5190) A decryption routine was added as it is needed by
+	  login. Key container names are based on the card serial number
+	  and cert ID. The must be unique as they are searched for in the
+	  certificate store to find the card to insert in some situations.
+	  If the handles change, the association to the reader and card is
+	  refreshed as it may be a different card or reader. (uses r5127)
+	  Extra low lowel debugging was added. To use it the
+	  CARDMOD_LOW_LEVEL_DEBUG but be defined in cardmod.c This can log
+	  entries before and sc_context is established. The use of "texte"
+	  was replaced, as it looked like there could be buffer overflows.
+	  It was replaced with a loghex routine.
+	  SC_ALGORITHM_RSA_HASH_MD5_SHA1 can now be used (IE uses this.)
+	  Several other bugs were fixed. The code can now bue used for AD
+	  login, and was tested with swaping cards duirng login, and with
+	  several readers. The code is still experimental, and for login
+	  to work, the dlls were moved to system32.
+
+2011-02-09 14:45  dengert
+
+	* trunk/src/tools/piv-tool.c: Remove dependency on
+	  sc_establish_context, and provide appname via
+	  sc_ctx_create_context and ctx_param.
+
+2011-02-09 14:33  dengert
+
+	* trunk/src/libopensc/ctx.c,
+	  trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h,
+	  trunk/src/libopensc/reader-ctapi.c,
+	  trunk/src/libopensc/reader-openct.c,
+	  trunk/src/libopensc/reader-pcsc.c: Add sc_ctx_use_reader as a
+	  reader driver operation. It is used by cardmod to pass in
+	  pointers to the PC/SC handles provided by the caller of cardmod.
+	  Other drivers will return an error if this routine called.
+
+2011-02-08 15:49  dengert
+
+	* trunk/src/libopensc/pkcs15-piv.c: Fix #325 add
+	  SC_PKCS15_PRKEY_USAGE_ENCRYPT and SC_PKCS15_PRKEY_USAGE_DECRYPT
+	  to PIV KEY Management keys and certificates, includeing the
+	  Retired keys. This applies to 0.12.0 and needs to be in 0.12.1
+
+2011-02-07 16:23  dengert
+
+	* trunk/src/tools/piv-tool.c: Fix uninitialized variables and
+	  warning messages.
+
+2011-02-06 22:43  andre
+
+	* trunk/src/libopensc/sc.c: Allow hex-strings to be separated by
+	  space characters: opensc-tool -s "00 A4 00 00 02 3F 00 00"
+
+2011-02-06 22:33  andre
+
+	* trunk/src/libopensc/types.h: Adjust SC_MAX_APDU_BUFFER_SIZE to
+	  maximum size of Short APDU.
+
+2011-02-06 17:28  andre
+
+	* trunk/src/tools/opensc-explorer.c: Revert r5137, because size_t
+	  is defined as unsigned integer type (without further
+	  qualification).
+	  http://www.opengroup.org/onlinepubs/000095399/basedefs/stddef.h.html
+
+2011-02-05 22:40  ludovic.rousseau
+
+	* trunk/src/libopensc/card-authentic.c: Remove unused variables
+	  card-authentic.c: In function
+	  &#8216;authentic_init_oberthur_authentic_3_2&#8217;: card-authentic.c:423:
+	  warning: unused variable &#8216;resp&#8217; card-authentic.c: In function
+	  &#8216;authentic_process_fci&#8217;: card-authentic.c:1042: warning: unused
+	  variable &#8216;acls_NEVER&#8217;
+
+2011-02-05 22:37  ludovic.rousseau
+
+	* trunk/src/libopensc/card-piv.c: card-piv.c:564: warning: unused
+	  variable &#8216;buf_len&#8217;
+
+2011-02-05 22:17  ludovic.rousseau
+
+	* trunk/src/libopensc/p15card-helper.c: Remove dead code
+	  p15card-helper.c:263:22: warning: Although the value stored to
+	  'r' is used in the enclosing expression, the value is never
+	  actually read from 'r' ...!= (r =
+	  sc_pkcs15emu_add_x509_cert(p15card, &cert_obj, &cert_info))) { ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  p15card-helper.c:237:22: warning: Although the value stored to
+	  'r' is used in the enclosing expression, the value is never
+	  actually read from 'r' ...if(SC_SUCCESS != (r =
+	  sc_select_file(card, &cert_info.path, NULL))) { ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  p15card-helper.c:224:3: warning: Value stored to 'r' is never
+	  read r = SC_SUCCESS; ^ ~~~~~~~~~~
+
+2011-02-05 22:14  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-oberthur.c: Remove dead code
+	  pkcs15-oberthur.c:353:3: warning: Value stored to 'len' is never
+	  read len = sizeof(label) - 1; ^ ~~~~~~~~~~~~~~~~~
+	  pkcs15-oberthur.c:587:3: warning: Value stored to 'sz' is never
+	  read ...sz = len > sizeof(key_obj.label) - 1 ?
+	  sizeof(key_obj.label) - 1 : len; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-oberthur.c:669:2: warning: Value stored to 'offs' is
+	  never read offs += 2 + len; ^ ~~~~~~~ pkcs15-oberthur.c:656:3:
+	  warning: Value stored to 'sz' is never read ...sz = len >
+	  sizeof(cobj.label) - 1 ? sizeof(cobj.label) - 1 : len; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 22:12  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-westcos.c: Remove dead code
+	  pkcs15-westcos.c:198:3: warning: Value stored to 'usage' is
+	  never read usage = ^
+
+2011-02-05 22:11  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-tccardos.c: Remove dead code
+	  pkcs15-tccardos.c:253:3: warning: Value stored to 'pinType' is
+	  never read pinType = key_descr & TC_CARDOS_PIN_MASK; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 22:09  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-openpgp.c: Remove dead code
+	  pkcs15-openpgp.c:110:2: warning: Value stored to 'length' is
+	  never read length = r; ^ ~
+
+2011-02-05 22:08  ludovic.rousseau
+
+	* trunk/src/libopensc/card-authentic.c: Fix typo in error message
+
+2011-02-05 22:07  ludovic.rousseau
+
+	* trunk/src/libopensc/card-authentic.c: Add missing checks for
+	  NULL before dereferencing card-authentic.c:913:33: warning:
+	  Field access results in a dereference of a null pointer (loaded
+	  from variable 'apdus') rv = sc_check_sw(card, apdus->sw1,
+	  apdus->sw2); ~~~~~ ^ card-authentic.c:958:33: warning: Field
+	  access results in a dereference of a null pointer (loaded from
+	  variable 'apdus') rv = sc_check_sw(card, apdus->sw1,
+	  apdus->sw2); ~~~~~ ^ card-authentic.c:1001:33: warning: Field
+	  access results in a dereference of a null pointer (loaded from
+	  variable 'apdus') rv = sc_check_sw(card, apdus->sw1,
+	  apdus->sw2); ~~~~~ ^
+
+2011-02-05 22:02  ludovic.rousseau
+
+	* trunk/src/libopensc/card-authentic.c: Remove dead code
+	  card-authentic.c:440:2: warning: Value stored to 'resp_len' is
+	  never read resp_len = sizeof(resp); ^ ~~~~~~~~~~~~
+	  card-authentic.c:1053:4: warning: Value stored to 'acls' is
+	  never read acls = acls_NEVER; ^ ~~~~~~~~~~
+
+2011-02-05 22:01  ludovic.rousseau
+
+	* trunk/src/libopensc/card-ias.c: Remove dead code
+	  card-ias.c:132:32: warning: Although the value stored to 'ins'
+	  is used in the enclosing expression, the value is never actually
+	  read from 'ins' r = len = pad = use_pin_pad = ins = p1 = 0; ^
+	  ~~~~~~ card-ias.c:132:2: warning: Value stored to 'r' is never
+	  read r = len = pad = use_pin_pad = ins = p1 = 0; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ card-ias.c:366:2:
+	  warning: Value stored to 'ctx' is never read ctx = card->ctx; ^
+	  ~~~~~~~~~ card-ias.c:361:6: warning: Although the value stored
+	  to 'pathlen' is used in the enclosing expression, the value is
+	  never actually read from 'pathlen' r = pathlen = stripped_len =
+	  offset = 0; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~ card-ias.c:361:2:
+	  warning: Value stored to 'r' is never read r = pathlen =
+	  stripped_len = offset = 0; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  card-ias.c:361:31: warning: Although the value stored to
+	  'offset' is used in the enclosing expression, the value is never
+	  actually read from 'offset' r = pathlen = stripped_len = offset
+	  = 0; ^ ~
+
+2011-02-05 21:58  ludovic.rousseau
+
+	* trunk/src/libopensc/card-westcos.c: Remove dead code
+	  card-westcos.c:1066:4: warning: Value stored to 'r' is never
+	  read r = SC_ERROR_INVALID_ARGUMENTS; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 21:57  ludovic.rousseau
+
+	* trunk/src/libopensc/card-asepcos.c: Remove dead code
+	  card-asepcos.c:446:19: warning: Value stored to 'p' during its
+	  initialization is never read u8 buf[64], *p = buf; ^ ~~~
+	* trunk/src/libopensc/card-asepcos.c: Add a missing check for NULL
+	  before dereferencing card-asepcos.c:312:52: warning: Dereference
+	  of null pointer r = asepcos_parse_sec_attr(card, *file,
+	  (*file)->s... ^
+
+2011-02-05 21:54  ludovic.rousseau
+
+	* trunk/src/libopensc/card-piv.c: Remove dead code
+	  card-piv.c:614:2: warning: Value stored to 'buf_end' is never
+	  read buf_end = rp + buf_len; ^ ~~~~~~~~~~~~ card-piv.c:1129:3:
+	  warning: Value stored to 'r' is never read r = 0; ^ ~
+	  card-piv.c:1478:2: warning: Value stored to 'q' is never read q
+	  = rbuf; ^ ~~~~ card-piv.c:1628:2: warning: Value stored to 'q'
+	  is never read q = rbuf; ^ ~~~~ card-piv.c:2456:4: warning: Value
+	  stored to 'certobjlen' is never read certobjlen = 0; ^ ~
+
+2011-02-05 21:51  ludovic.rousseau
+
+	* trunk/src/libopensc/card-atrust-acos.c: Remove dead code
+	  card-atrust-acos.c:548:2: warning: Value stored to 'keyID' is
+	  never read keyID = env->key_ref[0]; ^ ~~~~~~~~~~~~~~~
+
+2011-02-05 21:50  ludovic.rousseau
+
+	* trunk/src/libopensc/card-oberthur.c: Remove a useless test If
+	  card is NULL we can't dereference card->ctx to log an error We
+	  must assume card i snever NULL card-oberthur.c:1537:3: warning:
+	  Field access results in a dereference of a null pointer (loaded
+	  from variable 'card') ...SC_FUNC_RETURN(card->ctx,
+	  SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ARGUMENTS)...
+	  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  card-oberthur.c:1537:24: note: instantiated from:
+	  SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, ... ~~~~ ^
+	  card-oberthur.c:2258:3: warning: Field access results in a
+	  dereference of a null pointer (loaded from variable 'card')
+	  ...SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL,
+	  SC_ERROR_INVALID_ARGUMENTS)...
+	  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  card-oberthur.c:2258:24: note: instantiated from:
+	  SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, ... ~~~~ ^
+
+2011-02-05 21:45  ludovic.rousseau
+
+	* trunk/src/libopensc/card-oberthur.c: Remove dead code
+	  card-oberthur.c:1539:2: warning: Value stored to 'prv' is never
+	  read prv = (struct auth_private_data *) card->drv_data; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 21:44  ludovic.rousseau
+
+	* trunk/src/libopensc/card-starcos.c: Remove dead code
+	  card-starcos.c:657:5: warning: Value stored to 'p' is never read
+	  *p++ = file->record_length & 0xff; ^~~ card-starcos.c:652:5:
+	  warning: Value stored to 'p' is never read *p++ =
+	  file->record_length & 0xff; ^~~ card-starcos.c:647:5: warning:
+	  Value stored to 'p' is never read *p++ = file->size & 0xff; ^~~
+	  card-starcos.c:609:4: warning: Value stored to 'p' is never read
+	  *p++ = tmp; /* SM ISF */ ^~~ card-starcos.c:572:4: warning:
+	  Value stored to 'p' is never read *p++ = tmp; ^~~
+	  card-starcos.c:1024:2: warning: Value stored to 'keyID' is never
+	  read keyID = env->key_ref[0]; ^ ~~~~~~~~~~~~~~~
+
+2011-02-05 21:41  ludovic.rousseau
+
+	* trunk/src/libopensc/card-mcrd.c: Remove dead code
+	  card-mcrd.c:1023:20: warning: Value stored to 'linep' during its
+	  initialization is never read char line[256], *linep = line; ^
+	  ~~~~
+
+2011-02-05 21:39  ludovic.rousseau
+
+	* trunk/src/libopensc/card-cardos.c: Remove dead code
+	  card-cardos.c:304:3: warning: Value stored to 'r' is never read
+	  r = 256; ^ ~~~
+
+2011-02-05 21:35  ludovic.rousseau
+
+	* trunk/src/libopensc/card-flex.c: Remove dead code
+	  card-flex.c:358:2: warning: Value stored to 'left' is never read
+	  left = *p++; ^ ~~~~ card-flex.c:358:10: warning: Value stored to
+	  'p' is never read left = *p++; ^~~
+
+2011-02-05 21:34  ludovic.rousseau
+
+	* trunk/src/libopensc/card-setcos.c: Remove dead code
+	  card-setcos.c:506:3: warning: Value stored to 'bKeyNumber' is
+	  never read bKeyNumber = 0; ^ ~
+
+2011-02-05 21:32  ludovic.rousseau
+
+	* trunk/src/libopensc/reader-pcsc.c: Add missing check code for
+	  NULL before dereferencing reader-pcsc.c:1076:3: warning:
+	  Dereference of null pointer (loaded from variable
+	  'event_reader') *event_reader = NULL; ^~~~~~~~~~~~~
+	  reader-pcsc.c:1098:3: warning: Dereference of null pointer
+	  (loaded from variable 'event') *event = 0; ^~~~~~
+	  reader-pcsc.c:1137:6: warning: Dereference of null pointer
+	  (loaded from variable 'event_reader') *event_reader = ...
+	  ^~~~~~~~~~~~~ reader-pcsc.c:1112:6: warning: Dereference of null
+	  pointer (loaded from variable 'event_reader') *event_reader =
+	  NULL; ^~~~~~~~~~~~~
+
+2011-02-05 21:18  ludovic.rousseau
+
+	* trunk/src/libopensc/muscle.c: Remove dead code muscle.c:417:2:
+	  warning: Value stored to 'ptr' is never read ptr +=
+	  newPinLength; ^ ~~~~~~~~~~~~ muscle.c:918:2: warning: Value
+	  stored to 'inPtr' is never read inPtr += toSend; ^ ~~~~~~
+	  muscle.c:917:2: warning: Value stored to 'left' is never read
+	  left -= toSend; ^ ~~~~~~ muscle.c:1012:26: warning: Value stored
+	  to 'p' is never read ushort2bebytes(p, use); p+=2; ^ ~
+
+2011-02-05 21:16  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-gemsafeV1.c: Remove dead code
+	  pkcs15-gemsafeV1.c:262:5: warning: Value stored to 'endptr' is
+	  never read endptr = (char *)(apdu.resp + apdu.resplen); ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 21:11  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15.c: Remove dead code pkcs15.c:1033:3:
+	  warning: Value stored to 'r' is never read r =
+	  sc_pkcs15_parse_df(p15card, df); ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ pkcs15.c:1677:3: warning: Value
+	  stored to 'obj_len' is never read obj_len = p - oldp; ^ ~~~~~~~~
+	  pkcs15.c:1948:4: warning: Value stored to 'r' is never read r =
+	  len; ^ ~~~ pkcs15.c:1942:6: warning: Value stored to
+	  'record_len' is never read record_len = head[2] * 256 + head[3];
+	  ^ ~~~~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 21:09  ludovic.rousseau
+
+	* trunk/src/libopensc/apdu.c: Remove dead code apdu.c:166:5:
+	  warning: Value stored to 'p' is never read *p++ = (u8)apdu->le;
+	  ^~~ apdu.c:156:4: warning: Value stored to 'p' is never read p
+	  += apdu->lc & 0xff; ^ ~~~~~~~~~~~~~~~ apdu.c:147:5: warning:
+	  Value stored to 'p' is never read *p++ = (u8)apdu->le; ^~~
+	  apdu.c:139:3: warning: Value stored to 'p' is never read p +=
+	  apdu->lc; ^ ~~~~~~~~ apdu.c:118:3: warning: Value stored to 'p'
+	  is never read p += apdu->lc; ^ ~~~~~~~~ apdu.c:112:5: warning:
+	  Value stored to 'p' is never read *p++ = (u8)apdu->le; ^~~
+	  apdu.c:107:5: warning: Value stored to 'p' is never read *p++ =
+	  (u8)apdu->le; ^~~ apdu.c:102:4: warning: Value stored to 'p' is
+	  never read *p++ = (u8)apdu->le; ^~~ apdu.c:99:5: warning: Value
+	  stored to 'p' is never read *p++ = (u8)0x00; ^~~
+
+2011-02-05 21:04  ludovic.rousseau
+
+	* trunk/src/libopensc/ef-atr.c: Remove dead code ef-atr.c:41:16:
+	  warning: Value stored to 'category' during its initialization is
+	  never read unsigned char category = *buf; ^ ~~~~
+
+2011-02-05 21:03  ludovic.rousseau
+
+	* trunk/src/libopensc/asn1.c: Remove dead code asn1.c:1321:3:
+	  warning: Value stored to 'r' is never read r = 0; ^ ~
+
+2011-02-05 21:01  ludovic.rousseau
+
+	* trunk/src/libopensc/log.c: Remove dead code log.c:107:2:
+	  warning: Value stored to 'left' is never read left -= r; ^ ~
+	  log.c:106:2: warning: Value stored to 'p' is never read p += r;
+	  ^ ~
+
+2011-02-05 21:00  ludovic.rousseau
+
+	* trunk/src/libopensc/ctx.c: Remove dead code ctx.c:550:25:
+	  warning: Value stored to 'count' is never read
+	  ctx->conf_blocks[count++] = blocks[0]; ^~~~~~~
+
+2011-02-05 20:59  ludovic.rousseau
+
+	* trunk/src/libopensc/sc.c: Fix analyzer warnings. The code looked
+	  good. sc.c:667:12: warning: The left operand of '>=' is a
+	  garbage value if (tx[2] >= 0) ~~~~~ ^ sc.c:656:12: warning: The
+	  left operand of '>=' is a garbage value if (tx[0] >= 0) { ~~~~~ ^
+
+2011-02-05 20:54  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-authentic.c: Remove dead code
+	  pkcs15-authentic.c:692:2: warning: Value stored to 'caps' is
+	  never read caps = card->caps; ^ ~~~~~~~~~~
+
+2011-02-05 20:53  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-oberthur-awp.c: Remove dead code
+	  pkcs15-oberthur-awp.c:143:3: warning: Value stored to 'desc' is
+	  never read desc = "Oberthur AWP container list"; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ pkcs15-oberthur-awp.c:138:3:
+	  warning: Value stored to 'desc' is never read desc = "Oberthur
+	  AWP private object list"; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-oberthur-awp.c:133:3: warning: Value stored to 'desc' is
+	  never read desc = "Oberthur AWP public object list"; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ pkcs15-oberthur-awp.c:128:3:
+	  warning: Value stored to 'desc' is never read desc = "Oberthur
+	  AWP token info"; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-oberthur-awp.c:122:3: warning: Value stored to 'desc' is
+	  never read desc = "Oberthur AWP private data object info"; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-oberthur-awp.c:117:3: warning: Value stored to 'desc' is
+	  never read desc = "Oberthur AWP data object info"; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ pkcs15-oberthur-awp.c:112:3:
+	  warning: Value stored to 'desc' is never read desc = "Oberthur
+	  AWP public key info"; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-oberthur-awp.c:106:3: warning: Value stored to 'desc' is
+	  never read desc = "Oberthur AWP private key info"; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ pkcs15-oberthur-awp.c:100:3:
+	  warning: Value stored to 'desc' is never read desc = "Oberthur
+	  AWP certificate info"; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-oberthur-awp.c:338:2: warning: Value stored to 'rec_offs'
+	  is never read rec_offs = 0; ^ ~ pkcs15-oberthur-awp.c:1369:2:
+	  warning: Value stored to 'offs' is never read offs += len; ^ ~~~
+
+2011-02-05 20:51  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-oberthur.c: Remove dead code
+	  pkcs15-oberthur.c:457:4: warning: Value stored to 'type' is
+	  never read type = SC_PKCS15INIT_USER_PIN; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~ pkcs15-oberthur.c:452:4: warning: Value
+	  stored to 'type' is never read type = SC_PKCS15INIT_USER_PUK; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~ pkcs15-oberthur.c:445:4: warning: Value
+	  stored to 'type' is never read type = SC_PKCS15INIT_SO_PIN; ^
+	  ~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 20:50  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-myeid.c: Remove dead code
+	  pkcs15-myeid.c:251:4: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_USER_PIN; ^ ~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-myeid.c:244:4: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_SO_PIN; ^ ~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 20:48  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-muscle.c: Remove dead code
+	  pkcs15-muscle.c:101:3: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_USER_PIN; ^ ~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-muscle.c:99:3: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_SO_PIN; ^ ~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 20:47  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-incrypto34.c: Remove dead code
+	  pkcs15-incrypto34.c:133:7: warning: Although the value stored to
+	  'r' is used in the enclosing expression, the value is never
+	  actually read from 'r' ...r =
+	  sc_pkcs15init_authenticate(profile, p15card, file,
+	  SC_AC_OP_DELETE)... ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2011-02-05 20:46  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-starcos.c: Remove dead code
+	  pkcs15-starcos.c:158:3: warning: Value stored to 'p' is never
+	  read *p++ = ipf_file->size & 0xff; ^~~ pkcs15-starcos.c:128:3:
+	  warning: Value stored to 'p' is never read *p++ = 0x00; /* SM
+	  ISF: no */ ^~~ pkcs15-starcos.c:239:3: warning: Value stored to
+	  'p' is never read *p++ = ipf_file->size & 0xff; ^~~
+	  pkcs15-starcos.c:206:3: warning: Value stored to 'p' is never
+	  read *p++ = 0x00; /* SM ISF: no */ ^~~ pkcs15-starcos.c:636:4:
+	  warning: Value stored to 'p' is never read *p++ = 0x00; ^~~
+	  pkcs15-starcos.c:613:4: warning: Value stored to 'p' is never
+	  read *p++ = (u8) kinfo->key_reference; /* CHA byte */ ^~~
+	  pkcs15-starcos.c:699:3: warning: Value stored to 'p' is never
+	  read *p++ = (u8) kinfo->key_reference; /* CHA */ ^~~
+
+2011-02-05 20:45  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-jcop.c: Remove dead code
+	  pkcs15-jcop.c:118:17: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_USER_PIN; ^ ~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-jcop.c:112:17: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_SO_PIN; ^ ~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-jcop.c:171:9: warning: Value stored to 'pub_len' is never
+	  read pub_len = 2 + mod_len + exp_len; ^ ~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-jcop.c:284:6: warning: Value stored to 'bytes' is never
+	  read bytes = mod_len / 2; ^ ~~~~~~~~~~~
+
+2011-02-05 20:42  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-cflex.c: Remove dead code
+	  pkcs15-cflex.c:747:3: warning: Value stored to 'key' is never
+	  read *key++ = 0; ^~~~~
+
+2011-02-05 20:41  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-gpk.c: Remode dead code
+	  pkcs15-gpk.c:213:3: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_USER_PIN; ^ ~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-gpk.c:207:3: warning: Value stored to 'type' is never
+	  read type = SC_PKCS15INIT_SO_PIN; ^ ~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-gpk.c:853:3: warning: Value stored to 'pe' is never read
+	  pe++; ^~~~
+
+2011-02-05 20:38  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: Remove dead code
+	  pkcs15-lib.c:727:4: warning: Value stored to 'pin_type' is never
+	  read pin_type = SC_PKCS15INIT_USER_PIN; ^ ~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-lib.c:1011:3: warning: Value stored to 'pin_type' is
+	  never read pin_type = SC_PKCS15INIT_SO_PIN; ^
+	  ~~~~~~~~~~~~~~~~~~~~ pkcs15-lib.c:1009:3: warning: Value stored
+	  to 'pin_type' is never read pin_type = SC_PKCS15INIT_USER_PUK; ^
+	  ~~~~~~~~~~~~~~~~~~~~~~ pkcs15-lib.c:1505:2: warning: Value
+	  stored to 'usage' is never read usage =
+	  SC_PKCS15_PRKEY_USAGE_SIGN; ^ ~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-lib.c:1507:3: warning: Value stored to 'usage' is never
+	  read usage = sc_pkcs15init_map_usage(args->x509_usage, 0); ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  pkcs15-lib.c:2560:3: warning: Value stored to 'file' is never
+	  read file = df->file; ^ ~~~~~~~~
+
+2011-02-05 20:29  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: Fix a memory leak The
+	  initializations are already done a few lines below
+	  pkcs15-lib.c:1938:11: warning: Value stored to 'ctx' during its
+	  initialization is never read BN_CTX *ctx = BN_CTX_new(); ^
+	  ~~~~~~~~~~~~ pkcs15-lib.c:1937:11: warning: Value stored to
+	  'aux' during its initialization is never read BIGNUM *aux =
+	  BN_new(); ^ ~~~~~~~~
+
+2011-02-05 20:25  ludovic.rousseau
+
+	* trunk/src/scconf/scconf.c: Remove dead code scconf.c:195:2:
+	  warning: Value stored to 'ret' is never read ret =
+	  scconf_put_str(block, option, !value ? "false" : "true"); ^
+	  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	  scconf.c:585:3: warning: Value stored to 'r' is never read r =
+	  0; ^ ~ scconf.c:711:3: warning: Value stored to 'r' is never
+	  read r = 0; ^ ~
+
+2011-02-05 17:47  ludovic.rousseau
+
+	* trunk/src/libopensc/card-piv.c: Fix compiler warning
+	  card-piv.c:2014:7: warning: unused variable 'outp'
+	  [-Wunused-variable] u8 * outp = out; ^
+
+2011-02-05 17:44  ludovic.rousseau
+
+	* trunk/src/tools/opensc-explorer.c: Fix a compiler warning
+	  opensc-explorer.c:1440:22: warning: conversion specifies type
+	  'unsigned int' but the argument has type 'size_t' (aka 'unsigned
+	  long') [-Wformat] printf("expecting %u, got only %d bytes.\n",
+	  len, r); ~^ ~~~ %lu
+
+2011-02-05 17:42  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-westcos.c: Fix compiler warning
+	  pkcs15-westcos.c:247:8: warning: initializing 'char *' with an
+	  expression of type 'char const [8]' discards qualifiers char
+	  *name = "WESTCOS"; ^ ~~~~~~~~~
+
+2011-02-05 17:34  ludovic.rousseau
+
+	* trunk/src/libopensc/card-piv.c: Fix a bug. read(2) returns a
+	  signed value. read(2) errors were not detected in the previous
+	  code. card-piv.c:833:10: warning: comparison of unsigned
+	  expression < 0 is always false [-Wsign-compare] if (len < 0) {
+	  ~~~ ^ ~
+
+2011-02-05 17:20  ludovic.rousseau
+
+	* trunk/src/libopensc/ctx.c: Fix compiler warning ctx.c:56:1:
+	  warning: control may reach end of non-void function
+	  [-Wreturn-type] } ^
+
+2011-02-05 17:16  ludovic.rousseau
+
+	* trunk/src/libopensc/sc.c: Fix compiler warnings sc.c:406:39:
+	  warning: missing field 'usage' initializer
+	  [-Wmissing-field-initializers] SC_AC_NEVER, SC_AC_KEY_REF_NONE,
+	  {{0}}, NULL ^ sc.c:409:38: warning: missing field 'usage'
+	  initializer [-Wmissing-field-initializers] SC_AC_NONE,
+	  SC_AC_KEY_REF_NONE, {{0}}, NULL ^ sc.c:412:41: warning: missing
+	  field 'usage' initializer [-Wmissing-field-initializers]
+	  SC_AC_UNKNOWN, SC_AC_KEY_REF_NONE, {{0}}, NULL ^
+
+2011-02-05 17:11  ludovic.rousseau
+
+	* trunk/src/libopensc/card-authentic.c: Fix compiled warnings
+	  card-authentic.c:1770:1: warning: no previous prototype for
+	  function 'authentic_manage_sdo_encode_prvkey'
+	  [-Wmissing-prototypes] authentic_manage_sdo_encode_prvkey(struct
+	  sc_card *card, struct ... ^ card-authentic.c:1832:1: warning: no
+	  previous prototype for function 'authentic_manage_sdo_encode'
+	  [-Wmissing-prototypes] authentic_manage_sdo_encode(struct
+	  sc_card *card, struct ... ^
+
+2011-02-05 17:05  ludovic.rousseau
+
+	* trunk/src/libopensc/pkcs15-pubkey.c: Fix compiler warning
+	  pkcs15-pubkey.c:787:5: warning: no previous prototype for
+	  function 'sc_pkcs15_read_der_file' [-Wmissing-prototypes] int
+	  sc_pkcs15_read_der_file(sc_context_t *ctx, char * filename, ^
+
+2011-02-05 17:04  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-authentic.c: Fix compiler warning
+	  pkcs15-authentic.c:97:1: warning: no previous prototype for
+	  function 'authentic_reference_to_pkcs15_id'
+	  [-Wmissing-prototypes] authentic_reference_to_pkcs15_id
+	  (unsigned int ref, struct sc_pkcs15_id *id) ^
+
+2011-02-05 16:54  ludovic.rousseau
+
+	* trunk/src/pkcs15init/pkcs15-asepcos.c: Use & for logical and
+	  pkcs15-asepcos.c:518:23: warning: use of logical && with
+	  constant operand; switch to bitwise & or remove constant
+	  [-Wconstant-logical-operand] *p++ = (fileid >> 8) && 0xff; ^ ~~~~
+
+2011-02-05 16:37  ludovic.rousseau
+
+	* trunk/src/libopensc/cards.h: Fix compiler warning cards.h:215:
+	  warning: function declaration isn&#8217;t a prototype
+
+2011-02-03 21:18  dengert
+
+	* trunk/src/libopensc/ctx.c, trunk/src/libopensc/internal.h: Add
+	  _sc_delete_reader to allow for a single reader to be deleted
+	  from the ctx->readers list. This will be used by cardmod and for
+	  consistence by sc_release_context.
+
+2011-02-01 17:32  martin
+
+	* trunk/src/libopensc/card-mcrd.c: EstonianEid: better detection
+	  and workaround for the double tag bug with v3.0 cards See
+	  wiki:EstonianEid for the description of known issues with the
+	  card.
+
+2011-01-27 22:18  andre
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15.c: Check info->label for
+	  NULL before calling strdup(). Avoids segmentation fault in the
+	  case where info->label == NULL. Fixes #318. Thanks lmamane.
+
+2011-01-27 14:25  martin
+
+	* trunk/src/libopensc/pkcs15-pin.c: core: Fix PIN caching for PIN
+	  codes protecting user consent keys, broken in r4048 Such PIN
+	  codes were erroneously cached in memory, even though not used
+	  with revalidation.. User consent relates to private keys, not
+	  PIN codes.
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: check for remaining
+	  PIN tries before changing a PIN. If the card supports it,
+	  changing a blocked PIN will result in an error before PIN entry,
+	  not when the card re-states that the PIN is already blocked.
+
+2011-01-27 08:43  ep
+
+	* trunk/src/libopensc/pkcs15-itacns.c: Amend and update register
+	  of IC manufacturers for itacns
+
+2011-01-24 10:59  martin
+
+	* trunk/MacOSX/build: MacInstaller: track Tokend branch in Git
+	  based on OpenSC release.
+
+2011-01-22 12:53  martin
+
+	* trunk/src/libopensc/ctx.c: libopensc: calling sc_context_create
+	  without parameters is not allowed
+
+2011-01-20 13:02  martin
+
+	* trunk/src/cardmod/cardmod.c: MiniDriver: MS Visual Studio is
+	  identified by _MSC_VER not VISUAL_STUDIO
+	  http://predef.sourceforge.net/precomp.html#sec35
+
+2011-01-20 12:58  martin
+
+	* trunk/src/cardmod/cardmod.c: MiniDriver: change cardmod.h
+	  include style to help building with compilers which don't have
+	  cardmod.h registered in the search path.
+	* trunk/src/cardmod/Makefile.mak: MiniDriver: embed the manifest
+	  into minidriver DLL
+
+2011-01-19 15:06  martin
+
+	* trunk/src/cardmod/Makefile.mak: MiniDriver: Create cardmod DLL
+	  with nmake as well.
+
+2011-01-19 14:47  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-myeid.c: MyEID: pkcs15init: create
+	  all xDF files at the stage of the card initialisation ... it was
+	  discussed in
+	  http://www.opensc-project.org/pipermail/opensc-devel/2011-January/015620.html
+
+2011-01-19 14:22  vtarasov
+
+	* trunk/src/libopensc/ef-atr.c: libopensc: initialize 'sc_ef_atr'
+	  type variable
+
+2011-01-19 14:16  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15init: profile: unused
+	  variables
+
+2011-01-19 08:37  martin
+
+	* trunk/src/libopensc/card-mcrd.c: EstonianEid: add new 2011 card
+	  ATR (18.01.2011+)
+
+2011-01-18 16:31  vtarasov
+
+	* trunk/src/libopensc/pkcs15-cert.c,
+	  trunk/src/libopensc/pkcs15-data.c,
+	  trunk/src/libopensc/pkcs15-prkey.c,
+	  trunk/src/libopensc/pkcs15-pubkey.c: pkcs15: when setting object
+	  data's path, use, if available, the AID from
+	  'DiscretionaryDataObject'
+
+2011-01-18 16:17  vtarasov
+
+	* trunk/src/libopensc/pkcs15-pin.c: pkcs15: simplify PIN's path
+	  assignement
+
+2011-01-18 16:06  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: do not print empty
+	  path, print path also when it only has 'aid' member
+
+2011-01-18 16:02  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15: redesign
+	  sc_pkcs15_make_absolute_path() ... - do nothing if child has
+	  'aid'; - child inherit the parents's 'aid' if this one exists; -
+	  child inherit parents's path of type 'DF NAME' as 'aid'; -
+	  return if child path is zero length; - finaly concatenate parent
+	  and child paths.
+
+2011-01-18 10:39  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: when deleting
+	  object ignore the object data file selection error
+	  'FILE_NOT_FOUND' ... just update the xDF content.
+
+2011-01-18 09:48  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/card-oberthur.c,
+	  trunk/src/libopensc/pkcs15-sec.c,
+	  trunk/src/libopensc/pkcs15-tcos.c, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/pkcs15init/pkcs15-asepcos.c,
+	  trunk/src/pkcs15init/pkcs15-starcos.c: libopensc: avoid using of
+	  the not completely initialized 'sc_path' variables
+
+2011-01-18 04:43  andre
+
+	* trunk/etc/opensc.conf.in: opensc.conf.in: clean up white spaces
+
+2011-01-17 21:09  andre
+
+	* trunk/src/libopensc/pkcs15-pin.c: pkcs15-pin.c: fixes
+	  segmentation fault in the case where p15card->app == NULL
+
+2011-01-17 19:00  vtarasov
+
+	* trunk/src/libopensc/card-acos5.c,
+	  trunk/src/libopensc/card-asepcos.c,
+	  trunk/src/libopensc/card-atrust-acos.c,
+	  trunk/src/libopensc/card-entersafe.c,
+	  trunk/src/libopensc/card-ias.c,
+	  trunk/src/libopensc/card-openpgp.c,
+	  trunk/src/libopensc/card-starcos.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/pkcs15-tool.c:
+	  libopensc: avoid the using of not completely initialized
+	  'sc_path' variables to be continued...
+
+2011-01-17 16:52  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15init: profile: little fix
+	  of the previous commit
+
+2011-01-17 16:49  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15init: profile: use short
+	  form of the log message call
+
+2011-01-17 16:28  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/tools/pkcs15-init.c: pkcs15init: function to finalize
+	  profile when binding to the application of the multi-application
+	  PKCS#15 card.
+
+2011-01-17 16:05  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15init: profile: redesign
+	  'sc_profile_find_file_by_path()' ... to take into account the
+	  non-zero 'aid' member in the 'path' parameter or in the path of
+	  the file's instance also take into account the non-zero 'aid'
+	  when getting 'file-id'
+
+2011-01-17 15:51  vtarasov
+
+	* trunk/src/pkcs15init/profile.c, trunk/src/pkcs15init/profile.h:
+	  pkcs15init: profile: new function 'get_parent' ... to get
+	  profile instance of the parent of some file presented by it's
+	  profile name. ;accept hexadecimal values presented in 'xAB'
+	  form; ;coding style issues;
+
+2011-01-17 15:18  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15init: profile: handles for
+	  'profile-extention' and 'exclusive-aid' ... 'profile-extention'
+	  profile parameter used to load from the separate file the AID
+	  dependent profile part. 'exclusive-aid' profile parameter used
+	  to introduce the AID for the DF that do not have file-id and
+	  that can be selected only by 'DF-NAME' selection.
+
+2011-01-17 14:51  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/profile.c, trunk/src/pkcs15init/profile.h:
+	  pkcs15init: profile: sc_profile_finish() accept additional
+	  parameter 'application info' ... Each application of the
+	  multi-application PKCS#15 card has it's own associated
+	  pkcs15init profile file. Profile of the multi-application card
+	  contains an association between the ID of the on-card
+	  application and associated profile name. When
+	  sc_profile_finish() is called - sc_card is connected, -
+	  information on the preset on-card applications is available; -
+	  AID of the applicaition to be binded is known. thus allowing to
+	  sc_profile_finish() to load the final part of the profile.
+
+2011-01-17 14:03  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15init: profile: parse new
+	  AC operation types ... debug messages and some coding style
+	  issues
+
+2011-01-17 13:11  vtarasov
+
+	* trunk/src/libopensc/pkcs15-pin.c: pkcs15: comments and debug
+	  messages
+
+2011-01-17 12:54  vtarasov
+
+	* trunk/src/libopensc/pkcs15-pubkey.c: pkcs15: when getting public
+	  key data, return 'direct' object value if available add debug
+	  messages
+
+2011-01-14 17:12  vtarasov
+
+	* trunk/src/libopensc/pkcs15-sec.c: pkcs15: initialize 'supported
+	  algorithms' in SE data by the ones from tokenInfo for some cards
+	  to prepare security environment for the PSO operation card
+	  driver may need the value of 'algRef' attribut of
+	  tokenInfo.supportedAlgorithm.
+
+2011-01-14 09:59  flc
+
+	* trunk/src/libopensc/libopensc.exports: remove unset
+	  sc_pkcs15init_finalize_profile function from libopensc.exports
+
+2011-01-13 15:06  vtarasov
+
+	* trunk/src/libopensc/asn1.c: asn1: spelling of the debug messages
+
+2011-01-13 14:05  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h:
+	  pkcs15: add array with supported algos references to the key
+	  info data type ... and imlement API to access it
+
+2011-01-13 13:59  vtarasov
+
+	* trunk/src/libopensc/asn1.c, trunk/src/libopensc/asn1.h: asn1:
+	  accept long tag ... According to X.690-0207 ch.8.1.2.4
+
+2011-01-12 17:41  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/sc.c,
+	  trunk/src/pkcs15init/authentic.profile: libopensc: export
+	  sc_find_app(), remove debug message, ... avoid double '::'
+	  separator in path_print(); touch authentic profile file
+
+2011-01-11 16:50  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/tools/pkcs15-init.c: pkcs15init: add 'aid' argument to
+	  prototype of sc_pkcs15init_erase_card() ... used to indicate
+	  application to erase
+
+2011-01-11 16:40  vtarasov
+
+	* trunk/src/libopensc/cardctl.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c: pkcd15init: get PIN reference
+	  from SE number when verifying 'SE' secret type ...
+
+2011-01-11 10:46  vtarasov
+
+	* trunk/src/libopensc/sc.c, trunk/src/libopensc/types.h: tools:
+	  reserve more place for the print path and AID buffer ... to
+	  insert the '::' indicator of 'AID' or 'DF_NAME' path type
+
+2011-01-11 10:29  vtarasov
+
+	* trunk/src/libopensc/ef-atr.c, trunk/src/libopensc/iso7816.h:
+	  libopensc: parse EF.ATR: redefine 'STATUS' macros ... thanks to
+	  Andre Zepezauer for his precious remarks
+
+2011-01-11 10:19  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15: asn1: extend DDO with
+	  'ddoAID' and 'ddoIIN' ... This extension is used by
+	  multi-applications cards when EF.ODF with EF.tokenInfo and xDF
+	  with (secure) data objects are placed in a different
+	  applications.
+
+2011-01-11 10:12  vtarasov
+
+	* trunk/src/libopensc/pkcs15-pin.c: pkcs15: asn1: local PIN should
+	  have a path defined ... if there is no 'path' in the
+	  'PinAttributes', use DDO.AID or application path as a PIN's path.
+
+2011-01-11 10:08  vtarasov
+
+	* trunk/src/libopensc/dir.c: libopensc: parse EF.DIR: no need to
+	  check the presence of mandatory AID after success of ASN1
+	  decoding use "struct sc_aid"
+
+2011-01-10 14:15  vtarasov
+
+	* trunk/src/libopensc/ef-atr.c, trunk/src/libopensc/iso7816.h,
+	  trunk/src/libopensc/opensc.h: libopensc: remove non-ISO7816
+	  members from the EF.ATR data, thanks to Andre Zepezauer
+
+2011-01-10 10:44  vtarasov
+
+	* trunk/src/libopensc/asn1.c: asn1: invalid detection of AID
+	  presence in ASN1 path data
+
+2011-01-09 17:25  vtarasov
+
+	* trunk/src/libopensc/asn1.c, trunk/src/libopensc/types.h: asn1:
+	  decode 'extendedPath'
+
+2011-01-09 17:23  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: libopensc: adapt
+	  'make_absolute_path' to the path with valid 'aid' member ... use
+	  make_absolute_path() to compose path to 'ODF' and 'tokenInfo'
+
+2011-01-09 17:17  vtarasov
+
+	* trunk/src/libopensc/sc.c: libopensc: when printing 'path', print
+	  also the value of 'aid' if available.
+
+2011-01-09 17:13  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: do not print
+	  non-relevant to the 'list-applications' context information
+
+2011-01-09 10:42  vtarasov
+
+	* trunk/src/libopensc/iso7816.c: iso7816: use already defined
+	  local variable 'ctx' instead of 'card->ctx'
+
+2011-01-09 10:17  martin
+
+	* trunk/src/libopensc/card-openpgp.c, trunk/src/libopensc/cards.h,
+	  trunk/src/libopensc/ctx.c, trunk/src/libopensc/pkcs15-openpgp.c,
+	  trunk/src/libopensc/pkcs15-syn.c: Initial modifications to
+	  support OpenPGP v2.0 (CryptoStick) * Correct naming: openpgp not
+	  opengpg * Set the card name from ATR table * Add card type enums
+	  * Currently OpenPGP is read-only.
+	* trunk/src/libopensc/iso7816.c: iso7816: Don't translate a
+	  returned FCP template from SELECT FILE to "unknown data received"
+
+2011-01-09 10:02  vtarasov
+
+	* trunk/src/libopensc/libopensc.exports, trunk/src/libopensc/sc.c:
+	  libopensc: to be compiled with Visual Studio
+
+2011-01-09 09:32  vtarasov
+
+	* trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/libopensc.exports: libopensc: procedure to
+	  log the card's cache
+
+2011-01-09 09:29  vtarasov
+
+	* trunk/src/libopensc/opensc.h, trunk/src/libopensc/types.h:
+	  libopensc: extend DDO data type with the parsed 'aid', 'oid' and
+	  'iid' members
+
+2011-01-09 09:25  vtarasov
+
+	* trunk/src/libopensc/opensc.h: libopensc: extend serial number to
+	  the ISO/IEC 7812 PAN definition
+
+2011-01-09 09:13  vtarasov
+
+	* trunk/src/libopensc/sc.c, trunk/src/libopensc/types.h:
+	  libopensc: add 'crts' array to 'struct sc_acl_entry' ... For
+	  some cards the acl bytes, retrived from 'select' response, can
+	  reference a SE (and not directly PIN). In such case, to proceed
+	  an authentication for the card operation the information about
+	  the SE's CRTs is needed.
+
+2011-01-09 08:51  vtarasov
+
+	* trunk/src/libopensc/ef-atr.c: libopensc: do not return 'SUCCESS'
+	  if EF.ATR do not exist ... debug messages
+
+2011-01-09 08:49  vtarasov
+
+	* trunk/src/libopensc/sc.c, trunk/src/tools/opensc-explorer.c:
+	  libopensc: initialize 'sc_path' type variables ... it's needed
+	  to initialize the 'aid' member of 'struct sc_path'
+
+2011-01-09 08:31  vtarasov
+
+	* trunk/src/libopensc/dir.c: libopensc: use 'calloc' to allocate
+	  application info ... remove unused variable
+
+2011-01-09 08:28  vtarasov
+
+	* trunk/src/libopensc/iso7816.c, trunk/src/libopensc/iso7816.h:
+	  iso7816: accept 'FCP' tag when processing FCI
+
+2011-01-07 17:18  vtarasov
+
+	* trunk/src/libopensc/card-atrust-acos.c,
+	  trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/card-cardos.c,
+	  trunk/src/libopensc/card-itacns.c,
+	  trunk/src/libopensc/card-myeid.c,
+	  trunk/src/libopensc/card-westcos.c, trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/internal.h, trunk/src/libopensc/opensc.h,
+	  trunk/src/libopensc/pkcs15-infocamere.c,
+	  trunk/src/libopensc/reader-pcsc.c, trunk/src/libopensc/sc.c,
+	  trunk/src/libopensc/types.h, trunk/src/tests/sc-test.c,
+	  trunk/src/tools/cardos-tool.c, trunk/src/tools/netkey-tool.c,
+	  trunk/src/tools/opensc-tool.c, trunk/src/tools/util.c,
+	  trunk/src/tools/westcos-tool.c: libioensc: use 'struct sc_atr'
+	  instead of 'u8 *atr, size_t atr_len'
+
+2011-01-07 16:09  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15: do not call
+	  sc_parse_ef_atr() ... it should be called in the 'init' handle
+	  of the card driver when EF.ATR is present
+
+2011-01-07 15:49  vtarasov
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak, trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/ef-atr.c, trunk/src/libopensc/iso7816.h,
+	  trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h: libopensc: parse content of the
+	  EF(ATR) file
+
+2011-01-07 15:47  vtarasov
+
+	* trunk/src/libopensc/asn1.c: opensc-explorer: print raw content
+	  of 'CONTEXT' tag
+
+2011-01-07 15:44  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/pkcs15.c: pkcs15: remove unused variables
+
+2011-01-07 13:31  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h:
+	  pkcs15: in sc_pkcs15_card include the pointer to the application
+	  that the card was binded to
+
+2011-01-07 09:00  vtarasov
+
+	* trunk/src/libopensc/asn1.c: opensc-explorer: in 'asn1' command
+	  print raw content of the ASN1_APPLICATION data
+
+2011-01-07 08:55  martin
+
+	* trunk/src/libopensc/reader-pcsc.c: PC/SC: don't try to use
+	  SCARD_SHARE_DIRECT if there is a card in the reader. This can
+	  confuse some card/reader combos.
+
+2011-01-07 08:50  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: in help message move
+	  'list-applications' action to the head of the actions group
+
+2011-01-06 16:21  vtarasov
+
+	* trunk/doc/tools/pkcs15-tool.xml, trunk/src/tools/pkcs15-tool.c:
+	  pkcs15-tool: new action 'list-applications'
+
+2011-01-06 16:16  vtarasov
+
+	* trunk/src/libopensc/authentic.h, trunk/src/libopensc/dir.c,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/types.h: libopensc: introduce TLV and LV
+	  data type, use it to store DDO data
+
+2011-01-06 14:39  vtarasov
+
+	* trunk/doc/tools/pkcs15-crypt.xml,
+	  trunk/doc/tools/pkcs15-init.xml,
+	  trunk/doc/tools/pkcs15-tool.xml,
+	  trunk/src/pkcs15init/authentic.profile,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/tools/pkcs15-crypt.c, trunk/src/tools/pkcs15-init.c,
+	  trunk/src/tools/pkcs15-tool.c: tools: use 'aid' as the name of
+	  option to specify the on-card PKCS#15 application ; update
+	  documentation; ; debug messages; ; cleanup the authentic card
+	  profile.
+
+2011-01-05 16:04  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: use short debug
+	  message call
+
+2011-01-05 15:42  vtarasov
+
+	* trunk/src/libopensc/asn1.c, trunk/src/libopensc/dir.c,
+	  trunk/src/libopensc/opensc.h, trunk/src/libopensc/pkcs15.c,
+	  trunk/src/libopensc/pkcs15.h, trunk/src/pkcs15init/pkcs15-lib.c:
+	  libopensc: use 'struct sc_aid' instead of 'u8 *aid, size_t
+	  aid_len'
+
+2011-01-05 15:39  vtarasov
+
+	* trunk/src/libopensc/types.h: libopensc: add 'sc_aid' member to
+	  'sc_path' ... not all application DF have and can be selected by
+	  its file-id. So, new member in 'sc_path' will help to describe
+	  the full path to some EF(DF) inside a card.
+
+2011-01-05 15:22  vtarasov
+
+	* trunk/src/tools/pkcs15-crypt.c, trunk/src/tools/pkcs15-init.c:
+	  pkcs15-tool: new 'bind-to-aid' argument ... to indicate
+	  application to bind when more then one on-card application
+	  detected
+
+2011-01-05 14:53  vtarasov
+
+	* trunk/src/libopensc/dir.c, trunk/src/libopensc/opensc.h,
+	  trunk/src/libopensc/pkcs15.c: pkcs15: some changes to the
+	  discovery on-card applications code ... ; 'known' pkcs#15
+	  applications are moved to the head of the card applications
+	  array; ; card specific 'bind finalization' code moved to the
+	  dedicated procedures; ; remove unused sc_application member,
+	  procedures; ; remove commented code; ; add debug messages;
+
+2011-01-05 14:33  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-authentic.c,
+	  trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: debug messages
+
+2011-01-05 14:32  vtarasov
+
+	* trunk/src/cardmod/cardmod.c: cardmon: 'bind' prototype has been
+	  changed
+
+2011-01-05 14:29  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: new 'bind-to-aid'
+	  argument ... indicate application to bind when multi-application
+	  card is used
+
+2011-01-05 14:21  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c, trunk/src/libopensc/pkcs15.h,
+	  trunk/src/libopensc/types.h,
+	  trunk/src/pkcs11/framework-pkcs15.c,
+	  trunk/src/pkcs15init/pkcs15-lib.c, trunk/src/tests/p15dump.c,
+	  trunk/src/tests/pintest.c, trunk/src/tools/pkcs15-crypt.c,
+	  trunk/src/tools/pkcs15-init.c, trunk/src/tools/pkcs15-tool.c:
+	  pkcs15: add 'aid' parameter to the prototype of the 'bind'
+	  functions ... prepare for the multi-application support
+
+2011-01-04 11:33  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c, trunk/src/libopensc/log.c,
+	  trunk/src/libopensc/log.h,
+	  trunk/src/pkcs15init/pkcs15-authentic.c: liopensc: log: use
+	  'normal' as default debug level ... and make shorter short call
+	  to insert debug message
+
+2011-01-04 10:52  vtarasov
+
+	* trunk/src/libopensc/authentic.h,
+	  trunk/src/pkcs15init/pkcs15-authentic.c: AuthentIC: remove
+	  unused members of the SDO structure
+
+2011-01-04 09:19  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/pkcs15init/pkcs15-authentic.c: AuthentIC: use short
+	  form to insert 'normal' debug messages
+
+2011-01-04 09:17  vtarasov
+
+	* trunk/src/libopensc/authentic.h, trunk/src/libopensc/log.c,
+	  trunk/src/libopensc/log.h: libopensc: log: short form to insert
+	  'normal' debug message
+
+2011-01-03 16:20  andre
+
+	* trunk/src/pkcs11/openssl.c: openssl.c: Fixes comparsion between
+	  signed and unsigned
+
+2011-01-03 15:10  andre
+
+	* trunk/src/pkcs11/framework-pkcs15.c: framework-pkcs15.c: Fixes
+	  two warnings: 1 x comparsion between signed und unsigned 1 x
+	  unused parameter 'flags'
+
+2011-01-03 09:55  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-oberthur-awp.c,
+	  trunk/src/pkcs15init/pkcs15-oberthur.c: Oberthur: replace
+	  'SC_ERROR_MEMORY_FAILURE' return code by the
+	  'SC_ERROR_OUT_OF_MEMORY'
+
+2011-01-03 09:45  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-lib.c: pkcs15init: when deleting
+	  file by path, try to get 'DELETE' authentication of the file
+	  itself ... then 'DELETE' authentication of parent
+
+2011-01-03 09:44  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15init: more of debug
+	  messages in profile.c
+
+2011-01-02 16:26  vtarasov
+
+	* trunk/src/libopensc/authentic.h, trunk/src/libopensc/opensc.h,
+	  trunk/src/pkcs15init/pkcs15-authentic.c: AuthentIC: remove
+	  unused macros, code layout
+
+2011-01-02 15:05  martin
+
+	* trunk/src/libopensc/card.c: Reject creating files bigger than
+	  64K. Most smart cards currently have only 64K or 128K of EEPROM.
+	  This will give better errors earlier for people trying to import
+	  huge keyfiles with TrueCrypt.
+
+2011-01-02 15:01  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/pkcs15init/pkcs15-authentic.c: AuthentIC: memory
+	  allocation errors, thanks to Martin for memory allocation errors
+	  use SC_ERROR_OUT_MEMORY instead of SC_ERROR_MEMORY_FAILURE
+
+2011-01-02 14:32  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: libopensc: more of debug messages,
+	  code layout
+
+2011-01-02 14:31  vtarasov
+
+	* trunk/src/pkcs15init/authentic.profile: pkcs15-init: AuthentIC:
+	  user PIN reference in card profile
+
+2011-01-02 14:31  martin
+
+	* trunk/src/tools/opensc-tool.c: opensc-tool: make
+	  --list-algorithms know about GOST keys
+
+2011-01-02 14:27  vtarasov
+
+	* trunk/src/pkcs15init/profile.c: pkcs15-init: profile:
+	  instantiate 'BSO' file
+
+2011-01-02 14:25  vtarasov
+
+	* trunk/src/libopensc/pkcs15-pubkey.c: libopensc: encode/decode
+	  'direct' public key value
+
+2011-01-02 14:22  vtarasov
+
+	* trunk/src/libopensc/pkcs15.c: libopensc: set 'enumerated' flag
+	  for xDF if corresponding EF file was successfully read ... it's
+	  an extention of r4983, that was not properly working for the
+	  existing but empty xDF files.
+
+2011-01-02 14:14  vtarasov
+
+	* trunk/src/libopensc/asn1.c, trunk/src/libopensc/pkcs15-prkey.c:
+	  libopensc: asn1: allow empty path
+
+2011-01-02 14:11  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/opensc.h: AuthentIC: read/write/update
+	  binary card handles can use the 'WAITING-AREA' reader facility
+	  ... when used with virtual reader, the APDUs can be buffered in
+	  the reader's internal buffer, before sending it to the distant
+	  card.
+
+2011-01-02 14:02  vtarasov
+
+	* trunk/src/pkcs15init/authentic.profile,
+	  trunk/src/pkcs15init/profile.c: pkcs15-init: 'PSO-*' ACL names
+	  in profile
+
+2011-01-02 13:55  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c: pkcs15-init: no more
+	  'SPLIT-KEY' flag ... more of debug messages
+
+2011-01-02 12:55  martin
+
+	* trunk/src/tools/util.c: Fix compiler warning util.c: In function
+	  &#8216;util_getpass&#8217;: util.c:348: warning: comparison between signed
+	  and unsigned
+	* trunk/src/tools/opensc-tool.c: opensc-tool: combined with
+	  --verbose, --list-readers will show tha ATR and name of the
+	  card, together with extra reader flags
+
+2011-01-02 12:54  martin
+
+	* trunk/src/tools/util.c: tools: allow to specify an ATR in the
+	  --reader option. This facilitates automated testing on a single
+	  machine with several identical readers with inserted cards.
+	* trunk/src/libopensc/opensc.h, trunk/src/libopensc/reader-pcsc.c:
+	  PC/SC: add additional flags to indicate readers which are in use
+	  and readers which are in exclusive mode.
+	* trunk/src/libopensc/card-rtecp.c: AktivRutokenECP: make
+	  opensc-tool -n show the actual token name, based on ATR
+
+2010-12-31 11:09  vtarasov
+
+	* trunk/src/libopensc/card.c: libopensc: remove '\n' from the
+	  debug message ... 'sc_do_log_va' takes care of line ending
+
+2010-12-31 10:52  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/pkcs15-prkey.c,
+	  trunk/src/libopensc/pkcs15-sec.c,
+	  trunk/src/pkcs15init/pkcs15-authentic.c: AuthentIC: cleanup dead
+	  code
+
+2010-12-31 08:54  vtarasov
+
+	* trunk/src/libopensc/card-authentic.c,
+	  trunk/src/pkcs15init/pkcs15-authentic.c,
+	  trunk/src/pkcs15init/pkcs15-lib.c: AuthentIC: "now there is no
+	  way to build without OpenSSL" (Andre Zepezauer) Thanks for patch.
+
+2010-12-31 00:50  andre
+
+	* trunk/src/tools/opensc-explorer.c: opensc-explorer.c: Fixes
+	  usage of size_t variables. According to ANSI C the type of
+	  size_t is always an unsigned type.
+
+2010-12-31 00:00  andre
+
+	* trunk/src/tools/cardos-tool.c: cardos-tool.c: According to ANSI
+	  C the type of size_t is always an unsigned type.
+
+2010-12-30 15:10  martin
+
+	* trunk/configure.ac, trunk/win32/Makefile.am,
+	  trunk/win32/OpenSC.iss, trunk/win32/OpenSC.iss.in:
+	  WindowsInstaller: generate OpenSC.iss with autotools
+
+2010-12-30 14:42  vtarasov
+
+	* trunk/src/pkcs15init/authentic.profile: AuthentIC: add profile
+
+2010-12-30 14:40  vtarasov
+
+	* trunk/src/libopensc/Makefile.am,
+	  trunk/src/libopensc/Makefile.mak,
+	  trunk/src/libopensc/authentic.h,
+	  trunk/src/libopensc/card-authentic.c,
+	  trunk/src/libopensc/cardctl.h, trunk/src/libopensc/cards.h,
+	  trunk/src/libopensc/ctx.c, trunk/src/libopensc/iso7816.h,
+	  trunk/src/pkcs15init/Makefile.am,
+	  trunk/src/pkcs15init/Makefile.mak,
+	  trunk/src/pkcs15init/pkcs15-authentic.c,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/win32/opensc-msi/OpenSC.wxs: 'AuthentIC': basic support of
+	  Oberthur's 'COSMO.v7/AuthentIC.v3.2' ... it's the natively
+	  PKCS#15 card
+
+2010-12-30 13:25  vtarasov
+
+	* trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/libopensc.exports,
+	  trunk/src/libopensc/opensc.h: libopensc: API for the
+	  'erase-binary' card operation
+
+2010-12-30 13:20  vtarasov
+
+	* trunk/src/libopensc/opensc.h, trunk/src/libopensc/types.h:
+	  libopensc: add new authentication methods, add ACLs to PIN info,
+	  ... add 'next' member to 'sc_apdu' structure
+
+2010-12-30 13:10  vtarasov
+
+	* trunk/src/libopensc/card-entersafe.c: libopensc: revert
+	  erroneous commit
+
+2010-12-30 13:04  vtarasov
+
+	* trunk/src/libopensc/card-atrust-acos.c,
+	  trunk/src/libopensc/card-entersafe.c,
+	  trunk/src/libopensc/card-flex.c,
+	  trunk/src/libopensc/card-oberthur.c,
+	  trunk/src/libopensc/card-starcos.c, trunk/src/libopensc/card.c,
+	  trunk/src/libopensc/opensc.h: libopensc: Now 'cache-valid' flag
+	  is a member of 'sc_card_cache' ... add 'current_ef' and
+	  'current_df' member to 'sc_card_cache'. The main purpose of this
+	  is to reduce number of APDU transactions.
+
+2010-12-30 12:50  vtarasov
+
+	* trunk/src/pkcs15init/pkcs15-asepcos.c,
+	  trunk/src/pkcs15init/pkcs15-cardos.c,
+	  trunk/src/pkcs15init/pkcs15-cflex.c,
+	  trunk/src/pkcs15init/pkcs15-entersafe.c,
+	  trunk/src/pkcs15init/pkcs15-gpk.c,
+	  trunk/src/pkcs15init/pkcs15-incrypto34.c,
+	  trunk/src/pkcs15init/pkcs15-init.h,
+	  trunk/src/pkcs15init/pkcs15-jcop.c,
+	  trunk/src/pkcs15init/pkcs15-lib.c,
+	  trunk/src/pkcs15init/pkcs15-miocos.c,
+	  trunk/src/pkcs15init/pkcs15-muscle.c,
+	  trunk/src/pkcs15init/pkcs15-myeid.c,
+	  trunk/src/pkcs15init/pkcs15-oberthur.c,
+	  trunk/src/pkcs15init/pkcs15-rtecp.c,
+	  trunk/src/pkcs15init/pkcs15-rutoken.c,
+	  trunk/src/pkcs15init/pkcs15-setcos.c,
+	  trunk/src/pkcs15init/pkcs15-starcos.c,
+	  trunk/src/pkcs15init/pkcs15-westcos.c: pkcs15init: new
+	  'emulation-store-data' operation ... the first usage is to
+	  update the public key PKCS#15 object attributes and to encode
+	  it's direct value. (support of the Oberthur's AuthentIC V3.2
+	  card)
+
+2010-12-30 12:29  vtarasov
+
+	* trunk/src/tools/pkcs15-tool.c: pkcs15-tool: minor change of the
+	  private key info layout
+
+2010-12-29 10:45  martin
+
+	* trunk/src/libopensc/card-piv.c: libopensc: correctly use
+	  HAVE_MALLOC_H to include malloc.h See
+	  http://www.freebsd.org/cgi/cvsweb.cgi/ports/security/opensc/files/patch-src_libopensc_card-piv.c#rev1.1
+	* trunk/src/pkcs11/framework-pkcs15.c: Fix #302: in C_Logout
+	  silently ignore missing card specific logout hooks.
+
+2010-12-22 21:45  andre
+
+	* trunk/src/libopensc/pkcs15.c: pkcs15.c: Fixes a bug that occurs
+	  in the situation where a PKCS15 EF contains partially invalid
+	  data. I.e. the last object in the EF is broken and thus can't be
+	  decoded successfully. In that case the whole EF becomes never
+	  flagged as enumerated. This in turn results in endless
+	  processing of that EF. Thereby the first valid objects became
+	  attached to the internal obj_list over and over again. That
+	  patch prevents the repeated attachment of objects to obj_list,
+	  because it marks an EF as enumerated as soon the first object
+	  was successfully appended. Left over from #266.
+
+2010-12-22 17:42  martin
+
+	* trunk/configure.ac: Move towards 0.12.1
 
 2010-12-22 17:12  martin
 

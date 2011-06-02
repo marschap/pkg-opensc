@@ -544,7 +544,7 @@ int main(
 	}
 	if (debug > 1) {
 		ctx->debug = debug;
-		ctx->debug_file = stderr;
+		sc_ctx_log_to_file(ctx, "stderr");
 	}
 	if(ctx->debug>0)
 		printf("Context for application \"%s\" created, Debug=%d\n", ctx->app_name, ctx->debug);
@@ -567,7 +567,7 @@ int main(
 		exit(1);
 	}
 	printf("\nCard detected (driver: %s)\nATR:", card->driver->name);
-	for(i=0;i<card->atr_len;++i) printf("%c%02X", i?':':' ', card->atr[i]); printf("\n");
+	for(i=0;i<card->atr.len;++i) printf("%c%02X", i?':':' ', card->atr.value[i]); printf("\n");
 
 	if((r = sc_lock(card))<0){
 		fprintf(stderr,"Lock failed: %s\n", sc_strerror(r));

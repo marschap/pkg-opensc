@@ -31,14 +31,18 @@ typedef unsigned char u8;
 #define SC_MAX_CARD_DRIVERS		32
 #define SC_MAX_CARD_DRIVER_SNAME_SIZE	16
 #define SC_MAX_CARD_APPS		8
-#define SC_MAX_APDU_BUFFER_SIZE		258
+#define SC_MAX_APDU_BUFFER_SIZE		261 /* takes account of: CLA INS P1 P2 Lc [255 byte of data] Le */
 #define SC_MAX_EXT_APDU_BUFFER_SIZE	65538
 #define SC_MAX_PIN_SIZE			256 /* OpenPGP card has 254 max */
 #define SC_MAX_ATR_SIZE			33
 #define SC_MAX_AID_SIZE			16
+#define SC_MAX_AID_STRING_SIZE		(SC_MAX_AID_SIZE * 2 + 3)
+#define SC_MAX_IIN_SIZE			10
 #define SC_MAX_OBJECT_ID_OCTETS		16
 #define SC_MAX_PATH_SIZE		16
-#define SC_MAX_PATH_STRING_SIZE		(SC_MAX_PATH_SIZE * 2 + 1)
+#define SC_MAX_PATH_STRING_SIZE		(SC_MAX_PATH_SIZE * 2 + 3)
+#define SC_MAX_SDO_ACLS			8
+#define SC_MAX_CRTS_IN_SE		12
 
 /* When changing this value, pay attention to the initialization of the ASN1 
  * static variables that use this macro, like, for example, 
@@ -46,11 +50,46 @@ typedef unsigned char u8;
  */
 #define SC_MAX_SUPPORTED_ALGORITHMS     8
 
+struct sc_lv_data {
+	unsigned char *value;
+	size_t len;
+};
+
+struct sc_tlv_data {
+	unsigned tag;
+	unsigned char *value;
+	size_t len;
+};
 
 struct sc_object_id {
 	int value[SC_MAX_OBJECT_ID_OCTETS];
 };
 
+struct sc_aid {
+	unsigned char value[SC_MAX_AID_SIZE];
+	size_t len;
+};
+
+struct sc_atr {
+	unsigned char value[SC_MAX_ATR_SIZE];
+	size_t len;
+};
+
+/* Issuer ID */
+struct sc_iid {
+	unsigned char value[SC_MAX_IIN_SIZE];
+	size_t len;
+};
+
+/* Discretionary ASN.1 data object */
+struct sc_ddo {
+	struct sc_aid aid;
+	struct sc_iid iid;
+	struct sc_object_id oid;
+
+	size_t len;
+	unsigned char *value;
+};
 
 #define SC_PATH_TYPE_FILE_ID		0
 #define SC_PATH_TYPE_DF_NAME		1
@@ -72,8 +111,17 @@ typedef struct sc_path {
 	int count;
 
 	int type;
+
+	struct sc_aid aid;
 } sc_path_t;
 
+/* Control reference template */
+struct sc_crt {
+	unsigned tag;
+	unsigned usage;		/* Usage Qualifier Byte */
+	unsigned algo;		/* Algorithm ID */
+	unsigned refs[8];	/* Security Object References */
+};
 
 /* Access Control flags */
 #define SC_AC_NONE			0x00000000
@@ -82,6 +130,10 @@ typedef struct sc_path {
 #define SC_AC_PRO			0x00000004 /* Secure Messaging */
 #define SC_AC_AUT			0x00000008 /* Key auth. */
 #define SC_AC_SYMBOLIC			0x00000010 /* internal use only */
+#define SC_AC_SEN                       0x00000020 /* Security Environment. */
+#define SC_AC_SCB                       0x00000040 /* IAS/ECC SCB byte. */
+#define SC_AC_IDA                       0x00000080 /* PKCS#15 authentication ID */
+
 #define SC_AC_UNKNOWN			0xFFFFFFFE
 #define SC_AC_NEVER			0xFFFFFFFF
 
@@ -126,9 +178,10 @@ typedef struct sc_acl_entry {
 	unsigned int method;	/* See SC_AC_* */
 	unsigned int key_ref;	/* SC_AC_KEY_REF_NONE or an integer */
 
+	struct sc_crt crts[SC_MAX_CRTS_IN_SE];
+
 	struct sc_acl_entry *next;
 } sc_acl_entry_t;
-
 
 /* File types */
 #define SC_FILE_TYPE_DF			0x04
@@ -156,10 +209,10 @@ typedef struct sc_file {
 	u8 name[16];	/* DF name */
 	size_t namelen; /* length of DF name */
 
-	int type, shareable, ef_structure;
+	unsigned int type, ef_structure, status; /* See constant values defined above */
+	unsigned int shareable;                  /* true(1), false(0) according to ISO 7816-4:2005 Table 14 */
 	size_t size;	/* Size of file (in bytes) */
 	int id;		/* Short file id (2 bytes) */
-	int status;	/* Status flags */
 	struct sc_acl_entry *acl[SC_MAX_AC_OPS]; /* Access Control List */
 
 	int record_length; /* In case of fixed-length or cyclic EF */
@@ -215,7 +268,88 @@ typedef struct sc_apdu {
 	unsigned int sw1, sw2;	/* Status words returned in R-APDU */
 
 	unsigned long flags;
+
+	struct sc_apdu *next;
 } sc_apdu_t;
+
+/* Card manager Production Life Cycle data (CPLC) 
+ * (from the Open Platform specification) */
+#define SC_CPLC_TAG		0x9F7F
+#define SC_CPLC_DER_SIZE	45
+struct sc_cplc {
+	unsigned char ic_fabricator[2];
+	unsigned char ic_type[2];
+	unsigned char os_data[6];
+	unsigned char ic_date[2];
+	unsigned char ic_serial[4];
+	unsigned char ic_batch_id[2];
+	unsigned char ic_module_data[4];
+	unsigned char icc_manufacturer[2];
+	unsigned char ic_embed_date[2];
+	unsigned char pre_perso_data[6];
+	unsigned char personalizer_data[6];
+
+	unsigned char value[SC_CPLC_DER_SIZE];
+	size_t len;
+};
+
+/* 'Issuer Identification Number' is a part of ISO/IEC 7812 PAN definition */
+struct sc_iin {
+	unsigned char mii;              /* industry identifier */
+	unsigned country;               /* country identifier */
+	unsigned long issuer_id;        /* issuer identifier */
+};
+
+/* structure for the card serial number (normally the ICCSN) */
+#define SC_MAX_SERIALNR         32
+typedef struct sc_serial_number {
+	unsigned char value[SC_MAX_SERIALNR];
+	size_t len;
+
+	struct sc_iin iin;
+} sc_serial_number_t;
+
+/**
+ * @struct sc_remote_apdu data
+ * Structure to supply the linked APDU data used in 
+ * communication with the external (SM) modules.
+ */
+#define SC_REMOTE_APDU_FLAG_FATAL
+#define SC_REMOTE_APDU_FLAG_LAST
+#define SC_REMOTE_APDU_FLAG_RETURN_ANSWER
+#define SC_REMOTE_APDU_FLAG_GET_RESPONSE
+struct sc_remote_apdu {
+	unsigned char sbuf[2*SC_MAX_APDU_BUFFER_SIZE];
+	unsigned char rbuf[2*SC_MAX_APDU_BUFFER_SIZE];
+	struct sc_apdu apdu;
+
+	unsigned flags;
+
+	struct sc_remote_apdu *next;
+};
+
+/**
+ * @struct sc_remote_data 
+ * Frame for the list of the @c sc_remote_apdu data with
+ * the handlers to allocate and free.
+ */
+struct sc_remote_data {
+	struct sc_remote_apdu *data;
+	int length;
+
+	/**
+         * Handler to allocate a new @c sc_remote_apdu data and add it to the list.
+ 	 * @param rdata Self pointer to the @c sc_remote_data
+	 * @param out Pointer to newle allocated member
+  	 */
+	int (*alloc)(struct sc_remote_data *rdata, struct sc_remote_apdu **out);
+	/**
+         * Handler to free the list of @c sc_remote_apdu data 
+ 	 * @param rdata Self pointer to the @c sc_remote_data
+  	 */
+	void (*free)(struct sc_remote_data *rdata);
+};
+
 
 #ifdef __cplusplus
 }

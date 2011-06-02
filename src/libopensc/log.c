@@ -42,6 +42,8 @@
 
 #include "internal.h"
 
+static void sc_do_log_va(sc_context_t *ctx, int level, const char *file, int line, const char *func, const char *format, va_list args);
+
 void sc_do_log(sc_context_t *ctx, int level, const char *file, int line, const char *func, const char *format, ...)
 {
 	va_list ap;
@@ -51,7 +53,12 @@ void sc_do_log(sc_context_t *ctx, int level, const char *file, int line, const c
 	va_end(ap);
 }
 
-void sc_do_log_va(sc_context_t *ctx, int level, const char *file, int line, const char *func, const char *format, va_list args)
+void sc_do_log_noframe(sc_context_t *ctx, int level, const char *format, va_list args)
+{
+	sc_do_log_va(ctx, level, NULL, 0, NULL, format, args);
+}
+
+static void sc_do_log_va(sc_context_t *ctx, int level, const char *file, int line, const char *func, const char *format, va_list args)
 {
 	char	buf[1836], *p;
 	int	r;
@@ -103,8 +110,6 @@ void sc_do_log_va(sc_context_t *ctx, int level, const char *file, int line, cons
 	r = vsnprintf(p, left, format, args);
 	if (r < 0)
 		return;
-	p += r;
-	left -= r;
 
 	outf = ctx->debug_file;
 	if (outf == NULL)
@@ -128,6 +133,14 @@ void _sc_debug(struct sc_context *ctx, int level, const char *format, ...)
         va_end(ap);
 }
 
+void _sc_log(struct sc_context *ctx, const char *format, ...)
+{
+	va_list ap;
+
+	va_start(ap, format);
+	sc_do_log_va(ctx, SC_LOG_DEBUG_NORMAL, NULL, 0, NULL, format, ap);
+	va_end(ap);
+}
 
 /* Although not used, we need this for consistent exports */
 void sc_hex_dump(struct sc_context *ctx, int level, const u8 * in, size_t count, char *buf, size_t len)

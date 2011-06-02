@@ -226,7 +226,6 @@ static int sc_pkcs15emu_gemsafeV1_init( sc_pkcs15_card_t *p15card)
     struct sc_card *card = p15card->card;
     struct sc_apdu apdu;
     u8     rbuf[SC_MAX_APDU_BUFFER_SIZE];
-    char * endptr;
 
     sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "%s: Setting pkcs15 parameters\n", fn_name);
 
@@ -259,7 +258,6 @@ static int sc_pkcs15emu_gemsafeV1_init( sc_pkcs15_card_t *p15card)
 	    return SC_ERROR_INTERNAL;
     if (r != SC_SUCCESS)
 	    return SC_ERROR_INTERNAL;
-    endptr = (char *)(apdu.resp + apdu.resplen);
 
     /* the manufacturer ID, in this case GemPlus */
     if (p15card->tokeninfo->manufacturer_id)
@@ -374,7 +372,7 @@ sc_pkcs15emu_get_df(sc_pkcs15_card_t *p15card, unsigned int type)
 		if (!file)
 			return NULL;
 		sc_format_path("11001101", &file->path);
-		sc_pkcs15_add_df(p15card, type, &file->path, file);
+		sc_pkcs15_add_df(p15card, type, &file->path);
 		sc_file_free(file);
 		created++;
 	}

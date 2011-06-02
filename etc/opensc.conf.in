@@ -175,10 +175,9 @@ app default {
 		# Optionally, some known parameters
 		# can be specified as strings:
 		#
-		# keygen - On-board key generation capability
 		# rng - On-board random number source
 		#
-		# flags = "keygen", "rng", "0x80000000";
+		# flags = "rng", "0x80000000";
 
 		#
 		# Context: PKCS#15 emulation layer
@@ -238,13 +237,14 @@ app default {
 	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:56:1b:16:83:01:90:00:86 {
 		force_protocol = t0;
 	}
-
 	# Warm ATR v3 dev2
 	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:16:2a:00:83:01:90:00:e1 {
 		force_protocol = t0;
 	}
-
-	
+	# Warm ATR v3 (18.01.2011)
+	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:16:2a:00:83:0f:90:00:ef {
+		force_protocol = t0;
+	}
 
 	# D-Trust cards are also based on micardo and need T=0 for some reason
 	card_atr 3b:ff:94:00:ff:80:b1:fe:45:1f:03:00:68:d2:76:00:00:28:ff:05:1e:31:80:00:90:00:23 {
@@ -253,6 +253,27 @@ app default {
 	card_atr 3b:ff:11:00:ff:80:b1:fe:45:1f:03:00:68:d2:76:00:00:28:ff:05:1e:31:80:00:90:00:a6 {
 		force_protocol = t0;
 	}
+	
+	# IAS/ECC cards
+	#card_atr 3B:7F:96:00:00:00:31:B9:64:40:70:14:10:73:94:01:80:82:90:00 {
+        #        type = 25001;
+        #        driver = "iasecc";
+        #        name = "Gemalto MultiApp IAS/ECC v1.0.1";
+        #        # secure_messaging = local_gemalto_iam;
+        #        # secure_messaging = local_adele;
+        #}
+        #card_atr 3B:DD:18:00:81:31:FE:45:80:F9:A0:00:00:00:77:01:08:00:07:90:00:FE {
+        #        type = 25002;
+        #        driver = "iasecc";
+        #        name = "Oberthur IAS/ECC v1.0.1";
+        #        # No 'admin' application for this card -- no secure messaging
+        #}
+        #card_atr 3B:7F:18:00:00:00:31:B8:64:50:23:EC:C1:73:94:01:80:82:90:00 {
+        #        type = 25003;
+        #        driver = "iasecc";
+        #        name = "Morpho YpsID S3 IAS/ECC";
+        #        # secure_messaging = local_morpho_YpsID_S3;
+        #}
 
 	# Below are the framework specific configuration blocks.
 
@@ -307,23 +328,6 @@ app default {
 			# The location of the driver library
 			# module = /usr/lib/opensc/drivers/p15emu_custom.so;
 		# }
-		
-		# workaround: fix keyReference and pinReference values
-		# OpenSC 0.11.4 and older have a bug: integers were not
-		# properly encoded in asn.1 structures. So far only
-		# starcos cards were found to have a problem with this,
-		# and only these two values were found to be filled with
-		# the wrong value.
-      		#
-		# Fortunatly those values (if present) need to be positive.
-		# Thus we can check if these are available and negative,
-		# and if so fix them by adding 256 to get the correct value.
-		#
-		# To be on the safe side, this workaround/fix can be turned
-		# off.
-		#
-		# Default: yes
-		# enable_fix_asn1_integers = no;
 	}
 }
 
@@ -360,29 +364,29 @@ app opensc-pkcs11 {
 		# Default: true
 		# hide_empty_tokens = false;
 
- 		# By default, the OpenSC PKCS#11 module will not lock your card
+		# By default, the OpenSC PKCS#11 module will not lock your card
 		# once you authenticate to the card via C_Login.
 		#
- 		# Thus the other users or other applications is not prevented
- 		# from connecting to the card and perform crypto operations
- 		# (which may be possible because you have already authenticated
- 		# with the card). This setting is not very secure.
+		# Thus the other users or other applications is not prevented
+		# from connecting to the card and perform crypto operations
+		# (which may be possible because you have already authenticated
+		# with the card). This setting is not very secure.
 		#
 		# Also, if your card is not locked, you can enconter problems 
 		# due to limitation of the OpenSC framework, that still is not 
 		# thoroughly tested in the multi threads environment.
- 		#
+		#
 		# Your settings will be more secure if you choose to lock your 
 		# card. Nevertheless this behavior is a known violation of PKCS#11 
 		# specification. Now once one application has started using your 
 		# card with C_Login, no other application can use it, until 
 		# the first is done and calls C_Logout or C_Finalize. In the case 
 		# of many PKCS#11 application this does not happen until you exit 
-		# the application.  
- 		# Thus it is impossible to use several smart card aware applications 
+		# the application.
+		# Thus it is impossible to use several smart card aware applications 
 		# at the same time, e.g. you cannot run both Firefox and Thunderbird at 
 		# the same time, if both are configured to use your smart card.
- 		#
+		#
 		# Default: false
 		# lock_login = true;
 
@@ -414,7 +418,7 @@ app opensc-pkcs11 {
 		# For the unknown reason the middleware of the manufacturer of gemalto (axalto, gemplus) 
 		# card reports as '0' the CKA_ID of CA cartificates. 
 		# Maybe someone else will need it. (Would be nice to know who and what for -- VTA)
-		# 
+		#
 		# Default: false
 		# zero_ckaid_for_ca_certs = true;
 
@@ -443,6 +447,7 @@ app tokend {
 	}
 }
 
+# XXX: remove cardmod pseudodriver
 app cardmod {
 	# cardmod app name use special pcsc reader subset 
 	# fix options for this reader driver here. 
@@ -453,4 +458,3 @@ app cardmod {
 		# enable_pinpad = false;
 	}
 }
-

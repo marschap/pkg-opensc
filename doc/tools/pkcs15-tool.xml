@@ -44,6 +44,11 @@
 				</varlistentry>
 
 				<varlistentry>
+					<term><option>--list-applications</option></term>
+					<listitem><para>List the on-card PKCS#15 applications</para></listitem>
+				</varlistentry>
+
+				<varlistentry>
 					<term><option>--read-certificate</option> <varname>cert</varname>,
 					<option>-r</option> <varname>cert</varname></term>
 					<listitem><para>Reads the certificate with the given id.</para></listitem>
@@ -59,6 +64,12 @@
 					<option>-R</option> <varname>data</varname></term>
 					<listitem><para>Reads data object with OID, applicationName or label.
                                         </para></listitem>
+				</varlistentry>
+
+				<varlistentry>
+					<term><option>--verify-pin</option></term>
+					<listitem><para>Verify PIN after card binding and before issuing any command 
+                                        (without 'auth-id' the first non-SO, non-Unblock PIN will be verified)</para></listitem>
 				</varlistentry>
 
 				<varlistentry>
@@ -141,6 +152,12 @@
 					operation. This is useful with the --change-pin operation.</para></listitem>
 				</varlistentry>
 
+                                <varlistentry>
+                                        <term><option>--aid</option> <varname>aid</varname></term>
+                                        <listitem><para>Specify in a hexadecimal form the AID of the on-card PKCS#15 
+                                        application to be binded to.</para></listitem>
+                                </varlistentry>
+
 				<varlistentry>
 					<term><option>--reader</option> <varname>num</varname></term>
 					<listitem><para>Forces <command>pkcs15-tool</command> to use reader
@@ -161,7 +178,7 @@
 	
 	<refsect1>
 		<title>See also</title>
-		<para>opensc(7), pkcs15-init(1), pkcs15-crypt(1)</para>
+		<para>pkcs15-init(1), pkcs15-crypt(1)</para>
 	</refsect1>
 
 </refentry>

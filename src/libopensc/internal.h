@@ -36,6 +36,7 @@ extern "C" {
 #endif
 
 #include "common/simclist.h"
+#include "common/libscdl.h"
 #include "libopensc/opensc.h"
 #include "libopensc/log.h"
 #include "libopensc/cards.h"
@@ -74,6 +75,7 @@ struct sc_atr_table {
 
 /* Internal use only */
 int _sc_add_reader(struct sc_context *ctx, struct sc_reader *reader);
+int _sc_delete_reader(struct sc_context *ctx, struct sc_reader *reader);
 int _sc_parse_atr(struct sc_reader *reader);
 
 /* Add an ATR to the card driver's struct sc_atr_table */
@@ -108,7 +110,7 @@ unsigned short bebytes2ushort(const u8 *buf);
 /* Returns an scconf_block entry with matching ATR/ATRmask to the ATR specified,
  * NULL otherwise. Additionally, if card driver is not specified, search through
  * all card drivers user configured ATRs. */
-scconf_block *_sc_match_atr_block(sc_context_t *ctx, struct sc_card_driver *driver, u8 *atr, size_t atr_len);
+scconf_block *_sc_match_atr_block(sc_context_t *ctx, struct sc_card_driver *driver, struct sc_atr *atr);
 
 /* Returns an index number if a match was found, -1 otherwise. table has to
  * be null terminated. */

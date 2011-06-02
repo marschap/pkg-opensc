@@ -149,18 +149,26 @@ struct sc_pkcs15_prkey_dsa {
 	sc_pkcs15_bignum_t priv;
 };
 
-	/* The ecParameters are kept in DER format
-	 * as certificates, and pkcs11 process them as DER 
-	 * If needed, they can be parsed
-	 */ 
+/* 
+ * The ecParameters can be presented as
+ * - named curve;
+ * - OID of named curve;
+ * - implicit parameters.
+ */
+struct sc_pkcs15_ec_parameters {
+	char *named_curve;
+	struct sc_object_id id;
+	sc_pkcs15_der_t der;
+	size_t field_length; /* in bits */
+};
+
 struct sc_pkcs15_pubkey_ec {
-	sc_pkcs15_der_t		ecparameters;
+	struct sc_pkcs15_ec_parameters params;
 	sc_pkcs15_der_t		ecpointQ; /* note this is der */
-	size_t 				field_length; /* in bits */
 };
 
 struct sc_pkcs15_prkey_ec {
-	sc_pkcs15_der_t     ecparameters;
+	struct sc_pkcs15_ec_parameters params;
 	sc_pkcs15_bignum_t	privateD; /* note this is bignum */
 };
 
@@ -311,6 +319,12 @@ struct sc_pkcs15_accessrule {
 typedef struct sc_pkcs15_accessrule sc_pkcs15_accessrule_t;
 
 
+struct sc_pkcs15_key_params {
+	void   *data;
+	size_t len;
+	void (*free_params)(void *);
+};
+
 struct sc_pkcs15_prkey_info {
 	struct sc_pkcs15_id id;	/* correlates to public certificate id */
 	unsigned int usage, access_flags;
@@ -319,10 +333,11 @@ struct sc_pkcs15_prkey_info {
 	size_t modulus_length; /* RSA */
 	size_t field_length;   /* EC in bits */
 
+	unsigned int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
+
 	struct sc_pkcs15_der subject;
 
-	void   *params;
-	size_t params_len;
+	struct sc_pkcs15_key_params params;
 
 	struct sc_path path;
 };
@@ -336,10 +351,11 @@ struct sc_pkcs15_pubkey_info {
 	size_t modulus_length; /* RSA */
 	size_t field_length;   /* EC in bits */
 
+	unsigned int algo_refs[SC_MAX_SUPPORTED_ALGORITHMS];
+
 	struct sc_pkcs15_der subject;
 
-	void   *params;
-	size_t params_len;
+	struct sc_pkcs15_key_params params;
 
 	struct sc_path path;
 };
@@ -414,8 +430,6 @@ typedef struct sc_pkcs15_object sc_pkcs15_object_t;
 struct sc_pkcs15_card;
 
 struct sc_pkcs15_df {
-	struct sc_file *file;
-
 	struct sc_path path;
 	int record_length;
 	unsigned int type;
@@ -438,8 +452,7 @@ typedef struct sc_pkcs15_unusedspace sc_pkcs15_unusedspace_t;
 typedef struct sc_pkcs15_sec_env_info {
 	int			se;
 	struct sc_object_id	owner;
-	u8			aid[SC_MAX_AID_SIZE];
-	size_t			aid_len;
+	struct sc_aid aid;
 } sc_pkcs15_sec_env_info_t;
 
 typedef struct sc_pkcs15_tokeninfo {
@@ -459,11 +472,15 @@ typedef struct sc_pkcs15_tokeninfo {
 struct sc_pkcs15_operations   {
 	int (*parse_df)(struct sc_pkcs15_card *, struct sc_pkcs15_df *);
 	void (*clear)(struct sc_pkcs15_card *);
+	int (*get_guid)(struct sc_pkcs15_card *, const struct sc_pkcs15_object *, 
+			char *, size_t);
 };
 
 typedef struct sc_pkcs15_card {
 	sc_card_t *card;
 	unsigned int flags;
+
+	struct sc_app_info *app;
 
 	sc_file_t *file_app;
 	sc_file_t *file_tokeninfo, *file_odf, *file_unusedspace;
@@ -497,13 +514,12 @@ typedef struct sc_pkcs15_card {
 
 /* flags suitable for sc_pkcs15_card_t */
 #define SC_PKCS15_CARD_FLAG_EMULATED			0x02000000
-#define SC_PKCS15_CARD_FLAG_FIX_INTEGERS		0x04000000
 
 /* sc_pkcs15_bind:  Binds a card object to a PKCS #15 card object
  * and initializes a new PKCS #15 card object.  Will return
  * SC_ERROR_PKCS15_APP_NOT_FOUND, if the card hasn't got a
  * valid PKCS #15 file structure. */
-int sc_pkcs15_bind(struct sc_card *card,
+int sc_pkcs15_bind(struct sc_card *card, struct sc_aid *aid,
 		   struct sc_pkcs15_card **pkcs15_card);
 /* sc_pkcs15_unbind:  Releases a PKCS #15 card object, and frees any
  * memory allocations done on the card object. */
@@ -580,6 +596,7 @@ int sc_pkcs15_encode_prkey(struct sc_context *,
 			u8 **, size_t *);
 void sc_pkcs15_erase_prkey(struct sc_pkcs15_prkey *prkey);
 void sc_pkcs15_free_prkey(struct sc_pkcs15_prkey *prkey);
+void sc_pkcs15_free_key_params(struct sc_pkcs15_key_params *params);
 
 int sc_pkcs15_read_data_object(struct sc_pkcs15_card *p15card,
 			       const struct sc_pkcs15_data_info *info,
@@ -718,8 +735,7 @@ int sc_pkcs15_add_object(struct sc_pkcs15_card *p15card,
 			 struct sc_pkcs15_object *obj);
 void sc_pkcs15_remove_object(struct sc_pkcs15_card *p15card,
 			     struct sc_pkcs15_object *obj);
-int sc_pkcs15_add_df(struct sc_pkcs15_card *, unsigned int, 
-			const sc_path_t *, const struct sc_file *);
+int sc_pkcs15_add_df(struct sc_pkcs15_card *, unsigned int, const sc_path_t *);
 void sc_pkcs15_remove_df(struct sc_pkcs15_card *p15card,
 			 struct sc_pkcs15_df *df);
 
@@ -770,15 +786,29 @@ int sc_pkcs15_compare_id(const struct sc_pkcs15_id *id1,
 const char *sc_pkcs15_print_id(const struct sc_pkcs15_id *id);
 void sc_pkcs15_format_id(const char *id_in, struct sc_pkcs15_id *id_out);
 int sc_pkcs15_hex_string_to_id(const char *in, struct sc_pkcs15_id *out);
-void sc_der_copy(sc_pkcs15_der_t *, const sc_pkcs15_der_t *);
+int sc_der_copy(sc_pkcs15_der_t *, const sc_pkcs15_der_t *);
+int sc_pkcs15_get_object_id(const struct sc_pkcs15_object *, struct sc_pkcs15_id *);
+int sc_pkcs15_get_guid(struct sc_pkcs15_card *, const struct sc_pkcs15_object *, 
+		char *, size_t);
+int sc_encode_oid (struct sc_context *, struct sc_object_id *, 
+		unsigned char **, size_t *);
+
 /* Prepend 'parent' to 'child' in case 'child' is a relative path */
 int sc_pkcs15_make_absolute_path(const sc_path_t *parent, sc_path_t *child);
 
 /* Clean and free object content */
 void sc_pkcs15_free_object_content(struct sc_pkcs15_object *);
+
 /* Allocate and set object content */
 int sc_pkcs15_allocate_object_content(struct sc_pkcs15_object *,
 		const unsigned char *, size_t);
+
+struct sc_supported_algo_info *sc_pkcs15_get_supported_algo(struct sc_pkcs15_card *,
+		unsigned, unsigned);
+int sc_pkcs15_add_supported_algo_ref(struct sc_pkcs15_object *,
+		struct sc_supported_algo_info *);
+
+int sc_pkcs15_fix_ec_parameters(struct sc_context *, struct sc_pkcs15_ec_parameters *);
 
 /* New object search API.
  * More complex, but also more powerful.

@@ -40,9 +40,8 @@ unsigned char MYEID_DEFAULT_PUBKEY[] = {0x01, 0x00, 0x01};
 
 /* For Myeid, all objects are files that can be deleted in any order */
 static int 
-myeid_delete_object(struct sc_profile *profile, 
-		struct sc_pkcs15_card *p15card, unsigned int type, 
-		const void *data, const sc_path_t *path)
+myeid_delete_object(struct sc_profile *profile, struct sc_pkcs15_card *p15card, 
+		struct sc_pkcs15_object *object, const struct sc_path *path)
 {
 	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 	return sc_pkcs15init_delete_by_path(profile, p15card, path);
@@ -177,6 +176,8 @@ myeid_init_card(sc_profile_t *profile,
 	sc_format_path("3F00", &path);
 	r = sc_select_file(p15card->card, &path, &file);
 
+	p15card->tokeninfo->flags = SC_PKCS15_TOKEN_PRN_GENERATION | SC_PKCS15_TOKEN_EID_COMPLIANT;
+
 	if (file)
 		sc_file_free(file);
 		
@@ -190,18 +191,50 @@ myeid_init_card(sc_profile_t *profile,
 static int 
 myeid_create_dir(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *df)
 {
-	int	r=0;
-
+	struct sc_context *ctx = p15card->card->ctx;
+	struct sc_file *file = NULL;
+	int	r=0, ii;
+        static const char *create_dfs[] = {
+		"PKCS15-PrKDF",
+		"PKCS15-PuKDF",
+		"PKCS15-CDF",
+		"PKCS15-CDF-TRUSTED",
+		"PKCS15-DODF",
+		NULL
+	};
+	
+	static const int create_dfs_val[] = {
+                SC_PKCS15_PRKDF,
+                SC_PKCS15_PUKDF,
+                SC_PKCS15_CDF,
+                SC_PKCS15_CDF_TRUSTED,
+                SC_PKCS15_DODF
+	};
+	
 	if (!profile || !p15card || !df)
 		return SC_ERROR_INVALID_ARGUMENTS;
-	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 
-	sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "id (%x)",df->id);
+	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
+	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "id (%x)",df->id);
 
 	if(df->id == 0x5015)
 	{
-		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "only Select (%x)",df->id);
+		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Select (%x)",df->id);
 		r = sc_select_file(p15card->card, &df->path, NULL);
+
+        	for (ii = 0; create_dfs[ii]; ii++)   {
+			sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Create '%s'", create_dfs[ii]);
+
+			if (sc_profile_get_file(profile, create_dfs[ii], &file))   {
+				sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Inconsistent profile: cannot find %s", create_dfs[ii]);
+				SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INCONSISTENT_PROFILE);
+			}
+
+			r = sc_pkcs15init_add_object(p15card, profile, create_dfs_val[ii], NULL);
+
+			if (r != SC_ERROR_FILE_ALREADY_EXISTS)
+				SC_TEST_RET(ctx, SC_LOG_DEBUG_NORMAL, r, "Failed to create MyEID xDF file");
+		}
 	}
 
 	SC_FUNC_RETURN(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, r);
@@ -215,19 +248,15 @@ static int
 myeid_select_pin_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 		sc_pkcs15_pin_info_t *pin_info)
 {
-	int type;
-
 	SC_FUNC_CALLED(p15card->card->ctx, SC_LOG_DEBUG_VERBOSE);
 	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN)
 	{
-	  type = SC_PKCS15INIT_SO_PIN;
 	  sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL,
 			  "PIN_FLAG_SO_PIN, ref (%d), tries_left (%d)",
 			  pin_info->reference,pin_info->tries_left);	
 	}
 	else	
 	{
-	  type = SC_PKCS15INIT_USER_PIN;
 	  sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, 
 			  "PIN_FLAG_PIN, ref (%d), tries_left (%d)",
 			  pin_info->reference, pin_info->tries_left);
@@ -707,7 +736,8 @@ static struct sc_pkcs15init_operations sc_pkcs15init_myeid_operations = {
 	myeid_encode_public_key,
 	myeid_finalize_card,
 	myeid_delete_object,		/* delete_object */
-	NULL, NULL, NULL, NULL, NULL	/* pkcs15init emulation */
+	NULL, NULL, NULL, NULL, NULL,	/* pkcs15init emulation */
+	NULL				/* sanity_check */
 };
 
 struct sc_pkcs15init_operations *sc_pkcs15init_get_myeid_ops(void)

@@ -5,12 +5,7 @@ TOPDIR = ..
 SUBDIRS = common scconf pkcs15init libopensc pkcs11 tools tests
 
 !IF "$(MINIDRIVER_DEF)" == "/DENABLE_MINIDRIVER"
-SUBDIRS = $(SUBDIRS) cardmod
-!ENDIF
-
-!IF "$(WIX_MSI_DEF)" == "/DBUILD_MSI"
-SUBDIRS = $(SUBDIRS) "$(TOPDIR)\etc"
-SUBDIRS = $(SUBDIRS) "$(TOPDIR)\win32\opensc-msi"
+SUBDIRS = $(SUBDIRS) minidriver
 !ENDIF
 
 all::

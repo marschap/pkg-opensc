@@ -37,7 +37,8 @@ build_triplet = @build@
 host_triplet = @host@
 subdir = win32
 DIST_COMMON = $(dist_noinst_HEADERS) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(srcdir)/versioninfo.rc.in \
+	$(srcdir)/Makefile.in $(srcdir)/OpenSC.iss.in \
+	$(srcdir)/OpenSC.wxs.in $(srcdir)/versioninfo.rc.in \
 	$(srcdir)/winconfig.h.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
@@ -48,7 +49,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
-CONFIG_CLEAN_FILES = versioninfo.rc winconfig.h
+CONFIG_CLEAN_FILES = versioninfo.rc winconfig.h OpenSC.iss OpenSC.wxs
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
@@ -239,7 +240,7 @@ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in \
 		$(srcdir)/versioninfo.rc $(srcdir)/winconfig.h
 
 EXTRA_DIST = ltrc.inc Makefile.mak Make.rules.mak opensc-install.bat \
-		versioninfo.rc.in winconfig.h.in
+		versioninfo.rc.in winconfig.h.in OpenSC.iss.in OpenSC.wxs.in
 
 dist_noinst_HEADERS = versioninfo.rc winconfig.h
 @WIN32_TRUE@sbin_SCRIPTS = opensc-install.bat
@@ -279,6 +280,10 @@ $(am__aclocal_m4_deps):
 versioninfo.rc: $(top_builddir)/config.status $(srcdir)/versioninfo.rc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 winconfig.h: $(top_builddir)/config.status $(srcdir)/winconfig.h.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+OpenSC.iss: $(top_builddir)/config.status $(srcdir)/OpenSC.iss.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+OpenSC.wxs: $(top_builddir)/config.status $(srcdir)/OpenSC.wxs.in
 	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
 install-sbinSCRIPTS: $(sbin_SCRIPTS)
 	@$(NORMAL_INSTALL)

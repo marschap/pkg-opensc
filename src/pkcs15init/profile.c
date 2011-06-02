@@ -101,6 +101,9 @@ static struct map		aclNames[] = {
 	{ "PRO",	SC_AC_PRO	},
 	{ "AUT",	SC_AC_AUT	},
 	{ "KEY",	SC_AC_AUT	},
+	{ "SEN",	SC_AC_SEN	},
+	{ "IDA",	SC_AC_IDA	},
+	{ "SCB",	SC_AC_SCB	},
 	{ NULL, 0 }
 };
 static struct map		fileOpNames[] = {
@@ -121,6 +124,10 @@ static struct map		fileOpNames[] = {
         { "PIN-CHANGE", SC_AC_OP_PIN_CHANGE },
         { "PIN-RESET",  SC_AC_OP_PIN_RESET },
 	{ "GENERATE",	SC_AC_OP_GENERATE },
+	{ "PSO-COMPUTE-SIGNATURE",	SC_AC_OP_PSO_COMPUTE_SIGNATURE },
+	{ "INTERNAL-AUTHENTICATE",	SC_AC_OP_INTERNAL_AUTHENTICATE },
+	{ "PSO-DECRYPT",		SC_AC_OP_PSO_DECRYPT },
+	{ "RESIZE",	SC_AC_OP_RESIZE },
 	{ NULL, 0 }
 };
 static struct map		fileTypeNames[] = {
@@ -207,10 +214,6 @@ static struct {
 	{ NULL, NULL }
 };
 
-typedef struct pin_info pin_info;
-typedef struct file_info file_info;
-typedef struct auth_info auth_info;
-
 static int		process_conf(struct sc_profile *, scconf_context *);
 static int		process_block(struct state *, struct block *,
 				const char *, scconf_block *);
@@ -226,23 +229,23 @@ static int		map_str2int(struct state *, const char *,
 static int		setstr(char **strp, const char *value);
 static void		parse_error(struct state *, const char *, ...);
 
-static file_info *	sc_profile_instantiate_file(sc_profile_t *,
+static struct file_info *	sc_profile_instantiate_file(sc_profile_t *,
 				struct file_info *, struct file_info *,
 				unsigned int);
-static file_info *	sc_profile_find_file(struct sc_profile *,
+static struct file_info *	sc_profile_find_file(struct sc_profile *,
 				const sc_path_t *, const char *);
-static file_info *	sc_profile_find_file_by_path(
+static struct file_info *	sc_profile_find_file_by_path(
 				struct sc_profile *,
 				const sc_path_t *);
 
-static pin_info *	new_pin(struct sc_profile *, int);
-static file_info *	new_file(struct state *, const char *,
+static struct pin_info *	new_pin(struct sc_profile *, int);
+static struct file_info *	new_file(struct state *, const char *,
 				unsigned int);
-static file_info *	add_file(sc_profile_t *, const char *,
-				sc_file_t *, file_info *);
+static struct file_info *	add_file(sc_profile_t *, const char *,
+				sc_file_t *, struct file_info *);
 static void		free_file_list(struct file_info **);
 static void		append_file(sc_profile_t *, struct file_info *);
-static auth_info *	new_key(struct sc_profile *,
+static struct auth_info *	new_key(struct sc_profile *,
 				unsigned int, unsigned int);
 static void		set_pin_defaults(struct sc_profile *,
 				struct pin_info *);
@@ -321,6 +324,7 @@ sc_profile_load(struct sc_profile *profile, const char *filename)
 	HKEY hKey;
 #endif
                 
+	LOG_FUNC_CALLED(ctx);
 	for (i = 0; ctx->conf_blocks[i]; i++) {
 		profile_dir = scconf_get_str(ctx->conf_blocks[i], "profile_dir", NULL);
 		if (profile_dir)
@@ -350,54 +354,68 @@ sc_profile_load(struct sc_profile *profile, const char *filename)
 		profile_dir = SC_PKCS15_PROFILE_DIRECTORY;
 #endif
 	}
-	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Using profile directory '%s'.", profile_dir);
+	sc_log(ctx, "Using profile directory '%s'.", profile_dir);
 
 #ifdef _WIN32
-	snprintf(path, sizeof(path), "%s\\%s.%s",
-		profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
+	snprintf(path, sizeof(path), "%s\\%s.%s", profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
 #else /* _WIN32 */
-	snprintf(path, sizeof(path), "%s/%s.%s",
-		profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
+	snprintf(path, sizeof(path), "%s/%s.%s", profile_dir, filename, SC_PKCS15_PROFILE_SUFFIX);
 #endif /* _WIN32 */
 
-	sc_debug(profile->card->ctx, SC_LOG_DEBUG_NORMAL,
-		"Trying profile file %s", path);
+	sc_log(ctx, "Trying profile file %s", path);
 
 	conf = scconf_new(path);
 	res = scconf_parse(conf);
 
-	sc_debug(profile->card->ctx, SC_LOG_DEBUG_NORMAL,
-		"profile %s loaded ok", path);
+	sc_log(ctx, "profile %s loaded ok", path);
 
 	if (res < 0)
-		return SC_ERROR_FILE_NOT_FOUND;
-	if (res == 0) {
-		/* FIXME - we may want to display conf->errmsg here. */
-		return SC_ERROR_SYNTAX_ERROR;
-	}
+		LOG_FUNC_RETURN(ctx, SC_ERROR_FILE_NOT_FOUND);
+
+	if (res == 0)
+		LOG_FUNC_RETURN(ctx, SC_ERROR_SYNTAX_ERROR);
 
 	res = process_conf(profile, conf);
 	scconf_free(conf);
-	return res;
+	LOG_FUNC_RETURN(ctx, res);
 }
 
+
 int
-sc_profile_finish(struct sc_profile *profile)
+sc_profile_finish(struct sc_profile *profile, const struct sc_app_info *app_info)
 {
+	struct sc_context *ctx = profile->card->ctx;
 	struct file_info *fi;
 	struct pin_info	*pi;
 	char		reason[64];
 
+	LOG_FUNC_CALLED(ctx);
 	profile->mf_info = sc_profile_find_file(profile, NULL, "MF");
-	if (!profile->mf_info) {
-		strcpy(reason, "Profile doesn't define a MF");
-		goto whine;
+	if (!profile->mf_info)
+		LOG_TEST_RET(ctx, SC_ERROR_INCONSISTENT_PROFILE, "Profile doesn't define a MF");
+
+	if (app_info && app_info->aid.len)   {
+		struct sc_path path;
+
+		sc_log(ctx, "finish profile with '%s' application profile", app_info->label); 
+		memset(&path, 0, sizeof(struct sc_path));
+		path.type = SC_PATH_TYPE_DF_NAME;
+		path.aid = app_info->aid;
+
+		sc_log(ctx, "Look for file by path '%s'", sc_print_path(&path));
+		profile->df_info = sc_profile_find_file_by_path(profile, &path);
+		sc_log(ctx, "returned DF info %p", profile->df_info); 
+		if (profile->df_info && profile->df_info->profile_extension)   {
+			sc_log(ctx, "application profile extension '%s'", profile->df_info->profile_extension);
+			if (sc_profile_load(profile, profile->df_info->profile_extension))
+				LOG_TEST_RET(ctx, SC_ERROR_INCONSISTENT_PROFILE, "Cannot load application profile extension");
+		}
 	}
+	
 	profile->df_info = sc_profile_find_file(profile, NULL, "PKCS15-AppDF");
-	if (!profile->df_info) {
-		strcpy(reason, "Profile doesn't define a PKCS15-AppDF");
-		goto whine;
-	}
+	if (!profile->df_info)
+		LOG_TEST_RET(ctx, SC_ERROR_INCONSISTENT_PROFILE, "Profile doesn't define a PKCS15-AppDF");
+
 	profile->p15_spec->file_app = profile->df_info->file;
 	profile->df_info->dont_free = 1;
 
@@ -408,16 +426,17 @@ sc_profile_finish(struct sc_profile *profile)
 		if (!(name = pi->file_name))
 			continue;
 		if (!(fi = sc_profile_find_file(profile, NULL, name))) {
-			snprintf(reason, sizeof(reason),
-				"unknown PIN file \"%s\"\n", name);
+			snprintf(reason, sizeof(reason), "unknown PIN file \"%s\"\n", name);
 			goto whine;
 		}
+
 		pi->file = fi;
 	}
-	return 0;
+	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 
-whine:	sc_debug(profile->card->ctx, SC_LOG_DEBUG_NORMAL, "%s", reason);
-	return SC_ERROR_INCONSISTENT_PROFILE;
+whine:	
+	sc_log(ctx, "%s", reason);
+	LOG_FUNC_RETURN(ctx, SC_ERROR_INCONSISTENT_PROFILE);
 }
 
 void
@@ -538,28 +557,39 @@ int
 sc_profile_get_file_instance(struct sc_profile *profile, const char *name, 
 		int index, sc_file_t **ret)
 {
+	struct sc_context *ctx = profile->card->ctx;
 	struct file_info *fi;
 	struct sc_file *file;
 	int r;
 
+	LOG_FUNC_CALLED(ctx);
+	sc_log(ctx, "try to get '%s' file instance", name);
+
 	if ((fi = sc_profile_find_file(profile, NULL, name)) == NULL)
-		return SC_ERROR_FILE_NOT_FOUND;
+		LOG_FUNC_RETURN(ctx, SC_ERROR_FILE_NOT_FOUND);
 	sc_file_dup(&file, fi->file);
+	sc_log(ctx, "ident '%s'; parent '%s'", fi->ident, fi->parent->ident);
 	if (file == NULL)
-		return SC_ERROR_OUT_OF_MEMORY;
+		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
+	sc_log(ctx, "file (type:%X, path:'%s')", file->type, sc_print_path(&file->path));
 
 	file->id += index;
-	file->path.value[file->path.len - 2] = (file->id >> 8) & 0xFF;
-	file->path.value[file->path.len - 1] = file->id & 0xFF;
+        if(file->type == SC_FILE_TYPE_BSO) {
+		r = sc_profile_add_file(profile, name, file);
+		LOG_TEST_RET(ctx, r, "Profile error: cannot add BSO file");
+	}
+	else if (file->path.len)   {
+		file->path.value[file->path.len - 2] = (file->id >> 8) & 0xFF;
+		file->path.value[file->path.len - 1] = file->id & 0xFF;
 
-	r = sc_profile_add_file(profile, name, file);
-	if (r)
-		return r;
+		r = sc_profile_add_file(profile, name, file);
+		LOG_TEST_RET(ctx, r, "Profile error: cannot add file");
+	}
 
 	if (ret)
 		*ret = file;
 
-	return SC_SUCCESS;
+	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 }
 
 int
@@ -578,32 +608,41 @@ int
 sc_profile_get_file_by_path(struct sc_profile *profile,
 		const sc_path_t *path, sc_file_t **ret)
 {
+	struct sc_context *ctx = profile->card->ctx;
 	struct file_info *fi;
 
+	LOG_FUNC_CALLED(ctx);
 	if ((fi = sc_profile_find_file_by_path(profile, path)) == NULL)
-		return SC_ERROR_FILE_NOT_FOUND;
+		LOG_FUNC_RETURN(ctx, SC_ERROR_FILE_NOT_FOUND);
 	sc_file_dup(ret, fi->file);
-	if (*ret == NULL)
-		return SC_ERROR_OUT_OF_MEMORY;
-	return 0;
+	LOG_FUNC_RETURN(ctx, *ret ? SC_SUCCESS : SC_ERROR_OUT_OF_MEMORY);
 }
 
 int
 sc_profile_add_file(sc_profile_t *profile, const char *name, sc_file_t *file)
 {
+	struct sc_context *ctx = profile->card->ctx;
 	sc_path_t	path = file->path;
-	file_info	*parent;
+	struct file_info	*parent;
 
-	path.len -= 2;
-	if (!(parent = sc_profile_find_file_by_path(profile, &path))) {
-		/* XXX perror */
-		return SC_ERROR_FILE_NOT_FOUND;
+	LOG_FUNC_CALLED(ctx);
+	if (!path.len)   {
+		parent = profile->df_info;
+		        }
+        else   {
+		path.len -= 2;
+		parent = sc_profile_find_file_by_path(profile, &path);
 	}
+	if (!parent)
+		LOG_FUNC_RETURN(ctx, SC_ERROR_FILE_NOT_FOUND);
+	sc_log(ctx, "Parent path:%s", sc_print_path(&parent->file->path));
+
 	sc_file_dup(&file, file);
 	if (file == NULL)
-		return SC_ERROR_OUT_OF_MEMORY;
+		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
+
 	add_file(profile, name, file, parent);
-	return 0;
+	LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 }
 
 /*
@@ -615,9 +654,9 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 		const char *file_name, const sc_pkcs15_id_t *id,
 		sc_file_t **ret)
 {
-	sc_card_t	*card = profile->card;
-	sc_profile_t	*tmpl;
-	sc_template_t	*info;
+	struct sc_context *ctx = profile->card->ctx;
+	struct sc_profile	*tmpl;
+	struct sc_template	*info;
 	unsigned int	idx;
 	struct file_info *fi, *base_file, *match = NULL;
 
@@ -629,7 +668,7 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 		if (!strcmp(info->name, template_name))
 			break;
 	if (info == NULL)   {
-		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Template %s not found", template_name);
+		sc_log(ctx, "Template %s not found", template_name);
 		return SC_ERROR_TEMPLATE_NOT_FOUND;
 	}
 
@@ -647,13 +686,11 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 		}
 	}
 
-	if (card->ctx->debug >= 2)
-		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
-			"Instantiating template %s at %s", template_name, sc_print_path(base_path));
+	sc_log(ctx, "Instantiating template %s at %s", template_name, sc_print_path(base_path));
 
 	base_file = sc_profile_find_file_by_path(profile, base_path);
 	if (base_file == NULL) {
-		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Directory %s not defined in profile", sc_print_path(base_path));
+		sc_log(ctx, "Directory %s not defined in profile", sc_print_path(base_path));
 		return SC_ERROR_OBJECT_NOT_FOUND;
 	}
 
@@ -662,7 +699,7 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	 */
 	assert(base_file->instance);
 	for (fi = tmpl->ef_list; fi; fi = fi->next) {
-		file_info	*parent, *instance;
+		struct file_info	*parent, *instance;
 		unsigned int	skew = 0;
 
 		fi->instance = NULL;
@@ -684,7 +721,7 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	}
 
 	if (match == NULL) {
-		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "No file named \"%s\" in template \"%s\"",
+		sc_log(ctx, "No file named \"%s\" in template \"%s\"",
 				file_name, template_name);
 		return SC_ERROR_OBJECT_NOT_FOUND;
 	}
@@ -697,12 +734,12 @@ sc_profile_instantiate_template(sc_profile_t *profile,
 	return 0;
 }
 
-static file_info *
-sc_profile_instantiate_file(sc_profile_t *profile, file_info *ft,
-		file_info *parent, unsigned int skew)
+static struct file_info *
+sc_profile_instantiate_file(sc_profile_t *profile, struct file_info *ft,
+		struct file_info *parent, unsigned int skew)
 {
+	struct sc_context *ctx = profile->card->ctx;
 	struct file_info *fi;
-	sc_card_t	*card = profile->card;
 
 	fi = calloc(1, sizeof(*fi));
 	if (fi == NULL)
@@ -732,10 +769,8 @@ sc_profile_instantiate_file(sc_profile_t *profile, file_info *ft,
 
 	ft->instance = fi;
 
-	if (card->ctx->debug >= 2) {
-		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Instantiated %s at %s", ft->ident, sc_print_path(&fi->file->path));
-		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "  parent=%s@%s", parent->ident, sc_print_path(&parent->file->path));
-	}
+	sc_log(ctx, "Instantiated %s at %s", ft->ident, sc_print_path(&fi->file->path));
+	sc_log(ctx, "  parent=%s@%s", parent->ident, sc_print_path(&parent->file->path));
 
 	return fi;
 }
@@ -1099,11 +1134,11 @@ static void append_file(sc_profile_t *profile, struct file_info *nfile)
  * Add a new file to the profile.
  * This function is called by sc_profile_add_file.
  */
-static file_info *
+static struct file_info *
 add_file(sc_profile_t *profile, const char *name,
-		sc_file_t *file, file_info *parent)
+		sc_file_t *file, struct file_info *parent)
 {
-	file_info	*info;
+	struct file_info	*info;
 
 	info = calloc(1, sizeof(*info));
 	if (info == NULL)
@@ -1144,7 +1179,7 @@ static struct file_info *
 new_file(struct state *cur, const char *name, unsigned int type)
 {
 	sc_profile_t	*profile = cur->profile;
-	file_info	*info;
+	struct file_info	*info;
 	sc_file_t	*file;
 	unsigned int	df_type = 0, dont_free = 0;
 
@@ -1174,7 +1209,7 @@ new_file(struct state *cur, const char *name, unsigned int type)
 		profile->df[df_type] = file;
 	}
 	assert(file);
-	if (file->type != (int)type) {
+	if (file->type != type) {
 		parse_error(cur, "inconsistent file type (should be %s)",
 			file->type == SC_FILE_TYPE_DF 
 				? "DF" : file->type == SC_FILE_TYPE_BSO 
@@ -1218,8 +1253,7 @@ do_file_path(struct state *cur, int argc, char **argv)
 		parse_error(cur, "Invalid path length\n");
 		return 1;
 	}
-	file->id = (path->value[path->len-2] << 8)
-		  | path->value[path->len-1];
+	file->id = (path->value[path->len-2] << 8) | path->value[path->len-1];
 	return 0;
 }
 
@@ -1240,7 +1274,7 @@ do_fileid(struct state *cur, int argc, char **argv)
 
 	/* Get the DF, if any */
 	if ((fi = cur->file->parent) && (df = fi->file)) {
-		if (df->path.len == 0) {
+		if (!df->path.len && !df->path.aid.len) {
 			parse_error(cur, "No path/fileid set for parent DF\n");
 			return 1;
 		}
@@ -1306,11 +1340,61 @@ do_aid(struct state *cur, int argc, char **argv)
 		}
 		memcpy(file->name, name, len);
 		file->namelen = len;
-	} else {
+	} 
+	else {
 		file->namelen = sizeof(file->name);
 		res = sc_hex_to_bin(name, file->name, &file->namelen);
 	}
 	return res;
+}
+
+static int
+do_exclusive_aid(struct state *cur, int argc, char **argv)
+{
+	struct sc_file	*file = cur->file->file;
+	const char	*name = argv[0];
+	unsigned int	len;
+	int		res = 0;
+
+#ifdef DEBUG_PROFILE
+	printf("do_exclusive_aid(): exclusive-aid '%s'\n", name);
+	printf("do_exclusive_aid(): current file '%s' (path:%s)\n", cur->file->ident, sc_print_path(&file->path));
+#endif
+	sc_format_path(name, &file->path);
+	if (file->path.len > SC_MAX_AID_SIZE)   {
+		parse_error(cur, "Path length is too big\n");
+		return 1;
+	}
+
+	memcpy(file->path.aid.value, file->path.value, file->path.len);
+	file->path.aid.len = file->path.len;
+
+	file->path.len = 0;
+	file->path.type = SC_PATH_TYPE_DF_NAME;
+
+#ifdef DEBUG_PROFILE
+	printf("do_exclusive_aid(): '%s' exclusive-aid path %s\n", cur->file->ident, sc_print_path(&file->path));
+#endif
+	if (*name == '=') {
+		len = strlen(++name);
+		if (len > sizeof(file->name)) {
+			parse_error(cur, "AID \"%s\" too long\n", name);
+			return 1;
+		}
+		memcpy(file->name, name, len);
+		file->namelen = len;
+	} 
+	else {
+		file->namelen = sizeof(file->name);
+		res = sc_hex_to_bin(name, file->name, &file->namelen);
+	}
+	return res;
+}
+
+static int
+do_profile_extension(struct state *cur, int argc, char **argv)
+{
+	return setstr(&cur->file->profile_extension, argv[0]);
 }
 
 /*
@@ -1635,6 +1719,10 @@ static struct command	fs_commands[] = {
  { "record-length",	1,	1,	do_reclength	},
  { "AID",		1,	1,	do_aid		},
  { "ACL",		1,	-1,	do_acl		},
+/* AID dependent sub-profile */
+ { "profile-extension",	1,	1,	do_profile_extension	},
+/* AID of the DFs without file-id */
+ { "exclusive-aid",	1,	1,	do_exclusive_aid	},
 
  { NULL, 0, 0, NULL }
 };
@@ -1804,35 +1892,29 @@ process_block(struct state *cur, struct block *info,
 			ident = NULL;
 			if ((nlist = item->value.block->name) != NULL) {
 				if (nlist->next) {
-					parse_error(cur,
-						"Too many name components "
-						"in block name.");
+					parse_error(cur, "Too many name components in block name.");
 					return SC_ERROR_SYNTAX_ERROR;
 				}
 				ident = nlist->data;
 			}
 #ifdef DEBUG_PROFILE
-			printf("Processing %s %s\n",
-				cmd, ident? ident : "");
+			printf("Processing %s %s\n", cmd, ident? ident : "");
 #endif
 			if ((bp = find_block_handler(info->blk_info, cmd))) {
-				res = bp->handler(cur, bp, ident,
-						item->value.block);
+				res = bp->handler(cur, bp, ident, item->value.block);
 				continue;
 			}
-		} else
-		if (item->type == SCCONF_ITEM_TYPE_VALUE) {
+		}
+		else if (item->type == SCCONF_ITEM_TYPE_VALUE) {
 #ifdef DEBUG_PROFILE
 			printf("Processing %s\n", cmd);
 #endif
 			if ((cp = find_cmd_handler(info->cmd_info, cmd))) {
-				res = process_command(cur, cp,
-						item->value.list);
+				res = process_command(cur, cp, item->value.list);
 				continue;
 			}
 		}
-		parse_error(cur,
-			"Command \"%s\" not understood in this context.", cmd);
+		parse_error(cur, "Command \"%s\" not understood in this context.", cmd);
 		return SC_ERROR_SYNTAX_ERROR;
 	}
 
@@ -1871,30 +1953,82 @@ sc_profile_find_file(struct sc_profile *pro,
 	return NULL;
 }
 
+
 static struct file_info *
 sc_profile_find_file_by_path(struct sc_profile *pro, const sc_path_t *path)
 {
 	struct file_info *fi, *out = NULL;
-	struct sc_file	*fp;
+	struct sc_path *fp_path, *fpp_path;
 
 #ifdef DEBUG_PROFILE
-	sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "profile's EF list:");
-	for (fi = pro->ef_list; fi; fi = fi->next)
-		sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "check fi (%s:path:%s)", fi->ident, sc_print_path(&fi->file->path));
+	struct sc_context *ctx = pro->card->ctx;
 
-	sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "find profile file by path:%s", sc_print_path(path));
+	sc_log(ctx, "profile's EF list:");
+	for (fi = pro->ef_list; fi; fi = fi->next)   {
+		sc_log(ctx, "'%s' (path:%s)",  fi->ident, sc_print_path(&fi->file->path));
+		sc_log(ctx, "fi parent %p", fi->parent);
+		if (fi->parent && fi->parent->file)
+			sc_log(ctx, "fi parent path %s", sc_print_path(&fi->parent->file->path));
+	}
+	sc_log(ctx, "find profile file by path:%s", sc_print_path(path));
 #endif
+
+	if (!path->len && !path->aid.len)
+		return NULL;
+
 	for (fi = pro->ef_list; fi; fi = fi->next) {
-		fp = fi->file;
-		if (fp->path.len == path->len
-		 && !memcmp(fp->path.value, path->value, path->len))
-			out = fi;
+		fp_path = &fi->file->path;
+		fpp_path = fi->parent ? &fi->parent->file->path : NULL;
+
+		if (fp_path->len != path->len)
+			continue;
+		if (fp_path->len && memcmp(fp_path->value, path->value, path->len))
+			continue;
+		
+		if (path->aid.len && fp_path->aid.len)   {
+			if (memcmp(fp_path->aid.value, path->aid.value, path->aid.len))
+				continue;
+		}
+		else if (path->aid.len && !fp_path->aid.len && fpp_path)   {
+			if (fpp_path->type == SC_PATH_TYPE_DF_NAME && fpp_path->len)   {
+				if (fpp_path->len != path->aid.len)
+					continue;
+				if (memcmp(fpp_path->value, path->aid.value, path->aid.len))
+					continue;
+			}
+			else if (fpp_path->aid.len)   {
+				if (fpp_path->aid.len != path->aid.len)
+					continue;
+				if (memcmp(fpp_path->aid.value, path->aid.value, path->aid.len))
+					continue;
+			}
+		}
+
+		out = fi;
 	}
 
 #ifdef DEBUG_PROFILE
-	sc_debug(pro->card->ctx, SC_LOG_DEBUG_NORMAL, "returns (%s)", out ? out->ident: "<null>");
+	sc_log(ctx, "returns (%s)", out ? out->ident: "<null>");
 #endif
 	return out;
+}
+
+int
+sc_profile_get_parent(struct sc_profile *profile,
+		const char *name, sc_file_t **ret)
+{
+	struct file_info *fi = NULL;
+
+	if ((fi = sc_profile_find_file(profile, NULL, name)) == NULL)
+		return SC_ERROR_FILE_NOT_FOUND;
+
+	if (!fi->parent)
+		return SC_ERROR_FILE_NOT_FOUND;
+
+	sc_file_dup(ret, fi->parent->file);
+	if (*ret == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
+	return 0;
 }
 
 /*
@@ -1912,7 +2046,7 @@ get_authid(struct state *cur, const char *value,
 		return get_uint(cur, value, type);
 	}
 
-	n = strcspn(value, "0123456789");
+	n = strcspn(value, "0123456789x");
 	strlcpy(temp, value, (sizeof(temp) > n) ? n + 1 : sizeof(temp));
 
 	if (map_str2int(cur, temp, type, aclNames))
@@ -1930,11 +2064,12 @@ get_uint(struct state *cur, const char *value, unsigned int *vp)
 
 	if (strstr(value, "0x") == value)
 		*vp = strtoul(value + 2, &ep, 16);
+	else if (strstr(value, "x") == value)
+		*vp = strtoul(value + 1, &ep, 16);
 	else
 		*vp = strtoul(value, &ep, 0);
 	if (*ep != '\0') {
-		parse_error(cur, 
-			"invalid integer argument \"%s\"\n", value);
+		parse_error(cur, "invalid integer argument \"%s\"\n", value);
 		return 1;
 	}
 	return 0;
@@ -2060,13 +2195,16 @@ __expr_get(struct num_exp_ctx *ctx, int eof_okay)
 	if (isdigit(*s)) {
 		while (isdigit(*s))
 			expr_put(ctx, *s++);
-	} else if (*s == '$') {
+	} 
+	else if (*s == '$') {
 		expr_put(ctx, *s++);
 		while (isalnum(*s) || *s == '-' || *s == '_')
 			expr_put(ctx, *s++);
-	} else if (strchr("*/+-()|&", *s)) {
+	} 
+	else if (strchr("*/+-()|&", *s)) {
 		expr_put(ctx, *s++);
-	} else {
+	} 
+	else {
 		expr_fail(ctx);
 	}
 	ctx->str = s;
@@ -2108,13 +2246,15 @@ expr_term(struct num_exp_ctx *ctx, unsigned int *vp)
 	if (*tok == '(') {
 		expr_eval(ctx, vp, 1);
 		expr_expect(ctx, ')');
-	} else if (isdigit(*tok)) {
+	} 
+	else if (isdigit(*tok)) {
 		char	*ep;
 
 		*vp = strtoul(tok, &ep, 0);
 		if (*ep)
 			expr_fail(ctx);
-	} else if (*tok == '$') {
+	} 
+	else if (*tok == '$') {
 		sc_macro_t	*mac;
 		char		*argv[32];
 		int		argc;
@@ -2122,13 +2262,11 @@ expr_term(struct num_exp_ctx *ctx, unsigned int *vp)
 		if (!(mac = find_macro(ctx->state->profile, tok + 1)))
 			expr_fail(ctx);
 		argc = build_argv(ctx->state, "<expr>", mac->value, argv, 32);
-		if (argc < 0
-		 || get_uint_eval(ctx->state, argc, argv, vp) < 0)
+		if (argc < 0 || get_uint_eval(ctx->state, argc, argv, vp) < 0)
 			expr_fail(ctx);
-	} else {
-		parse_error(ctx->state,
-			"Unexpected token \"%s\" in expression",
-			tok);
+	} 
+	else {
+		parse_error(ctx->state, "Unexpected token \"%s\" in expression", tok);
 		expr_fail(ctx);
 	}
 }
@@ -2223,7 +2361,7 @@ parse_error(struct state *cur, const char *fmt, ...)
 		*sp = '\0';
 
 	if (cur->profile->card && cur->profile->card->ctx)
-		sc_debug(cur->profile->card->ctx, SC_LOG_DEBUG_NORMAL, "%s: %s", cur->filename, buffer);
+		sc_log(cur->profile->card->ctx, "%s: %s", cur->filename, buffer);
 	else
 		fprintf(stdout, "%s: %s\n", cur->filename, buffer);
 }

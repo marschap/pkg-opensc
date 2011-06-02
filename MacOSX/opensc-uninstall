@@ -1,0 +1,25 @@
+#!/bin/bash
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root:" 1>&2
+   echo "" 1>&2
+   echo "sudo /usr/local/bin/opensc-uninstall" 1>&2
+   exit 1
+fi
+
+rm -rf /Library/OpenSC
+rm -rf /System/Library/Security/tokend/OpenSC.tokend
+
+for file in /usr/lib/opensc-pkcs11.so /usr/local/bin/cryptoflex-tool /usr/local/bin/eidenv /usr/local/bin/netkey-tool /usr/local/bin/opensc-explorer /usr/local/bin/opensc-tool /usr/local/bin/piv-tool /usr/local/bin/pkcs11-tool /usr/local/bin/pkcs15-crypt /usr/local/bin/pkcs15-init /usr/local/bin/pkcs15-tool /usr/local/bin/rutoken-tool /usr/local/bin/westcos-tool; do
+	test -L $file && rm -f $file
+done
+rm -f /usr/local/bin/opensc-uninstall
+
+# delete receipts on 10.6
+for file in /var/db/receipts/org.opensc-project.mac.bom /var/db/receipts/org.opensc-project.mac.plist; do
+	test -f $file && rm -f $file
+done
+
+# delete receipts on 10.5
+test -d /Library/Receipts/OpenSC-10.5.pkg && rm -rf /Library/Receipts/OpenSC-10.5.pkg
+
+echo "OpenSC has been removed from your system. See you again!"

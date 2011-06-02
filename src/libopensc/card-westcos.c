@@ -224,7 +224,7 @@ static int westcos_init(sc_card_t * card)
 	}
 	
 	/* check for crypto component */
-	if(card->atr[9] == 0xD0)
+	if(card->atr.value[9] == 0xD0)
 	{
 		priv_data->flags |= RSA_CRYPTO_COMPONENT;
 	}
@@ -252,7 +252,7 @@ static int westcos_init(sc_card_t * card)
 	    scconf_get_str(card->ctx->conf_blocks[0], "westcos_default_key",
 			   DEFAULT_TRANSPORT_KEY);
 	if (default_key) {
-		priv_data_t *priv_data = (priv_data_t *) (card->drv_data);
+		priv_data = (priv_data_t *) (card->drv_data);
 		priv_data->default_key.key_reference = 0;
 		priv_data->default_key.key_len =
 			sizeof(priv_data->default_key.key_value);
@@ -817,7 +817,7 @@ static int sc_get_atr(sc_card_t * card)
 {
 	int r;
 	sc_apdu_t apdu;
-	u8 buf[sizeof(card->atr)];
+	u8 buf[sizeof(card->atr.value)];
 	if (card == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xEC, 0x00, 0x00);
@@ -831,8 +831,8 @@ static int sc_get_atr(sc_card_t * card)
 	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 	if (r)
 		return (r);
-	memcpy(card->atr, buf, sizeof(card->atr));
-	card->atr_len = apdu.resplen;
+	memcpy(card->atr.value, buf, sizeof(card->atr.value));
+	card->atr.len = apdu.resplen;
 	return r;
 }
 
@@ -879,12 +879,12 @@ static int westcos_card_ctl(sc_card_t * card, unsigned long cmd, void *ptr)
 				if (priv_data->flags & JAVACARD) {
 					return 0;
 				}
-				if (card->atr[10] == 0x80
-				    || card->atr[10] == 0x81)
+				if (card->atr.value[10] == 0x80
+				    || card->atr.value[10] == 0x81)
 					return 0;
 				return SC_ERROR_CARD_CMD_FAILED;
 			case SC_CARDCTRL_LIFECYCLE_USER:
-				if (card->atr[10] == 0x80) {
+				if (card->atr.value[10] == 0x80) {
 					r = sc_lock_phase(card, 0x02);
 					if (r)
 						return (r);
@@ -897,7 +897,7 @@ static int westcos_card_ctl(sc_card_t * card, unsigned long cmd, void *ptr)
 					if (r)
 						return (r);
 				}
-				if (card->atr[10] == 0x81) {
+				if (card->atr.value[10] == 0x81) {
 					r = sc_lock_phase(card, 0x01);
 					if (r)
 						return (r);
@@ -1062,17 +1062,14 @@ static int westcos_set_security_env(sc_card_t *card,
 			mode = WESTCOS_RSA_NO_HASH_PAD_PKCS1;
 		else if ((priv_data->env.flags) & SC_ALGORITHM_RSA_RAW)
 			mode = WESTCOS_RSA_NO_HASH_NO_PAD;
-		else {
-			r = SC_ERROR_INVALID_ARGUMENTS;
-		}
 
-		r = sc_path_print(buf, sizeof(buf), &(env->file_ref));
+		r = sc_path_print((char *)buf, sizeof(buf), &(env->file_ref));
 		if(r)
 			return r;
 			
 		sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x22, 0xf0, mode);
 		apdu.cla = 0x00;
-		apdu.lc = strlen(buf);
+		apdu.lc = strlen((char *)buf);
 		apdu.datalen = apdu.lc;
 		apdu.data = buf;
 		r = sc_transmit_apdu(card, &apdu);

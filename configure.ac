@@ -4,7 +4,7 @@ AC_PREREQ(2.60)
 
 define([PACKAGE_VERSION_MAJOR], [0])
 define([PACKAGE_VERSION_MINOR], [12])
-define([PACKAGE_VERSION_FIX], [0])
+define([PACKAGE_VERSION_FIX], [1])
 define([PACKAGE_SUFFIX], [])
 
 AC_INIT([opensc],[PACKAGE_VERSION_MAJOR.PACKAGE_VERSION_MINOR.PACKAGE_VERSION_FIX[]PACKAGE_SUFFIX])
@@ -128,10 +128,10 @@ AC_ARG_ENABLE(
 )
 
 AC_ARG_ENABLE(
-	[cardmod],
-	[AS_HELP_STRING([--enable-cardmod],[enable cardmod module on Windows @<:@disabled@:>@])],
+	[minidriver],
+	[AS_HELP_STRING([--enable-minidriver],[enable minidriver on Windows @<:@disabled@:>@])],
 	,
-	[enable_cardmod="no"]
+	[enable_minidriver="no"]
 )
 
 AC_ARG_ENABLE(
@@ -264,23 +264,20 @@ AC_CHECK_LIB(
 	]
 )
 
+dnl check for libltdl. If libltdl is not found, native dlopen/LoadLibrary is used
 AC_ARG_VAR([LTLIB_CFLAGS], [C compiler flags for libltdl])
 AC_ARG_VAR([LTLIB_LIBS], [linker flags for libltdl])
 if test -z "${LTLIB_LIBS}"; then
 	AC_CHECK_LIB(
 		[ltdl],
 		[lt_dlopen],
-		[LTLIB_LIBS="-lltdl"],
-		[AC_MSG_ERROR([ltdl not found, please install libltdl and/or libtool])]
+		[LTLIB_LIBS="-lltdl"]
 	)
 fi
+
 saved_CFLAGS="${CFLAGS}"
 CFLAGS="${CFLAGS} ${LTLIB_CFLAGS}"
-AC_CHECK_HEADER(
-	[ltdl.h],
-	,
-	[AC_MSG_ERROR([ltdl.h not found, please install libltdl and/or libtool])]
-)
+AC_CHECK_HEADERS([ltdl.h])
 CFLAGS="${saved_CFLAGS}"
 
 if test "${WIN32}" = "no"; then
@@ -296,14 +293,14 @@ if test "${WIN32}" = "no"; then
 	CC="${PTHREAD_CC}"
 fi
 
-if test "${enable_cardmod}" = "yes"; then
+if test "${enable_minidriver}" = "yes"; then
 	dnl win32 special test for minidriver
 	AC_CHECK_HEADER(
 		[cardmod.h],
 		,
-		[AC_MSG_ERROR([cardmod.h is not found and required for cardmod])]
+		[AC_MSG_ERROR([cardmod.h is not found and required for minidriver])]
 	)
-	AC_DEFINE([ENABLE_CARDMOD], [1], [Enable cardmod support])
+	AC_DEFINE([ENABLE_MINIDRIVER], [1], [Enable minidriver support])
 fi
 
 AC_ARG_VAR([ZLIB_CFLAGS], [C compiler flags for zlib])
@@ -526,9 +523,6 @@ fi
 if test "${enable_ctapi}" = "yes"; then
 	OPENSC_FEATURES="${OPENSC_FEATURES} ctapi"
 fi
-if test "${enable_cardmod}" = "yes"; then
-	OPENSC_FEATURES="${OPENSC_FEATURES} cardmod"
-fi
 
 AC_DEFINE_UNQUOTED([OPENSC_VERSION_MAJOR], [${OPENSC_VERSION_MAJOR}], [OpenSC version major component])
 AC_DEFINE_UNQUOTED([OPENSC_VERSION_MINOR], [${OPENSC_VERSION_MINOR}], [OpenSC version minor component])
@@ -567,7 +561,7 @@ AM_CONDITIONAL([ENABLE_OPENCT], [test "${enable_openct}" = "yes"])
 AM_CONDITIONAL([ENABLE_DOC], [test "${enable_doc}" = "yes"])
 AM_CONDITIONAL([WIN32], [test "${WIN32}" = "yes"])
 AM_CONDITIONAL([CYGWIN], [test "${CYGWIN}" = "yes"])
-AM_CONDITIONAL([ENABLE_CARDMOD], [test "${enable_cardmod}" = "yes"])
+AM_CONDITIONAL([ENABLE_MINIDRIVER], [test "${enable_minidriver}" = "yes"])
 
 if test "${enable_pedantic}" = "yes"; then
 	enable_strict="yes";
@@ -595,11 +589,17 @@ AC_CONFIG_FILES([
 	src/tests/Makefile
 	src/tests/regression/Makefile
 	src/tools/Makefile
-	src/cardmod/Makefile
-	src/cardmod/cardmod.inf
+	src/minidriver/Makefile
+	src/minidriver/opensc-minidriver.inf
 	win32/Makefile
 	win32/versioninfo.rc
 	win32/winconfig.h
+	win32/OpenSC.iss
+	win32/OpenSC.wxs
+	MacOSX/Makefile
+	MacOSX/build-package
+	MacOSX/10.5/resources/ReadMe.html
+	MacOSX/10.6/resources/ReadMe.html
 ])
 AC_OUTPUT
 
@@ -621,7 +621,7 @@ OpenSSL support:         ${enable_openssl}
 PC/SC support:           ${enable_pcsc}
 OpenCT support:          ${enable_openct}
 CT-API support:          ${enable_ctapi}
-cardmod support:         ${enable_cardmod}
+minidriver support:      ${enable_minidriver}
 
 PC/SC default provider:  ${DEFAULT_PCSC_PROVIDER}
 

@@ -59,11 +59,15 @@ static struct sc_atr_table cardos_atrs[] = {
 
 static int cardos_match_card(sc_card_t *card)
 {
+	unsigned char atr[SC_MAX_ATR_SIZE];
 	int i;
 
 	i = _sc_match_atr(card, cardos_atrs, &card->type);
 	if (i < 0)
 		return 0;
+
+	memcpy(atr, card->atr.value, sizeof(atr));
+
 	/* Do not change card type for CIE! */
 	if (card->type == SC_CARD_TYPE_CARDOS_CIE_V1)
 		return 1;
@@ -74,9 +78,9 @@ static int cardos_match_card(sc_card_t *card)
 		sc_apdu_t apdu;
 		u8 rbuf[SC_MAX_APDU_BUFFER_SIZE];
 		/* first check some additional ATR bytes */
-		if ((card->atr[4] != 0xff && card->atr[4] != 0x02) ||
-		    (card->atr[6] != 0x10 && card->atr[6] != 0x0a) ||
-		    (card->atr[9] != 0x55 && card->atr[9] != 0x58))
+		if ((atr[4] != 0xff && atr[4] != 0x02) ||
+		    (atr[6] != 0x10 && atr[6] != 0x0a) ||
+		    (atr[9] != 0x55 && atr[9] != 0x58))
 			return 0;
 		/* get the os version using GET DATA and compare it with
 		 * version in the ATR */
@@ -90,20 +94,20 @@ static int cardos_match_card(sc_card_t *card)
 		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, rv, "APDU transmit failed");
 		if (apdu.sw1 != 0x90 || apdu.sw2 != 0x00)
 			return 0;
-		if (apdu.resp[0] != card->atr[10] ||
-		    apdu.resp[1] != card->atr[11])
+		if (apdu.resp[0] != atr[10] ||
+		    apdu.resp[1] != atr[11])
 			/* version mismatch */
 			return 0;
-		if (card->atr[11] <= 0x04) {
+		if (atr[11] <= 0x04) {
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos m4.01");
 			card->type = SC_CARD_TYPE_CARDOS_M4_01;
-		} else if (card->atr[11] == 0x08) {
+		} else if (atr[11] == 0x08) {
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos v4.3b");
 			card->type = SC_CARD_TYPE_CARDOS_M4_3;
-		} else if (card->atr[11] == 0x09) {
+		} else if (atr[11] == 0x09) {
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos v4.2b");
 			card->type = SC_CARD_TYPE_CARDOS_M4_2B;
-                } else if (card->atr[11] >= 0x0B) {
+                } else if (atr[11] >= 0x0B) {
                         sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos v4.2c or higher");
                         card->type = SC_CARD_TYPE_CARDOS_M4_2C;
 		} else {
@@ -151,7 +155,7 @@ static int cardos_have_2048bit_package(sc_card_t *card)
 
 static int cardos_init(sc_card_t *card)
 {
-	unsigned long	flags;
+	unsigned long	flags, rsa_2048 = 0;
 
 	card->name = "CardOS M4";
 	card->cla = 0x00;
@@ -171,17 +175,17 @@ static int cardos_init(sc_card_t *card)
 		if (r < 0)
 			return r;
 		if (r == 1)
-			card->caps |= SC_CARD_CAP_RSA_2048;
+			rsa_2048 = 1;
 		card->caps |= SC_CARD_CAP_APDU_EXT;
 	} else if (card->type == SC_CARD_TYPE_CARDOS_M4_3 
 		|| card->type == SC_CARD_TYPE_CARDOS_M4_2B
 		|| card->type == SC_CARD_TYPE_CARDOS_M4_2C
 		|| card->type == SC_CARD_TYPE_CARDOS_M4_4) {
-		card->caps |= SC_CARD_CAP_RSA_2048;
+		rsa_2048 = 1;
 		card->caps |= SC_CARD_CAP_APDU_EXT;
 	}
 
-	if (card->caps & SC_CARD_CAP_RSA_2048) {
+	if (rsa_2048 == 1) {
 		_sc_card_add_rsa_alg(card, 1280, flags, 0);
 		_sc_card_add_rsa_alg(card, 1536, flags, 0);
 		_sc_card_add_rsa_alg(card, 1792, flags, 0);
@@ -297,7 +301,6 @@ get_next_part:
 
 	if (apdu.resplen > 256) {
 		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "directory listing > 256 bytes, cutting");
-		r = 256;
 	}
 
 	len = apdu.resplen;

@@ -56,7 +56,7 @@ int sc_hex_to_bin(const char *in, u8 *out, size_t *outlen)
 	while (*in != '\0') {
 		int byte = 0, nybbles = 2;
 
-		while (nybbles-- && *in && *in != ':') {
+		while (nybbles-- && *in && *in != ':' && *in != ' ') {
 			char c;
 			byte <<= 4;
 			c = *in++;
@@ -74,7 +74,7 @@ int sc_hex_to_bin(const char *in, u8 *out, size_t *outlen)
 			}
 			byte |= c;
 		}
-		if (*in == ':')
+		if (*in == ':' || *in == ' ')
 			in++;
 		if (left <= 0) {
                         err = SC_ERROR_BUFFER_TOO_SMALL;
@@ -195,6 +195,8 @@ int sc_path_set(sc_path_t *path, int type, const u8 *id, size_t id_len,
 {
 	if (path == NULL || id == NULL || id_len == 0 || id_len > SC_MAX_PATH_SIZE)
 		return SC_ERROR_INVALID_ARGUMENTS;
+
+	memset(path, 0, sizeof(*path));
 	memcpy(path->value, id, id_len);
 	path->len   = id_len;
 	path->type  = type;
@@ -274,7 +276,7 @@ int sc_concatenate_path(sc_path_t *d, const sc_path_t *p1, const sc_path_t *p2)
 
 const char *sc_print_path(const sc_path_t *path)
 {
-	static char	buffer[SC_MAX_PATH_STRING_SIZE];
+	static char buffer[SC_MAX_PATH_STRING_SIZE + SC_MAX_AID_STRING_SIZE];
 
 	if (sc_path_print(buffer, sizeof(buffer), path) != SC_SUCCESS)
 		buffer[0] = '\0';
@@ -289,12 +291,20 @@ int sc_path_print(char *buf, size_t buflen, const sc_path_t *path)
 	if (buf == NULL || path == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
-	if (buflen < path->len * 2 + 1)
+	if (buflen < path->len * 2 + path->aid.len * 2 + 1)
 		return SC_ERROR_BUFFER_TOO_SMALL;
 
 	buf[0] = '\0';
+	if (path->aid.len)   {
+		for (i = 0; i < path->aid.len; i++)
+			snprintf(buf + strlen(buf), buflen - strlen(buf), "%02x", path->aid.value[i]);
+		snprintf(buf + strlen(buf), buflen - strlen(buf), "::");
+	}
+
 	for (i = 0; i < path->len; i++)
-		snprintf(buf + 2 * i, buflen - 2 * i, "%02x", path->value[i]);
+		snprintf(buf + strlen(buf), buflen - strlen(buf), "%02x", path->value[i]);
+	if (!path->aid.len && path->type == SC_PATH_TYPE_DF_NAME)
+		snprintf(buf + strlen(buf), buflen - strlen(buf), "::");
 
 	return SC_SUCCESS;
 }
@@ -320,8 +330,13 @@ int sc_compare_path_prefix(const sc_path_t *prefix, const sc_path_t *path)
 
 const sc_path_t *sc_get_mf_path(void)
 {
-	static const sc_path_t mf_path = { {0x3f, 0x00, 0, 0, 0, 0, 0, 0,
-		0, 0, 0, 0, 0, 0, 0, 0}, 2, 0, 0, SC_PATH_TYPE_PATH};
+	static const sc_path_t mf_path = { 
+		{0x3f, 0x00, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, 2, 
+		0, 
+		0, 
+		SC_PATH_TYPE_PATH, 
+		{{0},0}
+	};
 	return &mf_path;
 }
 
@@ -388,13 +403,13 @@ const sc_acl_entry_t * sc_file_get_acl_entry(const sc_file_t *file,
 {
 	sc_acl_entry_t *p;
 	static const sc_acl_entry_t e_never = {
-		SC_AC_NEVER, SC_AC_KEY_REF_NONE, NULL
+		SC_AC_NEVER, SC_AC_KEY_REF_NONE, {{0, 0, 0, {0}}}, NULL
 	};
 	static const sc_acl_entry_t e_none = {
-		SC_AC_NONE, SC_AC_KEY_REF_NONE, NULL
+		SC_AC_NONE, SC_AC_KEY_REF_NONE, {{0, 0, 0, {0}}}, NULL
 	};
 	static const sc_acl_entry_t e_unknown = {
-		SC_AC_UNKNOWN, SC_AC_KEY_REF_NONE, NULL
+		SC_AC_UNKNOWN, SC_AC_KEY_REF_NONE, {{0, 0, 0, {0}}}, NULL
 	};
 
 	assert(file != NULL);
@@ -599,10 +614,10 @@ int sc_file_valid(const sc_file_t *file) {
 
 int _sc_parse_atr(sc_reader_t *reader)
 {
-	u8 *p = reader->atr;
-	int atr_len = (int) reader->atr_len;
+	u8 *p = reader->atr.value;
+	int atr_len = (int) reader->atr.len;
 	int n_hist, x;
-	int tx[4];
+	int tx[4] = {-1, -1, -1, -1};
 	int i, FI, DI;
 	const int Fi_table[] = {
 		372, 372, 558, 744, 1116, 1488, 1860, -1,
@@ -700,6 +715,68 @@ void sc_mem_clear(void *ptr, size_t len)
 #else
 	memset(ptr, 0, len);
 #endif
+}
+
+static int 
+sc_remote_apdu_allocate(struct sc_remote_data *rdata, 
+		struct sc_remote_apdu **new_rapdu)
+{
+	struct sc_remote_apdu *rapdu = NULL, *rr;
+	int counter;
+
+	if (!rdata)
+		return SC_ERROR_INVALID_ARGUMENTS;
+
+	rapdu = calloc(1, sizeof(struct sc_remote_apdu));
+	if (rapdu == NULL)
+		return SC_ERROR_OUT_OF_MEMORY;
+
+	rapdu->apdu.data = &rapdu->sbuf[0];
+	rapdu->apdu.resp = &rapdu->rbuf[0];
+	rapdu->apdu.resplen = sizeof(rapdu->rbuf);
+
+	if (new_rapdu)
+		*new_rapdu = rapdu;
+
+	if (rdata->data == NULL)   {
+		rdata->data = rapdu;
+		rdata->length = 1;
+		return SC_SUCCESS;
+	}
+
+	for (rr = rdata->data; rr->next; rr = rr->next)
+		;
+	rr->next = rapdu;
+	rdata->length++;
+
+	return SC_SUCCESS;
+}
+
+static void 
+sc_remote_apdu_free (struct sc_remote_data *rdata)
+{
+	struct sc_remote_apdu *rapdu = NULL;
+
+	if (!rdata)
+		return;
+
+	rapdu = rdata->data;
+	while(rapdu)   {
+		struct sc_remote_apdu *rr = rapdu->next;
+
+		free(rapdu);
+		rapdu = rr;
+	}
+}
+
+void sc_remote_data_init(struct sc_remote_data *rdata)
+{
+	if (!rdata)
+		return;
+	memset(rdata, 0, sizeof(struct sc_remote_data));
+
+	rdata->alloc = sc_remote_apdu_allocate;
+	rdata->free = sc_remote_apdu_free;
 }
 
 /**************************** mutex functions ************************/
