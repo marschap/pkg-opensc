@@ -7,7 +7,6 @@ debian/tmp/usr/bin/opensc-explorer
 debian/tmp/usr/bin/piv-tool
 debian/tmp/usr/bin/pkcs11-tool
 debian/tmp/usr/bin/pkcs15*
-debian/tmp/usr/bin/rutoken-tool
 
 debian/tmp/usr/lib/*
 etc/opensc.conf etc/opensc
