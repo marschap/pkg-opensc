@@ -35,6 +35,11 @@ static const struct sc_asn1_entry c_asn1_com_key_attr[] = {
 	{ "native",	 SC_ASN1_BOOLEAN, SC_ASN1_TAG_BOOLEAN, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "accessFlags", SC_ASN1_BIT_FIELD, SC_ASN1_TAG_BIT_STRING, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ "keyReference",SC_ASN1_INTEGER, SC_ASN1_TAG_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
+/* IAS/ECC and ECC(CEN/TS 15480-2:2007) defines 'algReference' member of 'CommonKeyAttributes'.
+ * It's absent in PKCS#15 v1.1 .
+ * Will see if any card will really need it.
+ *	{ "algReference", SC_ASN1_STRUCT, SC_ASN1_CONS | SC_ASN1_CTX | 1, SC_ASN1_OPTIONAL, NULL, NULL },
+ */
 	{ NULL, 0, 0, 0, NULL, NULL }
 };
 
@@ -45,7 +50,7 @@ static const struct sc_asn1_entry c_asn1_com_prkey_attr[] = {
 };
 
 static const struct sc_asn1_entry c_asn1_rsakey_attr[] = {
-	{ "value",	   SC_ASN1_PATH, SC_ASN1_TAG_SEQUENCE | SC_ASN1_CONS, 0, NULL, NULL },
+	{ "value",	   SC_ASN1_PATH, SC_ASN1_TAG_SEQUENCE | SC_ASN1_CONS, SC_ASN1_EMPTY_ALLOWED, NULL, NULL },
 	{ "modulusLength", SC_ASN1_INTEGER, SC_ASN1_TAG_INTEGER, 0, NULL, NULL },
 	{ "keyInfo",	   SC_ASN1_INTEGER, SC_ASN1_TAG_INTEGER, SC_ASN1_OPTIONAL, NULL, NULL },
 	{ NULL, 0, 0, 0, NULL, NULL }
@@ -186,13 +191,13 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 		obj->type = SC_PKCS15_TYPE_PRKEY_GOSTR3410;
 		assert(info.modulus_length == 0);
 		info.modulus_length = SC_PKCS15_GOSTR3410_KEYSIZE;
-		assert(info.params_len == 0);
-		info.params_len = sizeof(struct sc_pkcs15_keyinfo_gostparams);
-		info.params = malloc(info.params_len);
-		if (info.params == NULL)
+		assert(info.params.len == 0);
+		info.params.len = sizeof(struct sc_pkcs15_keyinfo_gostparams);
+		info.params.data = malloc(info.params.len);
+		if (info.params.data == NULL)
 			SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_OUT_OF_MEMORY);
-		assert(sizeof(*keyinfo_gostparams) == info.params_len);
-		keyinfo_gostparams = info.params;
+		assert(sizeof(*keyinfo_gostparams) == info.params.len);
+		keyinfo_gostparams = info.params.data;
 		keyinfo_gostparams->gostr3410 = gostr3410_params[0];
 		keyinfo_gostparams->gostr3411 = gostr3410_params[1];
 		keyinfo_gostparams->gost28147 = gostr3410_params[2];
@@ -200,26 +205,28 @@ int sc_pkcs15_decode_prkdf_entry(struct sc_pkcs15_card *p15card,
 		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Neither RSA or DSA or GOSTR3410 key in PrKDF entry.");
 		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ASN1_OBJECT);
 	}
-	r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
-	if (r < 0) {
-		if (info.params)
-			free(info.params);
-		return r;
+
+	if (!p15card->app || !p15card->app->ddo.aid.len)   {
+		r = sc_pkcs15_make_absolute_path(&p15card->file_app->path, &info.path);
+		if (r < 0) {
+			sc_pkcs15_free_key_params(&info.params);
+			return r;
+		}
 	}
+	else   {
+		info.path.aid = p15card->app->ddo.aid;
+	}
+	sc_debug(ctx, SC_LOG_DEBUG_ASN1, "PrivKey path '%s'", sc_print_path(&info.path));
 
         /* OpenSC 0.11.4 and older encoded "keyReference" as a negative
            value. Fixed in 0.11.5 we need to add a hack, so old cards
            continue to work. */
-        if (p15card->flags & SC_PKCS15_CARD_FLAG_FIX_INTEGERS) {
-                if (info.key_reference < -1) {
-                        info.key_reference += 256;
-                }
-        }
+      	if (info.key_reference < -1)
+		info.key_reference += 256;
 
 	obj->data = malloc(sizeof(info));
 	if (obj->data == NULL) {
-		if (info.params)
-			free(info.params);
+		sc_pkcs15_free_key_params(&info.params);
 		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_OUT_OF_MEMORY);
 	}
 	memcpy(obj->data, &info, sizeof(info));
@@ -291,9 +298,9 @@ int sc_pkcs15_encode_prkdf_entry(sc_context_t *ctx,
 		sc_format_asn1_entry(asn1_prkey + 2, &gostr3410_prkey_obj, NULL, 1);
 		sc_format_asn1_entry(asn1_prk_gostr3410_attr + 0, asn1_gostr3410key_attr, NULL, 1);
 		sc_format_asn1_entry(asn1_gostr3410key_attr + 0, &prkey->path, NULL, 1);
-		if (prkey->params_len == sizeof(*keyinfo_gostparams))
+		if (prkey->params.len == sizeof(*keyinfo_gostparams))
 		{
-			keyinfo_gostparams = prkey->params;
+			keyinfo_gostparams = prkey->params.data;
 			sc_format_asn1_entry(asn1_gostr3410key_attr + 1,
 					&keyinfo_gostparams->gostr3410, NULL, 1);
 			sc_format_asn1_entry(asn1_gostr3410key_attr + 2,
@@ -515,7 +522,8 @@ void sc_pkcs15_free_prkey_info(sc_pkcs15_prkey_info_t *key)
 {
 	if (key->subject.value)
 		free(key->subject.value);
-	if (key->params)
-		free(key->params);
+
+	sc_pkcs15_free_key_params(&key->params);
+
 	free(key);
 }

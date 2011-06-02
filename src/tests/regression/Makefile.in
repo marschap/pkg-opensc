@@ -14,8 +14,6 @@
 # PARTICULAR PURPOSE.
 
 @SET_MAKE@
-
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -36,7 +34,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 subdir = src/tests/regression
-DIST_COMMON = README $(dist_noinst_DATA) $(dist_noinst_SCRIPTS) \
+DIST_COMMON = README $(dist_check_DATA) $(dist_check_SCRIPTS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
@@ -49,10 +47,8 @@ mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-SCRIPTS = $(dist_noinst_SCRIPTS)
 SOURCES =
 DIST_SOURCES =
-DATA = $(dist_noinst_DATA)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
@@ -211,14 +207,14 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 xslstylesheetsdir = @xslstylesheetsdir@
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
-dist_noinst_DATA = \
+dist_check_DATA = \
 	crypt0001 crypt0002 crypt0003 crypt0004 crypt0005 crypt0006 crypt0007 \
 	init0001 init0002 init0003 init0004 init0005 init0006 \
 	init0007 init0008 init0009 init0010 init0011 init0012 \
 	pin0001 pin0002 \
 	README test.p12 bintest
 
-dist_noinst_SCRIPTS = erase functions run-all 
+dist_check_SCRIPTS = erase functions run-all 
 all: all-am
 
 .SUFFIXES:
@@ -296,8 +292,10 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 check-am: all-am
+	$(MAKE) $(AM_MAKEFLAGS) $(dist_check_SCRIPTS) \
+	  $(dist_check_DATA)
 check: check-am
-all-am: Makefile $(SCRIPTS) $(DATA)
+all-am: Makefile
 installdirs:
 install: install-am
 install-exec: install-exec-am
@@ -391,7 +389,7 @@ ps-am:
 
 uninstall-am:
 
-.MAKE: install-am install-strip
+.MAKE: check-am install-am install-strip
 
 .PHONY: all all-am check check-am clean clean-generic clean-libtool \
 	clean-local distclean distclean-generic distclean-libtool \

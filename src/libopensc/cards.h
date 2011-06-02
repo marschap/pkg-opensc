@@ -101,7 +101,8 @@ enum {
 
 	/* openpgp driver */
 	SC_CARD_TYPE_OPENPGP_BASE = 9000,
-	SC_CARD_TYPE_OPENPGP_GENERIC,
+	SC_CARD_TYPE_OPENPGP_V1,
+	SC_CARD_TYPE_OPENPGP_V2,
 
 	/* jcop driver */
 	SC_CARD_TYPE_JCOP_BASE = 10000,
@@ -113,6 +114,8 @@ enum {
 	SC_CARD_TYPE_OBERTHUR_32K,
 	SC_CARD_TYPE_OBERTHUR_32K_BIO,
 	SC_CARD_TYPE_OBERTHUR_64K,
+	/* Oberthur 'COSMO v7' with applet 'AuthentIC v3.2' */
+        SC_CARD_TYPE_OBERTHUR_AUTHENTIC_3_2 = 11100,	
 
 	/* belpic driver */
 	SC_CARD_TYPE_BELPIC_BASE = 12000,
@@ -177,6 +180,11 @@ enum {
 	SC_CARD_TYPE_JAVACARD_BASE = 24000,
 	SC_CARD_TYPE_JAVACARD,
 
+	/* IAS/ECC cards */
+	SC_CARD_TYPE_IASECC_BASE = 25000,
+	SC_CARD_TYPE_IASECC_GEMALTO,
+	SC_CARD_TYPE_IASECC_OBERTHUR,
+	SC_CARD_TYPE_IASECC_SAGEM,
 };
 
 extern sc_card_driver_t *sc_get_default_driver(void);
@@ -209,6 +217,8 @@ extern sc_card_driver_t *sc_get_myeid_driver(void);
 extern sc_card_driver_t *sc_get_ias_driver(void);
 extern sc_card_driver_t *sc_get_javacard_driver(void);
 extern sc_card_driver_t *sc_get_itacns_driver(void);
+extern sc_card_driver_t *sc_get_authentic_driver(void);
+extern sc_card_driver_t *sc_get_iasecc_driver(void);
 
 #ifdef __cplusplus
 }

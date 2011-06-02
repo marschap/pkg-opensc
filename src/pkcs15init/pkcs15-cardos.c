@@ -326,7 +326,7 @@ cardos_generate_key(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 	if (obj->type != SC_PKCS15_TYPE_PRKEY_RSA)
 		return SC_ERROR_NOT_SUPPORTED;
 
-	rsa_max_size = (p15card->card->caps & SC_CARD_CAP_RSA_2048) ? 2048 : 1024;
+	rsa_max_size = (sc_card_find_rsa_alg(p15card->card, 2048) != NULL) ? 2048 : 1024;
 	keybits = key_info->modulus_length & ~7UL;
 	if (keybits > rsa_max_size) {
 		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Unable to generate key, max size is %lu",
@@ -791,7 +791,8 @@ static struct sc_pkcs15init_operations sc_pkcs15init_cardos_operations = {
 	NULL, NULL, 			/* encode private/public key */
 	NULL,				/* finalize_card */
 	NULL, 				/* delete_object */
-	NULL, NULL, NULL, NULL, NULL  /* pkcs15init emulation */
+	NULL, NULL, NULL, NULL, NULL, 	/* pkcs15init emulation */
+	NULL				/* sanity_check */
 };
 
 struct sc_pkcs15init_operations *

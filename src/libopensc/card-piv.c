@@ -25,12 +25,10 @@
 #include "config.h"
 
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
 #include <limits.h>
-#ifndef __APPLE__
-#include <malloc.h>
-#endif
 #ifdef ENABLE_OPENSSL
 	/* openssl only needed for card administration */
 #include <openssl/evp.h>
@@ -164,7 +162,7 @@ struct piv_aid {
  * NIST published  this on 10/6/2005   
  * 800-73-2 Part 1 now refers to version "02 00"
  * i.e. "A0 00 00 03 08 00 00 01 00 02 00". 
- * but we dont need the version number. but could get it from the PIX. 
+ * but we don't need the version number. but could get it from the PIX. 
  *
  * 800-73-3 Part 1 now referes to "01 00" i.e. going back to 800-73-1.
  * The main differences between 73-1, and 73-3 are the addition of the 
@@ -178,8 +176,10 @@ static struct piv_aid piv_aids[] = {
 };
 
 /* The EC curves supported by PIV */
+#if 0
 static u8 oid_prime256v1[] = {"\x06\x08\x2a\x86\x48\xce\x3d\x03\x01\x07"};
 static u8 oid_secp384r1[] = {"\x06\x05\x2b\x81\x04\x00\x22"};
+#endif
 
 /*
  * Flags in the piv_object:
@@ -561,9 +561,7 @@ static int piv_generate_key(sc_card_t *card,
 	int r;
 	u8 *rbuf = NULL; 
 	size_t rbuflen = 0;
-	size_t buf_len = 0;
-	u8 *buf_end;
-	u8 *p, *rp;
+	u8 *p;
 	const u8 *tag;
 	u8 tagbuf[16]; 
 	u8 outdata[3]; /* we could also add tag 81 for exponent */
@@ -609,9 +607,6 @@ static int piv_generate_key(sc_card_t *card,
 
 	memcpy(p, outdata, out_len);
 	p+=out_len;
-
-	rp = rbuf;
-	buf_end = rp + buf_len;
 
 	r = piv_general_io(card, 0x47, 0x00, keydata->key_num, 
 			tagbuf, p - tagbuf, &rbuf, &rbuflen);
@@ -681,7 +676,7 @@ static int piv_select_aid(sc_card_t* card, u8* aid, size_t aidlen, u8* response,
 	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 		"Got args: aid=%x, aidlen=%d, response=%x, responselen=%d\n",
-		aid, aidlen, response, *responselen);
+		aid, aidlen, response, responselen ? *responselen : 0);
 
 	sc_format_apdu(card, &apdu, 
 		response == NULL ? SC_APDU_CASE_3_SHORT : SC_APDU_CASE_4_SHORT, 0xA4, 0x04, 0x00);
@@ -689,12 +684,13 @@ static int piv_select_aid(sc_card_t* card, u8* aid, size_t aidlen, u8* response,
 	apdu.data = aid;
 	apdu.datalen = aidlen;
 	apdu.resp = response;
-	apdu.resplen = *responselen;
+	apdu.resplen = responselen ? *responselen : 0;
 	apdu.le = response == NULL ? 0 : 256; /* could be 21  for fci */
 
 	r = sc_transmit_apdu(card, &apdu);
-	*responselen = apdu.resplen;
-	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, 4,  r);
+	if (responselen)
+		*responselen = apdu.resplen;
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "PIV select failed");
 	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE,  sc_check_sw(card, apdu.sw1, apdu.sw2));
 }
 
@@ -830,7 +826,7 @@ static int piv_read_obj_from_file(sc_card_t * card, char * filename,
 			goto err;
 	}
 	len = read(f, tagbuf, sizeof(tagbuf)); /* get tag and length */
-	if (len < 0) {
+	if (len < 2 || len > sizeof(tagbuf)) {
 		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,"Problem with \"%s\"\n",filename);
 		r =  SC_ERROR_DATA_OBJECT_NOT_FOUND;
 		goto err;
@@ -1122,10 +1118,6 @@ static int piv_read_binary(sc_card_t *card, unsigned int idx,
 	if (priv->selected_obj < 0) 
 		 SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INTERNAL);
 	enumtag = piv_objects[priv->selected_obj].enumtag;
-
-	if (priv->rwb_state == 1) {
-		r = 0;
-	}
 
 	if (priv->rwb_state == -1) {
 		r = piv_get_cached_data(card, enumtag, &rbuf, &rbuflen);
@@ -1473,7 +1465,6 @@ static int piv_general_mutual_authenticate(sc_card_t *card,
 	locked = 1;
 
 	p = sbuf;
-	q = rbuf;
 	*p++ = 0x7C;
 	*p++ = 0x02;
 	*p++ = 0x80;
@@ -1623,15 +1614,13 @@ static int piv_general_external_authenticate(sc_card_t *card,
 	locked = 1;
 
 	p = sbuf;
-	q = rbuf;
 	*p++ = 0x7C;
 	*p++ = 0x02;
 	*p++ = 0x81;
 	*p++ = 0x00;
 
 	/* get a challenge */
-
-	r = piv_general_io(card, 0x87, 0x00, 0x00, sbuf, p - sbuf, &rbuf, &rbuflen); 
+	r = piv_general_io(card, 0x87, alg_id, key_ref, sbuf, p - sbuf, &rbuf, &rbuflen);
 
  	if (r < 0) goto err;
 	q = rbuf;
@@ -1701,6 +1690,10 @@ static int piv_get_serial_nr_from_CHUI(sc_card_t* card, sc_serial_number_t* seri
 	size_t templen = sizeof(temp);
 
 	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
+	if (card->serialnr.len)   {
+		*serial = card->serialnr;
+		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, SC_SUCCESS);
+	}
 
 	/* ensure we've got the PIV selected, and nothing else is in process */
 	/* This fixes several problems due to previous incomplete APDUs during card detection */
@@ -1748,7 +1741,8 @@ static int piv_get_serial_nr_from_CHUI(sc_card_t* card, sc_serial_number_t* seri
 			}
 		}
 	}
-      
+
+	card->serialnr = *serial;	
 	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, r);
 }
 
@@ -2009,7 +2003,6 @@ static int piv_compute_signature(sc_card_t *card,
 	int r;
 	int i;
 	int nLen;
-	u8 * outp = out;
 	u8 rbuf[128]; /* For EC conversions  384 will fit */
 	size_t rbuflen = sizeof(rbuf);
 	const u8 * body;
@@ -2116,9 +2109,17 @@ static int piv_select_file(sc_card_t *card, const sc_path_t *in_path,
 	
 	/* only support single EF in current application */
 
-	if (pathlen > 2 && memcmp(path, "\x3F\x00", 2) == 0) {
-		path += 2;
-		pathlen -= 2;
+	if (memcmp(path, "\x3F\x00", 2) == 0) {
+		if (pathlen == 2)   {
+			r = piv_select_aid(card, piv_aids[0].value, piv_aids[0].len_short, NULL, NULL);
+			SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "Cannot select PIV AID");
+		
+			SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, r); 
+		}
+		else if (pathlen > 2) {
+			path += 2;
+			pathlen -= 2;
+		}
 	}
 	 
 	i = piv_find_obj_by_containerid(card, path);
@@ -2452,7 +2453,6 @@ static int piv_process_history(sc_card_t *card)
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "got internal r=%d\n",r);
 
 			certobj = NULL;
-			certobjlen = 0;
 
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL,
 				"Added from off card file #%d %p:%d 0x%02X \n",

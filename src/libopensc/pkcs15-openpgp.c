@@ -84,7 +84,6 @@ sc_pkcs15emu_openpgp_init(sc_pkcs15_card_t *p15card)
 	sc_context_t	*ctx = card->ctx;
 	char		string[256];
 	u8		buffer[256];
-	size_t		length;
 	int		r, i;
 
 	set_string(&p15card->tokeninfo->label, "OpenPGP Card");
@@ -107,7 +106,6 @@ sc_pkcs15emu_openpgp_init(sc_pkcs15_card_t *p15card)
 	/* Get Application Related Data (006E) */
 	if ((r = sc_get_data(card, 0x006E, buffer, sizeof(buffer))) < 0)
 		goto failed;
-	length = r;
 
 	/* TBD: extract algorithm info */
 
@@ -236,7 +234,10 @@ failed:	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "Failed to initialize OpenPGP e
 
 static int openpgp_detect_card(sc_pkcs15_card_t *p15card)
 {
-	return strcmp(p15card->card->name, "OpenPGP");
+	if (p15card->card->type == SC_CARD_TYPE_OPENPGP_V1 || p15card->card->type == SC_CARD_TYPE_OPENPGP_V2)
+		return SC_SUCCESS;
+	else
+		return SC_ERROR_WRONG_CARD;
 }
 
 int sc_pkcs15emu_openpgp_init_ex(sc_pkcs15_card_t *p15card,

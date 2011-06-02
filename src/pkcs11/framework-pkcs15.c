@@ -163,7 +163,7 @@ static CK_RV pkcs15_bind(struct sc_pkcs11_card *p11card)
 		return CKR_HOST_MEMORY;
 	p11card->fw_data = fw_data;
 
-	rc = sc_pkcs15_bind(p11card->card, &fw_data->p15_card);
+	rc = sc_pkcs15_bind(p11card->card, NULL, &fw_data->p15_card);
 	if (rc != SC_SUCCESS) {
 		sc_debug(context, SC_LOG_DEBUG_NORMAL, "sc_pkcs15_bind failed: %d", rc);
 		return sc_to_cryptoki_error(rc, NULL);
@@ -476,7 +476,7 @@ __pkcs15_create_pubkey_object(struct pkcs15_fw_data *fw_data,
 	 * and saved as a file before the certificate has been created. 
 	 */  
 	if (pubkey->flags & SC_PKCS15_CO_FLAG_PRIVATE)   	/* is the key private? */
-	  p15_key = NULL; 		/* will read key when needed */
+		p15_key = NULL; 		/* will read key when needed */
 	else {	  
 		/* if emulation already created pubkey use it */
 		if (pubkey->emulated && (fw_data->p15_card->flags & SC_PKCS15_CARD_FLAG_EMULATED)) {
@@ -755,6 +755,7 @@ pkcs15_add_object(struct sc_pkcs11_slot *slot,
 	switch (__p15_type(obj)) {
 	case SC_PKCS15_TYPE_PRKEY_RSA:
 	case SC_PKCS15_TYPE_PRKEY_GOSTR3410:
+	case SC_PKCS15_TYPE_PRKEY_EC:
 		pkcs15_add_object(slot, (struct pkcs15_any_object *) obj->related_pubkey, NULL);
 		card_fw_data = (struct pkcs15_fw_data *) slot->card->fw_data;
 		for (i = 0; i < card_fw_data->num_objects; i++) {
@@ -1230,6 +1231,11 @@ static CK_RV pkcs15_logout(struct sc_pkcs11_card *p11card, void *fw_token)
 	sc_pkcs15_pincache_clear(fw_data->p15_card);
 
 	rc = sc_logout(fw_data->p15_card->card);
+
+	/* Ignore missing card specific logout functions. #302 */
+	if (rc == SC_ERROR_NOT_SUPPORTED)
+		rc = SC_SUCCESS;
+
 	if (rc != SC_SUCCESS)
 		ret = sc_to_cryptoki_error(rc, "C_Logout");
 
@@ -1852,10 +1858,8 @@ set_gost_params(struct sc_pkcs15init_prkeyargs *prkey_args,
 		for (i = 0; i < sizeof(gostr3410_param_oid)
 				/sizeof(gostr3410_param_oid[0]); ++i) {
 			if (!memcmp(gost_params_oid, gostr3410_param_oid[i].oid, len)) {
-				prkey_args->gost_params.gostr3410 =
-					gostr3410_param_oid[i].param;
-				pubkey_args->gost_params.gostr3410 =
-					gostr3410_param_oid[i].param;
+				prkey_args->params.gost.gostr3410 = gostr3410_param_oid[i].param;
+				pubkey_args->params.gost.gostr3410 = gostr3410_param_oid[i].param;
 				break;
 			}
 		}
@@ -1894,7 +1898,8 @@ static CK_RV pkcs15_gen_keypair(struct sc_pkcs11_card *p11card,
 	sc_debug(context, SC_LOG_DEBUG_NORMAL, "Keypair generation, mech = 0x%0x\n", pMechanism->mechanism);
 
 	if (pMechanism->mechanism != CKM_RSA_PKCS_KEY_PAIR_GEN
-			&& pMechanism->mechanism != CKM_GOSTR3410_KEY_PAIR_GEN)
+			&& pMechanism->mechanism != CKM_GOSTR3410_KEY_PAIR_GEN
+			&& pMechanism->mechanism != CKM_EC_KEY_PAIR_GEN)
 		return CKR_MECHANISM_INVALID;
 
 	rc = sc_lock(p11card->card);
@@ -1919,23 +1924,36 @@ static CK_RV pkcs15_gen_keypair(struct sc_pkcs11_card *p11card,
 		&keytype, NULL);
 	if (rv != CKR_OK && pMechanism->mechanism == CKM_RSA_PKCS_KEY_PAIR_GEN)
 		keytype = CKK_RSA;
+	else if (rv != CKR_OK && pMechanism->mechanism == CKM_EC_KEY_PAIR_GEN)
+		keytype = CKK_EC;
 	else if (rv != CKR_OK)
 		goto kpgen_done;
-	if (keytype == CKK_GOSTR3410)
-	{
+
+	if (keytype == CKK_GOSTR3410)   {
 		keygen_args.prkey_args.key.algorithm = SC_ALGORITHM_GOSTR3410;
 		pub_args.key.algorithm               = SC_ALGORITHM_GOSTR3410;
 		set_gost_params(&keygen_args.prkey_args, &pub_args,
 				pPubTpl, ulPubCnt, pPrivTpl, ulPrivCnt);
 	}
-	else if (keytype == CKK_RSA)
-	{
+	else if (keytype == CKK_RSA)   {
 		/* default value (CKA_KEY_TYPE isn't set) or CKK_RSA is set */
 		keygen_args.prkey_args.key.algorithm = SC_ALGORITHM_RSA;
 		pub_args.key.algorithm               = SC_ALGORITHM_RSA;
 	}
-	else
-	{
+	else if (keytype == CKK_EC)   {
+		struct sc_pkcs15_der *der = &keygen_args.prkey_args.params.ec.der;
+
+		der->len = sizeof(struct sc_object_id);
+		rv = attr_find_ptr(pPubTpl, ulPubCnt, CKA_EC_PARAMS, (void **)&der->value, &der->len);
+		if (rv != CKR_OK)   {
+			sc_unlock(p11card->card);
+			return sc_to_cryptoki_error(rc, "C_GenerateKeyPair");
+		}
+
+		keygen_args.prkey_args.key.algorithm = SC_ALGORITHM_EC;
+		pub_args.key.algorithm               = SC_ALGORITHM_EC;
+	}
+	else   {
 		/* CKA_KEY_TYPE is set, but keytype isn't correct */
 		rv = CKR_ATTRIBUTE_VALUE_INVALID;
 		goto kpgen_done;
@@ -2466,7 +2484,7 @@ static CK_RV pkcs15_prkey_get_attribute(struct sc_pkcs11_session *session,
 		switch (prkey->prv_p15obj->type) {
 			case SC_PKCS15_TYPE_PRKEY_EC:
 				if (key)
-					*(CK_ULONG *) attr->pValue = key->u.ec.field_length; 
+					*(CK_ULONG *) attr->pValue = key->u.ec.params.field_length; 
 				else 
 					*(CK_ULONG *) attr->pValue = 384; /* TODO -DEE needs work */
 				return CKR_OK;
@@ -2489,9 +2507,9 @@ static CK_RV pkcs15_prkey_get_attribute(struct sc_pkcs11_session *session,
 		attr->ulValueLen = 0;
 		return CKR_OK;
 	case CKA_GOSTR3410_PARAMS:
-		if (prkey->prv_info && prkey->prv_info->params_len)
-			return get_gostr3410_params(prkey->prv_info->params,
-					prkey->prv_info->params_len, attr);
+		if (prkey->prv_info && prkey->prv_info->params.len)
+			return get_gostr3410_params(prkey->prv_info->params.data,
+					prkey->prv_info->params.len, attr);
 		else
 			return CKR_ATTRIBUTE_TYPE_INVALID;
 	case CKA_EC_PARAMS:
@@ -2847,9 +2865,9 @@ static CK_RV pkcs15_pubkey_get_attribute(struct sc_pkcs11_session *session,
 		}
 		break;
 	case CKA_GOSTR3410_PARAMS:
-		if (pubkey->pub_info && pubkey->pub_info->params_len)
-			return get_gostr3410_params(pubkey->pub_info->params,
-					pubkey->pub_info->params_len, attr);
+		if (pubkey->pub_info && pubkey->pub_info->params.len)
+			return get_gostr3410_params(pubkey->pub_info->params.data,
+					pubkey->pub_info->params.len, attr);
 		else
 			return CKR_ATTRIBUTE_TYPE_INVALID;
 	case CKA_EC_PARAMS:
@@ -3082,35 +3100,36 @@ get_public_exponent(struct sc_pkcs15_pubkey *key, CK_ATTRIBUTE_PTR attr)
 static CK_RV
 get_ec_pubkey_params(struct sc_pkcs15_pubkey *key, CK_ATTRIBUTE_PTR attr)
 {
-		struct sc_ec_params * ecp;
-	    if (key == NULL)
-			return CKR_ATTRIBUTE_TYPE_INVALID;
-		if (key->alg_id == NULL) 
-			return CKR_ATTRIBUTE_TYPE_INVALID;
-			ecp = (struct sc_ec_params *) key->alg_id->params;
-
-		switch (key->algorithm) {
-		case SC_ALGORITHM_EC:
-			check_attribute_buffer(attr, ecp->der_len);
-			memcpy(attr->pValue, ecp->der, ecp->der_len);
-			return CKR_OK;
-		}
+	struct sc_ec_params * ecp;
+	
+	if (key == NULL)
 		return CKR_ATTRIBUTE_TYPE_INVALID;
+	if (key->alg_id == NULL) 
+		return CKR_ATTRIBUTE_TYPE_INVALID;
+	ecp = (struct sc_ec_params *) key->alg_id->params;
+
+	switch (key->algorithm) {
+	case SC_ALGORITHM_EC:
+		check_attribute_buffer(attr, ecp->der_len);
+		memcpy(attr->pValue, ecp->der, ecp->der_len);
+		return CKR_OK;
+	}
+	return CKR_ATTRIBUTE_TYPE_INVALID;
 }
 
 static CK_RV
 get_ec_pubkey_point(struct sc_pkcs15_pubkey *key, CK_ATTRIBUTE_PTR attr)
 {
-	    if (key == NULL)
-			return CKR_ATTRIBUTE_TYPE_INVALID;
-
-		switch (key->algorithm) {
-		case SC_ALGORITHM_EC:
-			check_attribute_buffer(attr, key->u.ec.ecpointQ.len);
-			memcpy(attr->pValue, key->u.ec.ecpointQ.value, key->u.ec.ecpointQ.len);
-			return CKR_OK;
-		}
+	if (key == NULL)
 		return CKR_ATTRIBUTE_TYPE_INVALID;
+
+	switch (key->algorithm) {
+	case SC_ALGORITHM_EC:
+		check_attribute_buffer(attr, key->u.ec.ecpointQ.len);
+		memcpy(attr->pValue, key->u.ec.ecpointQ.value, key->u.ec.ecpointQ.len);
+		return CKR_OK;
+	}
+	return CKR_ATTRIBUTE_TYPE_INVALID;
 }
 
 static CK_RV
@@ -3243,30 +3262,34 @@ static int register_gost_mechanisms(struct sc_pkcs11_card *p11card, int flags)
 	return CKR_OK;
 }
 
+
 static int register_ec_mechanisms(struct sc_pkcs11_card *p11card, int flags, 
-			unsigned long ext_flags, int min_key_size, int max_key_size)
+		unsigned long ext_flags, CK_ULONG min_key_size, CK_ULONG max_key_size)
 {
 	CK_MECHANISM_INFO mech_info;
 	sc_pkcs11_mechanism_type_t *mt;
+	CK_FLAGS ec_flags = 0;
 	int rc;
 	
-	mech_info.flags = CKF_HW | CKF_SIGN; /* check for more */
 	if (ext_flags & SC_ALGORITHM_EXT_EC_F_P)
-		mech_info.flags |= CKF_EC_F_P;
+		ec_flags |= CKF_EC_F_P;
 	if (ext_flags & SC_ALGORITHM_EXT_EC_F_2M)
-		mech_info.flags |= CKF_EC_F_2M;
+		ec_flags |= CKF_EC_F_2M;
 	if (ext_flags & SC_ALGORITHM_EXT_EC_ECPARAMETERS)
-		mech_info.flags |= CKF_EC_ECPARAMETERS;
+		ec_flags |= CKF_EC_ECPARAMETERS;
 	if (ext_flags & SC_ALGORITHM_EXT_EC_NAMEDCURVE)
-		mech_info.flags |= CKF_EC_NAMEDCURVE;
+		ec_flags |= CKF_EC_NAMEDCURVE;
 	if (ext_flags & SC_ALGORITHM_EXT_EC_UNCOMPRESES)
-		mech_info.flags |= CKF_EC_UNCOMPRESES;
+		ec_flags |= CKF_EC_UNCOMPRESES;
 	if (ext_flags & SC_ALGORITHM_EXT_EC_COMPRESS)
-		mech_info.flags |= CKF_EC_COMPRESS;
+		ec_flags |= CKF_EC_COMPRESS;
+
+	mech_info.flags = CKF_HW | CKF_SIGN; /* check for more */
+	mech_info.flags |= ec_flags;
 	mech_info.ulMinKeySize = min_key_size;
 	mech_info.ulMaxKeySize = max_key_size;
-	mt = sc_pkcs11_new_fw_mechanism(CKM_ECDSA,
-		&mech_info, CKK_EC, NULL);
+
+	mt = sc_pkcs11_new_fw_mechanism(CKM_ECDSA, &mech_info, CKK_EC, NULL);
 	if (!mt)
 		return CKR_HOST_MEMORY;
 	rc = sc_pkcs11_register_mechanism(p11card, mt);
@@ -3282,6 +3305,17 @@ static int register_ec_mechanisms(struct sc_pkcs11_card *p11card, int flags,
 	if (rc != CKR_OK)
 		return rc;
 #endif
+	if (flags & SC_ALGORITHM_ONBOARD_KEY_GEN) {
+		mech_info.flags = CKF_HW | CKF_GENERATE_KEY_PAIR;
+		mech_info.flags |= ec_flags;
+		mt = sc_pkcs11_new_fw_mechanism(CKM_EC_KEY_PAIR_GEN, &mech_info, CKK_EC, NULL);
+		if (!mt)
+			return CKR_HOST_MEMORY;
+		rc = sc_pkcs11_register_mechanism(p11card, mt);
+		if (rc != CKR_OK)
+			return rc;
+	}	
+	
 
 #if 0
 /* TODO: -DEE Add CKM_ECDH1_COFACTOR_DERIVE  as PIV can do this */
@@ -3297,6 +3331,7 @@ static int register_ec_mechanisms(struct sc_pkcs11_card *p11card, int flags,
 	return CKR_OK;
 }
 	
+
 /*
  * Mechanism handling
  * FIXME: We should consult the card's algorithm list to
@@ -3307,7 +3342,7 @@ static CK_RV register_mechanisms(struct sc_pkcs11_card *p11card)
 	sc_card_t *card = p11card->card;
 	sc_algorithm_info_t *alg_info;
 	CK_MECHANISM_INFO mech_info;
-	int ec_min_key_size, ec_max_key_size;
+	CK_ULONG ec_min_key_size, ec_max_key_size;
 	unsigned long ec_ext_flags;
 	sc_pkcs11_mechanism_type_t *mt;
 	unsigned int num;
@@ -3363,9 +3398,8 @@ static CK_RV register_mechanisms(struct sc_pkcs11_card *p11card)
 		alg_info++;
 	}
 
-	if (flags & SC_ALGORITHM_ECDSA_RAW) {
+	if (flags & SC_ALGORITHM_ECDSA_RAW)
 		rc = register_ec_mechanisms(p11card, flags, ec_ext_flags, ec_min_key_size, ec_max_key_size);
-	}
 
 	if (flags & (SC_ALGORITHM_GOSTR3410_RAW
 				| SC_ALGORITHM_GOSTR3410_HASH_NONE

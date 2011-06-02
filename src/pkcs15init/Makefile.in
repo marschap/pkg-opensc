@@ -61,7 +61,8 @@ am_libpkcs15init_la_OBJECTS = pkcs15-lib.lo profile.lo \
 	pkcs15-starcos.lo pkcs15-setcos.lo pkcs15-incrypto34.lo \
 	pkcs15-muscle.lo pkcs15-asepcos.lo pkcs15-rutoken.lo \
 	pkcs15-entersafe.lo pkcs15-rtecp.lo pkcs15-myeid.lo \
-	pkcs15-oberthur.lo pkcs15-oberthur-awp.lo
+	pkcs15-oberthur.lo pkcs15-oberthur-awp.lo pkcs15-authentic.lo \
+	pkcs15-iasecc.lo
 libpkcs15init_la_OBJECTS = $(am_libpkcs15init_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/depcomp
@@ -287,10 +288,14 @@ dist_pkgdata_DATA = \
 	entersafe.profile \
 	rutoken_ecp.profile \
 	westcos.profile \
-	myeid.profile
+	myeid.profile \
+	authentic.profile \
+	iasecc.profile \
+	ias_adele_admin1.profile ias_adele_admin2.profile ias_adele_common.profile \
+	iasecc_generic_pki.profile iasecc_admin_eid.profile iasecc_generic_oberthur.profile
 
 AM_CPPFLAGS = -DSC_PKCS15_PROFILE_DIRECTORY=\"$(pkgdatadir)\"
-AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(LTLIB_CFLAGS)
+AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS)
 INCLUDES = -I$(top_srcdir)/src
 libpkcs15init_la_SOURCES = \
 	pkcs15-lib.c profile.c \
@@ -300,7 +305,8 @@ libpkcs15init_la_SOURCES = \
 	pkcs15-setcos.c pkcs15-incrypto34.c pkcs15-muscle.c \
 	pkcs15-asepcos.c pkcs15-rutoken.c pkcs15-entersafe.c \
 	pkcs15-rtecp.c pkcs15-myeid.c \
-	pkcs15-oberthur.c pkcs15-oberthur-awp.c
+	pkcs15-oberthur.c pkcs15-oberthur-awp.c \
+	pkcs15-authentic.c pkcs15-iasecc.c 
 
 all: all-am
 
@@ -355,10 +361,12 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-asepcos.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-authentic.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-cardos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-cflex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-entersafe.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-gpk.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-iasecc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-incrypto34.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-jcop.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-lib.Plo@am__quote@

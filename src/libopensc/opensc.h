@@ -120,11 +120,11 @@ extern "C" {
 #define SC_ALGORITHM_ECDSA_HASH_SHA256		SC_ALGORITHM_RSA_HASH_SHA256
 #define SC_ALGORITHM_ECDSA_HASH_SHA384		SC_ALGORITHM_RSA_HASH_SHA384
 #define SC_ALGORITHM_ECDSA_HASH_SHA512		SC_ALGORITHM_RSA_HASH_SHA512
-#define SC_ALGORITHM_ECDSA_HASHES			(SC_ALGORITHM_ECDSA_HASH_SHA1 | \
-												SC_ALGORITHM_ECDSA_HASH_SHA224 | \
-												SC_ALGORITHM_ECDSA_HASH_SHA256 | \
-												SC_ALGORITHM_ECDSA_HASH_SHA384 | \
-												SC_ALGORITHM_ECDSA_HASH_SHA512)
+#define SC_ALGORITHM_ECDSA_HASHES		(SC_ALGORITHM_ECDSA_HASH_SHA1 | \
+							SC_ALGORITHM_ECDSA_HASH_SHA224 | \
+							SC_ALGORITHM_ECDSA_HASH_SHA256 | \
+							SC_ALGORITHM_ECDSA_HASH_SHA384 | \
+							SC_ALGORITHM_ECDSA_HASH_SHA512)
 
 /* define mask of all algorithms that can do raw */
 #define SC_ALGORITHM_RAW_MASK (SC_ALGORITHM_RSA_RAW | SC_ALGORITHM_GOSTR3410_RAW | SC_ALGORITHM_ECDSA_RAW)
@@ -207,19 +207,42 @@ typedef struct sc_algorithm_info {
 } sc_algorithm_info_t;
 
 typedef struct sc_app_info {
-	u8 aid[SC_MAX_AID_SIZE];
-	size_t aid_len;
 	char *label;
-	struct sc_path path;
-	u8 *ddo;
-	size_t ddo_len;
 
-	const char *desc;	/* App description, if known */
+	struct sc_aid aid;
+	struct sc_ddo ddo;
+
+	struct sc_path path;
+
 	int rec_nr;		/* -1, if EF(DIR) is transparent */
 } sc_app_info_t;
 
+struct sc_ef_atr {
+	unsigned char card_service;
+	unsigned char df_selection;
+	size_t unit_size;
+	unsigned char card_capabilities;
+
+	struct sc_aid aid;
+
+	unsigned char pre_issuing[6];
+	size_t pre_issuing_len;
+
+	unsigned char issuer_data[16];
+	size_t issuer_data_len;
+
+	struct sc_object_id allocation_oid;
+
+	unsigned status;
+};
+
 struct sc_card_cache {
 	struct sc_path current_path;
+
+        struct sc_file *current_ef;
+        struct sc_file *current_df;
+
+	int valid;
 };
 
 #define SC_PROTO_T0		0x00000001
@@ -238,8 +261,12 @@ struct sc_reader_driver {
 };
 
 /* reader flags */
-#define SC_READER_CARD_PRESENT	0x00000001
-#define SC_READER_CARD_CHANGED	0x00000002
+#define SC_READER_CARD_PRESENT		0x00000001
+#define SC_READER_CARD_CHANGED		0x00000002
+#define SC_READER_CARD_INUSE		0x00000004
+#define SC_READER_CARD_EXCLUSIVE	0x00000008
+#define SC_READER_HAS_WAITING_AREA	0x00000010
+
 /* reader capabilities */
 #define SC_READER_CAP_DISPLAY	0x00000001
 #define SC_READER_CAP_PIN_PAD	0x00000002
@@ -253,9 +280,8 @@ typedef struct sc_reader {
 	
 	unsigned long flags, capabilities;
 	unsigned int supported_protocols, active_protocol;
-	u8 atr[SC_MAX_ATR_SIZE];
-	size_t atr_len;
 
+	struct sc_atr atr;
 	struct _atr_info {
 		u8 *hist_bytes;
 		size_t hist_bytes_len;
@@ -297,6 +323,8 @@ struct sc_pin_cmd_pin {
 	
 	int max_tries;	/* Used for signaling back from SC_PIN_CMD_GET_INFO */
 	int tries_left;	/* Used for signaling back from SC_PIN_CMD_GET_INFO */
+
+	struct sc_acl_entry acls[SC_MAX_SDO_ACLS];
 };
 
 struct sc_pin_cmd_data {
@@ -310,14 +338,6 @@ struct sc_pin_cmd_data {
 
 	struct sc_apdu *apdu;		/* APDU of the PIN command */
 };
-
-/* structure for the card serial number (normally the ICCSN) */
-#define SC_MAX_SERIALNR		32
-
-typedef struct sc_serial_number {
-	u8 value[SC_MAX_SERIALNR];
-	size_t len;
-} sc_serial_number_t;
 
 struct sc_reader_operations {
 	/* Called during sc_establish_context(), when the driver
@@ -351,6 +371,8 @@ struct sc_reader_operations {
 			int timeout, void **reader_states);
 	/* Reset a reader */
 	int (*reset)(struct sc_reader *, int);
+	/* Used to pass in PC/SC handles to minidriver */
+	int (*use_reader)(struct sc_context *ctx, void *pcsc_context_handle, void *pcsc_card_handle);
 };
 
 /*
@@ -368,8 +390,6 @@ struct sc_reader_operations {
 /* Mask for card vendor specific values */
 #define SC_CARD_FLAG_VENDOR_MASK	0xFFFF0000
 
-/* Hint SC_ALGORITHM_ONBOARD_KEY_GEN */
-#define SC_CARD_FLAG_ONBOARD_KEY_GEN	0x00000001
 /* Hint SC_CARD_CAP_RNG */
 #define SC_CARD_FLAG_RNG		0x00000002
 
@@ -383,10 +403,6 @@ struct sc_reader_operations {
  * is made. */
 #define SC_CARD_CAP_APDU_EXT		0x00000001
 
-/* Card can handle operations specified in the
- * EMV 4.0 standard. */
-#define SC_CARD_CAP_EMV			0x00000002
-
 /* Card has on-board random number source. */
 #define SC_CARD_CAP_RNG			0x00000004
 
@@ -397,9 +413,6 @@ struct sc_reader_operations {
  * instead of relying on the ACL info in the profile files. */
 #define SC_CARD_CAP_USE_FCI_AC		0x00000010
 
-/* The card supports 2048 bit RSA keys */
-#define SC_CARD_CAP_RSA_2048		0x00000020
-
 /* D-TRUST CardOS cards special flags */
 #define SC_CARD_CAP_ONLY_RAW_HASH		0x00000040
 #define SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED	0x00000080
@@ -408,18 +421,20 @@ typedef struct sc_card {
 	struct sc_context *ctx;
 	struct sc_reader *reader;
 
+	struct sc_atr atr;
+
 	int type;			/* Card type, for card driver internal use */
 	unsigned long caps, flags;
 	unsigned int wait_resend_apdu;	/* Delay (msec) before responding to an SW = 6CXX */
 	int cla;
-	u8 atr[SC_MAX_ATR_SIZE];
-	size_t atr_len;
 	size_t max_send_size; /* Max Lc supported by the card */
 	size_t max_recv_size; /* Max Le supported by the card */
 
 	struct sc_app_info *app[SC_MAX_CARD_APPS];
 	int app_count;
 	struct sc_file *ef_dir;
+
+	struct sc_ef_atr *ef_atr;
 
 	struct sc_algorithm_info *algorithms;
 	int algorithm_count;
@@ -433,7 +448,6 @@ typedef struct sc_card {
 	int max_pin_len;
 
 	struct sc_card_cache cache;
-	int cache_valid;
 
 	sc_serial_number_t serialnr;
 
@@ -623,6 +637,20 @@ int sc_transmit_apdu(sc_card_t *card, sc_apdu_t *apdu);
 void sc_format_apdu(sc_card_t *card, sc_apdu_t *apdu, int cse, int ins,
 		    int p1, int p2);
 
+/** Transforms an APDU from binary to its @c sc_apdu_t representation
+ *  @param  ctx     sc_context_t object (used for logging)
+ *  @param  buf     APDU to be encoded as an @c sc_apdu_t object
+ *  @param  len     length of @a buf
+ *  @param  apdu    @c sc_apdu_t object to initialize
+ *  @return SC_SUCCESS on success and an error code otherwise
+ *  @note On successful initialization apdu->data will point to @a buf with an
+ *  appropriate offset. Only free() @a buf, when apdu->data is not needed any
+ *  longer.
+ *  @note On successful initialization @a apdu->resp and apdu->resplen will be
+ *  0. You should modify both if you are expecting data in the response APDU.
+ */
+int sc_bytes2apdu(sc_context_t *ctx, const u8 *buf, size_t len, sc_apdu_t *apdu);
+
 int sc_check_sw(struct sc_card *card, unsigned int sw1, unsigned int sw2);
 
 /********************************************************************/
@@ -688,6 +716,17 @@ int sc_ctx_detect_readers(sc_context_t *ctx);
  */
 sc_reader_t *sc_ctx_get_reader(sc_context_t *ctx, unsigned int i);
 
+/**
+ * Pass in pointers to handles to be used for the pcsc reader.
+ * This is used by cardmod to pass in handles provided by BaseCSP
+ *
+ * @param  ctx   pointer to a sc_context_t
+ * @param  pcsc_context_handle pointer to the  new context_handle to use
+ * @param  pcsc_card_handle pointer to the new card_handle to use 
+ * @return SC_SUCCESS on success and an error code otherwise.
+ */
+int sc_ctx_use_reader(sc_context_t *ctx, void * pcsc_context_handle, void * pcsc_card_handle);
+
 /** 
  * Returns a pointer to the specified sc_reader_t object
  * @param  ctx  OpenSC context
@@ -712,6 +751,14 @@ sc_reader_t *sc_ctx_get_reader_by_id(sc_context_t *ctx, unsigned int id);
  * @return the number of available reader objects
  */
 unsigned int sc_ctx_get_reader_count(sc_context_t *ctx);
+
+/**
+ * Redirects OpenSC debug log to the specified file
+ * @param  ctx existing OpenSC context
+ * @param  filename path to the file or "stderr" or "stdout"
+ * @return SC_SUCCESS on success and an error code otherwise
+ */
+int sc_ctx_log_to_file(sc_context_t *ctx, const char* filename);
 
 /**
  * Forces the use of a specified card driver
@@ -854,6 +901,17 @@ int sc_write_binary(sc_card_t *card, unsigned int idx, const u8 * buf,
  */
 int sc_update_binary(sc_card_t *card, unsigned int idx, const u8 * buf,
 		     size_t count, unsigned long flags);
+
+/**
+ * Sets (part of) the content fo an EF to its logical erased state
+ * @param  card   sc_card_t object on which to issue the command
+ * @param  idx    index within the file for the data to be erased
+ * @param  count  number of bytes to erase
+ * @param  flags  flags for the ERASE BINARY command (currently not used)
+ * @return number of bytes writen or an error code
+ */
+int sc_erase_binary(struct sc_card *card, unsigned int idx,
+		    size_t count, unsigned long flags);
 
 #define SC_RECORD_EF_ID_MASK		0x0001FUL
 /** flags for record operations */
@@ -1099,11 +1157,13 @@ int sc_get_cache_dir(sc_context_t *ctx, char *buf, size_t bufsize);
 int sc_make_cache_dir(sc_context_t *ctx);
 
 int sc_enum_apps(sc_card_t *card);
+struct sc_app_info *sc_find_app(struct sc_card *card, struct sc_aid *aid);
 void sc_free_apps(sc_card_t *card);
-const sc_app_info_t * sc_find_pkcs15_app(sc_card_t *card);
-const sc_app_info_t * sc_find_app_by_aid(sc_card_t *card,
-					 const u8 *aid, size_t aid_len);
+int sc_parse_ef_atr(sc_card_t *card);
+void sc_free_ef_atr(sc_card_t *card);
 int sc_update_dir(sc_card_t *card, sc_app_info_t *app);
+
+void sc_print_cache(struct sc_card *card);
 
 struct sc_algorithm_info * sc_card_find_rsa_alg(sc_card_t *card,
 		unsigned int key_length);
@@ -1111,6 +1171,13 @@ struct sc_algorithm_info * sc_card_find_ec_alg(sc_card_t *card,
 		unsigned int field_length);
 struct sc_algorithm_info * sc_card_find_gostr3410_alg(sc_card_t *card,
 		unsigned int key_length);
+
+/**
+ * Used to initialize the @c sc_remote_data structure -- 
+ * reset the header of the 'remote APDUs' list, set the handlers 
+ * to manipulate the list. 
+ */
+void sc_remote_data_init(struct sc_remote_data *rdata);
 
 struct sc_card_error {
 	unsigned int SWs;

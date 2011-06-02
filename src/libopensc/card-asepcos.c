@@ -55,6 +55,8 @@ static int asepcos_select_asepcos_applet(sc_card_t *card)
 	sc_path_t tpath;
 	int       r;
 
+	memset(&tpath, 0, sizeof(sc_path_t));
+
 	tpath.type = SC_PATH_TYPE_DF_NAME;
 	tpath.len  = sizeof(asepcos_aid);
 	memcpy(tpath.value, asepcos_aid, sizeof(asepcos_aid));
@@ -94,9 +96,7 @@ static int asepcos_init(sc_card_t *card)
 	_sc_card_add_rsa_alg(card, 1792, flags, 0);
 	_sc_card_add_rsa_alg(card, 2048, flags, 0);
 
-	card->caps |= SC_CARD_CAP_RSA_2048
-	              | SC_CARD_CAP_APDU_EXT
-	              | SC_CARD_CAP_USE_FCI_AC;
+	card->caps |= SC_CARD_CAP_APDU_EXT | SC_CARD_CAP_USE_FCI_AC;
 
 	return SC_SUCCESS;
 }
@@ -306,7 +306,7 @@ static int asepcos_select_file(sc_card_t *card, const sc_path_t *in_path,
 	if (file != NULL && *file != NULL) 
 		if ((*file)->ef_structure == SC_FILE_EF_UNKNOWN)
 			(*file)->ef_structure = SC_FILE_EF_TRANSPARENT;
-	if (r == SC_SUCCESS && file != NULL) {
+	if (r == SC_SUCCESS && file != NULL && *file != NULL) {
 		r = asepcos_parse_sec_attr(card, *file, (*file)->sec_attr, (*file)->sec_attr_len);
 		if (r != SC_SUCCESS) 
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "error parsing security attributes");
@@ -441,7 +441,7 @@ static int asepcos_set_security_attributes(sc_card_t *card, sc_file_t *file)
 {
 	size_t i;
 	const amode_entry_t *table;
-	u8     buf[64], *p = buf;
+	u8     buf[64], *p;
 	int    r = SC_SUCCESS;
 
 	/* first check wether the security attributes in encoded form

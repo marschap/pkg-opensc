@@ -39,9 +39,11 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(dist_doc_DATA) \
 	$(dist_noinst_DATA) $(dist_noinst_SCRIPTS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(srcdir)/config.h.in $(top_srcdir)/configure COPYING \
-	ChangeLog NEWS config.guess config.sub depcomp install-sh \
-	ltmain.sh missing
+	$(srcdir)/config.h.in \
+	$(top_srcdir)/MacOSX/10.5/resources/ReadMe.html.in \
+	$(top_srcdir)/MacOSX/10.6/resources/ReadMe.html.in \
+	$(top_srcdir)/configure COPYING ChangeLog NEWS config.guess \
+	config.sub depcomp install-sh ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
@@ -53,7 +55,8 @@ am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = MacOSX/10.5/resources/ReadMe.html \
+	MacOSX/10.6/resources/ReadMe.html
 CONFIG_CLEAN_VPATH_FILES =
 SCRIPTS = $(dist_noinst_SCRIPTS)
 SOURCES =
@@ -302,7 +305,7 @@ MAINTAINERCLEANFILES = \
 	$(srcdir)/packaged
 
 EXTRA_DIST = Makefile.mak svnignore
-SUBDIRS = etc src win32 doc
+SUBDIRS = etc src win32 doc MacOSX
 dist_noinst_SCRIPTS = bootstrap
 dist_noinst_DATA = README \
 	solaris/Makefile solaris/README solaris/checkinstall.in \
@@ -364,6 +367,10 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
+MacOSX/10.5/resources/ReadMe.html: $(top_builddir)/config.status $(top_srcdir)/MacOSX/10.5/resources/ReadMe.html.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
+MacOSX/10.6/resources/ReadMe.html: $(top_builddir)/config.status $(top_srcdir)/MacOSX/10.6/resources/ReadMe.html.in
+	cd $(top_builddir) && $(SHELL) ./config.status $@
 
 mostlyclean-libtool:
 	-rm -f *.lo

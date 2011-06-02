@@ -42,18 +42,21 @@ static struct sc_card_driver rtecp_drv = {
 static struct sc_atr_table rtecp_atrs[] = {
 	/* Rutoken ECP */
 	{ "3B:8B:01:52:75:74:6F:6B:65:6E:20:45:43:50:A0",
-		NULL, NULL, SC_CARD_TYPE_GENERIC_BASE, 0, NULL },
+		NULL, "Rutoken ECP", SC_CARD_TYPE_GENERIC_BASE, 0, NULL },
 	/* Rutoken ECP (DS) */
 	{ "3B:8B:01:52:75:74:6F:6B:65:6E:20:44:53:20:C1",
-		NULL, NULL, SC_CARD_TYPE_GENERIC_BASE, 0, NULL },
+		NULL, "Rutoken ECP (DS)", SC_CARD_TYPE_GENERIC_BASE, 0, NULL },
 	{ NULL, NULL, NULL, 0, 0, NULL }
 };
 
 static int rtecp_match_card(sc_card_t *card)
 {
-	assert(card && card->ctx);
-	if (_sc_match_atr(card, rtecp_atrs, &card->type) >= 0)
+	int i = -1;
+	i = _sc_match_atr(card, rtecp_atrs, &card->type);
+	if (i >= 0) {
+		card->name = rtecp_atrs[i].name;
 		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, 1);
+	}
 	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, 0);
 }
 
@@ -63,8 +66,7 @@ static int rtecp_init(sc_card_t *card)
 	unsigned long flags;
 
 	assert(card && card->ctx);
-	card->name = "Rutoken ECP card";
-	card->caps |= SC_CARD_CAP_RSA_2048 | SC_CARD_CAP_NO_FCI | SC_CARD_CAP_RNG;
+	card->caps |= SC_CARD_CAP_NO_FCI | SC_CARD_CAP_RNG;
 	card->cla = 0;
 
 	flags = SC_ALGORITHM_RSA_RAW | SC_ALGORITHM_ONBOARD_KEY_GEN
@@ -522,7 +524,7 @@ static int rtecp_list_files(sc_card_t *card, u8 *buf, size_t buflen)
 	{
 		apdu.resp = rbuf;
 		apdu.resplen = sizeof(rbuf);
-		apdu.le = sizeof(rbuf) - 2;
+		apdu.le = 256;
 		r = sc_transmit_apdu(card, &apdu);
 		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
 		if (apdu.sw1 == 0x6A  &&  apdu.sw2 == 0x82)
@@ -593,7 +595,7 @@ static int rtecp_card_ctl(sc_card_t *card, unsigned long request, void *data)
 		sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xCA, 0x01, 0x81);
 		apdu.resp = buf;
 		apdu.resplen = sizeof(buf);
-		apdu.le = sizeof(buf) - 2;
+		apdu.le = 256;
 		serial->len = sizeof(serial->value);
 		break;
 	case SC_CARDCTL_RTECP_GENERATE_KEY:
@@ -603,7 +605,7 @@ static int rtecp_card_ctl(sc_card_t *card, unsigned long request, void *data)
 				genkey_data->key_id);
 		apdu.resp = buf;
 		apdu.resplen = sizeof(buf);
-		apdu.le = sizeof(buf) - 2;
+		apdu.le = 256;
 		break;
 	case SC_CARDCTL_LIFECYCLE_SET:
 		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "%s\n",

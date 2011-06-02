@@ -186,7 +186,8 @@ auth_select_aid(struct sc_card *card)
 		data->sn += (int)(*(apdu.resp + 15 + ii)) << (3-ii)*8;
 	
 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "serial number %li/0x%lX\n", data->sn, data->sn);
-		
+	
+	memset(&tmp_path, 0, sizeof(struct sc_path));
 	tmp_path.type = SC_PATH_TYPE_DF_NAME;
 	memcpy(tmp_path.value, aidAuthentIC_V5, lenAidAuthentIC_V5);
 	tmp_path.len = lenAidAuthentIC_V5;
@@ -572,7 +573,8 @@ auth_select_file(struct sc_card *card, const struct sc_path *in_path,
 	
 		if (path.len - offs > 0)   {
 			struct sc_path tmp_path;
-			
+		
+			memset(&tmp_path, 0, sizeof(struct sc_path));	
 			tmp_path.type = SC_PATH_TYPE_FILE_ID;
 			tmp_path.len = 2;
 			
@@ -678,6 +680,7 @@ auth_delete_file(struct sc_card *card, const struct sc_path *path)
 		int ii, len;
 		unsigned char lbuf[SC_MAX_APDU_BUFFER_SIZE];
 		
+		memset(&tmp_path, 0, sizeof(struct sc_path));	
 		tmp_path.type = SC_PATH_TYPE_FILE_ID;
 		memcpy(tmp_path.value, sbuf, 2);
 		tmp_path.len = 2;
@@ -690,6 +693,7 @@ auth_delete_file(struct sc_card *card, const struct sc_path *path)
 		for (ii=0; ii<len/2; ii++)   {
 			struct sc_path tmp_path_x;
 
+			memset(&tmp_path_x, 0, sizeof(struct sc_path));	
 			tmp_path_x.type = SC_PATH_TYPE_FILE_ID;
 			tmp_path_x.value[0] = *(lbuf + ii*2);
 			tmp_path_x.value[1] = *(lbuf + ii*2 + 1);
@@ -1303,6 +1307,7 @@ auth_generate_key(struct sc_card *card, int use_sm,
 	rv = sc_check_sw(card, apdu.sw1, apdu.sw2);
 	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, rv, "Card returned error");
 		
+	memset(&tmp_path, 0, sizeof(struct sc_path));	
 	tmp_path.type = SC_PATH_TYPE_FILE_ID;
 	tmp_path.len = 2;
 	memcpy(tmp_path.value, sbuf, 2);
@@ -1526,13 +1531,9 @@ auth_read_component(struct sc_card *card, enum SC_CARDCTL_OBERTHUR_KEY_TYPE type
 static int 
 auth_get_pin_reference (struct sc_card *card, int type, int reference, int cmd, int *out_ref)
 {
-	struct auth_private_data *prv;
-
-	if (!card || !out_ref)
+	if (!out_ref)
 		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ARGUMENTS);
 	
-	prv = (struct auth_private_data *) card->drv_data;
-    
 	switch (type) {
 	case SC_AC_CHV:
 		if (reference != 1 && reference != 2 && reference != 4)
@@ -1577,12 +1578,12 @@ auth_pin_verify_pinpad(struct sc_card *card, int pin_reference, int *tries_left)
 	struct sc_card_driver *iso_drv = sc_get_iso7816_driver();
 	struct sc_pin_cmd_data pin_cmd;    
 	struct sc_apdu apdu;
-	unsigned char ffs[0x100];	        
+	unsigned char ffs1[0x100];	        
 	int rv;
 
 	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
 
-	memset(ffs, 0xFF, sizeof(ffs));
+	memset(ffs1, 0xFF, sizeof(ffs1));
 	memset(&pin_cmd, 0, sizeof(pin_cmd));
 	
         rv = auth_pin_is_verified(card, pin_reference, tries_left);
@@ -1604,7 +1605,7 @@ auth_pin_verify_pinpad(struct sc_card *card, int pin_reference, int *tries_left)
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x20, 0x00, pin_reference);
 	apdu.lc = OBERTHUR_AUTH_MAX_LENGTH_PIN;
 	apdu.datalen = OBERTHUR_AUTH_MAX_LENGTH_PIN;
-	apdu.data = ffs;
+	apdu.data = ffs1;
 
 	pin_cmd.apdu = &apdu;
 	pin_cmd.pin_type = SC_AC_CHV;
@@ -1616,9 +1617,9 @@ auth_pin_verify_pinpad(struct sc_card *card, int pin_reference, int *tries_left)
 	pin_cmd.pin1.max_length = 8;
 	pin_cmd.pin1.encoding = SC_PIN_ENCODING_ASCII;
 	pin_cmd.pin1.offset = 5;
-	pin_cmd.pin1.data = ffs;
+	pin_cmd.pin1.data = ffs1;
 	pin_cmd.pin1.len = OBERTHUR_AUTH_MAX_LENGTH_PIN;
-	pin_cmd.pin1.pad_length = 0;
+	pin_cmd.pin1.pad_length = OBERTHUR_AUTH_MAX_LENGTH_PIN;
 
 	rv = iso_drv->ops->pin_cmd(card, &pin_cmd, tries_left);
 	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, rv, "PIN CMD 'VERIFY' with pinpad failed");
@@ -1798,7 +1799,7 @@ auth_pin_reset_oberthur_style(struct sc_card *card, unsigned int type,
 	struct sc_file *tmp_file = NULL;
 	struct sc_apdu apdu;
 	unsigned char puk[OBERTHUR_AUTH_MAX_LENGTH_PUK];
-	unsigned char ffs[0x100]; 
+	unsigned char ffs1[0x100]; 
 	int rv, rvv, local_pin_reference;
 
 	SC_FUNC_CALLED(card->ctx, SC_LOG_DEBUG_VERBOSE);
@@ -1809,6 +1810,8 @@ auth_pin_reset_oberthur_style(struct sc_card *card, unsigned int type,
 		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ARGUMENTS, "Oberthur style 'PIN RESET' failed: invalid PIN reference");
 
 	memset(&pin_cmd, 0, sizeof(pin_cmd));
+	memset(&tmp_path, 0, sizeof(struct sc_path));	
+
 	pin_cmd.pin_type = SC_AC_CHV;
         pin_cmd.cmd = SC_PIN_CMD_VERIFY;
 	pin_cmd.pin_reference = OBERTHUR_PIN_REFERENCE_PUK;
@@ -1830,15 +1833,15 @@ auth_pin_reset_oberthur_style(struct sc_card *card, unsigned int type,
 	if (rv != OBERTHUR_AUTH_MAX_LENGTH_PUK)
 		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_DATA, "Oberthur style 'PIN RESET' failed");
 	
-	memset(ffs, 0xFF, sizeof(ffs));
-	memcpy(ffs, puk, rv);
+	memset(ffs1, 0xFF, sizeof(ffs1));
+	memcpy(ffs1, puk, rv);
 
 	memset(&pin_cmd, 0, sizeof(pin_cmd));
 	pin_cmd.pin_type = SC_AC_CHV;
         pin_cmd.cmd = SC_PIN_CMD_UNBLOCK;
 	pin_cmd.pin_reference = local_pin_reference;
 	auth_init_pin_info(card, &pin_cmd.pin1, OBERTHUR_AUTH_TYPE_PUK);
-	pin_cmd.pin1.data = ffs;
+	pin_cmd.pin1.data = ffs1;
 	pin_cmd.pin1.len = OBERTHUR_AUTH_MAX_LENGTH_PUK;
 
 	if (data->pin2.data)   {
@@ -1850,7 +1853,7 @@ auth_pin_reset_oberthur_style(struct sc_card *card, unsigned int type,
         sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x2C, 0x00, local_pin_reference);
 	apdu.lc = OBERTHUR_AUTH_MAX_LENGTH_PIN  + OBERTHUR_AUTH_MAX_LENGTH_PUK;
 	apdu.datalen = OBERTHUR_AUTH_MAX_LENGTH_PIN  + OBERTHUR_AUTH_MAX_LENGTH_PUK;
-	apdu.data = ffs;
+	apdu.data = ffs1;
 
 	pin_cmd.apdu = &apdu;
 	pin_cmd.flags |= SC_PIN_CMD_USE_PINPAD | SC_PIN_CMD_IMPLICIT_CHANGE;
@@ -1860,7 +1863,7 @@ auth_pin_reset_oberthur_style(struct sc_card *card, unsigned int type,
         pin_cmd.pin1.encoding = SC_PIN_ENCODING_ASCII;
         pin_cmd.pin1.offset = 5;
 
-	pin_cmd.pin2.data = &ffs[OBERTHUR_AUTH_MAX_LENGTH_PUK];
+	pin_cmd.pin2.data = &ffs1[OBERTHUR_AUTH_MAX_LENGTH_PUK];
 	pin_cmd.pin2.len = OBERTHUR_AUTH_MAX_LENGTH_PIN;
 	pin_cmd.pin2.offset = 5 + OBERTHUR_AUTH_MAX_LENGTH_PUK;
 	pin_cmd.pin2.min_length = 4;
@@ -1960,19 +1963,24 @@ auth_create_reference_data (struct sc_card *card,
 		SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ARGUMENTS, "Invalid PUK options");
 		
 	len = 0;
+	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "len %i", len);
 	sbuf[len++] = args->pin_tries;
 	sbuf[len++] = pin_info.pad_length;
+	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "len %i", len);
 	memset(sbuf + len, pin_info.pad_char, pin_info.pad_length);
 	memcpy(sbuf + len, args->pin, args->pin_len);
 	len += pin_info.pad_length;
+	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "len %i", len);
 
 	if (args->puk && args->puk_len)   {
 		sbuf[len++] = args->puk_tries;
 		sbuf[len++] = args->puk_len / puk_info.pad_length;
+		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "len %i", len);
 		memcpy(sbuf + len, args->puk, args->puk_len);
 		len += args->puk_len;
 	}
 
+	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "len %i", len);
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_3_SHORT, 0x24, 1, args->ref & ~OBERTHUR_PIN_LOCAL);
 	apdu.data = sbuf;
 	apdu.datalen = len;
@@ -2242,7 +2250,7 @@ auth_delete_record(struct sc_card *card, unsigned int nr_rec)
 static int
 auth_get_serialnr(struct sc_card *card, struct sc_serial_number *serial)
 {
-	if (!card || !serial)
+	if (!serial)
 		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, SC_ERROR_INVALID_ARGUMENTS);
 
 	if (card->serialnr.len==0)

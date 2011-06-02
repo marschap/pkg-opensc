@@ -6,11 +6,11 @@
 /* Default PC/SC provider */
 #undef DEFAULT_PCSC_PROVIDER
 
-/* Enable cardmod support */
-#undef ENABLE_CARDMOD
-
 /* Enable CT-API support */
 #undef ENABLE_CTAPI
+
+/* Enable minidriver support */
+#undef ENABLE_MINIDRIVER
 
 /* Have OpenCT libraries and header files */
 #undef ENABLE_OPENCT
@@ -56,6 +56,9 @@
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the <ltdl.h> header file. */
+#undef HAVE_LTDL_H
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H

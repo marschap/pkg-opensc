@@ -53,7 +53,7 @@ static const struct option options[] = {
 	{ "puk-value", 1, NULL, 'y' },
 	{ "change-pin", 0, NULL, 'n' },
 	{ "unblock-pin", 0, NULL, 'u' },
-	{ "certificat", 1, NULL, 't' },
+	{ "certificate", 1, NULL, 't' },
 	{ "finalize", 0, NULL, 'f' },
 	{ "read-file", 1, NULL, 'j' },
 	{ "write-file", 1, NULL, 'k' },
@@ -164,7 +164,7 @@ static int verify_pin(sc_card_t *card, int pin_reference, char *pin_value)
 		if (r == SC_ERROR_PIN_CODE_INCORRECT) 
 		{
 			if (tries_left >= 0) 
-				printf("Error %d attemps left.\n", tries_left);
+				printf("Error %d attempts left.\n", tries_left);
 			else
 				printf("Wrong pin.\n");
 		}
@@ -221,7 +221,7 @@ static int change_pin(sc_card_t *card,
 		if (r == SC_ERROR_PIN_CODE_INCORRECT) 
 		{
 			if (tries_left >= 0) 
-				printf("Error %d attemps left.\n", tries_left);
+				printf("Error %d attempts left.\n", tries_left);
 			else
 				printf("Wrong pin.\n");
 		}
@@ -279,7 +279,7 @@ static int unlock_pin(sc_card_t *card,
 		if (r == SC_ERROR_PIN_CODE_INCORRECT) 
 		{
 			if (tries_left >= 0) 
-				printf("Error %d attemps left.\n", tries_left);
+				printf("Error %d attempts left.\n", tries_left);
 			else
 				printf("Wrong pin.\n");
 		}
@@ -442,7 +442,7 @@ int main(int argc, char *argv[])
 
 	if (verbose > 1) {
 		ctx->debug = verbose;
-		ctx->debug_file = stderr;
+		sc_ctx_log_to_file(ctx, "stderr");
 	}
 
 	if (opt_driver != NULL) 
@@ -759,7 +759,7 @@ int main(int argc, char *argv[])
 	{
 		int mode = SC_CARDCTRL_LIFECYCLE_USER;
 
-		if(card->atr[10] != 0x82)
+		if(card->atr.value[10] != 0x82)
 		{
 			sc_format_path("0001", &path);
 			r = sc_select_file(card, &path, NULL);

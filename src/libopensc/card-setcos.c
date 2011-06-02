@@ -175,7 +175,7 @@ static int setcos_init(sc_card_t *card)
 		card->cla = 0x00;
 		card->caps |= SC_CARD_CAP_USE_FCI_AC;
 		card->caps |= SC_CARD_CAP_RNG;
-		card->caps |= SC_CARD_FLAG_ONBOARD_KEY_GEN;
+		card->caps |= SC_CARD_CAP_APDU_EXT;
 		break;
 	default:
 		/* XXX: Get SetCOS version */
@@ -503,7 +503,6 @@ static int setcos_create_file_44(sc_card_t *card, sc_file_t *file)
 		}
 		/* RSA signing/decryption requires AC adaptive coding,  can't be put
 		   in AC simple coding. Only implemented for pins, not for a key. */
-		bKeyNumber = 0;
 		if ( (file->type == SC_FILE_TYPE_INTERNAL_EF) &&
 		     (acl_to_byte_44(file->acl[SC_AC_OP_CRYPTO], &bNumber) == SC_AC_CHV) ) {
 			bBuf[len++] = 0x83;

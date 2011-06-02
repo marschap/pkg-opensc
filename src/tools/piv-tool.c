@@ -65,14 +65,13 @@ enum {
 static const struct option options[] = {
 	{ "serial",		0, NULL,	OPT_SERIAL  },
 	{ "name",		0, NULL,		'n' },
-	{ "admin",		0, NULL, 		'A' },
-	{ "usepin",		0, NULL,		'P' }, /* some beta cards want user pin for put_data */
-	{ "genkey",		0, NULL,		'G' },
+	{ "admin",		1, NULL, 		'A' },
+	{ "genkey",		1, NULL,		'G' },
 	{ "object",		1, NULL,		'O' },
 	{ "cert",		1, NULL,		'C' },
-	{ "compresscert", 1, NULL,		'Z' },
-	{ "out",	1, NULL, 		'o' },
-	{ "in",		1, NULL, 		'i' },
+	{ "compresscert",	1, NULL,		'Z' },
+	{ "out",		1, NULL, 		'o' },
+	{ "in",			1, NULL, 		'i' },
 	{ "send-apdu",		1, NULL,		's' },
 	{ "reader",		1, NULL,		'r' },
 	{ "card-driver",	1, NULL,		'c' },
@@ -85,7 +84,6 @@ static const char *option_help[] = {
 	"Prints the card serial number",
 	"Identify the card and print its name",
 	"authenticate using default 3des key",
-	"authenticate using user pin", 
 	"Generate key <ref>:<alg> 9A:06 on card, and output pubkey",
 	"Load an object <containerID> containerID as defined in 800-73 without leading 0x",
 	"Load a cert <ref> where <ref> is 9A,9B,9C or 9D",
@@ -261,7 +259,7 @@ static int gen_key(const char * key_info)
 	unsigned long expl;
 	u8 expc[4];
 #if OPENSSL_VERSION_NUMBER >= 0x00908000L && !defined(OPENSSL_NO_EC)
-	int nid;
+	int nid = -1;
 #endif	
 	sc_hex_to_bin(key_info, buf, &buflen);
 	if (buflen != 2) {
@@ -344,8 +342,8 @@ static int gen_key(const char * key_info)
 	
 		/* PIV returns 04||x||y  and x and y are the same size */
 		i = (keydata.ecpoint_len - 1)/2;
-		x = BN_bin2bn(keydata.ecpoint + 1, i, x);
-		y = BN_bin2bn(keydata.ecpoint + 1 + i, i, y) ;
+		x = BN_bin2bn(keydata.ecpoint + 1, i, NULL);
+		y = BN_bin2bn(keydata.ecpoint + 1 + i, i, NULL) ;
 		r = EC_POINT_set_affine_coordinates_GFp(ecgroup, ecpoint, x, y, NULL);
 		eckey = EC_KEY_new();
 		r = EC_KEY_set_group(eckey, ecgroup);
@@ -370,77 +368,28 @@ static int gen_key(const char * key_info)
 	return r;
 }
 
+
 static int send_apdu(void)
 {
 	sc_apdu_t apdu;
-	u8 buf[SC_MAX_APDU_BUFFER_SIZE+3], sbuf[SC_MAX_APDU_BUFFER_SIZE],
-	   rbuf[SC_MAX_APDU_BUFFER_SIZE], *p;
-	size_t len, len0, r;
+	u8 buf[SC_MAX_APDU_BUFFER_SIZE+3];
+	u8 rbuf[8192];
+	size_t len0, r;
 	int c;
 
 	for (c = 0; c < opt_apdu_count; c++) {
 		len0 = sizeof(buf);
 		sc_hex_to_bin(opt_apdus[c], buf, &len0);
-		if (len0 > SC_MAX_APDU_BUFFER_SIZE+2) {
-			fprintf(stderr, "APDU too long, (must be at most %d bytes).\n",
-				SC_MAX_APDU_BUFFER_SIZE+2);
-				return 2;
-		}
-		if (len0 < 4) {
-			fprintf(stderr, "APDU too short (must be at least 4 bytes).\n");
+
+		r = sc_bytes2apdu(card->ctx, buf, len0, &apdu);
+		if (r) {
+			fprintf(stderr, "Invalid APDU: %s\n", sc_strerror(r));
 			return 2;
 		}
-		len = len0;
-		p = buf;
-		memset(&apdu, 0, sizeof(apdu));
-		apdu.cla = *p++;
-		apdu.ins = *p++;
-		apdu.p1 = *p++;
-		apdu.p2 = *p++;
+
 		apdu.resp = rbuf;
 		apdu.resplen = sizeof(rbuf);
-		len -= 4;
-		if (len > 1) {
-			apdu.lc = *p++;
-			len--;
-			memcpy(sbuf, p, apdu.lc);
-			apdu.data = sbuf;
-			apdu.datalen = apdu.lc;
-			if (len < apdu.lc) {
-				fprintf(stderr, "APDU too short (need %lu bytes).\n",
-					(unsigned long) apdu.lc-len);
-				return 2;
-			}
-			len -= apdu.lc;
-			if (len) {
-				apdu.le = *p++;
-				if (apdu.le == 0)
-					apdu.le = 256;
-				len--;
-				apdu.cse = SC_APDU_CASE_4_SHORT;
-			} else
-				apdu.cse = SC_APDU_CASE_3_SHORT;
-			if (len) {
-				fprintf(stderr, "APDU too long (%lu bytes extra).\n", (unsigned long)len);
-				return 2;
-			}
-		} else if (len == 1) {
-			apdu.le = *p++;
-			if (apdu.le == 0)
-				apdu.le = 256;
-			len--;
-			apdu.cse = SC_APDU_CASE_2_SHORT;
-		} else
-			apdu.cse = SC_APDU_CASE_1;
-		printf("Sending: ");
-		for (r = 0; r < len0; r++)
-			printf("%02X ", buf[r]);
-		printf("\n");
-		r = sc_transmit_apdu(card, &apdu);
-		if (r) {
-			fprintf(stderr, "APDU transmit failed: %s\n", sc_strerror(r));
-			return 1;
-		}
+
 		printf("Received (SW1=0x%02X, SW2=0x%02X)%s\n", apdu.sw1, apdu.sw2,
 		       apdu.resplen ? ":" : "");
 		if (apdu.resplen)
@@ -480,7 +429,8 @@ int main(int argc, char * const argv[])
 	const char *object_id = NULL;
 	const char *key_info = NULL;
 	const char *admin_info = NULL;
-		
+	sc_context_param_t ctx_param;
+
 	setbuf(stderr, NULL);
 	setbuf(stdout, NULL);
 
@@ -566,8 +516,11 @@ int main(int argc, char * const argv[])
 		BIO_set_fp(bp,stdout,BIO_NOCLOSE);
 	}
 
-	r = sc_establish_context(&ctx, app_name);
-	if (r) {
+	memset(&ctx_param, 0, sizeof(sc_context_param_t));
+	ctx_param.app_name = app_name;
+
+	r = sc_context_create(&ctx, &ctx_param);
+	if (r != SC_SUCCESS) {
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
@@ -575,7 +528,7 @@ int main(int argc, char * const argv[])
 	/* Only change if not in opensc.conf */
 	if (verbose > 1 && ctx->debug == 0) { 
 		ctx->debug = verbose;
-		ctx->debug_file = stderr;
+		sc_ctx_log_to_file(ctx, "stderr");
 	}
 
 	if (action_count <= 0)
@@ -631,7 +584,6 @@ int main(int argc, char * const argv[])
 		printf("%s\n", card->name);
 		action_count--;
 	}
-	
 end:
 	if (bp) 
 		BIO_free(bp);
