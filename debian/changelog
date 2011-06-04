@@ -1,3 +1,9 @@
+opensc (0.12.1-1pm1) UNRELEASED; urgency=low
+
+  * debian/control: remove unnecessary Build-Depends: libxt-dev
+
+ -- Peter Marschall <peter@adpm.de>  Sat, 04 Jun 2011 16:42:38 +0200
+
 opensc (0.12.1-1) unstable; urgency=low
 
   * New upstream release. (Closes: #627241)
