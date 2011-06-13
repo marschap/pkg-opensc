@@ -406,9 +406,6 @@ struct sc_reader_operations {
 /* Card has on-board random number source. */
 #define SC_CARD_CAP_RNG			0x00000004
 
-/* Card doesn't return any File Control Info. */
-#define SC_CARD_CAP_NO_FCI		0x00000008
-
 /* Use the card's ACs in sc_pkcs15init_authenticate(),
  * instead of relying on the ACL info in the profile files. */
 #define SC_CARD_CAP_USE_FCI_AC		0x00000010
@@ -425,7 +422,6 @@ typedef struct sc_card {
 
 	int type;			/* Card type, for card driver internal use */
 	unsigned long caps, flags;
-	unsigned int wait_resend_apdu;	/* Delay (msec) before responding to an SW = 6CXX */
 	int cla;
 	size_t max_send_size; /* Max Lc supported by the card */
 	size_t max_recv_size; /* Max Le supported by the card */
@@ -1152,6 +1148,7 @@ int sc_base64_decode(const char *in, u8 *out, size_t outlen);
  */
 void sc_mem_clear(void *ptr, size_t len);
 void *sc_mem_alloc_secure(size_t len);
+int sc_mem_reverse(unsigned char *buf, size_t len);
 
 int sc_get_cache_dir(sc_context_t *ctx, char *buf, size_t bufsize);
 int sc_make_cache_dir(sc_context_t *ctx);
