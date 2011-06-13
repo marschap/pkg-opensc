@@ -1,4 +1,4 @@
-opensc (0.12.1-1pm1) UNRELEASED; urgency=low
+opensc (0.12.1+svn5568-0pm1) unstable; urgency=low
 
   * debian/control: remove unnecessary Build-Depends: libxt-dev
   * debian/control, debian/rules: enable zlib support
@@ -7,7 +7,7 @@ opensc (0.12.1-1pm1) UNRELEASED; urgency=low
   * debian/opensc.install: add *.profile files
   * debian/patches/*: add my patches not yet in mainline
 
- -- Peter Marschall <peter@adpm.de>  Sat, 04 Jun 2011 16:42:38 +0200
+ -- Peter Marschall <peter@adpm.de>  Mon, 13 Jun 2011 11:14:45 +0200
 
 opensc (0.12.1-1) unstable; urgency=low
 
