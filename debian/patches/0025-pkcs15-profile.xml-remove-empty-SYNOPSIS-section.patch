@@ -1,0 +1,32 @@
+From 883404ea79d3d0b867241e23a556e299bdeaf377 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sat, 4 Jun 2011 19:18:34 +0200
+Subject: [PATCH 25/26] pkcs15-profile.xml: remove empty SYNOPSIS section
+
+
+Signed-off-by: Peter Marschall <peter@adpm.de>
+---
+ doc/tools/pkcs15-profile.xml |    7 -------
+ 1 files changed, 0 insertions(+), 7 deletions(-)
+
+diff --git a/doc/tools/pkcs15-profile.xml b/doc/tools/pkcs15-profile.xml
+index cc687b3..6fc912c 100644
+--- a/doc/tools/pkcs15-profile.xml
++++ b/doc/tools/pkcs15-profile.xml
+@@ -12,13 +12,6 @@
+ 	</refnamediv>
+ 
+ 	<refsect1>
+-		<title>Synopsis</title>
+-		<para>
+-			<command></command>
+-		</para>
+-	</refsect1>
+-
+-	<refsect1>
+ 		<title>Description</title>
+ 		<para>
+ 			The <command>pkcs15-init</command> utility for PKCS #15 smart card
+-- 
+1.7.5.3
+

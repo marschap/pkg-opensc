@@ -1,0 +1,38 @@
+From 876a480d7f4e70848681a68d96b2b74a769fc61b Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Thu, 2 Jun 2011 15:51:30 +0200
+Subject: [PATCH 14/26] opensc-explorer: fix argc checks in do_update_*()
+
+do_update_binary() and do_update_record() expect a fixed number of parameters
+each: adapt the checks for argc so that they do the right thing.
+
+Signed-off-by: Peter Marschall <peter@adpm.de>
+---
+ src/tools/opensc-explorer.c |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/tools/opensc-explorer.c b/src/tools/opensc-explorer.c
+index 6c4a14b..021dc32 100644
+--- a/src/tools/opensc-explorer.c
++++ b/src/tools/opensc-explorer.c
+@@ -1131,7 +1131,7 @@ static int do_update_binary(int argc, char **argv)
+ 	sc_file_t *file;
+ 	char *in_str;
+ 
+-	if (argc < 2 || argc > 3)
++	if (argc != 3)
+ 		return usage(do_update_binary);
+ 	if (arg_to_path(argv[0], &path, 0) != 0)
+ 		return usage(do_update_binary);
+@@ -1182,7 +1182,7 @@ static int do_update_record(int argc, char **argv)
+ 	sc_file_t *file;
+ 	char *in_str;
+ 
+-	if (argc < 3 || argc > 4)
++	if (argc != 4)
+ 		return usage(do_update_record);
+ 	if (arg_to_path(argv[0], &path, 0) != 0)
+ 		return usage(do_update_record);
+-- 
+1.7.5.3
+

@@ -1,0 +1,38 @@
+From 0a6c38944711a7af2fea6907195bd8af4098cf28 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Thu, 2 Jun 2011 10:10:48 +0200
+Subject: [PATCH 11/26] OpenPGP: unlink blob from blob tree in pgp_free_blob()
+
+Remove links pointing to the blob to be deleted from other blobs in the
+blob tree structure, so that removing a subordinate blob does not hurt
+its parent or siblings.
+
+Signed-off-by: Peter Marschall <peter@adpm.de>
+---
+ src/libopensc/card-openpgp.c |   10 ++++++++++
+ 1 files changed, 10 insertions(+), 0 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index d155913..ef9c491 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -527,6 +527,16 @@ static void
+ pgp_free_blob(struct blob *blob)
+ {
+ 	if (blob) {
++		if (blob->parent) {
++			struct blob **p;
++
++			/* remove blob from list of parent's children */
++			for (p = &blob->parent->files; *p != NULL && *p != blob; p = &(*p)->next)
++				;
++			if (*p == blob)
++				*p = blob->next;
++		}
++
+ 		if (blob->file)
+ 			sc_file_free(blob->file);
+ 		if (blob->data)
+-- 
+1.7.5.3
+

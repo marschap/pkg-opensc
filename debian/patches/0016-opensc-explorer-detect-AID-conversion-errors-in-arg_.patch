@@ -1,0 +1,38 @@
+From cc5a688a8fe982ab6fb63910c497cd7963734988 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Thu, 2 Jun 2011 16:13:04 +0200
+Subject: [PATCH 16/26] opensc-explorer: detect AID conversion errors in
+ arg_to_path()
+
+Convert arg_to_path() to using the standard sc_hex_to_binary() instead of
+the local hex2binary().
+While at it, return erros on failed conversions.
+
+Signed-off-by: Peter Marschall <peter@adpm.de>
+---
+ src/tools/opensc-explorer.c |    8 +++++++-
+ 1 files changed, 7 insertions(+), 1 deletions(-)
+
+diff --git a/src/tools/opensc-explorer.c b/src/tools/opensc-explorer.c
+index 2735924..cb29865 100644
+--- a/src/tools/opensc-explorer.c
++++ b/src/tools/opensc-explorer.c
+@@ -276,8 +276,14 @@ static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
+ 	if (strncasecmp(arg, "aid:", strlen("aid:")) == 0) {
+ 		/* DF aid */
+ 		const char *p = arg + strlen("aid:");
+-		path->len  = hex2binary(path->value, sizeof(path->value), p);
++		int r;
++
+ 		path->type = SC_PATH_TYPE_DF_NAME;
++		path->len  = sizeof(path->value);
++		if ((r = sc_hex_to_bin(p, path->value, &path->len)) < 0) {
++			printf("Error parsing AID: %s\n", p);
++			return r;
++		}
+ 	} else {
+ 		/* file id */
+ 		unsigned int buf[2];
+-- 
+1.7.5.3
+

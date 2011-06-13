@@ -5,6 +5,7 @@ opensc (0.12.1-1pm1) UNRELEASED; urgency=low
   * debian/control, debian/rules: enable readline support
   * debian/opensc.install: add westcos-tool & its man page
   * debian/opensc.install: add *.profile files
+  * debian/patches/*: add my patches not yet in mainline
 
  -- Peter Marschall <peter@adpm.de>  Sat, 04 Jun 2011 16:42:38 +0200
 

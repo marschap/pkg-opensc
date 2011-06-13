@@ -1,0 +1,37 @@
+From 205b02c89ec53a533408354f37572be698a71411 Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Wed, 1 Jun 2011 13:17:26 +0200
+Subject: [PATCH 05/26] OpenPGP: update pgp_list_files()
+
+* fail if buffer passed as parameter is too small
+* only list readable objects
+
+Signed-off-by: Peter Marschall <peter@adpm.de>
+---
+ src/libopensc/card-openpgp.c |   10 ++++++++--
+ 1 files changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/src/libopensc/card-openpgp.c b/src/libopensc/card-openpgp.c
+index 11308a8..6f00dce 100644
+--- a/src/libopensc/card-openpgp.c
++++ b/src/libopensc/card-openpgp.c
+@@ -727,8 +727,14 @@ pgp_list_files(sc_card_t *card, u8 *buf, size_t buflen)
+ 	if ((r = pgp_enumerate_blob(card, blob)) < 0)
+ 		LOG_FUNC_RETURN(card->ctx, r);
+ 
+-	for (k = 0, blob = blob->files; (blob != NULL) && (k + 2 <= buflen); blob = blob->next, k += 2) {
+-		ushort2bebytes(buf + k, blob->id);
++	for (k = 0, blob = blob->files; blob != NULL; blob = blob->next) {
++		if (blob->info != NULL && (blob->info->access & READ_MASK) != READ_NEVER) {
++			if (k + 2 > buflen)
++				LOG_FUNC_RETURN(card->ctx, SC_ERROR_BUFFER_TOO_SMALL);
++
++			ushort2bebytes(buf + k, blob->id);
++			k += 2;
++		}
+ 	}
+ 
+ 	LOG_FUNC_RETURN(card->ctx, k);
+-- 
+1.7.5.3
+

@@ -1,0 +1,172 @@
+From 201d17739fc96af37c496baf7663334a06a87edb Mon Sep 17 00:00:00 2001
+From: Peter Marschall <peter@adpm.de>
+Date: Sat, 4 Jun 2011 19:22:10 +0200
+Subject: [PATCH 26/26] pkcs15-profile.xml: allow sustitution of @pkgdatadir@
+
+Rename pkcs15-profile.xml to pkcs15-profile.xml.in and
+use this input file to idynamically create pkcs15-profile.xml with
+@pkgdatadir@ substituted by the value set in the configure step.
+
+Signed-off-by: Peter Marschall <peter@adpm.de>
+---
+ doc/Makefile.am                 |   14 +++++++++-
+ doc/tools/pkcs15-profile.xml    |   50 ---------------------------------------
+ doc/tools/pkcs15-profile.xml.in |   50 +++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 62 insertions(+), 52 deletions(-)
+ delete mode 100644 doc/tools/pkcs15-profile.xml
+ create mode 100644 doc/tools/pkcs15-profile.xml.in
+
+diff --git a/doc/Makefile.am b/doc/Makefile.am
+index 6f31b6e..1ca357d 100644
+--- a/doc/Makefile.am
++++ b/doc/Makefile.am
+@@ -1,7 +1,10 @@
+ MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
++DISTCLEANFILES = $(srcdir)/tools/pkcs15-profile.xml
++
++SUFFIXES = .in
+ 
+ dist_noinst_SCRIPTS = svn2cl.xsl html.xsl man.xsl
+-dist_noinst_DATA = $(srcdir)/tools/*.xml api.css
++dist_noinst_DATA = $(srcdir)/tools/*.xml $(srcdir)/tools/*.xml.in api.css
+ if ENABLE_DOC
+ html_DATA = html.out/*
+ endif
+@@ -19,7 +22,7 @@ html.out: api.work
+ 	mv html.tmp html.out
+ 
+ man.out/*.1: man.out
+-man.out: api.work
++man.out: api.work tools/pkcs15-profile.xml
+ 	-rm -fr man.tmp man.out
+ 	$(MKDIR_P) man.tmp
+ 	$(XSLTPROC) --nonet --path "$(srcdir)/api" --xinclude -o "man.tmp/" "api.work/man.xsl" "$(srcdir)/tools/tools.xml"
+@@ -27,6 +30,13 @@ man.out: api.work
+ 
+ man.out/*.5:	man.out/*.1
+ 
++tools/pkcs15-profile.xml: tools/pkcs15-profile.xml.in
++
++.in:
++	sed \
++		-e 's|@pkgdatadir[@]|$(pkgdatadir)|g' \
++		< $< > $@
++
+ #
+ # This part is needed as found no
+ # way to make xsltproc find xsl-stylesheets
+diff --git a/doc/tools/pkcs15-profile.xml b/doc/tools/pkcs15-profile.xml
+deleted file mode 100644
+index 6fc912c..0000000
+--- a/doc/tools/pkcs15-profile.xml
++++ /dev/null
+@@ -1,50 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<refentry id="">
+-	<refmeta>
+-		<refentrytitle>pkcs15-profile</refentrytitle>
+-		<manvolnum>5</manvolnum>
+-		<refmiscinfo>opensc</refmiscinfo>
+-	</refmeta>
+-
+-	<refnamediv>
+-		<refname>pkcs15-profile</refname>
+-		<refpurpose>format of profile for <command>pkcs15-init</command></refpurpose>
+-	</refnamediv>
+-
+-	<refsect1>
+-		<title>Description</title>
+-		<para>
+-			The <command>pkcs15-init</command> utility for PKCS #15 smart card
+-			personalization is controlled via profiles. When starting, it will read two
+-			such profiles at the moment, a generic application profile, and a card
+-			specific profile. The generic profile must be specified on the command line,
+-			while the card-specific file is selected based on the type of card detected.
+-		</para>
+-		<para>
+-			The generic application profile defines general information about the card
+-			layout, such as the path of the application DF, various PKCS #15 files within
+-			that directory, and the access conditions on these files. It also defines
+-			general information about PIN, key and certificate objects. Currently, there
+-			is only one such generic profile, <command>pkcs15.profile</command>.
+-		</para>
+-		<para>
+-			The card specific profile contains additional information required during
+-			card intialization, such as location of PIN files, key references etc.
+-			Profiles currently reside in <command>@pkgdatadir@</command>
+-		</para>
+-	</refsect1>
+-
+-	<refsect1>
+-		<title>Syntax</title>
+-		<para>
+-			This section should contain information about the profile syntax. Will add
+-			this soonishly.
+-		</para>
+-	</refsect1>
+-	
+-	<refsect1>
+-		<title>See also</title>
+-		<para>pkcs15-init(1), pkcs15-crypt(1)</para>
+-	</refsect1>
+-
+-</refentry>
+diff --git a/doc/tools/pkcs15-profile.xml.in b/doc/tools/pkcs15-profile.xml.in
+new file mode 100644
+index 0000000..686bd91
+--- /dev/null
++++ b/doc/tools/pkcs15-profile.xml.in
+@@ -0,0 +1,50 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<refentry id="">
++	<refmeta>
++		<refentrytitle>pkcs15-profile</refentrytitle>
++		<manvolnum>5</manvolnum>
++		<refmiscinfo>opensc</refmiscinfo>
++	</refmeta>
++
++	<refnamediv>
++		<refname>pkcs15-profile</refname>
++		<refpurpose>format of profile for <command>pkcs15-init</command></refpurpose>
++	</refnamediv>
++
++	<refsect1>
++		<title>Description</title>
++		<para>
++			The <command>pkcs15-init</command> utility for PKCS #15 smart card
++			personalization is controlled via profiles. When starting, it will read two
++			such profiles at the moment, a generic application profile, and a card
++			specific profile. The generic profile must be specified on the command line,
++			while the card-specific file is selected based on the type of card detected.
++		</para>
++		<para>
++			The generic application profile defines general information about the card
++			layout, such as the path of the application DF, various PKCS #15 files within
++			that directory, and the access conditions on these files. It also defines
++			general information about PIN, key and certificate objects. Currently, there
++			is only one such generic profile, <command>pkcs15.profile</command>.
++		</para>
++		<para>
++			The card specific profile contains additional information required during
++			card intialization, such as location of PIN files, key references etc.
++			Profiles currently reside in <command>@pkgdatadir@</command>
++		</para>
++	</refsect1>
++
++	<refsect1>
++		<title>Syntax</title>
++		<para>
++			This section should contain information about the profile syntax. Will add
++			this soonishly.
++		</para>
++	</refsect1>
++
++	<refsect1>
++		<title>See also</title>
++		<para>pkcs15-init(1), pkcs15-crypt(1)</para>
++	</refsect1>
++
++</refentry>
+-- 
+1.7.5.3
+
