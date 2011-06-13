@@ -1,7 +1,7 @@
 /*
  * PKCS15 emulation layer for TCOS based preformatted cards
  *
- * Copyright (C) 2010, Peter Koch <pk@opensc-project.org>
+ * Copyright (C) 2011, Peter Koch <pk@opensc-project.org>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -189,20 +189,21 @@ static int insert_pin(
 	sc_card_t *card=p15card->card;
 	sc_context_t *ctx=p15card->card->ctx;
 	sc_file_t *f;
-	struct sc_pkcs15_pin_info pin_info;
+	struct sc_pkcs15_auth_info pin_info;
 	struct sc_pkcs15_object pin_obj;
 	int r;
 
 	memset(&pin_info, 0, sizeof(pin_info));
 	pin_info.auth_id.len      = 1;
 	pin_info.auth_id.value[0] = id;
-	pin_info.reference        = pin_reference;
-	pin_info.flags            = pin_flags;
-	pin_info.type             = SC_PKCS15_PIN_TYPE_ASCII_NUMERIC;
-	pin_info.min_length       = min_length;
-	pin_info.stored_length    = 16;
-	pin_info.max_length       = 16;
-	pin_info.pad_char         = '\0';
+	pin_info.auth_type = SC_PKCS15_PIN_AUTH_TYPE_PIN;
+	pin_info.attrs.pin.reference        = pin_reference;
+	pin_info.attrs.pin.flags            = pin_flags;
+	pin_info.attrs.pin.type             = SC_PKCS15_PIN_TYPE_ASCII_NUMERIC;
+	pin_info.attrs.pin.min_length       = min_length;
+	pin_info.attrs.pin.stored_length    = 16;
+	pin_info.attrs.pin.max_length       = 16;
+	pin_info.attrs.pin.pad_char         = '\0';
 	sc_format_path(path, &pin_info.path);
 
 	memset(&pin_obj, 0, sizeof(pin_obj));
@@ -275,7 +276,7 @@ static int detect_netkey(
 
 	/* NKS-Applikation ? */
 	memset(&p, 0, sizeof(sc_path_t));
-	p.len=7; p.type=SC_PATH_TYPE_DF_NAME;
+	p.type=SC_PATH_TYPE_DF_NAME;
 	memcpy(p.value, "\xD2\x76\x00\x00\x03\x01\x02", p.len=7);
 	if (sc_select_file(card,&p,&f)!=SC_SUCCESS) return 1;
 	sprintf(dir,"%04X", f->id);
@@ -303,8 +304,7 @@ static int detect_netkey(
 	insert_key(p15card, dirpath(dir,"0000"), 0x48, 0x83, 1024,   3, "1024bit Schluessel");
 
 	insert_pin(p15card, "5000", 1, 2, 0x00, 6, "PIN",
-		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED |
-		SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN
+		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED
 	);
 	insert_pin(p15card, "5001", 2, 0, 0x01, 8, "PUK",
 		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED |
@@ -358,6 +358,43 @@ static int detect_netkey(
 	return 0;
 }
 
+static int detect_idkey(
+	sc_pkcs15_card_t *p15card
+){
+	sc_card_t *card=p15card->card;
+	sc_path_t p;
+
+	/* TCKEY-Applikation ? */
+	memset(&p, 0, sizeof(sc_path_t));
+	p.type=SC_PATH_TYPE_DF_NAME;
+	memcpy(p.value, "\xD2\x76\x00\x00\x03\x0C\x01", p.len=7);
+	if (sc_select_file(card,&p,NULL)!=SC_SUCCESS) return 1;
+
+	p15card->tokeninfo->manufacturer_id = strdup("TeleSec GmbH");
+	p15card->tokeninfo->label = strdup("IDKey Card");
+
+	insert_cert(p15card, "DF074331", 0x45, 1, "Signatur Zertifikat 1");
+	insert_cert(p15card, "DF074332", 0x45, 1, "Signatur Zertifikat 2");
+	insert_cert(p15card, "DF074333", 0x45, 1, "Signatur Zertifikat 3");
+
+	insert_key(p15card, "DF074E03", 0x45, 0x84, 2048, 1, "IDKey1");
+	insert_key(p15card, "DF074E04", 0x46, 0x85, 2048, 1, "IDKey2");
+	insert_key(p15card, "DF074E05", 0x47, 0x86, 2048, 1, "IDKey3");
+	insert_key(p15card, "DF074E06", 0x48, 0x87, 2048, 1, "IDKey4");
+	insert_key(p15card, "DF074E07", 0x49, 0x88, 2048, 1, "IDKey5");
+	insert_key(p15card, "DF074E08", 0x4A, 0x89, 2048, 1, "IDKey6");
+
+	insert_pin(p15card, "5000", 1, 2, 0x00, 6, "PIN",
+		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED
+	);
+	insert_pin(p15card, "5001", 2, 0, 0x01, 8, "PUK",
+		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED |
+		SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN | SC_PKCS15_PIN_FLAG_SO_PIN
+	);
+
+	return 0;
+}
+
 static int detect_signtrust(
 	sc_pkcs15_card_t *p15card
 ){
@@ -403,8 +440,7 @@ static int detect_datev(
 	insert_key(p15card,"DF025371", 0x47, 0x82, 1024, 1, "Authentifizierungs Schluessel");
 
 	insert_pin(p15card,"5001", 1, 0, 0x01, 6, "PIN",
-		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED |
-		SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN
+		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED
 	);
 
 	return 0;
@@ -436,8 +472,7 @@ static int detect_unicard(
 	} else return 1;
 
 	insert_pin(p15card,"5000", 1, 2, 0x00, 6, "PIN",
-		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED |
-		SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN
+		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED
 	);
 	insert_pin(p15card,"5008", 2, 0, 0x01, 8, "PUK",
 		SC_PKCS15_PIN_FLAG_CASE_SENSITIVE | SC_PKCS15_PIN_FLAG_INITIALIZED |
@@ -472,9 +507,10 @@ int sc_pkcs15emu_tcos_init_ex(
         p15card->tokeninfo->serial_number = strdup(serial);
 
 	if(!detect_netkey(p15card)) return SC_SUCCESS;
+	if(!detect_idkey(p15card)) return SC_SUCCESS;
+	if(!detect_unicard(p15card)) return SC_SUCCESS;
 	if(!detect_signtrust(p15card)) return SC_SUCCESS;
 	if(!detect_datev(p15card)) return SC_SUCCESS;
-	if(!detect_unicard(p15card)) return SC_SUCCESS;
 
 	return SC_ERROR_INTERNAL;
 }

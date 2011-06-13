@@ -666,7 +666,7 @@ authentic_reduce_path(struct sc_card *card, struct sc_path *path)
 {
 	struct sc_context *ctx = card->ctx;
 	struct sc_path in_path, cur_path;
-	int offs;
+	size_t offs;
 
 	LOG_FUNC_CALLED(ctx);
 
@@ -1031,7 +1031,8 @@ authentic_process_fci(struct sc_card *card, struct sc_file *file,
 {
 	struct sc_context *ctx = card->ctx;
 	size_t taglen;
-	int rv, ii;
+	int rv;
+	unsigned ii;
 	const unsigned char *tag = NULL;
 	unsigned char ops_DF[8] = {
 		SC_AC_OP_CREATE, SC_AC_OP_DELETE, SC_AC_OP_CRYPTO, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF
@@ -1396,7 +1397,7 @@ authentic_pin_verify(struct sc_card *card, struct sc_pin_cmd_data *pin_cmd)
 	rv = authentic_pin_get_policy(card, pin_cmd);
 	LOG_TEST_RET(ctx, rv, "Get 'PIN policy' error");
 
-	if (pin_cmd->pin1.len > pin_cmd->pin1.max_length)
+	if (pin_cmd->pin1.len > (int)pin_cmd->pin1.max_length)
 		LOG_TEST_RET(ctx, SC_ERROR_INVALID_PIN_LENGTH, "PIN policy check failed");
 
 	pin_cmd->pin1.tries_left = -1;	
@@ -1477,7 +1478,7 @@ authentic_pin_change(struct sc_card *card, struct sc_pin_cmd_data *data, int *tr
 		LOG_FUNC_RETURN(ctx, rv);
 	}
 
-	if (card->max_send_size && data->pin1.len + data->pin2.len > card->max_send_size)
+	if (card->max_send_size && (data->pin1.len + data->pin2.len > (int)card->max_send_size))
 		LOG_TEST_RET(ctx, SC_ERROR_INVALID_PIN_LENGTH, "APDU transmit failed");
 
 	memset(pin_data, data->pin1.pad_char, sizeof(pin_data));
@@ -1553,7 +1554,7 @@ authentic_pin_get_policy (struct sc_card *card, struct sc_pin_cmd_data *data)
 	int ii, rv;
 
 	LOG_FUNC_CALLED(ctx);
-	sc_log(ctx, "get PIN(type:%X,ref:%X)", data->pin_type, data->pin_reference);
+	sc_log(ctx, "get PIN(type:%X,ref:%X,tries-left:%i)", data->pin_type, data->pin_reference, data->pin1.tries_left);
   
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xCA, 0x5F, data->pin_reference);
 	for (ii=0;ii<2;ii++)   {
@@ -1571,6 +1572,8 @@ authentic_pin_get_policy (struct sc_card *card, struct sc_pin_cmd_data *data)
 		apdu.cla = 0x80;
 	}
         LOG_TEST_RET(ctx, rv, "'GET DATA' error");
+
+	data->pin1.tries_left = -1;
 
 	rv = authentic_parse_credential_data(ctx, data, apdu.resp, apdu.resplen);
         LOG_TEST_RET(ctx, rv, "Cannot parse credential data");
@@ -1609,6 +1612,7 @@ authentic_pin_reset(struct sc_card *card, struct sc_pin_cmd_data *data, int *tri
 	memset(&pin_cmd, 0, sizeof(pin_cmd));
 	pin_cmd.pin_reference = data->pin_reference;
 	pin_cmd.pin_type = data->pin_type;
+	pin_cmd.pin1.tries_left = -1;
 
 	rv = authentic_pin_get_policy(card, &pin_cmd);
 	LOG_TEST_RET(ctx, rv, "Get 'PIN policy' error");
@@ -1687,8 +1691,9 @@ authentic_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data, int *tries
 	int rv;
 
 	LOG_FUNC_CALLED(ctx);
-	sc_log(ctx, "PIN-CMD:%X,PIN(type:%X,ret:%i),PIN1(%p,len:%i),PIN2(%p,len:%i)", data->cmd, data->pin_type, 
-			data->pin_reference, data->pin1.data, data->pin1.len, data->pin2.data, data->pin2.len);
+	sc_log(ctx, "PIN-CMD:%X,PIN(type:%X,ret:%i)", data->cmd, data->pin_type, data->pin_reference);
+	sc_log(ctx, "PIN1(%p,len:%i,tries-left:%i)", data->pin1.data, data->pin1.len, data->pin1.tries_left);
+	sc_log(ctx, "PIN2(%p,len:%i)", data->pin2.data, data->pin2.len);
   
 	switch (data->cmd)   {
 	case SC_PIN_CMD_VERIFY:
@@ -1704,7 +1709,7 @@ authentic_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data, int *tries
 		rv = authentic_pin_get_policy(card, data);
 		break;
 	default:
-		LOG_TEST_RET(ctx, SC_ERROR_NOT_SUPPORTED, "Unupported PIN command");
+		LOG_TEST_RET(ctx, SC_ERROR_NOT_SUPPORTED, "Unsupported PIN command");
 	}
 
 	if (rv == SC_ERROR_PIN_CODE_INCORRECT && tries_left)
@@ -1751,7 +1756,7 @@ authentic_get_challenge(struct sc_card *card, unsigned char *rnd, size_t len)
 	int rv, nn;
 
 	LOG_FUNC_CALLED(ctx);
-	if (!rnd)
+	if (!rnd && len)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
 	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0x84, 0x00, 0x00);

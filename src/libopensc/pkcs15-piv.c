@@ -160,6 +160,7 @@ static int piv_get_guid(struct sc_pkcs15_card *p15card, const struct sc_pkcs15_o
 		 */
 		f5p = serialnr.value;
 		f8p = guid_bin;
+		fbyte = 0;
 		fbyte2 = 0;
 		fnibble = 0;
 		fbits = 0;
@@ -599,7 +600,6 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 
 	int    r, i;
 	sc_card_t *card = p15card->card;
-	sc_file_t *file_out = NULL;
 	sc_serial_number_t serial;
 	char buf[SC_MAX_SERIALNR * 2 + 1];
 	common_key_info ckis[PIV_NUM_CERTS_AND_KEYS];
@@ -717,13 +717,7 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 			continue;
 		}
 
-		/* use a &file_out so card-piv.c will read cert if present */
-		r = sc_pkcs15_read_file(p15card, &cert_info.path, 
-				&cert_der.value, &cert_der.len, &file_out);
-		if (file_out) {
-			sc_file_free(file_out);
-			file_out = NULL;
-		}
+		r = sc_pkcs15_read_file(p15card, &cert_info.path, &cert_der.value, &cert_der.len);
 
 		if (r) { 
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "No cert found,i=%d", i);
@@ -769,7 +763,7 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 	/* set pins */
 	sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "PIV-II adding pins...");
 	for (i = 0; pins[i].label; i++) {
-		struct sc_pkcs15_pin_info pin_info;
+		struct sc_pkcs15_auth_info pin_info;
 		struct sc_pkcs15_object   pin_obj;
 		const char * label;
 		int pin_ref;
@@ -777,14 +771,15 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 		memset(&pin_info, 0, sizeof(pin_info));
 		memset(&pin_obj,  0, sizeof(pin_obj));
 
+		pin_info.auth_type = SC_PKCS15_PIN_AUTH_TYPE_PIN;
 		sc_pkcs15_format_id(pins[i].id, &pin_info.auth_id);
-		pin_info.reference     = pins[i].ref;
-		pin_info.flags         = pins[i].flags;
-		pin_info.type          = pins[i].type;
-		pin_info.min_length    = pins[i].minlen;
-		pin_info.stored_length = pins[i].storedlen;
-		pin_info.max_length    = pins[i].maxlen;
-		pin_info.pad_char      = pins[i].pad_char;
+		pin_info.attrs.pin.reference     = pins[i].ref;
+		pin_info.attrs.pin.flags         = pins[i].flags;
+		pin_info.attrs.pin.type          = pins[i].type;
+		pin_info.attrs.pin.min_length    = pins[i].minlen;
+		pin_info.attrs.pin.stored_length = pins[i].storedlen;
+		pin_info.attrs.pin.max_length    = pins[i].maxlen;
+		pin_info.attrs.pin.pad_char      = pins[i].pad_char;
 		sc_format_path(pins[i].path, &pin_info.path);
 		pin_info.tries_left    = -1;
 
@@ -793,7 +788,7 @@ static int sc_pkcs15emu_piv_init(sc_pkcs15_card_t *p15card)
 			(card->ops->card_ctl)(card, SC_CARDCTL_PIV_PIN_PREFERENCE,
 					&pin_ref) == 0 &&
 				pin_ref == 0x00) { /* must be 80 for PIV pin, or 00 for Global PIN */
-			pin_info.reference = pin_ref;
+			pin_info.attrs.pin.reference = pin_ref;
 			label = "Global PIN";
 		} 
 sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "DEE Adding pin %d label=%s",i, label);

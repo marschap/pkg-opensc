@@ -5,7 +5,7 @@ Class=SmartCard
 ClassGuid={990A2BD7-E738-46c7-B26F-1CF8FB9F1391}
 Provider=%ProviderName%
 CatalogFile=delta.cat
-DriverVer=05/02/2010,0,12,1,0
+DriverVer=05/02/2010,0,12,2,0
 
 [Manufacturer]
 %ProviderName%=Minidriver,NTamd64,NTamd64.6.1,NTx86,NTx86.6.1
