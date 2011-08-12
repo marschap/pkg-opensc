@@ -5,8 +5,9 @@ opensc (0.12.2-0pm1) UNRELEASED; urgency=low
   * debian/rules: do not use dh_auto_configure in configure step
   * debian/rules: exclicitely enable building manual pages
   * debian/rules: update autoconf files via `./bootstrap`
+  * debian/opensc.install: fix syntax for manual pages
 
- -- Peter Marschall <peter@adpm.de>  Fri, 12 Aug 2011 19:46:50 +0200
+ -- Peter Marschall <peter@adpm.de>  Fri, 12 Aug 2011 19:55:00 +0200
 
 opensc (0.12.1+svn5568-0pm1) unstable; urgency=low
 
