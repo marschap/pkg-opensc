@@ -1,3 +1,9 @@
+opensc (0.12.2-0pm1) UNRELEASED; urgency=low
+
+  * New upstream release.
+
+ -- Peter Marschall <peter@adpm.de>  Fri, 12 Aug 2011 17:09:39 +0200
+
 opensc (0.12.1+svn5568-0pm1) unstable; urgency=low
 
   * debian/control: remove unnecessary Build-Depends: libxt-dev
