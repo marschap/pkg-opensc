@@ -4,7 +4,14 @@
 	dh $@
 
 override_dh_auto_configure:
-	dh_auto_configure -- --sysconfdir=/etc/opensc \
+	./configure --build=x86_64-linux-gnu \
+		--prefix=/usr \
+		--includedir=/usr/include \
+		--mandir=/usr/share/man \
+		--localstatedir=/var \
+		--libexecdir=/usr/lib/opensc \
+		--disable-dependency-tracking \
+		--sysconfdir=/etc/opensc \
 		--enable-pcsc \
 		--enable-readline \
 		--enable-zlib \
