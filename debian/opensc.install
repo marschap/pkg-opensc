@@ -10,5 +10,5 @@ debian/tmp/usr/bin/pkcs15*
 debian/tmp/usr/bin/westcos-tool
 
 debian/tmp/usr/lib/*
-debian/tmp/usr/share/opensc/*.profile
+src/pkcs15init/*.profile usr/share/opensc/
 etc/opensc.conf etc/opensc
