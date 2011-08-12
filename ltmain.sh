@@ -64,14 +64,14 @@
 # When reporting a bug, please describe a test case to reproduce it and
 # include the following information:
 #
-#         host-triplet:	$host
-#         shell:		$SHELL
-#         compiler:		$LTCC
-#         compiler flags:		$LTCFLAGS
-#         linker:		$LD (gnu? $with_gnu_ld)
-#         $progname:	(GNU libtool) 2.4 Debian-2.4-2
-#         automake:	$automake_version
-#         autoconf:	$autoconf_version
+#       host-triplet:	$host
+#       shell:		$SHELL
+#       compiler:		$LTCC
+#       compiler flags:		$LTCFLAGS
+#       linker:		$LD (gnu? $with_gnu_ld)
+#       $progname:		(GNU libtool) 2.2.6b Debian-2.2.6b-2ubuntu1
+#       automake:		$automake_version
+#       autoconf:		$autoconf_version
 #
 # Report bugs to <bug-libtool@gnu.org>.
 # GNU libtool home page: <http://www.gnu.org/software/libtool/>.
@@ -79,7 +79,7 @@
 
 PROGRAM=libtool
 PACKAGE=libtool
-VERSION="2.4 Debian-2.4-2"
+VERSION="2.2.6b Debian-2.2.6b-2ubuntu1"
 TIMESTAMP=""
 package_revision=1.3293
 

@@ -5,7 +5,7 @@ AC_PREREQ(2.60)
 define([PACKAGE_VERSION_MAJOR], [0])
 define([PACKAGE_VERSION_MINOR], [12])
 define([PACKAGE_VERSION_FIX], [2])
-define([PACKAGE_SUFFIX], [-svn])
+define([PACKAGE_SUFFIX], [])
 
 AC_INIT([opensc],[PACKAGE_VERSION_MAJOR.PACKAGE_VERSION_MINOR.PACKAGE_VERSION_FIX[]PACKAGE_SUFFIX])
 AC_CONFIG_AUX_DIR([.])
@@ -28,6 +28,9 @@ OPENSC_LT_AGE="0"
 OPENSC_LT_AGE="$((${OPENSC_LT_CURRENT}-${OPENSC_LT_OLDEST}))"
 
 AC_CONFIG_SRCDIR([src/libopensc/sc.c])
+
+# silent build by default
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 AC_CANONICAL_HOST
 AC_PROG_CC
@@ -192,11 +195,11 @@ ifdef(
 	]
 )
 
-dnl These required for svn checkout
-AC_ARG_VAR([SVN], [subversion utility])
+dnl These required for repository checkout
 AC_ARG_VAR([XSLTPROC], [xsltproc utility])
-AC_CHECK_PROGS([SVN],[svn])
+AC_ARG_VAR([git], [git])
 AC_CHECK_PROGS([XSLTPROC],[xsltproc])
+AC_CHECK_PROGS([GIT],[git])
 
 AC_MSG_CHECKING([xsl-stylesheets])
 if test "${xslstylesheetsdir}" = "detect"; then
@@ -490,7 +493,7 @@ fi
 
 if test "${enable_man}" = "yes" -o "${enable_doc}" = "yes"; then
 	AC_MSG_CHECKING([XSLTPROC requirement])
-	test -n "${XSLTPROC}" || AC_MSG_ERROR([Missing XSLTPROC svn build with man or doc])
+	test -n "${XSLTPROC}" || AC_MSG_ERROR([Missing XSLTPROC])
 	test "${xslstylesheetsdir}" != "no" || AC_MSG_ERROR([Missing xslstylesheetsdir])
 	AC_MSG_RESULT([ok])
 fi
