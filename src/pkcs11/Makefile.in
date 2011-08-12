@@ -99,9 +99,13 @@ am_onepin_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
 	hack-enabled.lo $(am__objects_3)
 onepin_opensc_pkcs11_la_OBJECTS =  \
 	$(am_onepin_opensc_pkcs11_la_OBJECTS)
-onepin_opensc_pkcs11_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(onepin_opensc_pkcs11_la_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
+onepin_opensc_pkcs11_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(onepin_opensc_pkcs11_la_LDFLAGS) \
+	$(LDFLAGS) -o $@
 opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
 am__opensc_pkcs11_la_SOURCES_DIST = pkcs11-global.c pkcs11-session.c \
 	pkcs11-object.c misc.c slot.c mechanism.c openssl.c \
@@ -112,9 +116,10 @@ am__opensc_pkcs11_la_SOURCES_DIST = pkcs11-global.c pkcs11-session.c \
 am_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
 	hack-disabled.lo $(am__objects_3)
 opensc_pkcs11_la_OBJECTS = $(am_opensc_pkcs11_la_OBJECTS)
-opensc_pkcs11_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(opensc_pkcs11_la_LDFLAGS) $(LDFLAGS) -o $@
+opensc_pkcs11_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
+	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
+	$(AM_CFLAGS) $(CFLAGS) $(opensc_pkcs11_la_LDFLAGS) $(LDFLAGS) \
+	-o $@
 pkcs11_spy_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 	$(am__DEPENDENCIES_1) $(top_builddir)/src/common/libpkcs11.la
 am__pkcs11_spy_la_SOURCES_DIST = pkcs11-spy.c pkcs11-display.c \
@@ -123,7 +128,7 @@ am__pkcs11_spy_la_SOURCES_DIST = pkcs11-spy.c pkcs11-display.c \
 am_pkcs11_spy_la_OBJECTS = pkcs11-spy.lo pkcs11-display.lo \
 	$(am__objects_3)
 pkcs11_spy_la_OBJECTS = $(am_pkcs11_spy_la_OBJECTS)
-pkcs11_spy_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+pkcs11_spy_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(pkcs11_spy_la_LDFLAGS) $(LDFLAGS) -o $@
 SCRIPTS = $(dist_noinst_SCRIPTS)
@@ -133,13 +138,26 @@ am__depfiles_maybe = depfiles
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC    " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
 CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD  " $@;
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(onepin_opensc_pkcs11_la_SOURCES) \
 	$(opensc_pkcs11_la_SOURCES) $(pkcs11_spy_la_SOURCES)
 DIST_SOURCES = $(am__onepin_opensc_pkcs11_la_SOURCES_DIST) \
@@ -151,6 +169,7 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
+AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
 AS = @AS@
 AUTOCONF = @AUTOCONF@
@@ -175,6 +194,7 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+GIT = @GIT@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -193,7 +213,6 @@ LTLIBOBJS = @LTLIBOBJS@
 LTLIB_CFLAGS = @LTLIB_CFLAGS@
 LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
-MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -232,8 +251,6 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCSC_CFLAGS = @PCSC_CFLAGS@
 PCSC_LIBS = @PCSC_LIBS@
 PKG_CONFIG = @PKG_CONFIG@
-PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
-PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -245,7 +262,6 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-SVN = @SVN@
 VERSION = @VERSION@
 WIN_LIBPREFIX = @WIN_LIBPREFIX@
 XSLTPROC = @XSLTPROC@
@@ -255,7 +271,6 @@ abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
-ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 acx_pthread_config = @acx_pthread_config@
@@ -276,6 +291,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+git = @git@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -289,6 +305,7 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
@@ -426,11 +443,11 @@ $(top_builddir)/win32/versioninfo.lo:  \
 	$(top_builddir)/win32/$(am__dirstamp) \
 	$(top_builddir)/win32/$(DEPDIR)/$(am__dirstamp)
 onepin-opensc-pkcs11.la: $(onepin_opensc_pkcs11_la_OBJECTS) $(onepin_opensc_pkcs11_la_DEPENDENCIES) 
-	$(onepin_opensc_pkcs11_la_LINK) -rpath $(libdir) $(onepin_opensc_pkcs11_la_OBJECTS) $(onepin_opensc_pkcs11_la_LIBADD) $(LIBS)
+	$(AM_V_CCLD)$(onepin_opensc_pkcs11_la_LINK) -rpath $(libdir) $(onepin_opensc_pkcs11_la_OBJECTS) $(onepin_opensc_pkcs11_la_LIBADD) $(LIBS)
 opensc-pkcs11.la: $(opensc_pkcs11_la_OBJECTS) $(opensc_pkcs11_la_DEPENDENCIES) 
-	$(opensc_pkcs11_la_LINK) -rpath $(libdir) $(opensc_pkcs11_la_OBJECTS) $(opensc_pkcs11_la_LIBADD) $(LIBS)
+	$(AM_V_CCLD)$(opensc_pkcs11_la_LINK) -rpath $(libdir) $(opensc_pkcs11_la_OBJECTS) $(opensc_pkcs11_la_LIBADD) $(LIBS)
 pkcs11-spy.la: $(pkcs11_spy_la_OBJECTS) $(pkcs11_spy_la_DEPENDENCIES) 
-	$(pkcs11_spy_la_LINK) -rpath $(libdir) $(pkcs11_spy_la_OBJECTS) $(pkcs11_spy_la_LIBADD) $(LIBS)
+	$(AM_V_CCLD)$(pkcs11_spy_la_LINK) -rpath $(libdir) $(pkcs11_spy_la_OBJECTS) $(pkcs11_spy_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -456,22 +473,25 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/slot.Plo@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<

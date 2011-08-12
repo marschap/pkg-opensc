@@ -83,6 +83,9 @@ am_cardos_tool_OBJECTS = cardos-tool.$(OBJEXT) util.$(OBJEXT) \
 cardos_tool_OBJECTS = $(am_cardos_tool_OBJECTS)
 am__DEPENDENCIES_1 =
 cardos_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
 am__cryptoflex_tool_SOURCES_DIST = cryptoflex-tool.c util.c \
 	$(top_builddir)/win32/versioninfo.rc
 am_cryptoflex_tool_OBJECTS = cryptoflex-tool.$(OBJEXT) util.$(OBJEXT) \
@@ -154,13 +157,26 @@ am__depfiles_maybe = depfiles
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC    " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
 CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD  " $@;
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(cardos_tool_SOURCES) $(cryptoflex_tool_SOURCES) \
 	$(eidenv_SOURCES) $(netkey_tool_SOURCES) \
 	$(opensc_explorer_SOURCES) $(opensc_tool_SOURCES) \
@@ -183,6 +199,7 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
+AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
 AS = @AS@
 AUTOCONF = @AUTOCONF@
@@ -207,6 +224,7 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+GIT = @GIT@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -227,7 +245,6 @@ LTLIBOBJS = @LTLIBOBJS@
 LTLIB_CFLAGS = @LTLIB_CFLAGS@
 LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
-MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -266,8 +283,6 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCSC_CFLAGS = @PCSC_CFLAGS@
 PCSC_LIBS = @PCSC_LIBS@
 PKG_CONFIG = @PKG_CONFIG@
-PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
-PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -279,7 +294,6 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-SVN = @SVN@
 VERSION = @VERSION@
 WIN_LIBPREFIX = @WIN_LIBPREFIX@
 XSLTPROC = @XSLTPROC@
@@ -289,7 +303,6 @@ abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
-ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 acx_pthread_config = @acx_pthread_config@
@@ -310,6 +323,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+git = @git@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -323,6 +337,7 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
+lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
@@ -463,40 +478,40 @@ $(top_builddir)/win32/versioninfo.$(OBJEXT):  \
 	$(top_builddir)/win32/$(DEPDIR)/$(am__dirstamp)
 cardos-tool$(EXEEXT): $(cardos_tool_OBJECTS) $(cardos_tool_DEPENDENCIES) 
 	@rm -f cardos-tool$(EXEEXT)
-	$(LINK) $(cardos_tool_OBJECTS) $(cardos_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(cardos_tool_OBJECTS) $(cardos_tool_LDADD) $(LIBS)
 cryptoflex-tool$(EXEEXT): $(cryptoflex_tool_OBJECTS) $(cryptoflex_tool_DEPENDENCIES) 
 	@rm -f cryptoflex-tool$(EXEEXT)
-	$(LINK) $(cryptoflex_tool_OBJECTS) $(cryptoflex_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(cryptoflex_tool_OBJECTS) $(cryptoflex_tool_LDADD) $(LIBS)
 eidenv$(EXEEXT): $(eidenv_OBJECTS) $(eidenv_DEPENDENCIES) 
 	@rm -f eidenv$(EXEEXT)
-	$(LINK) $(eidenv_OBJECTS) $(eidenv_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(eidenv_OBJECTS) $(eidenv_LDADD) $(LIBS)
 netkey-tool$(EXEEXT): $(netkey_tool_OBJECTS) $(netkey_tool_DEPENDENCIES) 
 	@rm -f netkey-tool$(EXEEXT)
-	$(LINK) $(netkey_tool_OBJECTS) $(netkey_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(netkey_tool_OBJECTS) $(netkey_tool_LDADD) $(LIBS)
 opensc-explorer$(EXEEXT): $(opensc_explorer_OBJECTS) $(opensc_explorer_DEPENDENCIES) 
 	@rm -f opensc-explorer$(EXEEXT)
-	$(LINK) $(opensc_explorer_OBJECTS) $(opensc_explorer_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(opensc_explorer_OBJECTS) $(opensc_explorer_LDADD) $(LIBS)
 opensc-tool$(EXEEXT): $(opensc_tool_OBJECTS) $(opensc_tool_DEPENDENCIES) 
 	@rm -f opensc-tool$(EXEEXT)
-	$(LINK) $(opensc_tool_OBJECTS) $(opensc_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(opensc_tool_OBJECTS) $(opensc_tool_LDADD) $(LIBS)
 piv-tool$(EXEEXT): $(piv_tool_OBJECTS) $(piv_tool_DEPENDENCIES) 
 	@rm -f piv-tool$(EXEEXT)
-	$(LINK) $(piv_tool_OBJECTS) $(piv_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(piv_tool_OBJECTS) $(piv_tool_LDADD) $(LIBS)
 pkcs11-tool$(EXEEXT): $(pkcs11_tool_OBJECTS) $(pkcs11_tool_DEPENDENCIES) 
 	@rm -f pkcs11-tool$(EXEEXT)
-	$(LINK) $(pkcs11_tool_OBJECTS) $(pkcs11_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(pkcs11_tool_OBJECTS) $(pkcs11_tool_LDADD) $(LIBS)
 pkcs15-crypt$(EXEEXT): $(pkcs15_crypt_OBJECTS) $(pkcs15_crypt_DEPENDENCIES) 
 	@rm -f pkcs15-crypt$(EXEEXT)
-	$(LINK) $(pkcs15_crypt_OBJECTS) $(pkcs15_crypt_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(pkcs15_crypt_OBJECTS) $(pkcs15_crypt_LDADD) $(LIBS)
 pkcs15-init$(EXEEXT): $(pkcs15_init_OBJECTS) $(pkcs15_init_DEPENDENCIES) 
 	@rm -f pkcs15-init$(EXEEXT)
-	$(LINK) $(pkcs15_init_OBJECTS) $(pkcs15_init_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(pkcs15_init_OBJECTS) $(pkcs15_init_LDADD) $(LIBS)
 pkcs15-tool$(EXEEXT): $(pkcs15_tool_OBJECTS) $(pkcs15_tool_DEPENDENCIES) 
 	@rm -f pkcs15-tool$(EXEEXT)
-	$(LINK) $(pkcs15_tool_OBJECTS) $(pkcs15_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(pkcs15_tool_OBJECTS) $(pkcs15_tool_LDADD) $(LIBS)
 westcos-tool$(EXEEXT): $(westcos_tool_OBJECTS) $(westcos_tool_DEPENDENCIES) 
 	@rm -f westcos-tool$(EXEEXT)
-	$(LINK) $(westcos_tool_OBJECTS) $(westcos_tool_LDADD) $(LIBS)
+	$(AM_V_CCLD)$(LINK) $(westcos_tool_OBJECTS) $(westcos_tool_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -520,22 +535,25 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/westcos-tool.Po@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
