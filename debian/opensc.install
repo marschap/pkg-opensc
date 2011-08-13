@@ -1,14 +1,2 @@
-debian/tmp/usr/bin/cardos-tool
-debian/tmp/usr/bin/cryptoflex-tool
-debian/tmp/usr/bin/eidenv
-debian/tmp/usr/bin/netkey-tool
-debian/tmp/usr/bin/opensc-tool
-debian/tmp/usr/bin/opensc-explorer
-debian/tmp/usr/bin/piv-tool
-debian/tmp/usr/bin/pkcs11-tool
-debian/tmp/usr/bin/pkcs15*
-debian/tmp/usr/bin/westcos-tool
-
-debian/tmp/usr/lib/*
 src/pkcs15init/*.profile usr/share/opensc/
 etc/opensc.conf etc/opensc

@@ -7,8 +7,9 @@ opensc (0.12.2-0pm1) UNRELEASED; urgency=low
   * debian/rules: update autoconf files via `./bootstrap`
   * debian/opensc.install: fix syntax for manual pages
   * debian/opensc.install: fix syntax for PKCS15 profiles
+  * debian/{rules,opensc.install}: get rid of debian/tmp
 
- -- Peter Marschall <peter@adpm.de>  Fri, 12 Aug 2011 20:08:35 +0200
+ -- Peter Marschall <peter@adpm.de>  Sat, 13 Aug 2011  9:49:55 +0200
 
 opensc (0.12.1+svn5568-0pm1) unstable; urgency=low
 
