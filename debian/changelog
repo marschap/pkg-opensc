@@ -1,4 +1,4 @@
-opensc (0.12.2-0pm1) UNRELEASED; urgency=low
+opensc (0.12.2-0pm1) unstable; urgency=low
 
   * New upstream release.
   * debian/patches/*: remove patches incorporated upstream
