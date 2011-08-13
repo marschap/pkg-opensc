@@ -20,3 +20,7 @@ override_dh_auto_configure:
 		--enable-doc \
 		--htmldir=/usr/share/doc/opensc/html
 
+override_dh_auto_install:
+	dh_auto_install
+	sed -i "/dependency_libs/ s/'.*'/''/" `find . -name '*.la'`
+
