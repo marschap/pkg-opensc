@@ -8,8 +8,9 @@ opensc (0.12.2-0pm1) UNRELEASED; urgency=low
   * debian/opensc.install: fix syntax for manual pages
   * debian/opensc.install: fix syntax for PKCS15 profiles
   * debian/{rules,opensc.install}: get rid of debian/tmp
+  * debian/{rules,opensc.docs}: add NEWS & README to opensc.docs
 
- -- Peter Marschall <peter@adpm.de>  Sat, 13 Aug 2011  9:49:55 +0200
+ -- Peter Marschall <peter@adpm.de>  Sat, 13 Aug 2011  9:57:05 +0200
 
 opensc (0.12.1+svn5568-0pm1) unstable; urgency=low
 

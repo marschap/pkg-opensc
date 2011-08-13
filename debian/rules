@@ -20,5 +20,3 @@ override_dh_auto_configure:
 		--enable-doc \
 		--htmldir=/usr/share/doc/opensc/html
 
-override_dh_installdocs:
-	dh_installdocs -A README NEWS
