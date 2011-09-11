@@ -7,9 +7,11 @@ debian/tmp/usr/bin/opensc-explorer
 debian/tmp/usr/bin/piv-tool
 debian/tmp/usr/bin/pkcs11-tool
 debian/tmp/usr/bin/pkcs15*
+debian/tmp/usr/bin/westcos-tool
 
 debian/tmp/usr/lib/*.so.*
 debian/tmp/usr/lib/*.so
+debian/tmp/usr/share/opensc/*.profile
 etc/opensc.conf etc/opensc
 
 debian/tmp/usr/share/man/man5/*
@@ -22,3 +24,4 @@ debian/tmp/usr/share/man/man1/opensc-explorer.1
 debian/tmp/usr/share/man/man1/piv-tool.1
 debian/tmp/usr/share/man/man1/pkcs11-tool.1
 debian/tmp/usr/share/man/man1/pkcs15*.1
+debian/tmp/usr/share/man/man1/westcos-tool.1

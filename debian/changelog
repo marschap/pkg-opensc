@@ -1,3 +1,12 @@
+opensc (0.12.2-2) unstable; urgency=low
+
+  * debian/opensc.install: Add westcos-tool & its man page. Thanks Peter
+    Marschall <peter@adpm.de>. (Closes: #629229)
+  * debian/opensc.install: Install *.profile files again. Thanks Peter
+    Marschall <peter@adpm.de>. (Closes: #629231)
+
+ -- Eric Dorland <eric@debian.org>  Sun, 11 Sep 2011 19:53:24 -0400
+
 opensc (0.12.2-1) unstable; urgency=low
 
   * New upstream release.
