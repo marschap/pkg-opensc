@@ -100,7 +100,7 @@ static int	do_sanity_check(struct sc_profile *profile);
 static int	init_keyargs(struct sc_pkcs15init_prkeyargs *);
 static void	init_gost_params(struct sc_pkcs15init_keyarg_gost_params *, EVP_PKEY *);
 static int	get_pin_callback(struct sc_profile *profile,
-			int id, const struct sc_pkcs15_pin_info *info,
+			int id, const struct sc_pkcs15_auth_info *info,
 			const char *label,
 			u8 *pinbuf, size_t *pinsize);
 static int	get_key_callback(struct sc_profile *,
@@ -121,7 +121,7 @@ enum {
 	OPT_PASSPHRASE,
 	OPT_PUBKEY,
 	OPT_EXTRACTABLE,
-	OPT_UNPROTECTED,
+	OPT_INSECURE,
 	OPT_AUTHORITY,
 	OPT_ASSERT_PRISTINE,
 	OPT_SECRET,
@@ -184,7 +184,7 @@ const struct option	options[] = {
 	{ "finalize",		no_argument,       NULL,   	'F' },
 
 	{ "extractable",	no_argument, NULL,		OPT_EXTRACTABLE },
-	{ "insecure",		no_argument, NULL,		OPT_UNPROTECTED },
+	{ "insecure",		no_argument, NULL,		OPT_INSECURE },
 	{ "use-default-transport-keys",
 				no_argument, NULL,		'T' },
 	{ "no-prompt",		no_argument, NULL,		OPT_NO_PROMPT },
@@ -241,7 +241,7 @@ static const char *		option_help[] = {
 	"Finish initialization phase of the smart card",
 
 	"Private key stored as an extractable key",
-	"Insecure mode: do not require PIN/passphrase for private key",
+	"Insecure mode: do not require a PIN for private key",
 	"Do not ask for transport keys if the driver thinks it knows the key",
 	"Do not prompt the user; if no PINs supplied, pinpad will be used",
 
@@ -316,7 +316,7 @@ static struct sc_pkcs15_card *	p15card = NULL;
 static char *			opt_reader = NULL;
 static unsigned int		opt_actions;
 static int			opt_extractable = 0,
-				opt_unprotected = 0,
+				opt_insecure = 0,
 				opt_authority = 0,
 				opt_no_prompt = 0,
 				opt_no_sopin = 0,
@@ -388,7 +388,7 @@ typedef struct sc_ui_hints {
 	 * look like. */
 	const char *		obj_label;	/* O: object (PIN) label */
 	union {
-	    struct sc_pkcs15_pin_info *pin;
+	    struct sc_pkcs15_auth_info *pin;
 	} info;
 } sc_ui_hints_t;
 
@@ -683,12 +683,13 @@ static int
 do_init_app(struct sc_profile *profile)
 {
 	struct sc_pkcs15init_initargs args;
-	sc_pkcs15_pin_info_t	info;
+	sc_pkcs15_auth_info_t	info;
 	sc_ui_hints_t		hints;
 	const char		*role = "so";
 	int			r, so_puk_disabled = 0;
 
 	memset(&hints, 0, sizeof(hints));
+	memset(&info, 0, sizeof(info));
 	hints.usage	= SC_UI_USAGE_NEW_PIN;
 	hints.flags	= SC_UI_PIN_RETYPE
 			   | SC_UI_PIN_CHECK_LENGTH
@@ -709,14 +710,14 @@ do_init_app(struct sc_profile *profile)
 
 	sc_pkcs15init_get_pin_info(profile, SC_PKCS15INIT_SO_PIN, &info);
 
-	if (!(info.flags & SC_PKCS15_PIN_FLAG_SO_PIN))
+	if (!(info.attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN))
 		role = "user";
 	else
 		hints.flags |= SC_UI_PIN_OPTIONAL; /* SO PIN is always optional */
 			
 
-	if ((info.flags & SC_PKCS15_PIN_FLAG_UNBLOCK_DISABLED) 
-			&& (info.flags & SC_PKCS15_PIN_FLAG_SO_PIN))
+	if ((info.attrs.pin.flags & SC_PKCS15_PIN_FLAG_UNBLOCK_DISABLED) 
+			&& (info.attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN))
 		so_puk_disabled = 1;
 
 
@@ -729,7 +730,7 @@ do_init_app(struct sc_profile *profile)
 	if (!so_puk_disabled && opt_pins[2] && !opt_pins[3] && !opt_no_prompt) {
 		sc_pkcs15init_get_pin_info(profile, SC_PKCS15INIT_SO_PUK, &info);
 
-		if (!(info.flags & SC_PKCS15_PIN_FLAG_SO_PIN))
+		if (!(info.attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN))
 			role = "user";
 
 		hints.flags |= SC_UI_PIN_OPTIONAL;
@@ -764,7 +765,7 @@ static int
 do_store_pin(struct sc_profile *profile)
 {
 	struct sc_pkcs15init_pinargs args;
-	sc_pkcs15_pin_info_t	info;
+	sc_pkcs15_auth_info_t	info;
 	sc_ui_hints_t		hints;
 	int			r;
 	const char 		*pin_id;
@@ -801,7 +802,7 @@ do_store_pin(struct sc_profile *profile)
 	args.pin_len = strlen(opt_pins[0]);
 	args.label = opt_label;
 
-	if (!(info.flags & SC_PKCS15_PIN_FLAG_UNBLOCK_DISABLED) 
+	if (!(info.attrs.pin.flags & SC_PKCS15_PIN_FLAG_UNBLOCK_DISABLED) 
 			&& opt_pins[1] == NULL) {
 		sc_pkcs15init_get_pin_info(profile, SC_PKCS15INIT_USER_PUK, &info);
 
@@ -1493,25 +1494,13 @@ static int init_keyargs(struct sc_pkcs15init_prkeyargs *args)
 		sc_pkcs15_format_id(opt_objectid, &args->id);
 	if (opt_authid) {
 		sc_pkcs15_format_id(opt_authid, &args->auth_id);
-	} else if (!opt_unprotected) {
+	} else if (!opt_insecure) {
 		util_error("no PIN given for key - either use --insecure or \n"
 		      "specify a PIN using --auth-id");
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 	if (opt_extractable) {
 		args->access_flags |= SC_PKCS15_PRKEY_ACCESS_EXTRACTABLE;
-		if (opt_passphrase) {
-			args->passphrase = opt_passphrase;
-		} else {
-			if (!opt_unprotected) {
-				util_error("no pass phrase given for key - "
-				      "either use --insecure or\n"
-				      "specify a pass phrase using "
-				      "--passphrase");
-				return SC_ERROR_PASSPHRASE_REQUIRED;
-			}
-			args->flags |= SC_PKCS15INIT_NO_PASSPHRASE;
-		}
 	}
 	args->label = opt_label;
 	args->x509_usage = opt_x509_usage;
@@ -1638,7 +1627,7 @@ static int get_new_pin(sc_ui_hints_t *hints,
  */
 static int
 get_pin_callback(struct sc_profile *profile,
-		int id, const struct sc_pkcs15_pin_info *info,
+		int id, const struct sc_pkcs15_auth_info *info,
 		const char *label,
 		u8 *pinbuf, size_t *pinsize)
 {
@@ -1648,13 +1637,13 @@ get_pin_callback(struct sc_profile *profile,
 	size_t	len = 0;
 	int	allocated = 0;
 
-	if (label) {
+	if (info->auth_type != SC_PKCS15_PIN_AUTH_TYPE_PIN)
+		return SC_ERROR_NOT_SUPPORTED; 
+
+	if (label)
 		snprintf(namebuf, sizeof(namebuf), "PIN [%s]", label);
-	} else {
-		snprintf(namebuf, sizeof(namebuf),
-			"Unspecified PIN [reference %u]",
-			info->reference);
-	}
+	else
+		snprintf(namebuf, sizeof(namebuf), "Unspecified PIN [reference %u]", info->attrs.pin.reference);
 
 	if (!ignore_cmdline_pins) {
 		if (info->auth_method == SC_AC_SYMBOLIC)   {
@@ -1678,23 +1667,23 @@ get_pin_callback(struct sc_profile *profile,
 			}
 		}
 		else if (info->auth_method == SC_AC_CHV)   {
-			if (!(info->flags & SC_PKCS15_PIN_FLAG_SO_PIN)
-					&& !(info->flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
+			if (!(info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN)
+					&& !(info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
 				name = "User PIN";
 				secret = opt_pins[OPT_PIN1 & 3];
 			}
-			else if (!(info->flags & SC_PKCS15_PIN_FLAG_SO_PIN)
-					&& (info->flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
+			else if (!(info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN)
+					&& (info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
 				name = "User PUK";
 				secret = opt_pins[OPT_PUK1 & 3];
 			}
-			else if ((info->flags & SC_PKCS15_PIN_FLAG_SO_PIN)
-					&& !(info->flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
+			else if ((info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN)
+					&& !(info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
 				name = "Security officer PIN";
 				secret = opt_pins[OPT_PIN2 & 3];
 			}
-			else if ((info->flags & SC_PKCS15_PIN_FLAG_SO_PIN)
-					&& (info->flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
+			else if ((info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN)
+					&& (info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN))    {
 				name = "Security officer PIN unlock key";
 				secret = opt_pins[OPT_PUK2 & 3];
 			}
@@ -2211,22 +2200,6 @@ static int do_convert_private_key(struct sc_pkcs15_prkey *key, EVP_PKEY *pk)
 	return 0;
 }
 
-#if OPENSSL_VERSION_NUMBER >= 0x10000000L && !defined(OPENSSL_NO_EC)
-static void reverse(unsigned char *buf, size_t len)
-{
-	unsigned char tmp;
-	size_t i;
-
-	assert(buf || len == 0);
-	for (i = 0; i < len / 2; ++i)
-	{
-		tmp = buf[i];
-		buf[i] = buf[len - 1 - i];
-		buf[len - 1 - i] = tmp;
-	}
-}
-#endif /* OPENSSL_VERSION_NUMBER >= 0x10000000L && !defined(OPENSSL_NO_EC) */
-
 static int do_convert_public_key(struct sc_pkcs15_pubkey *key, EVP_PKEY *pk)
 {
 	switch (pk->type) {
@@ -2276,7 +2249,9 @@ static int do_convert_public_key(struct sc_pkcs15_pubkey *key, EVP_PKEY *pk)
 			if (dst->xy.data) {
 				BN_bn2bin(Y, dst->xy.data);
 				BN_bn2bin(X, dst->xy.data + BN_num_bytes(Y));
-				reverse(dst->xy.data, dst->xy.len);
+				r = sc_mem_reverse(dst->xy.data, dst->xy.len);
+				if (!r)
+					r = 1;
 				key->algorithm = SC_ALGORITHM_GOSTR3410;
 			}
 			else
@@ -2538,11 +2513,11 @@ handle_option(const struct option *opt)
 		this_action = ACTION_STORE_PUBKEY;
 		opt_infile = optarg;
 		break;
-	case OPT_UNPROTECTED:
-		opt_unprotected++;
+	case OPT_INSECURE:
+		opt_insecure = 1;
 		break;
 	case OPT_EXTRACTABLE:
-		opt_extractable++;
+		opt_extractable = 1;
 		break;
 	case OPT_AUTHORITY:
 		opt_authority = 1;
@@ -2743,15 +2718,18 @@ ossl_print_errors(void)
  */
 int get_pin(sc_ui_hints_t *hints, char **out)
 {
-	sc_pkcs15_pin_info_t *pin_info;
+	sc_pkcs15_auth_info_t *pin_info;
 	const char	*label;
 	int		flags = hints->flags;
 
 	pin_info = hints->info.pin;
+	if (pin_info && pin_info->auth_type == SC_PKCS15_PIN_AUTH_TYPE_PIN)
+		return SC_ERROR_NOT_SUPPORTED;
+
 	if (!(label = hints->obj_label)) {
 		if (pin_info == NULL) {
 			label = "PIN";
-		} else if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
+		} else if (pin_info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
 			label = "Security Officer PIN";
 		} else {
 			label = "User PIN";
@@ -2784,17 +2762,17 @@ int get_pin(sc_ui_hints_t *hints, char **out)
 			return 0;
 
 		if (pin_info && (flags & SC_UI_PIN_CHECK_LENGTH)) {
-			if (strlen(pin) < pin_info->min_length) {
+			if (strlen(pin) < pin_info->attrs.pin.min_length) {
 				fprintf(stderr,
 					"PIN too short (min %lu characters)\n",
-					(unsigned long) pin_info->min_length);
+					(unsigned long) pin_info->attrs.pin.min_length);
 				continue;
 			}
-			if (pin_info->max_length
-			 && strlen(pin) > pin_info->max_length) {
+			if (pin_info->attrs.pin.max_length
+			 && strlen(pin) > pin_info->attrs.pin.max_length) {
 				fprintf(stderr,
 					"PIN too long (max %lu characters)\n",
-					(unsigned long) pin_info->max_length);
+					(unsigned long) pin_info->attrs.pin.max_length);
 				continue;
 			}
 		}
@@ -2853,11 +2831,13 @@ static int verify_pin(struct sc_pkcs15_card *p15card, char *auth_id_str)
 		}
 
 		for (ii=0;ii<r;ii++)   {
-			struct sc_pkcs15_pin_info *pin_info = (struct sc_pkcs15_pin_info *) objs[ii]->data;
+			struct sc_pkcs15_auth_info *pin_info = (struct sc_pkcs15_auth_info *) objs[ii]->data;
 
-                	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN)
+			if (pin_info->auth_type != SC_PKCS15_PIN_AUTH_TYPE_PIN)
 				continue;
-			if (pin_info->flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN)
+                	if (pin_info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN)
+				continue;
+			if (pin_info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_UNBLOCKING_PIN)
 				continue;
 
 			pin_obj = objs[ii];

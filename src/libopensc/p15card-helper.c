@@ -160,7 +160,9 @@ CERT_HANDLE_FUNCTION(default_cert_handle) {
 		r = SC_ERROR_INTERNAL;
 		goto err;
 	}
-	if(! EVP_PK_RSA & (certtype = X509_certificate_type(cert_data, pkey))) {
+
+	certtype = X509_certificate_type(cert_data, pkey);
+	if(! (EVP_PK_RSA & certtype)) {
 		sc_debug(p15card->card->ctx, SC_LOG_DEBUG_NORMAL, "Error: certificate is not for an RSA key");
 		r = SC_ERROR_INTERNAL;
 		goto err;
@@ -275,20 +277,23 @@ int sc_pkcs15emu_initialize_pins(sc_pkcs15_card_t *p15card, p15data_items* items
 	const pindata* pins = items->pins;
 	if(!pins) return SC_SUCCESS;
 	for (i = 0; pins[i].label; i++) {
-		struct sc_pkcs15_pin_info pin_info;
+		struct sc_pkcs15_auth_info pin_info;
 		struct sc_pkcs15_object   pin_obj;
 
 		memset(&pin_info, 0, sizeof(pin_info));
 		memset(&pin_obj,  0, sizeof(pin_obj));
 
+		pin_info.auth_type = SC_PKCS15_PIN_AUTH_TYPE_PIN;
 		sc_pkcs15_format_id(pins[i].id, &pin_info.auth_id);
-		pin_info.reference     = pins[i].ref;
-		pin_info.flags         = pins[i].flags;
-		pin_info.type          = pins[i].type;
-		pin_info.min_length    = pins[i].minlen;
-		pin_info.stored_length = pins[i].storedlen;
-		pin_info.max_length    = pins[i].maxlen;
-		pin_info.pad_char      = pins[i].pad_char;
+
+		pin_info.attrs.pin.reference     = pins[i].ref;
+		pin_info.attrs.pin.flags         = pins[i].flags;
+		pin_info.attrs.pin.type          = pins[i].type;
+		pin_info.attrs.pin.min_length    = pins[i].minlen;
+		pin_info.attrs.pin.stored_length = pins[i].storedlen;
+		pin_info.attrs.pin.max_length    = pins[i].maxlen;
+		pin_info.attrs.pin.pad_char      = pins[i].pad_char;
+
 		sc_format_path(pins[i].path, &pin_info.path);
 		pin_info.tries_left    = -1;
 

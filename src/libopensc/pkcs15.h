@@ -70,23 +70,47 @@ typedef struct sc_pkcs15_id sc_pkcs15_id_t;
 #define SC_PKCS15_PIN_TYPE_ISO9564_1			4
 
 #define SC_PKCS15_PIN_AUTH_TYPE_PIN			0
-#define SC_PKCS15_PIN_AUTH_TYPE_AUTH_KEY		1
-#define SC_PKCS15_PIN_AUTH_TYPE_SM_KEY			2
+#define SC_PKCS15_PIN_AUTH_TYPE_BIOMETRIC		1
+#define SC_PKCS15_PIN_AUTH_TYPE_AUTH_KEY		2
+#define SC_PKCS15_PIN_AUTH_TYPE_SM_KEY			3
 
-struct sc_pkcs15_pin_info {
-	struct sc_pkcs15_id auth_id;
-	int reference;
-	unsigned int flags, type;
-	unsigned int auth_method;
-	size_t min_length, stored_length, max_length;
-	u8 pad_char;
-	struct sc_path path;
-	int tries_left;
-	int max_tries;
-
-	unsigned int magic;
+/* PinAttributes as they defined in PKCS#15 v1.1 for PIN authentication object */
+struct sc_pkcs15_pin_attributes {
+	unsigned int  flags, type;
+	size_t  min_length, stored_length, max_length;
+	int  reference;
+	u8  pad_char;
 };
-typedef struct sc_pkcs15_pin_info sc_pkcs15_pin_info_t;
+/* AuthKeyAttributes of the authKey authentication object */
+struct sc_pkcs15_authkey_attributes {
+	int derived;
+	struct sc_pkcs15_id skey_id;
+};
+/* BiometricAttributes of the biometricTemplate authentication object */
+struct sc_pkcs15_biometric_attributes {
+	unsigned int flags;
+	struct sc_object_id template_id;
+	/* ... */
+};
+struct sc_pkcs15_auth_info {
+	/* CommonAuthenticationObjectAttributes */
+	struct sc_pkcs15_id  auth_id;
+
+	/* AuthObjectAttributes */
+	struct sc_path  path;
+	unsigned auth_type;
+	union {
+		struct sc_pkcs15_pin_attributes pin;
+		struct sc_pkcs15_biometric_attributes bio;
+		struct sc_pkcs15_authkey_attributes authkey;
+	} attrs;
+
+	/* authentication method: CHV, SEN, SYMBOLIC, ... */
+	unsigned int  auth_method;
+
+	int  tries_left, max_tries;
+ };
+typedef struct sc_pkcs15_auth_info sc_pkcs15_auth_info_t;
 
 #define SC_PKCS15_ALGO_OP_COMPUTE_CHECKSUM	0x01
 #define SC_PKCS15_ALGO_OP_COMPUTE_SIGNATURE	0x02
@@ -162,6 +186,12 @@ struct sc_pkcs15_ec_parameters {
 	size_t field_length; /* in bits */
 };
 
+struct sc_pkcs15_gost_parameters {
+	struct sc_object_id key;
+	struct sc_object_id hash;
+	struct sc_object_id cipher;
+};
+
 struct sc_pkcs15_pubkey_ec {
 	struct sc_pkcs15_ec_parameters params;
 	sc_pkcs15_der_t		ecpointQ; /* note this is der */
@@ -173,11 +203,12 @@ struct sc_pkcs15_prkey_ec {
 };
 
 struct sc_pkcs15_pubkey_gostr3410 {
+	struct sc_pkcs15_gost_parameters params;
 	sc_pkcs15_bignum_t xy;
 };
 
 struct sc_pkcs15_prkey_gostr3410 {
-	/* private components */
+	struct sc_pkcs15_gost_parameters params;
 	sc_pkcs15_bignum_t d;
 };
 
@@ -584,17 +615,9 @@ int sc_pkcs15_pubkey_from_spki_filename(struct sc_context *,
 			char *, sc_pkcs15_pubkey_t ** );
 int sc_pkcs15_pubkey_from_spki(struct sc_context *,
 			sc_pkcs15_pubkey_t **, u8 *, size_t, int);
-int sc_pkcs15_read_prkey(struct sc_pkcs15_card *,
-			const struct sc_pkcs15_object *,
-			const char *passphrase,
-			struct sc_pkcs15_prkey **);
-int sc_pkcs15_decode_prkey(struct sc_context *,
-			struct sc_pkcs15_prkey *,
-			const u8 *, size_t);
 int sc_pkcs15_encode_prkey(struct sc_context *,
 			struct sc_pkcs15_prkey *,
 			u8 **, size_t *);
-void sc_pkcs15_erase_prkey(struct sc_pkcs15_prkey *prkey);
 void sc_pkcs15_free_prkey(struct sc_pkcs15_prkey *prkey);
 void sc_pkcs15_free_key_params(struct sc_pkcs15_key_params *params);
 
@@ -753,24 +776,13 @@ void sc_pkcs15_free_prkey_info(sc_pkcs15_prkey_info_t *key);
 void sc_pkcs15_free_pubkey_info(sc_pkcs15_pubkey_info_t *key);
 void sc_pkcs15_free_cert_info(sc_pkcs15_cert_info_t *cert);
 void sc_pkcs15_free_data_info(sc_pkcs15_data_info_t *data);
-void sc_pkcs15_free_pin_info(sc_pkcs15_pin_info_t *pin);
+void sc_pkcs15_free_auth_info(sc_pkcs15_auth_info_t *auth_info);
 void sc_pkcs15_free_object(sc_pkcs15_object_t *obj);
-
-/* File content wrapping */
-int sc_pkcs15_wrap_data(struct sc_context *ctx,
-			const char *passphrase,
-			const u8 *in, size_t in_len,
-			u8 **out, size_t *out_len);
-int sc_pkcs15_unwrap_data(struct sc_context *ctx,
-			  const char *passphrase,
-			  const u8 *in, size_t in_len,
-			  u8 **out, size_t *out_len);
 
 /* Generic file i/o */
 int sc_pkcs15_read_file(struct sc_pkcs15_card *p15card,
 			const struct sc_path *path,
-			u8 **buf, size_t *buflen,
-			struct sc_file **file_out);
+			u8 **buf, size_t *buflen);
 
 /* Caching functions */
 int sc_pkcs15_read_cached_file(struct sc_pkcs15_card *p15card,
@@ -846,7 +858,7 @@ int sc_pkcs15emu_object_add(sc_pkcs15_card_t *, unsigned int,
 			const sc_pkcs15_object_t *, const void *);
 /* some wrapper functions for sc_pkcs15emu_object_add */
 int sc_pkcs15emu_add_pin_obj(sc_pkcs15_card_t *,
-	const sc_pkcs15_object_t *, const sc_pkcs15_pin_info_t *);
+	const sc_pkcs15_object_t *, const sc_pkcs15_auth_info_t *);
 int sc_pkcs15emu_add_rsa_prkey(sc_pkcs15_card_t *,
 	const sc_pkcs15_object_t *, const sc_pkcs15_prkey_info_t *);
 int sc_pkcs15emu_add_rsa_pubkey(sc_pkcs15_card_t *,
