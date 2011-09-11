@@ -2,7 +2,7 @@ Source: opensc
 Priority: extra
 Section: utils
 Maintainer: Eric Dorland <eric@debian.org>
-Build-Depends: debhelper (>= 7.0.50), libltdl3-dev, libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), flex, pkg-config, xsltproc, docbook-xsl, zlib1g-dev
+Build-Depends: debhelper (>= 7.0.50), libltdl3-dev, libreadline-dev, libssl-dev (>= 0.9.7d-3), libpcsclite-dev (>= 1.2.9-beta1), flex, pkg-config, xsltproc, docbook-xsl, zlib1g-dev
 Standards-Version: 3.9.2
 Homepage: http://www.opensc-project.org/
 Vcs-Git: git://git.debian.org/git/pkg-opensc/opensc.git

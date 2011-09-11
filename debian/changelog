@@ -6,6 +6,8 @@ opensc (0.12.2-1) unstable; urgency=low
     not the .la or .a files. (Closes: #633656)
   * debian/rules, debian/control: Enable zlib support. Thanks Peter
     Marschall <peter@adpm.de>. (Closes: #629230)
+  * debian/rules, debian/control: Enable readline support. Thanks Peter
+    Marschall <peter@adpm.de>. (Closes: #629228)
 
  --
 
