@@ -1,3 +1,11 @@
+opensc (0.12.1-1.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * Empty dependency_libs (Closes: #622436).
+  * Drop unnecessary build dependency on libxt-dev (Closes: #629227).
+
+ -- Luk Claes <luk@debian.org>  Sat, 25 Jun 2011 15:37:46 +0200
+
 opensc (0.12.1-1) unstable; urgency=low
 
   * New upstream release. (Closes: #627241)
