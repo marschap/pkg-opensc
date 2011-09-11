@@ -117,6 +117,7 @@ sc_lock
 sc_logout
 sc_make_cache_dir
 sc_mem_clear
+sc_mem_reverse
 sc_path_print
 sc_path_set
 sc_pin_cmd
@@ -137,9 +138,7 @@ sc_pkcs15_decipher
 sc_pkcs15_decode_aodf_entry
 sc_pkcs15_decode_cdf_entry
 sc_pkcs15_decode_dodf_entry
-sc_pkcs15_decode_enveloped_data
 sc_pkcs15_decode_prkdf_entry
-sc_pkcs15_decode_prkey
 sc_pkcs15_decode_pubkey
 sc_pkcs15_decode_pubkey_dsa
 sc_pkcs15_decode_pubkey_rsa
@@ -150,10 +149,8 @@ sc_pkcs15_encode_aodf_entry
 sc_pkcs15_encode_cdf_entry
 sc_pkcs15_encode_df
 sc_pkcs15_encode_dodf_entry
-sc_pkcs15_encode_enveloped_data
 sc_pkcs15_encode_odf
 sc_pkcs15_encode_prkdf_entry
-sc_pkcs15_encode_prkey
 sc_pkcs15_encode_pubkey
 sc_pkcs15_encode_pubkey_dsa
 sc_pkcs15_encode_pubkey_rsa
@@ -162,7 +159,6 @@ sc_pkcs15_encode_pubkey_gostr3410
 sc_pkcs15_encode_pukdf_entry
 sc_pkcs15_encode_tokeninfo
 sc_pkcs15_encode_unusedspace
-sc_pkcs15_erase_prkey
 sc_pkcs15_erase_pubkey
 sc_pkcs15_find_cert_by_id
 sc_pkcs15_find_data_object_by_app_oid
@@ -184,7 +180,7 @@ sc_pkcs15_free_data_info
 sc_pkcs15_free_data_object
 sc_pkcs15_free_key_params
 sc_pkcs15_free_object
-sc_pkcs15_free_pin_info
+sc_pkcs15_free_auth_info
 sc_pkcs15_free_prkey
 sc_pkcs15_free_prkey_info
 sc_pkcs15_free_pubkey
@@ -205,7 +201,6 @@ sc_pkcs15_read_cached_file
 sc_pkcs15_read_certificate
 sc_pkcs15_read_data_object
 sc_pkcs15_read_file
-sc_pkcs15_read_prkey
 sc_pkcs15_read_pubkey
 sc_pkcs15_pubkey_from_prvkey
 sc_pkcs15_pubkey_from_cert
@@ -215,9 +210,7 @@ sc_pkcs15_remove_unusedspace
 sc_pkcs15_search_objects
 sc_pkcs15_unbind
 sc_pkcs15_unblock_pin
-sc_pkcs15_unwrap_data
 sc_pkcs15_verify_pin
-sc_pkcs15_wrap_data
 sc_pkcs15emu_add_data_object
 sc_pkcs15emu_add_pin_obj
 sc_pkcs15emu_add_rsa_prkey
@@ -268,7 +261,6 @@ sc_pkcs15init_get_cyberflex_ops
 sc_pkcs15init_get_gpk_ops
 sc_pkcs15init_get_incrypto34_ops
 sc_pkcs15init_get_jcop_ops
-sc_pkcs15init_get_label
 sc_pkcs15init_get_manufacturer
 sc_pkcs15init_get_miocos_ops
 sc_pkcs15init_get_muscle_ops

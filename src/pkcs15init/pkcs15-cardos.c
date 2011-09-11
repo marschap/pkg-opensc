@@ -50,7 +50,7 @@ struct tlv {
  * Local functions
  */
 static int	cardos_store_pin(sc_profile_t *profile, sc_card_t *card,
-			sc_pkcs15_pin_info_t *pin_info, int puk_id,
+			sc_pkcs15_auth_info_t *auth_info, int puk_id,
 			const u8 *pin, size_t pin_len);
 static int	cardos_create_sec_env(sc_profile_t *, sc_card_t *,
 			unsigned int, unsigned int);
@@ -62,6 +62,7 @@ static int	cardos_extract_pubkey(sc_card_t *, sc_pkcs15_pubkey_t *,
 			sc_file_t *, int);
 static int	do_cardos_extract_pubkey(sc_card_t *card, int nr, u8 tag,
 			sc_pkcs15_bignum_t *bn);
+static int	cardos_have_verifyrc_package(sc_card_t *card);
 
 /* Object IDs for PIN objects.
  * SO PIN = 0x01, SO PUK = 0x02
@@ -152,14 +153,17 @@ cardos_create_dir(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *d
  */
 static int
 cardos_select_pin_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
-		sc_pkcs15_pin_info_t *pin_info)
+		sc_pkcs15_auth_info_t *auth_info)
 {
 	int	preferred, current;
 
-	if ((current = pin_info->reference) < 0)
+	if (auth_info->auth_type != SC_PKCS15_PIN_AUTH_TYPE_PIN)
+		return SC_ERROR_OBJECT_NOT_VALID;
+
+	if ((current = auth_info->attrs.pin.reference) < 0)
 		current = CARDOS_PIN_ID_MIN;
 
-	if (pin_info->flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
+	if (auth_info->attrs.pin.flags & SC_PKCS15_PIN_FLAG_SO_PIN) {
 		preferred = 1;
 	} else {
 		preferred = current;
@@ -172,7 +176,7 @@ cardos_select_pin_reference(sc_profile_t *profile, sc_pkcs15_card_t *p15card,
 
 	if (current > preferred || preferred > CARDOS_PIN_ID_MAX)
 		return SC_ERROR_TOO_MANY_OBJECTS;
-	pin_info->reference = preferred;
+	auth_info->attrs.pin.reference = preferred;
 	return 0;
 }
 
@@ -185,7 +189,7 @@ cardos_create_pin(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *d
 		const u8 *pin, size_t pin_len,
 		const u8 *puk, size_t puk_len)
 {
-	sc_pkcs15_pin_info_t *pin_info = (sc_pkcs15_pin_info_t *) pin_obj->data;
+	sc_pkcs15_auth_info_t *auth_info = (sc_pkcs15_auth_info_t *) pin_obj->data;
 	struct sc_card *card = p15card->card;
 	unsigned int	puk_id = CARDOS_AC_NEVER;
 	int		r;
@@ -193,24 +197,27 @@ cardos_create_pin(sc_profile_t *profile, sc_pkcs15_card_t *p15card, sc_file_t *d
 	if (!pin || !pin_len)
 		return SC_ERROR_INVALID_ARGUMENTS;
 
+	if (auth_info->auth_type != SC_PKCS15_PIN_AUTH_TYPE_PIN)
+		return SC_ERROR_OBJECT_NOT_VALID;
+
 	r = sc_select_file(card, &df->path, NULL);
 	if (r < 0)
 		return r;
 
 	if (puk && puk_len) {
-		struct sc_pkcs15_pin_info puk_info;
+		struct sc_pkcs15_auth_info puk_ainfo;
 
 		sc_profile_get_pin_info(profile,
-				SC_PKCS15INIT_USER_PUK, &puk_info);
-		puk_info.reference = puk_id = pin_info->reference + 1;
+				SC_PKCS15INIT_USER_PUK, &puk_ainfo);
+		puk_ainfo.attrs.pin.reference = puk_id = auth_info->attrs.pin.reference + 1;
 		r = cardos_store_pin(profile, card,
-				&puk_info, CARDOS_AC_NEVER,
+				&puk_ainfo, CARDOS_AC_NEVER,
 				puk, puk_len);
 	}
 
 	if (r >= 0) {
 		r = cardos_store_pin(profile, card,
-				pin_info, puk_id, pin, pin_len);
+				auth_info, puk_id, pin, pin_len);
 	}
 
 	return r;
@@ -399,7 +406,7 @@ out:
  */
 static int
 cardos_store_pin(sc_profile_t *profile, sc_card_t *card,
-		sc_pkcs15_pin_info_t *pin_info, int puk_id,
+		sc_pkcs15_auth_info_t *auth_info, int puk_id,
 		const u8 *pin, size_t pin_len)
 {
 	struct sc_cardctl_cardos_obj_info args;
@@ -407,7 +414,10 @@ cardos_store_pin(sc_profile_t *profile, sc_card_t *card,
 	unsigned char	pinpadded[256];
 	struct tlv	tlv;
 	unsigned int	attempts, minlen, maxlen;
-	int		r;
+	int		r, hasverifyrc;
+
+	if (auth_info->auth_type != SC_PKCS15_PIN_AUTH_TYPE_PIN)
+		return SC_ERROR_OBJECT_NOT_VALID;
 
 	/* We need to do padding because pkcs15-lib.c does it.
 	 * Would be nice to have a flag in the profile that says
@@ -423,19 +433,23 @@ cardos_store_pin(sc_profile_t *profile, sc_card_t *card,
 		pinpadded[pin_len++] = profile->pin_pad_char;
 	pin = pinpadded;
 
-	attempts = pin_info->tries_left;
-	minlen = pin_info->min_length;
+	attempts = auth_info->tries_left;
+	minlen = auth_info->attrs.pin.min_length;
 
 	tlv_init(&tlv, buffer, sizeof(buffer));
 
 	/* object address: class, id */
 	tlv_next(&tlv, 0x83);
 	tlv_add(&tlv, 0x00);		/* class byte: usage TEST, k=0 */
-	tlv_add(&tlv, pin_info->reference);
+	tlv_add(&tlv, auth_info->attrs.pin.reference);
 
 	/* parameters */
 	tlv_next(&tlv, 0x85);
 	tlv_add(&tlv, 0x02);		/* options byte */
+	hasverifyrc = cardos_have_verifyrc_package(card);
+	if (hasverifyrc == 1)
+		/* Use 9 byte OCI parameters to be able to set VerifyRC bit	*/
+		tlv_add(&tlv, 0x04);	/* options_2 byte with bit 2 set to return CurrentErrorCounter	*/
 	tlv_add(&tlv, attempts & 0xf);	/* flags byte */
 	tlv_add(&tlv, CARDOS_ALGO_PIN);	/* algorithm = pin-test */
 	tlv_add(&tlv, attempts & 0xf);	/* errcount = attempts */
@@ -461,7 +475,7 @@ cardos_store_pin(sc_profile_t *profile, sc_card_t *card,
 	/* AC conditions */
 	tlv_next(&tlv, 0x86);
 	tlv_add(&tlv, 0x00);			/* use: always */
-	tlv_add(&tlv, pin_info->reference);	/* change: PIN */
+	tlv_add(&tlv, auth_info->attrs.pin.reference);	/* change: PIN */
 	tlv_add(&tlv, puk_id);			/* unblock: PUK */
 
 	/* data: PIN */
@@ -775,6 +789,56 @@ static int cardos_extract_pubkey(sc_card_t *card, sc_pkcs15_pubkey_t *pubkey,
 	pubkey->algorithm = SC_ALGORITHM_RSA;
 
 	return r;
+}
+
+static int cardos_have_verifyrc_package(sc_card_t *card)
+{
+	sc_apdu_t apdu;
+        u8        rbuf[SC_MAX_APDU_BUFFER_SIZE];
+        int       r;
+	const u8  *p = rbuf, *q;
+	size_t    len, tlen = 0, ilen = 0;
+
+	sc_format_apdu(card, &apdu, SC_APDU_CASE_2_SHORT, 0xca, 0x01, 0x88);
+	apdu.resp    = rbuf;
+	apdu.resplen = sizeof(rbuf);
+	apdu.lc = 0;
+	apdu.le = 256;
+	r = sc_transmit_apdu(card, &apdu);
+	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "APDU transmit failed");
+
+	if ((len = apdu.resplen) == 0)
+		/* looks like no package has been installed  */
+		return 0;
+
+	while (len != 0) {
+		p = sc_asn1_find_tag(card->ctx, p, len, 0xe1, &tlen);
+		if (p == NULL)
+			return 0;
+		if (card->type == SC_CARD_TYPE_CARDOS_M4_3)	{
+			/* the verifyRC package on CardOS 4.3B use Manufacturer ID 0x01	*/
+			/* and Package Number 0x07					*/
+			q = sc_asn1_find_tag(card->ctx, p, tlen, 0x01, &ilen);
+			if (q == NULL || ilen != 4)
+				return 0;
+			if (q[0] == 0x07)
+				return 1;
+		} else if (card->type == SC_CARD_TYPE_CARDOS_M4_4)	{
+			/* the verifyRC package on CardOS 4.4 use Manufacturer ID 0x03	*/
+			/* and Package Number 0x02					*/
+			q = sc_asn1_find_tag(card->ctx, p, tlen, 0x03, &ilen);
+			if (q == NULL || ilen != 4)
+				return 0;
+			if (q[0] == 0x02)
+				return 1;
+		} else	{
+			return 0;
+		}
+		p   += tlen;
+		len -= tlen + 2;
+	}
+
+	return 0;
 }
 
 static struct sc_pkcs15init_operations sc_pkcs15init_cardos_operations = {

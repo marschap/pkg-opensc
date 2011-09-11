@@ -88,24 +88,24 @@ libopensc_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
 am__libopensc_la_SOURCES_DIST = sc.c ctx.c log.c errors.c asn1.c \
 	base64.c sec.c card.c iso7816.c dir.c ef-atr.c padding.c \
 	apdu.c pkcs15.c pkcs15-cert.c pkcs15-data.c pkcs15-pin.c \
-	pkcs15-prkey.c pkcs15-pubkey.c pkcs15-sec.c pkcs15-wrap.c \
-	pkcs15-algo.c pkcs15-cache.c pkcs15-syn.c pkcs15-gemsafeV1.c \
-	muscle.c muscle-filesystem.c ctbcs.c reader-ctapi.c \
-	reader-pcsc.c reader-openct.c card-setcos.c card-miocos.c \
-	card-flex.c card-gpk.c card-cardos.c card-tcos.c \
-	card-default.c card-mcrd.c card-starcos.c card-openpgp.c \
-	card-jcop.c card-oberthur.c card-belpic.c card-atrust-acos.c \
-	card-entersafe.c card-incrypto34.c card-piv.c card-muscle.c \
-	card-acos5.c card-asepcos.c card-akis.c card-gemsafeV1.c \
-	card-rutoken.c card-rtecp.c card-westcos.c card-myeid.c \
-	card-ias.c card-javacard.c card-itacns.c card-authentic.c \
-	card-iasecc.c iasecc-sdo.c pkcs15-openpgp.c \
-	pkcs15-infocamere.c pkcs15-starcert.c pkcs15-tcos.c \
-	pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafeGPK.c \
-	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c \
-	pkcs15-piv.c pkcs15-esinit.c pkcs15-westcos.c pkcs15-pteid.c \
-	pkcs15-oberthur.c pkcs15-itacns.c compression.c \
-	p15card-helper.c libopensc.exports \
+	pkcs15-prkey.c pkcs15-pubkey.c pkcs15-sec.c pkcs15-algo.c \
+	pkcs15-cache.c pkcs15-syn.c muscle.c muscle-filesystem.c \
+	ctbcs.c reader-ctapi.c reader-pcsc.c reader-openct.c \
+	card-setcos.c card-miocos.c card-flex.c card-gpk.c \
+	card-cardos.c card-tcos.c card-default.c card-mcrd.c \
+	card-starcos.c card-openpgp.c card-jcop.c card-oberthur.c \
+	card-belpic.c card-atrust-acos.c card-entersafe.c \
+	card-incrypto34.c card-piv.c card-muscle.c card-acos5.c \
+	card-asepcos.c card-akis.c card-gemsafeV1.c card-rutoken.c \
+	card-rtecp.c card-westcos.c card-myeid.c card-ias.c \
+	card-javacard.c card-itacns.c card-authentic.c card-iasecc.c \
+	iasecc-sdo.c pkcs15-openpgp.c pkcs15-infocamere.c \
+	pkcs15-starcert.c pkcs15-tcos.c pkcs15-esteid.c \
+	pkcs15-postecert.c pkcs15-gemsafeGPK.c pkcs15-actalis.c \
+	pkcs15-atrust-acos.c pkcs15-tccardos.c pkcs15-piv.c \
+	pkcs15-esinit.c pkcs15-westcos.c pkcs15-pteid.c \
+	pkcs15-oberthur.c pkcs15-itacns.c pkcs15-gemsafeV1.c \
+	compression.c p15card-helper.c libopensc.exports \
 	$(top_builddir)/win32/versioninfo.rc
 am__dirstamp = $(am__leading_dot)dirstamp
 @WIN32_TRUE@am__objects_1 = $(top_builddir)/win32/versioninfo.lo
@@ -113,15 +113,15 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo log.lo errors.lo asn1.lo \
 	base64.lo sec.lo card.lo iso7816.lo dir.lo ef-atr.lo \
 	padding.lo apdu.lo pkcs15.lo pkcs15-cert.lo pkcs15-data.lo \
 	pkcs15-pin.lo pkcs15-prkey.lo pkcs15-pubkey.lo pkcs15-sec.lo \
-	pkcs15-wrap.lo pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo \
-	pkcs15-gemsafeV1.lo muscle.lo muscle-filesystem.lo ctbcs.lo \
-	reader-ctapi.lo reader-pcsc.lo reader-openct.lo card-setcos.lo \
-	card-miocos.lo card-flex.lo card-gpk.lo card-cardos.lo \
-	card-tcos.lo card-default.lo card-mcrd.lo card-starcos.lo \
-	card-openpgp.lo card-jcop.lo card-oberthur.lo card-belpic.lo \
-	card-atrust-acos.lo card-entersafe.lo card-incrypto34.lo \
-	card-piv.lo card-muscle.lo card-acos5.lo card-asepcos.lo \
-	card-akis.lo card-gemsafeV1.lo card-rutoken.lo card-rtecp.lo \
+	pkcs15-algo.lo pkcs15-cache.lo pkcs15-syn.lo muscle.lo \
+	muscle-filesystem.lo ctbcs.lo reader-ctapi.lo reader-pcsc.lo \
+	reader-openct.lo card-setcos.lo card-miocos.lo card-flex.lo \
+	card-gpk.lo card-cardos.lo card-tcos.lo card-default.lo \
+	card-mcrd.lo card-starcos.lo card-openpgp.lo card-jcop.lo \
+	card-oberthur.lo card-belpic.lo card-atrust-acos.lo \
+	card-entersafe.lo card-incrypto34.lo card-piv.lo \
+	card-muscle.lo card-acos5.lo card-asepcos.lo card-akis.lo \
+	card-gemsafeV1.lo card-rutoken.lo card-rtecp.lo \
 	card-westcos.lo card-myeid.lo card-ias.lo card-javacard.lo \
 	card-itacns.lo card-authentic.lo card-iasecc.lo iasecc-sdo.lo \
 	pkcs15-openpgp.lo pkcs15-infocamere.lo pkcs15-starcert.lo \
@@ -129,10 +129,13 @@ am_libopensc_la_OBJECTS = sc.lo ctx.lo log.lo errors.lo asn1.lo \
 	pkcs15-gemsafeGPK.lo pkcs15-actalis.lo pkcs15-atrust-acos.lo \
 	pkcs15-tccardos.lo pkcs15-piv.lo pkcs15-esinit.lo \
 	pkcs15-westcos.lo pkcs15-pteid.lo pkcs15-oberthur.lo \
-	pkcs15-itacns.lo compression.lo p15card-helper.lo \
-	$(am__objects_1)
+	pkcs15-itacns.lo pkcs15-gemsafeV1.lo compression.lo \
+	p15card-helper.lo $(am__objects_1)
 libopensc_la_OBJECTS = $(am_libopensc_la_OBJECTS)
-libopensc_la_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
+libopensc_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
 	$(libopensc_la_LDFLAGS) $(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
@@ -141,13 +144,26 @@ am__depfiles_maybe = depfiles
 am__mv = mv -f
 COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
 	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC    " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
 CCLD = $(CC)
-LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) \
-	--mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD  " $@;
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libopensc_la_SOURCES)
 DIST_SOURCES = $(am__libopensc_la_SOURCES_DIST)
 DATA = $(mylib_DATA)
@@ -157,6 +173,7 @@ CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
+AM_DEFAULT_VERBOSITY = @AM_DEFAULT_VERBOSITY@
 AR = @AR@
 AS = @AS@
 AUTOCONF = @AUTOCONF@
@@ -181,6 +198,7 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+GIT = @GIT@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -237,8 +255,6 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCSC_CFLAGS = @PCSC_CFLAGS@
 PCSC_LIBS = @PCSC_LIBS@
 PKG_CONFIG = @PKG_CONFIG@
-PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
-PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -250,7 +266,6 @@ SED = @SED@
 SET_MAKE = @SET_MAKE@
 SHELL = @SHELL@
 STRIP = @STRIP@
-SVN = @SVN@
 VERSION = @VERSION@
 WIN_LIBPREFIX = @WIN_LIBPREFIX@
 XSLTPROC = @XSLTPROC@
@@ -280,6 +295,7 @@ datarootdir = @datarootdir@
 docdir = @docdir@
 dvidir = @dvidir@
 exec_prefix = @exec_prefix@
+git = @git@
 host = @host@
 host_alias = @host_alias@
 host_cpu = @host_cpu@
@@ -334,13 +350,12 @@ INCLUDES = -I$(top_srcdir)/src
 libopensc_la_SOURCES = sc.c ctx.c log.c errors.c asn1.c base64.c sec.c \
 	card.c iso7816.c dir.c ef-atr.c padding.c apdu.c pkcs15.c \
 	pkcs15-cert.c pkcs15-data.c pkcs15-pin.c pkcs15-prkey.c \
-	pkcs15-pubkey.c pkcs15-sec.c pkcs15-wrap.c pkcs15-algo.c \
-	pkcs15-cache.c pkcs15-syn.c pkcs15-gemsafeV1.c muscle.c \
-	muscle-filesystem.c ctbcs.c reader-ctapi.c reader-pcsc.c \
-	reader-openct.c card-setcos.c card-miocos.c card-flex.c \
-	card-gpk.c card-cardos.c card-tcos.c card-default.c \
-	card-mcrd.c card-starcos.c card-openpgp.c card-jcop.c \
-	card-oberthur.c card-belpic.c card-atrust-acos.c \
+	pkcs15-pubkey.c pkcs15-sec.c pkcs15-algo.c pkcs15-cache.c \
+	pkcs15-syn.c muscle.c muscle-filesystem.c ctbcs.c \
+	reader-ctapi.c reader-pcsc.c reader-openct.c card-setcos.c \
+	card-miocos.c card-flex.c card-gpk.c card-cardos.c card-tcos.c \
+	card-default.c card-mcrd.c card-starcos.c card-openpgp.c \
+	card-jcop.c card-oberthur.c card-belpic.c card-atrust-acos.c \
 	card-entersafe.c card-incrypto34.c card-piv.c card-muscle.c \
 	card-acos5.c card-asepcos.c card-akis.c card-gemsafeV1.c \
 	card-rutoken.c card-rtecp.c card-westcos.c card-myeid.c \
@@ -350,8 +365,9 @@ libopensc_la_SOURCES = sc.c ctx.c log.c errors.c asn1.c base64.c sec.c \
 	pkcs15-esteid.c pkcs15-postecert.c pkcs15-gemsafeGPK.c \
 	pkcs15-actalis.c pkcs15-atrust-acos.c pkcs15-tccardos.c \
 	pkcs15-piv.c pkcs15-esinit.c pkcs15-westcos.c pkcs15-pteid.c \
-	pkcs15-oberthur.c pkcs15-itacns.c compression.c \
-	p15card-helper.c libopensc.exports $(am__append_1)
+	pkcs15-oberthur.c pkcs15-itacns.c pkcs15-gemsafeV1.c \
+	compression.c p15card-helper.c libopensc.exports \
+	$(am__append_1)
 libopensc_la_LIBADD = $(OPTIONAL_OPENSSL_LIBS) $(OPTIONAL_OPENCT_LIBS) \
 	$(OPTIONAL_ZLIB_LIBS) $(LTLIB_LIBS) \
 	$(top_builddir)/src/pkcs15init/libpkcs15init.la \
@@ -443,7 +459,7 @@ $(top_builddir)/win32/versioninfo.lo:  \
 	$(top_builddir)/win32/$(am__dirstamp) \
 	$(top_builddir)/win32/$(DEPDIR)/$(am__dirstamp)
 libopensc.la: $(libopensc_la_OBJECTS) $(libopensc_la_DEPENDENCIES) 
-	$(libopensc_la_LINK) -rpath $(libdir) $(libopensc_la_OBJECTS) $(libopensc_la_LIBADD) $(LIBS)
+	$(AM_V_CCLD)$(libopensc_la_LINK) -rpath $(libdir) $(libopensc_la_OBJECTS) $(libopensc_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -527,7 +543,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-tccardos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-tcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-westcos.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-wrap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reader-ctapi.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/reader-openct.Plo@am__quote@
@@ -536,22 +551,25 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sec.Plo@am__quote@
 
 .c.o:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c $<
 
 .c.obj:
-@am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ `$(CYGPATH_W) '$<'`
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Po
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(COMPILE) -c `$(CYGPATH_W) '$<'`
 
 .c.lo:
-@am__fastdepCC_TRUE@	$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_TRUE@	$(AM_V_CC)$(LTCOMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
+@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/$*.Tpo $(DEPDIR)/$*.Plo
+@am__fastdepCC_FALSE@	$(AM_V_CC) @AM_BACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='$<' object='$@' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
