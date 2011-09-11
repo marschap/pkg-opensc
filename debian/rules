@@ -11,7 +11,6 @@ override_dh_auto_configure:
 
 override_dh_auto_install:
 	dh_auto_install --destdir=debian/tmp
-	sed -i "/dependency_libs/ s/'.*'/''/" `find debian/tmp -name '*.la'`
 
 override_dh_installdocs:
 	dh_installdocs -A README NEWS

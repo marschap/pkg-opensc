@@ -2,6 +2,8 @@ opensc (0.12.2-1) unstable; urgency=low
 
   * New upstream release.
   * Acknowledge NMU. (Closes: #622436, #629227, #631618)
+  * debian/rules, debian/opensc.install: Only install the .so.* lib files,
+    not the .la or .a files. (Closes: #633656)
 
  --
 
