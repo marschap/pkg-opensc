@@ -9,7 +9,7 @@ opensc (0.12.2-1) unstable; urgency=low
   * debian/rules, debian/control: Enable readline support. Thanks Peter
     Marschall <peter@adpm.de>. (Closes: #629228)
 
- --
+ -- Eric Dorland <eric@debian.org>  Sun, 11 Sep 2011 19:04:02 -0400
 
 opensc (0.12.1-1.1) unstable; urgency=low
 

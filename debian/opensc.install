@@ -9,6 +9,7 @@ debian/tmp/usr/bin/pkcs11-tool
 debian/tmp/usr/bin/pkcs15*
 
 debian/tmp/usr/lib/*.so.*
+debian/tmp/usr/lib/*.so
 etc/opensc.conf etc/opensc
 
 debian/tmp/usr/share/man/man5/*
