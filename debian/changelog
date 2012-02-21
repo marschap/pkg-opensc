@@ -1,3 +1,9 @@
+opensc (0.12.2-3) unstable; urgency=low
+
+  * debian/compat, debian/control: Upgrade to dh v9. (Closes: #656350)
+
+ --
+
 opensc (0.12.2-2) unstable; urgency=low
 
   * debian/opensc.install: Add westcos-tool & its man page. Thanks Peter
