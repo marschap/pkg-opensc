@@ -9,8 +9,8 @@ debian/tmp/usr/bin/pkcs11-tool
 debian/tmp/usr/bin/pkcs15*
 debian/tmp/usr/bin/westcos-tool
 
-debian/tmp/usr/lib/*.so.*
-debian/tmp/usr/lib/*.so
+debian/tmp/usr/lib/*/*.so.*
+debian/tmp/usr/lib/*/*.so
 debian/tmp/usr/share/opensc/*.profile
 etc/opensc.conf etc/opensc
 

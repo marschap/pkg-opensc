@@ -2,6 +2,7 @@ opensc (0.12.2-3) unstable; urgency=low
 
   * debian/compat, debian/control: Upgrade to dh v9. (Closes: #656350)
   * debian/control: Mark package as Multi-Arch: foreign.
+  * debian/opensc.install: Update /usr/lib paths for multi-arch.
 
  -- Eric Dorland <eric@debian.org>  Sun, 03 Jun 2012 18:21:39 -0400
 
