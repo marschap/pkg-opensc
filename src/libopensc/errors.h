@@ -67,6 +67,7 @@ extern "C" {
 #define SC_ERROR_NOT_ENOUGH_MEMORY		-1217
 #define SC_ERROR_CORRUPTED_DATA			-1218
 #define SC_ERROR_FILE_END_REACHED		-1219
+#define SC_ERROR_REF_DATA_NOT_USABLE	-1220
 
 /* Returned by OpenSC library when called with invalid arguments */
 #define SC_ERROR_INVALID_ARGUMENTS		-1300
@@ -87,7 +88,7 @@ extern "C" {
 #define SC_ERROR_OBJECT_NOT_FOUND		-1407
 #define SC_ERROR_NOT_SUPPORTED			-1408
 #define SC_ERROR_PASSPHRASE_REQUIRED		-1409
-/* Unused: -1410 */
+#define SC_ERROR_INCONSISTENT_CONFIGURATION	-1410
 #define SC_ERROR_DECRYPT_FAILED			-1411
 #define SC_ERROR_WRONG_PADDING			-1412
 #define SC_ERROR_WRONG_CARD			-1413
@@ -119,6 +120,7 @@ extern "C" {
 #define SC_ERROR_SM_RAND_FAILED                 -1607
 #define SC_ERROR_SM_KEYSET_NOT_FOUND            -1608
 #define SC_ERROR_SM_IFD_DATA_MISSING            -1609
+#define SC_ERROR_SM_NOT_APPLIED                 -1610
 
 
 /* Errors that do not fit the categories above */

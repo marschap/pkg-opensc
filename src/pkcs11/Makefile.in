@@ -18,7 +18,6 @@
 # Required to build Windows resource file
 
 
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -42,10 +41,9 @@ DIST_COMMON = $(dist_noinst_SCRIPTS) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in $(top_srcdir)/win32/ltrc.inc
 @WIN32_TRUE@am__append_1 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_2 = $(top_builddir)/win32/versioninfo.rc
-@WIN32_TRUE@am__append_3 = $(top_builddir)/win32/versioninfo.rc
 subdir = src/pkcs11
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
@@ -76,18 +74,19 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkcs11dir)"
+am__installdirs = "$(DESTDIR)$(libdir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
-am__DEPENDENCIES_2 = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(top_builddir)/src/common/libcompat.la \
-	$(top_builddir)/src/libopensc/libopensc.la
-onepin_opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am__onepin_opensc_pkcs11_la_SOURCES_DIST = pkcs11-global.c \
-	pkcs11-session.c pkcs11-object.c misc.c slot.c mechanism.c \
-	openssl.c framework-pkcs15.c framework-pkcs15init.c debug.c \
+am__DEPENDENCIES_2 = $(top_builddir)/src/libopensc/libopensc.la \
+	$(top_builddir)/src/common/libscdl.la \
+	$(top_builddir)/src/common/libcompat.la $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
+opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
+am__opensc_pkcs11_la_SOURCES_DIST = pkcs11-global.c pkcs11-session.c \
+	pkcs11-object.c misc.c slot.c mechanism.c openssl.c \
+	framework-pkcs15.c framework-pkcs15init.c debug.c \
 	opensc-pkcs11.exports pkcs11-display.c pkcs11-display.h \
-	sc-pkcs11.h pkcs11.h pkcs11-opensc.h hack-enabled.c \
+	sc-pkcs11.h pkcs11.h pkcs11-opensc.h \
 	$(top_builddir)/win32/versioninfo.rc
 am__objects_1 = pkcs11-global.lo pkcs11-session.lo pkcs11-object.lo \
 	misc.lo slot.lo mechanism.lo openssl.lo framework-pkcs15.lo \
@@ -95,33 +94,18 @@ am__objects_1 = pkcs11-global.lo pkcs11-session.lo pkcs11-object.lo \
 am__objects_2 =
 am__dirstamp = $(am__leading_dot)dirstamp
 @WIN32_TRUE@am__objects_3 = $(top_builddir)/win32/versioninfo.lo
-am_onepin_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
-	hack-enabled.lo $(am__objects_3)
-onepin_opensc_pkcs11_la_OBJECTS =  \
-	$(am_onepin_opensc_pkcs11_la_OBJECTS)
+am_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
+	$(am__objects_3)
+opensc_pkcs11_la_OBJECTS = $(am_opensc_pkcs11_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
-onepin_opensc_pkcs11_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
-	$(AM_CFLAGS) $(CFLAGS) $(onepin_opensc_pkcs11_la_LDFLAGS) \
-	$(LDFLAGS) -o $@
-opensc_pkcs11_la_DEPENDENCIES = $(am__DEPENDENCIES_2)
-am__opensc_pkcs11_la_SOURCES_DIST = pkcs11-global.c pkcs11-session.c \
-	pkcs11-object.c misc.c slot.c mechanism.c openssl.c \
-	framework-pkcs15.c framework-pkcs15init.c debug.c \
-	opensc-pkcs11.exports pkcs11-display.c pkcs11-display.h \
-	sc-pkcs11.h pkcs11.h pkcs11-opensc.h hack-disabled.c \
-	$(top_builddir)/win32/versioninfo.rc
-am_opensc_pkcs11_la_OBJECTS = $(am__objects_1) $(am__objects_2) \
-	hack-disabled.lo $(am__objects_3)
-opensc_pkcs11_la_OBJECTS = $(am_opensc_pkcs11_la_OBJECTS)
 opensc_pkcs11_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC \
 	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CCLD) \
 	$(AM_CFLAGS) $(CFLAGS) $(opensc_pkcs11_la_LDFLAGS) $(LDFLAGS) \
 	-o $@
-pkcs11_spy_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(top_builddir)/src/common/libpkcs11.la
+pkcs11_spy_la_DEPENDENCIES = $(top_builddir)/src/common/libpkcs11.la \
+	$(top_builddir)/src/common/libscdl.la $(am__DEPENDENCIES_1)
 am__pkcs11_spy_la_SOURCES_DIST = pkcs11-spy.c pkcs11-display.c \
 	pkcs11-display.h pkcs11-spy.exports \
 	$(top_builddir)/win32/versioninfo.rc
@@ -158,12 +142,9 @@ am__v_CCLD_0 = @echo "  CCLD  " $@;
 AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(onepin_opensc_pkcs11_la_SOURCES) \
-	$(opensc_pkcs11_la_SOURCES) $(pkcs11_spy_la_SOURCES)
-DIST_SOURCES = $(am__onepin_opensc_pkcs11_la_SOURCES_DIST) \
-	$(am__opensc_pkcs11_la_SOURCES_DIST) \
+SOURCES = $(opensc_pkcs11_la_SOURCES) $(pkcs11_spy_la_SOURCES)
+DIST_SOURCES = $(am__opensc_pkcs11_la_SOURCES_DIST) \
 	$(am__pkcs11_spy_la_SOURCES_DIST)
-DATA = $(pkcs11_DATA)
 ETAGS = etags
 CTAGS = ctags
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
@@ -182,7 +163,9 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DEBUG_FILE = @DEBUG_FILE@
 DEFAULT_PCSC_PROVIDER = @DEFAULT_PCSC_PROVIDER@
+DEFAULT_SM_MODULE = @DEFAULT_SM_MODULE@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
@@ -210,8 +193,6 @@ LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LTLIB_CFLAGS = @LTLIB_CFLAGS@
-LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
@@ -251,6 +232,8 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCSC_CFLAGS = @PCSC_CFLAGS@
 PCSC_LIBS = @PCSC_LIBS@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -273,12 +256,12 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
-acx_pthread_config = @acx_pthread_config@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+ax_pthread_config = @ax_pthread_config@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -330,43 +313,41 @@ LTRCCOMPILE = $(LIBTOOL) --mode=compile --tag=RC $(RCCOMPILE)
 MAINTAINERCLEANFILES = $(srcdir)/Makefile.in
 EXTRA_DIST = Makefile.mak
 dist_noinst_SCRIPTS = opensc_pkcs11_install.js
-lib_LTLIBRARIES = opensc-pkcs11.la pkcs11-spy.la onepin-opensc-pkcs11.la
+lib_LTLIBRARIES = opensc-pkcs11.la pkcs11-spy.la
 AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(PTHREAD_CFLAGS)
-INCLUDES = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src
 OPENSC_PKCS11_INC = sc-pkcs11.h pkcs11.h pkcs11-opensc.h
 OPENSC_PKCS11_SRC = pkcs11-global.c pkcs11-session.c pkcs11-object.c misc.c slot.c \
 	mechanism.c openssl.c framework-pkcs15.c \
 	framework-pkcs15init.c debug.c opensc-pkcs11.exports \
 	pkcs11-display.c pkcs11-display.h
 
-OPENSC_PKCS11_LIBS = $(OPTIONAL_OPENSSL_LIBS) $(PTHREAD_LIBS) $(LTLIB_LIBS) \
+OPENSC_PKCS11_LIBS = \
+	$(top_builddir)/src/libopensc/libopensc.la \
+	$(top_builddir)/src/common/libscdl.la \
 	$(top_builddir)/src/common/libcompat.la \
-	$(top_builddir)/src/libopensc/libopensc.la
+	$(OPTIONAL_OPENSSL_LIBS) $(PTHREAD_LIBS)
 
 opensc_pkcs11_la_SOURCES = $(OPENSC_PKCS11_SRC) $(OPENSC_PKCS11_INC) \
-	hack-disabled.c $(am__append_1)
+	$(am__append_1)
 opensc_pkcs11_la_LIBADD = $(OPENSC_PKCS11_LIBS)
 opensc_pkcs11_la_LDFLAGS = $(AM_LDFLAGS) \
 	-export-symbols "$(srcdir)/opensc-pkcs11.exports" \
 	-module -shared -avoid-version -no-undefined
 
-onepin_opensc_pkcs11_la_SOURCES = $(OPENSC_PKCS11_SRC) \
-	$(OPENSC_PKCS11_INC) hack-enabled.c $(am__append_2)
-onepin_opensc_pkcs11_la_LIBADD = $(OPENSC_PKCS11_LIBS)
-onepin_opensc_pkcs11_la_LDFLAGS = $(AM_LDFLAGS) \
-	-export-symbols "$(srcdir)/opensc-pkcs11.exports" \
-	-module -shared -avoid-version -no-undefined
-
 pkcs11_spy_la_SOURCES = pkcs11-spy.c pkcs11-display.c pkcs11-display.h \
-	pkcs11-spy.exports $(am__append_3)
-pkcs11_spy_la_LIBADD = $(OPTIONAL_OPENSSL_LIBS) $(LTLIB_LIBS) $(top_builddir)/src/common/libpkcs11.la
+	pkcs11-spy.exports $(am__append_2)
+pkcs11_spy_la_LIBADD = \
+	$(top_builddir)/src/common/libpkcs11.la \
+	$(top_builddir)/src/common/libscdl.la \
+	$(OPTIONAL_OPENSSL_LIBS)
+
 pkcs11_spy_la_LDFLAGS = $(AM_LDFLAGS) \
 	-export-symbols "$(srcdir)/pkcs11-spy.exports" \
 	-module -shared -avoid-version -no-undefined
 
-# see http://wiki.cacert.org/wiki/Pkcs11TaskForce
-@WIN32_FALSE@pkcs11_DATA = #This will create the directory
 @CYGWIN_FALSE@@WIN32_FALSE@PKCS11_SUFFIX = .so
+# see http://wiki.cacert.org/wiki/Pkcs11TaskForce
 @CYGWIN_TRUE@@WIN32_FALSE@PKCS11_SUFFIX = .dll
 all: all-am
 
@@ -442,8 +423,6 @@ $(top_builddir)/win32/$(DEPDIR)/$(am__dirstamp):
 $(top_builddir)/win32/versioninfo.lo:  \
 	$(top_builddir)/win32/$(am__dirstamp) \
 	$(top_builddir)/win32/$(DEPDIR)/$(am__dirstamp)
-onepin-opensc-pkcs11.la: $(onepin_opensc_pkcs11_la_OBJECTS) $(onepin_opensc_pkcs11_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(onepin_opensc_pkcs11_la_LINK) -rpath $(libdir) $(onepin_opensc_pkcs11_la_OBJECTS) $(onepin_opensc_pkcs11_la_LIBADD) $(LIBS)
 opensc-pkcs11.la: $(opensc_pkcs11_la_OBJECTS) $(opensc_pkcs11_la_DEPENDENCIES) 
 	$(AM_V_CCLD)$(opensc_pkcs11_la_LINK) -rpath $(libdir) $(opensc_pkcs11_la_OBJECTS) $(opensc_pkcs11_la_LIBADD) $(LIBS)
 pkcs11-spy.la: $(pkcs11_spy_la_OBJECTS) $(pkcs11_spy_la_DEPENDENCIES) 
@@ -460,8 +439,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/debug.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/framework-pkcs15.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/framework-pkcs15init.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hack-disabled.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/hack-enabled.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/mechanism.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/misc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/openssl.Plo@am__quote@
@@ -502,26 +479,6 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf $(top_builddir)/win32/.libs $(top_builddir)/win32/_libs
 	-rm -rf .libs _libs
-install-pkcs11DATA: $(pkcs11_DATA)
-	@$(NORMAL_INSTALL)
-	test -z "$(pkcs11dir)" || $(MKDIR_P) "$(DESTDIR)$(pkcs11dir)"
-	@list='$(pkcs11_DATA)'; test -n "$(pkcs11dir)" || list=; \
-	for p in $$list; do \
-	  if test -f "$$p"; then d=; else d="$(srcdir)/"; fi; \
-	  echo "$$d$$p"; \
-	done | $(am__base_list) | \
-	while read files; do \
-	  echo " $(INSTALL_DATA) $$files '$(DESTDIR)$(pkcs11dir)'"; \
-	  $(INSTALL_DATA) $$files "$(DESTDIR)$(pkcs11dir)" || exit $$?; \
-	done
-
-uninstall-pkcs11DATA:
-	@$(NORMAL_UNINSTALL)
-	@list='$(pkcs11_DATA)'; test -n "$(pkcs11dir)" || list=; \
-	files=`for p in $$list; do echo $$p; done | sed -e 's|^.*/||'`; \
-	test -n "$$files" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(pkcs11dir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(pkcs11dir)" && rm -f $$files
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
@@ -607,9 +564,9 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-am
-all-am: Makefile $(LTLIBRARIES) $(SCRIPTS) $(DATA)
+all-am: Makefile $(LTLIBRARIES) $(SCRIPTS)
 installdirs:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(pkcs11dir)"; do \
+	for dir in "$(DESTDIR)$(libdir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-am
@@ -663,7 +620,7 @@ info: info-am
 
 info-am:
 
-install-data-am: install-pkcs11DATA
+install-data-am:
 
 install-dvi: install-dvi-am
 
@@ -710,7 +667,7 @@ ps: ps-am
 
 ps-am:
 
-uninstall-am: uninstall-libLTLIBRARIES uninstall-pkcs11DATA
+uninstall-am: uninstall-libLTLIBRARIES
 
 .MAKE: install-am install-exec-am install-strip
 
@@ -722,12 +679,11 @@ uninstall-am: uninstall-libLTLIBRARIES uninstall-pkcs11DATA
 	install-dvi-am install-exec install-exec-am install-exec-hook \
 	install-html install-html-am install-info install-info-am \
 	install-libLTLIBRARIES install-man install-pdf install-pdf-am \
-	install-pkcs11DATA install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs maintainer-clean \
+	install-ps install-ps-am install-strip installcheck \
+	installcheck-am installdirs maintainer-clean \
 	maintainer-clean-generic mostlyclean mostlyclean-compile \
 	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am uninstall-libLTLIBRARIES \
-	uninstall-pkcs11DATA
+	tags uninstall uninstall-am uninstall-libLTLIBRARIES
 
 
 .rc.lo:
@@ -745,12 +701,14 @@ pkcs11-jar: jar-dir
 	signtool -Z"opensc-pkcs11.jar" -i"opensc_pkcs11_install.js" \
 		 -k"testcert" jar-dir
 
-@WIN32_TRUE@install-exec-hook:	install-pkcs11DATA
-@WIN32_TRUE@	for l in opensc-pkcs11.dll onepin-opensc-pkcs11.dll pkcs11-spy.dll; do \
+@WIN32_TRUE@install-exec-hook:
+@WIN32_TRUE@	$(MKDIR_P) "$(DESTDIR)$(libdir)"
+@WIN32_TRUE@	for l in opensc-pkcs11.dll pkcs11-spy.dll; do \
 @WIN32_TRUE@		mv "$(DESTDIR)$(libdir)/$$l" "$(DESTDIR)$(bindir)/$$l"; \
 @WIN32_TRUE@	done
-@WIN32_FALSE@install-exec-hook:	install-pkcs11DATA
-@WIN32_FALSE@	for l in opensc-pkcs11$(PKCS11_SUFFIX) onepin-opensc-pkcs11$(PKCS11_SUFFIX) pkcs11-spy$(PKCS11_SUFFIX); do \
+@WIN32_FALSE@install-exec-hook:
+@WIN32_FALSE@	$(MKDIR_P) "$(DESTDIR)$(pkcs11dir)"
+@WIN32_FALSE@	for l in opensc-pkcs11$(PKCS11_SUFFIX) pkcs11-spy$(PKCS11_SUFFIX); do \
 @WIN32_FALSE@		rm -f "$(DESTDIR)$(pkcs11dir)/$$l"; \
 @WIN32_FALSE@		$(LN_S) ../$$l "$(DESTDIR)$(pkcs11dir)/$$l"; \
 @WIN32_FALSE@	done

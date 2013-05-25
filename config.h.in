@@ -3,8 +3,14 @@
 /* Define if building universal (internal helper macro) */
 #undef AC_APPLE_UNIVERSAL_BUILD
 
+/* Debug file */
+#undef DEBUG_FILE
+
 /* Default PC/SC provider */
 #undef DEFAULT_PCSC_PROVIDER
+
+/* Default SM module */
+#undef DEFAULT_SM_MODULE
 
 /* Enable CT-API support */
 #undef ENABLE_CTAPI
@@ -23,6 +29,9 @@
 
 /* Use readline libraries and header files */
 #undef ENABLE_READLINE
+
+/* Enable secure messaging support */
+#undef ENABLE_SM
 
 /* Use zlib libraries and header files */
 #undef ENABLE_ZLIB
@@ -57,8 +66,8 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the <ltdl.h> header file. */
-#undef HAVE_LTDL_H
+/* Define to 1 if you have the `dl' library (-ldl). */
+#undef HAVE_LIBDL
 
 /* Define to 1 if you have the <malloc.h> header file. */
 #undef HAVE_MALLOC_H
@@ -74,6 +83,9 @@
 
 /* Define if you have POSIX threads libraries and header files. */
 #undef HAVE_PTHREAD
+
+/* Have PTHREAD_PRIO_INHERIT. */
+#undef HAVE_PTHREAD_PRIO_INHERIT
 
 /* Define to 1 if you have the <readline/readline.h> header file. */
 #undef HAVE_READLINE_READLINE_H
