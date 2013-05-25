@@ -2,6 +2,7 @@ opensc (0.13.0-1) unstable; urgency=low
 
   * New upstream release. (Closes: #703557, #694481)
   * debian/control: Standards-Version to 3.9.4.
+  * debian/opensc.docs: Update the tools.html location.
 
  -- Eric Dorland <eric@debian.org>  Sat, 25 May 2013 04:52:07 -0400
 
