@@ -41,7 +41,7 @@ subdir = src/common
 DIST_COMMON = $(dist_noinst_DATA) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
@@ -55,12 +55,12 @@ LTLIBRARIES = $(noinst_LTLIBRARIES)
 libcompat_la_LIBADD =
 am_libcompat_la_OBJECTS = compat_dummy.lo compat_strlcat.lo \
 	compat_strlcpy.lo compat_getpass.lo compat_getopt.lo \
-	simclist.lo libscdl.lo
+	simclist.lo
 libcompat_la_OBJECTS = $(am_libcompat_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
-libpkcs11_la_DEPENDENCIES = libscdl.la
+libpkcs11_la_LIBADD =
 am_libpkcs11_la_OBJECTS = libpkcs11.lo
 libpkcs11_la_OBJECTS = $(am_libpkcs11_la_OBJECTS)
 libscdl_la_LIBADD =
@@ -119,7 +119,9 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DEBUG_FILE = @DEBUG_FILE@
 DEFAULT_PCSC_PROVIDER = @DEFAULT_PCSC_PROVIDER@
+DEFAULT_SM_MODULE = @DEFAULT_SM_MODULE@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
@@ -147,8 +149,6 @@ LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LTLIB_CFLAGS = @LTLIB_CFLAGS@
-LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
@@ -188,6 +188,8 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCSC_CFLAGS = @PCSC_CFLAGS@
 PCSC_LIBS = @PCSC_LIBS@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -210,12 +212,12 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
-acx_pthread_config = @acx_pthread_config@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+ax_pthread_config = @ax_pthread_config@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -269,19 +271,17 @@ dist_noinst_DATA = \
 	compat_getopt_main.c \
 	README.compat_strlcpy compat_strlcpy.3
 
-AM_CFLAGS = $(LTLIB_CFLAGS)
-INCLUDES = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src
 libcompat_la_SOURCES = \
 	compat_dummy.c \
 	compat_strlcat.h compat_strlcat.c \
 	compat_strlcpy.h compat_strlcpy.c \
 	compat_getpass.h compat_getpass.c \
 	compat_getopt.h compat_getopt.c \
-	simclist.c simclist.h libscdl.c
+	simclist.c simclist.h
 
 compat_getopt_main_LDADD = libcompat.la
 libpkcs11_la_SOURCES = libpkcs11.c libpkcs11.h
-libpkcs11_la_LIBADD = libscdl.la
 libscdl_la_SOURCES = libscdl.c libscdl.h
 all: all-am
 

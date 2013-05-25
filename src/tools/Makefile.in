@@ -42,8 +42,8 @@ DIST_COMMON = $(noinst_HEADERS) $(srcdir)/Makefile.am \
 bin_PROGRAMS = opensc-tool$(EXEEXT) opensc-explorer$(EXEEXT) \
 	pkcs15-tool$(EXEEXT) pkcs15-crypt$(EXEEXT) \
 	pkcs11-tool$(EXEEXT) cardos-tool$(EXEEXT) eidenv$(EXEEXT) \
-	$(am__EXEEXT_1)
-@ENABLE_OPENSSL_TRUE@am__append_1 = cryptoflex-tool pkcs15-init netkey-tool piv-tool westcos-tool
+	openpgp-tool$(EXEEXT) iasecc-tool$(EXEEXT) $(am__EXEEXT_1)
+@ENABLE_OPENSSL_TRUE@am__append_1 = cryptoflex-tool pkcs15-init netkey-tool piv-tool westcos-tool sc-hsm-tool
 @WIN32_TRUE@am__append_2 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_3 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_4 = $(top_builddir)/win32/versioninfo.rc
@@ -56,9 +56,12 @@ bin_PROGRAMS = opensc-tool$(EXEEXT) opensc-explorer$(EXEEXT) \
 @WIN32_TRUE@am__append_11 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_12 = $(top_builddir)/win32/versioninfo.rc
 @WIN32_TRUE@am__append_13 = $(top_builddir)/win32/versioninfo.rc
+@WIN32_TRUE@am__append_14 = $(top_builddir)/win32/versioninfo.rc
+@WIN32_TRUE@am__append_15 = $(top_builddir)/win32/versioninfo.rc
+@WIN32_TRUE@am__append_16 = $(top_builddir)/win32/versioninfo.rc
 subdir = src/tools
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
@@ -70,7 +73,8 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 @ENABLE_OPENSSL_TRUE@am__EXEEXT_1 = cryptoflex-tool$(EXEEXT) \
 @ENABLE_OPENSSL_TRUE@	pkcs15-init$(EXEEXT) netkey-tool$(EXEEXT) \
-@ENABLE_OPENSSL_TRUE@	piv-tool$(EXEEXT) westcos-tool$(EXEEXT)
+@ENABLE_OPENSSL_TRUE@	piv-tool$(EXEEXT) westcos-tool$(EXEEXT) \
+@ENABLE_OPENSSL_TRUE@	sc-hsm-tool$(EXEEXT)
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__cardos_tool_SOURCES_DIST = cardos-tool.c util.c \
@@ -97,11 +101,23 @@ am__eidenv_SOURCES_DIST = eidenv.c util.c \
 am_eidenv_OBJECTS = eidenv.$(OBJEXT) util.$(OBJEXT) $(am__objects_1)
 eidenv_OBJECTS = $(am_eidenv_OBJECTS)
 eidenv_LDADD = $(LDADD)
+am__iasecc_tool_SOURCES_DIST = iasecc-tool.c util.c \
+	$(top_builddir)/win32/versioninfo.rc
+am_iasecc_tool_OBJECTS = iasecc-tool.$(OBJEXT) util.$(OBJEXT) \
+	$(am__objects_1)
+iasecc_tool_OBJECTS = $(am_iasecc_tool_OBJECTS)
+iasecc_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__netkey_tool_SOURCES_DIST = netkey-tool.c \
 	$(top_builddir)/win32/versioninfo.rc
 am_netkey_tool_OBJECTS = netkey-tool.$(OBJEXT) $(am__objects_1)
 netkey_tool_OBJECTS = $(am_netkey_tool_OBJECTS)
 netkey_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am__openpgp_tool_SOURCES_DIST = openpgp-tool.c util.c \
+	$(top_builddir)/win32/versioninfo.rc
+am_openpgp_tool_OBJECTS = openpgp-tool.$(OBJEXT) util.$(OBJEXT) \
+	$(am__objects_1)
+openpgp_tool_OBJECTS = $(am_openpgp_tool_OBJECTS)
+openpgp_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__opensc_explorer_SOURCES_DIST = opensc-explorer.c util.c \
 	$(top_builddir)/win32/versioninfo.rc
 am_opensc_explorer_OBJECTS = opensc-explorer.$(OBJEXT) util.$(OBJEXT) \
@@ -125,8 +141,8 @@ am__pkcs11_tool_SOURCES_DIST = pkcs11-tool.c util.c \
 am_pkcs11_tool_OBJECTS = pkcs11-tool.$(OBJEXT) util.$(OBJEXT) \
 	$(am__objects_1)
 pkcs11_tool_OBJECTS = $(am_pkcs11_tool_OBJECTS)
-pkcs11_tool_DEPENDENCIES = $(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
-	$(top_builddir)/src/common/libpkcs11.la
+pkcs11_tool_DEPENDENCIES = $(top_builddir)/src/common/libpkcs11.la \
+	$(am__DEPENDENCIES_1)
 am__pkcs15_crypt_SOURCES_DIST = pkcs15-crypt.c util.c \
 	$(top_builddir)/win32/versioninfo.rc
 am_pkcs15_crypt_OBJECTS = pkcs15-crypt.$(OBJEXT) util.$(OBJEXT) \
@@ -145,6 +161,12 @@ am_pkcs15_tool_OBJECTS = pkcs15-tool.$(OBJEXT) util.$(OBJEXT) \
 	$(am__objects_1)
 pkcs15_tool_OBJECTS = $(am_pkcs15_tool_OBJECTS)
 pkcs15_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
+am__sc_hsm_tool_SOURCES_DIST = sc-hsm-tool.c util.c \
+	$(top_builddir)/win32/versioninfo.rc
+am_sc_hsm_tool_OBJECTS = sc-hsm-tool.$(OBJEXT) util.$(OBJEXT) \
+	$(am__objects_1)
+sc_hsm_tool_OBJECTS = $(am_sc_hsm_tool_OBJECTS)
+sc_hsm_tool_DEPENDENCIES = $(am__DEPENDENCIES_1)
 am__westcos_tool_SOURCES_DIST = westcos-tool.c util.c \
 	$(top_builddir)/win32/versioninfo.rc
 am_westcos_tool_OBJECTS = westcos-tool.$(OBJEXT) util.$(OBJEXT) \
@@ -178,20 +200,25 @@ AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(cardos_tool_SOURCES) $(cryptoflex_tool_SOURCES) \
-	$(eidenv_SOURCES) $(netkey_tool_SOURCES) \
+	$(eidenv_SOURCES) $(iasecc_tool_SOURCES) \
+	$(netkey_tool_SOURCES) $(openpgp_tool_SOURCES) \
 	$(opensc_explorer_SOURCES) $(opensc_tool_SOURCES) \
 	$(piv_tool_SOURCES) $(pkcs11_tool_SOURCES) \
 	$(pkcs15_crypt_SOURCES) $(pkcs15_init_SOURCES) \
-	$(pkcs15_tool_SOURCES) $(westcos_tool_SOURCES)
+	$(pkcs15_tool_SOURCES) $(sc_hsm_tool_SOURCES) \
+	$(westcos_tool_SOURCES)
 DIST_SOURCES = $(am__cardos_tool_SOURCES_DIST) \
 	$(am__cryptoflex_tool_SOURCES_DIST) $(am__eidenv_SOURCES_DIST) \
+	$(am__iasecc_tool_SOURCES_DIST) \
 	$(am__netkey_tool_SOURCES_DIST) \
+	$(am__openpgp_tool_SOURCES_DIST) \
 	$(am__opensc_explorer_SOURCES_DIST) \
 	$(am__opensc_tool_SOURCES_DIST) $(am__piv_tool_SOURCES_DIST) \
 	$(am__pkcs11_tool_SOURCES_DIST) \
 	$(am__pkcs15_crypt_SOURCES_DIST) \
 	$(am__pkcs15_init_SOURCES_DIST) \
 	$(am__pkcs15_tool_SOURCES_DIST) \
+	$(am__sc_hsm_tool_SOURCES_DIST) \
 	$(am__westcos_tool_SOURCES_DIST)
 HEADERS = $(noinst_HEADERS)
 ETAGS = etags
@@ -212,7 +239,9 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DEBUG_FILE = @DEBUG_FILE@
 DEFAULT_PCSC_PROVIDER = @DEFAULT_PCSC_PROVIDER@
+DEFAULT_SM_MODULE = @DEFAULT_SM_MODULE@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
@@ -235,15 +264,15 @@ LD = @LD@
 LDFLAGS = @LDFLAGS@
 LIBOBJS = @LIBOBJS@
 LIBRARY_BITNESS = @LIBRARY_BITNESS@
-LIBS = $(top_builddir)/src/common/libcompat.la \
-	$(top_builddir)/src/libopensc/libopensc.la
+LIBS = \
+	$(top_builddir)/src/libopensc/libopensc.la \
+	$(top_builddir)/src/common/libscdl.la \
+	$(top_builddir)/src/common/libcompat.la
 
 LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LTLIB_CFLAGS = @LTLIB_CFLAGS@
-LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
@@ -283,6 +312,8 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCSC_CFLAGS = @PCSC_CFLAGS@
 PCSC_LIBS = @PCSC_LIBS@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -305,12 +336,12 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
-acx_pthread_config = @acx_pthread_config@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+ax_pthread_config = @ax_pthread_config@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -365,7 +396,7 @@ noinst_HEADERS = util.h
 
 # compile with $(PTHREAD_CFLAGS) to allow debugging with gdb
 AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS) $(OPTIONAL_READLINE_CFLAGS) $(PTHREAD_CFLAGS)
-INCLUDES = -I$(top_srcdir)/src
+AM_CPPFLAGS = -I$(top_srcdir)/src
 opensc_tool_SOURCES = opensc-tool.c util.c $(am__append_2)
 piv_tool_SOURCES = piv-tool.c util.c $(am__append_3)
 piv_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
@@ -374,13 +405,14 @@ opensc_explorer_LDADD = $(OPTIONAL_READLINE_LIBS)
 pkcs15_tool_SOURCES = pkcs15-tool.c util.c $(am__append_5)
 pkcs15_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 pkcs11_tool_SOURCES = pkcs11-tool.c util.c $(am__append_6)
-pkcs11_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS) $(LTLIB_LIBS) \
-	$(top_builddir)/src/common/libpkcs11.la
+pkcs11_tool_LDADD = \
+	$(top_builddir)/src/common/libpkcs11.la \
+	$(OPTIONAL_OPENSSL_LIBS)
 
 pkcs15_crypt_SOURCES = pkcs15-crypt.c util.c $(am__append_7)
 pkcs15_crypt_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 cryptoflex_tool_SOURCES = cryptoflex-tool.c util.c $(am__append_8)
-cryptoflex_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS) 
+cryptoflex_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 pkcs15_init_SOURCES = pkcs15-init.c util.c $(am__append_9)
 pkcs15_init_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 cardos_tool_SOURCES = cardos-tool.c util.c $(am__append_10)
@@ -390,6 +422,12 @@ netkey_tool_SOURCES = netkey-tool.c $(am__append_12)
 netkey_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 westcos_tool_SOURCES = westcos-tool.c util.c $(am__append_13)
 westcos_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
+openpgp_tool_SOURCES = openpgp-tool.c util.c $(am__append_14)
+openpgp_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
+iasecc_tool_SOURCES = iasecc-tool.c util.c $(am__append_15)
+iasecc_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
+sc_hsm_tool_SOURCES = sc-hsm-tool.c util.c $(am__append_16)
+sc_hsm_tool_LDADD = $(OPTIONAL_OPENSSL_LIBS)
 all: all-am
 
 .SUFFIXES:
@@ -485,9 +523,15 @@ cryptoflex-tool$(EXEEXT): $(cryptoflex_tool_OBJECTS) $(cryptoflex_tool_DEPENDENC
 eidenv$(EXEEXT): $(eidenv_OBJECTS) $(eidenv_DEPENDENCIES) 
 	@rm -f eidenv$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(eidenv_OBJECTS) $(eidenv_LDADD) $(LIBS)
+iasecc-tool$(EXEEXT): $(iasecc_tool_OBJECTS) $(iasecc_tool_DEPENDENCIES) 
+	@rm -f iasecc-tool$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(iasecc_tool_OBJECTS) $(iasecc_tool_LDADD) $(LIBS)
 netkey-tool$(EXEEXT): $(netkey_tool_OBJECTS) $(netkey_tool_DEPENDENCIES) 
 	@rm -f netkey-tool$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(netkey_tool_OBJECTS) $(netkey_tool_LDADD) $(LIBS)
+openpgp-tool$(EXEEXT): $(openpgp_tool_OBJECTS) $(openpgp_tool_DEPENDENCIES) 
+	@rm -f openpgp-tool$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(openpgp_tool_OBJECTS) $(openpgp_tool_LDADD) $(LIBS)
 opensc-explorer$(EXEEXT): $(opensc_explorer_OBJECTS) $(opensc_explorer_DEPENDENCIES) 
 	@rm -f opensc-explorer$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(opensc_explorer_OBJECTS) $(opensc_explorer_LDADD) $(LIBS)
@@ -509,6 +553,9 @@ pkcs15-init$(EXEEXT): $(pkcs15_init_OBJECTS) $(pkcs15_init_DEPENDENCIES)
 pkcs15-tool$(EXEEXT): $(pkcs15_tool_OBJECTS) $(pkcs15_tool_DEPENDENCIES) 
 	@rm -f pkcs15-tool$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(pkcs15_tool_OBJECTS) $(pkcs15_tool_LDADD) $(LIBS)
+sc-hsm-tool$(EXEEXT): $(sc_hsm_tool_OBJECTS) $(sc_hsm_tool_DEPENDENCIES) 
+	@rm -f sc-hsm-tool$(EXEEXT)
+	$(AM_V_CCLD)$(LINK) $(sc_hsm_tool_OBJECTS) $(sc_hsm_tool_LDADD) $(LIBS)
 westcos-tool$(EXEEXT): $(westcos_tool_OBJECTS) $(westcos_tool_DEPENDENCIES) 
 	@rm -f westcos-tool$(EXEEXT)
 	$(AM_V_CCLD)$(LINK) $(westcos_tool_OBJECTS) $(westcos_tool_LDADD) $(LIBS)
@@ -523,7 +570,9 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cardos-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cryptoflex-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eidenv.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/iasecc-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/netkey-tool.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/openpgp-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/opensc-explorer.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/opensc-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/piv-tool.Po@am__quote@
@@ -531,6 +580,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-crypt.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-init.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-tool.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sc-hsm-tool.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/util.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/westcos-tool.Po@am__quote@
 

@@ -43,7 +43,7 @@ DIST_COMMON = README $(dist_pkgdata_DATA) $(noinst_HEADERS) \
 	$(top_srcdir)/win32/ltrc.inc
 subdir = src/pkcs15init
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
-am__aclocal_m4_deps = $(top_srcdir)/m4/acx_pthread.m4 \
+am__aclocal_m4_deps = $(top_srcdir)/m4/ax_pthread.m4 \
 	$(top_srcdir)/m4/libtool.m4 $(top_srcdir)/m4/ltoptions.m4 \
 	$(top_srcdir)/m4/ltsugar.m4 $(top_srcdir)/m4/ltversion.m4 \
 	$(top_srcdir)/m4/lt~obsolete.m4 $(top_srcdir)/configure.ac
@@ -60,9 +60,10 @@ am_libpkcs15init_la_OBJECTS = pkcs15-lib.lo profile.lo \
 	pkcs15-cflex.lo pkcs15-cardos.lo pkcs15-jcop.lo \
 	pkcs15-starcos.lo pkcs15-setcos.lo pkcs15-incrypto34.lo \
 	pkcs15-muscle.lo pkcs15-asepcos.lo pkcs15-rutoken.lo \
-	pkcs15-entersafe.lo pkcs15-rtecp.lo pkcs15-myeid.lo \
-	pkcs15-oberthur.lo pkcs15-oberthur-awp.lo pkcs15-authentic.lo \
-	pkcs15-iasecc.lo
+	pkcs15-entersafe.lo pkcs15-epass2003.lo pkcs15-rtecp.lo \
+	pkcs15-myeid.lo pkcs15-oberthur.lo pkcs15-oberthur-awp.lo \
+	pkcs15-authentic.lo pkcs15-iasecc.lo pkcs15-openpgp.lo \
+	pkcs15-sc-hsm.lo
 libpkcs15init_la_OBJECTS = $(am_libpkcs15init_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
@@ -137,7 +138,9 @@ CFLAGS = @CFLAGS@
 CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CYGPATH_W = @CYGPATH_W@
+DEBUG_FILE = @DEBUG_FILE@
 DEFAULT_PCSC_PROVIDER = @DEFAULT_PCSC_PROVIDER@
+DEFAULT_SM_MODULE = @DEFAULT_SM_MODULE@
 DEFS = @DEFS@
 DEPDIR = @DEPDIR@
 DLLTOOL = @DLLTOOL@
@@ -165,8 +168,6 @@ LIBTOOL = @LIBTOOL@
 LIPO = @LIPO@
 LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
-LTLIB_CFLAGS = @LTLIB_CFLAGS@
-LTLIB_LIBS = @LTLIB_LIBS@
 MAKEINFO = @MAKEINFO@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
@@ -206,6 +207,8 @@ PATH_SEPARATOR = @PATH_SEPARATOR@
 PCSC_CFLAGS = @PCSC_CFLAGS@
 PCSC_LIBS = @PCSC_LIBS@
 PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 PTHREAD_CC = @PTHREAD_CC@
 PTHREAD_CFLAGS = @PTHREAD_CFLAGS@
 PTHREAD_LIBS = @PTHREAD_LIBS@
@@ -228,12 +231,12 @@ abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
-acx_pthread_config = @acx_pthread_config@
 am__include = @am__include@
 am__leading_dot = @am__leading_dot@
 am__quote = @am__quote@
 am__tar = @am__tar@
 am__untar = @am__untar@
+ax_pthread_config = @ax_pthread_config@
 bindir = @bindir@
 build = @build@
 build_alias = @build_alias@
@@ -302,27 +305,32 @@ dist_pkgdata_DATA = \
 	rutoken.profile \
 	asepcos.profile \
 	entersafe.profile \
+	epass2003.profile \
 	rutoken_ecp.profile \
 	westcos.profile \
 	myeid.profile \
 	authentic.profile \
 	iasecc.profile \
 	ias_adele_admin1.profile ias_adele_admin2.profile ias_adele_common.profile \
-	iasecc_generic_pki.profile iasecc_admin_eid.profile iasecc_generic_oberthur.profile
+	iasecc_generic_pki.profile iasecc_admin_eid.profile iasecc_generic_oberthur.profile \
+	openpgp.profile sc-hsm.profile
 
-AM_CPPFLAGS = -DSC_PKCS15_PROFILE_DIRECTORY=\"$(pkgdatadir)\"
+AM_CPPFLAGS = -DSC_PKCS15_PROFILE_DIRECTORY=\"$(pkgdatadir)\" \
+	-I$(top_srcdir)/src
+
 AM_CFLAGS = $(OPTIONAL_OPENSSL_CFLAGS)
-INCLUDES = -I$(top_srcdir)/src
 libpkcs15init_la_SOURCES = \
 	pkcs15-lib.c profile.c \
 	pkcs15-westcos.c \
 	pkcs15-gpk.c pkcs15-miocos.c pkcs15-cflex.c \
 	pkcs15-cardos.c pkcs15-jcop.c pkcs15-starcos.c \
 	pkcs15-setcos.c pkcs15-incrypto34.c pkcs15-muscle.c \
-	pkcs15-asepcos.c pkcs15-rutoken.c pkcs15-entersafe.c \
+	pkcs15-asepcos.c pkcs15-rutoken.c \
+	pkcs15-entersafe.c pkcs15-epass2003.c \
 	pkcs15-rtecp.c pkcs15-myeid.c \
 	pkcs15-oberthur.c pkcs15-oberthur-awp.c \
-	pkcs15-authentic.c pkcs15-iasecc.c 
+	pkcs15-authentic.c pkcs15-iasecc.c pkcs15-openpgp.c \
+	pkcs15-sc-hsm.c
 
 all: all-am
 
@@ -381,6 +389,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-cardos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-cflex.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-entersafe.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-epass2003.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-gpk.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-iasecc.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-incrypto34.Plo@am__quote@
@@ -391,8 +400,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-myeid.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-oberthur-awp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-oberthur.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-openpgp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-rtecp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-rutoken.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-sc-hsm.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-setcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-starcos.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/pkcs15-westcos.Plo@am__quote@
