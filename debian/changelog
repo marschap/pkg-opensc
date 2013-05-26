@@ -1,3 +1,10 @@
+opensc (0.13.0-2) unstable; urgency=low
+
+  * opensc.install: Add openpgp-tool, iasecc-tool and sc-hsm-tool and
+    manpages.
+
+ --
+
 opensc (0.13.0-1) unstable; urgency=low
 
   * New upstream release. (Closes: #703557, #694481)
