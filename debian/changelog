@@ -2,8 +2,9 @@ opensc (0.13.0-2) unstable; urgency=low
 
   * opensc.install: Add openpgp-tool, iasecc-tool and sc-hsm-tool and
     manpages.
+  * debian/control: Add misc:Pre-Depends substitution. (Closes: #702758)
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 25 May 2013 21:02:03 -0400
 
 opensc (0.13.0-1) unstable; urgency=low
 

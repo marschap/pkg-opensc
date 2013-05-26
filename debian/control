@@ -12,6 +12,7 @@ Package: opensc
 Section: utils
 Architecture: any
 Multi-Arch: foreign
+Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Replaces: libopensc2 (<< 0.12.0)
 Conflicts: libopensc2 (<< 0.12.0), mozilla-opensc
