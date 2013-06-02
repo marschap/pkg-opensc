@@ -1,8 +1,9 @@
 opensc (0.13.0-3) unstable; urgency=low
 
   * debian/rules: Enable secure messaging support. (Closes: #694481)
+  * debian/control, debian/rules: Use dh_autotools-dev.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sun, 02 Jun 2013 19:18:48 -0400
 
 opensc (0.13.0-2) unstable; urgency=low
 
