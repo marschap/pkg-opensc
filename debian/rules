@@ -8,6 +8,7 @@ override_dh_auto_configure:
 		--enable-pcsc \
 		--enable-doc \
 		--enable-readline \
+		--enable-sm \
 		--enable-zlib \
 		--htmldir=/usr/share/doc/opensc/html
 

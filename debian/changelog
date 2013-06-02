@@ -1,3 +1,9 @@
+opensc (0.13.0-3) unstable; urgency=low
+
+  * debian/rules: Enable secure messaging support. (Closes: #694481)
+
+ --
+
 opensc (0.13.0-2) unstable; urgency=low
 
   * opensc.install: Add openpgp-tool, iasecc-tool and sc-hsm-tool and
