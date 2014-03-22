@@ -1,3 +1,10 @@
+opensc (0.13.0-4) unstable; urgency=medium
+
+  * debian/control, debian/rules: Switch to dh-autoreconf. (Closes:
+    #735380)
+
+ --
+
 opensc (0.13.0-3) unstable; urgency=low
 
   * debian/rules: Enable secure messaging support. (Closes: #694481)
