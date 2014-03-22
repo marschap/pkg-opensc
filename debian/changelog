@@ -7,8 +7,9 @@ opensc (0.13.0-4) unstable; urgency=medium
     apologies to Belgium for the delay. (Closes: #721588)
   * debian/patches/0002-fix-for-aventra-myeid.diff: Fix for Aventra
     MyEID. Thanks Hans-Christoph Steiner. (Closes: #742089)
+  * debian/control: Standards-Version to 3.9.5.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 22 Mar 2014 17:35:33 -0400
 
 opensc (0.13.0-3) unstable; urgency=low
 
