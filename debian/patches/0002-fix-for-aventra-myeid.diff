@@ -1,0 +1,28 @@
+From: =?UTF-8?q?Toni=20Sj=C3=B6blom?= <development@aventra.fi>
+Date: Fri, 18 Jan 2013 16:26:36 +0200
+Subject: [PATCH 1/1] Fixed file-id in myeid.profile
+Origin: https://github.com/OpenSC/OpenSC/commit/58679a5
+Bug: https://github.com/OpenSC/OpenSC/issues/120
+Forwarded: not-needed
+Applied-Upstream: 58679a5df13d45a13fc35b29ce10511218fcbaae
+
+---
+ src/pkcs15init/myeid.profile |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/pkcs15init/myeid.profile b/src/pkcs15init/myeid.profile
+index 46ae44c..8b84c95 100644
+--- a/src/pkcs15init/myeid.profile
++++ b/src/pkcs15init/myeid.profile
+@@ -201,7 +201,7 @@ filesystem {
+                     acl       = READ=$PIN, UPDATE=$PIN, DELETE=$PIN;
+                 }
+                 EF data {
+-                    file-id   = 4501;
++                    file-id   = 4601;
+                     structure = transparent;
+                     acl       = READ=NONE, UPDATE=$PIN, DELETE=$PIN;
+                 }
+-- 
+1.7.9.5
+
