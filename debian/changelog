@@ -4,6 +4,8 @@ opensc (0.13.0-5) unstable; urgency=medium
     Move the pkcs11 modules and libraries into their own package, marked
     Multi-Arch: same.
   * debian/control: Switch Conflicts to Breaks for package replacement.
+  * debian/opensc-pkcs11.install: Install /usr/lib/*/pkcs11
+    symlinks. (Closes: #710489)
 
  --
 
