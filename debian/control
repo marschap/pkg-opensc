@@ -15,9 +15,8 @@ Section: utils
 Architecture: any
 Multi-Arch: foreign
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Replaces: libopensc2 (<< 0.12.0)
-Conflicts: libopensc2 (<< 0.12.0), mozilla-opensc
+Depends: ${shlibs:Depends}, ${misc:Depends}, opensc-pkcs11 (= ${binary:Version})
+Conflicts: mozilla-opensc
 Description: Smart card utilities with support for PKCS#15 compatible cards
  OpenSC provides a set of libraries and utilities to access smart
  cards.  It mainly focuses on cards that support cryptographic
@@ -34,3 +33,32 @@ Description: Smart card utilities with support for PKCS#15 compatible cards
  card OS version and preloaded applet. Only a subset of possible
  operations may be supported for your card. Card initialization may
  require third party proprietary software.
+ .
+ This package contains tools for intearacting with smart cards.
+
+Package: opensc-pkcs11
+Section: utils
+Architecture: any
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Replaces: opensc (<< 0.13.0-5~), libopensc2 (<< 0.12.0)
+Conflicts: opensc (<< 0.13.0-5~), libopensc2 (<< 0.12.0)
+Description: Smart card utilities with support for PKCS#15 compatible cards
+ OpenSC provides a set of libraries and utilities to access smart
+ cards.  It mainly focuses on cards that support cryptographic
+ operations. It facilitates their use in security applications such as
+ mail encryption, authentication, and digital signature. OpenSC
+ implements the PKCS#11 API. Applications supporting this API, such as
+ Iceweasel and Icedove, can use it. OpenSC implements the PKCS#15
+ standard and aims to be compatible with all software that does so as
+ well.
+ .
+ Before purchasing any cards, please read carefully documentation in
+ /usr/share/doc/opensc/html/wiki/index.html - only some cards are
+ supported. Not only does card type matters, but also card version,
+ card OS version and preloaded applet. Only a subset of possible
+ operations may be supported for your card. Card initialization may
+ require third party proprietary software.
+ .
+ This package contains the pkcs11 module.
