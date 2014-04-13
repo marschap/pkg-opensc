@@ -6,6 +6,7 @@ opensc (0.13.0-5) unstable; urgency=medium
   * debian/control: Switch Conflicts to Breaks for package replacement.
   * debian/opensc-pkcs11.install: Install /usr/lib/*/pkcs11
     symlinks. (Closes: #710489)
+  * debian/opensc-pkcs11.install: Don't install lib*.so symlinks.
 
  --
 
