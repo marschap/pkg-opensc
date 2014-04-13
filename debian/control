@@ -43,7 +43,7 @@ Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Replaces: opensc (<< 0.13.0-5~), libopensc2 (<< 0.12.0)
-Conflicts: opensc (<< 0.13.0-5~), libopensc2 (<< 0.12.0)
+Breaks: opensc (<< 0.13.0-5~), libopensc2 (<< 0.12.0)
 Description: Smart card utilities with support for PKCS#15 compatible cards
  OpenSC provides a set of libraries and utilities to access smart
  cards.  It mainly focuses on cards that support cryptographic

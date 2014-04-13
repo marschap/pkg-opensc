@@ -3,6 +3,7 @@ opensc (0.13.0-5) unstable; urgency=medium
   * debian/control, debian/opensc.install, debian/opensc-pkcs11.install:
     Move the pkcs11 modules and libraries into their own package, marked
     Multi-Arch: same.
+  * debian/control: Switch Conflicts to Breaks for package replacement.
 
  --
 
