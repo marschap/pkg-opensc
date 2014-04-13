@@ -8,8 +8,9 @@ opensc (0.13.0-5) unstable; urgency=medium
     symlinks. (Closes: #710489)
   * debian/opensc-pkcs11.install: Don't install lib*.so symlinks.
   * debian/control: Fix up Vcs-* URLs.
+  * debian/rules: Enable parallel builds.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sun, 13 Apr 2014 18:29:52 -0400
 
 opensc (0.13.0-4) unstable; urgency=medium
 
