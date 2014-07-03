@@ -1,3 +1,5 @@
 version=3
 
-http://www.opensc-project.org/files/opensc/opensc-([\d\.]+)\.tar\.gz
+opts="filenamemangle=s/(?:.*)?v?(\d[\d\.]*)\.tar\.gz/<project>-$1.tar.gz/" \
+  https://github.com/OpenSC/OpenSC/tags (?:.*/)?v?(\d[\d\.]*)\.tar\.gz
+

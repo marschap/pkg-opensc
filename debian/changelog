@@ -1,3 +1,9 @@
+opensc (0.13.0-6) unstable; urgency=medium
+
+  * debian/watch: Update to new GitHub location.
+
+ --
+
 opensc (0.13.0-5) unstable; urgency=medium
 
   * debian/control, debian/opensc.install, debian/opensc-pkcs11.install:
