@@ -1134,7 +1134,7 @@ authentic_fcp_encode(struct sc_card *card, struct sc_file *file, unsigned char *
 	buf[offs++] = 1;
 	buf[offs++] = file->type == SC_FILE_TYPE_DF ? ISO7816_FILE_TYPE_DF : ISO7816_FILE_TYPE_TRANSPARENT_EF;
 
-	buf[offs++] = ISO7816_TAG_FCP_ID;
+	buf[offs++] = ISO7816_TAG_FCP_FID;
 	buf[offs++] = 2;
 	buf[offs++] = (file->id >> 8) & 0xFF;
 	buf[offs++] = file->id & 0xFF;
@@ -1702,7 +1702,7 @@ static int
 authentic_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data, int *tries_left)
 {
 	struct sc_context *ctx = card->ctx;
-	int rv;
+	int rv = SC_ERROR_INTERNAL;
 
 	LOG_FUNC_CALLED(ctx);
 	sc_log(ctx, "PIN-CMD:%X,PIN(type:%X,ret:%i)", data->cmd, data->pin_type, data->pin_reference);
@@ -2284,9 +2284,9 @@ authentic_sm_free_wrapped_apdu(struct sc_card *card, struct sc_apdu *plain, stru
 	}
 
 	if ((*sm_apdu)->data)
-		free((*sm_apdu)->data);
+		free((unsigned char *) (*sm_apdu)->data);
 	if ((*sm_apdu)->resp)
-		free((*sm_apdu)->resp);
+		free((unsigned char *) (*sm_apdu)->resp);
 
 	free(*sm_apdu);
 	*sm_apdu = NULL;
@@ -2337,7 +2337,7 @@ authentic_sm_get_wrapped_apdu(struct sc_card *card, struct sc_apdu *plain, struc
         if (!apdu->data)
 		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 	if (plain->data && plain->datalen)
-		memcpy(apdu->data, plain->data, plain->datalen);
+		memcpy((unsigned char *) apdu->data, plain->data, plain->datalen);
 
         apdu->resp = calloc (1, plain->resplen + 32);
         if (!apdu->resp)

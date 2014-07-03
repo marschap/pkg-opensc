@@ -33,6 +33,7 @@
 #include "libopensc/cards.h"
 #include "libopensc/cardctl.h"
 #include "util.h"
+#include "libopensc/log.h"
 
 #define	OPT_RAW		256
 #define	OPT_PRETTY	257
@@ -55,8 +56,6 @@ static char *prettify_gender(char *str);
 static void display_data(const struct ef_name_map *mapping, char *value);
 static int decode_options(int argc, char **argv);
 static int do_userinfo(sc_card_t *card);
-static int read_transp(sc_card_t *card, const char *pathstring, unsigned char *buf, int buflen);
-static void bintohex(char *buf, int len);
 
 /* define global variables */
 static int actions = 0;
@@ -216,7 +215,7 @@ static void display_data(const struct ef_name_map *mapping, char *value)
 			} else {
 				const char *label = mapping->name;
 
-				printf("%s:%*s%s\n", label, 10-strlen(label), "", value);
+				printf("%s:%*s%s\n", label, (int)(10-strlen(label)), "", value);
 			}
 		}
 	}
@@ -299,88 +298,49 @@ static int decode_options(int argc, char **argv)
 static int do_userinfo(sc_card_t *card)
 {
 	int i;
+	/* FIXME there are no length checks on buf. */
 	unsigned char buf[2048];
 
 	for (i = 0; openpgp_data[i].ef != NULL; i++) {
 		sc_path_t path;
 		sc_file_t *file;
-		size_t count;
-		size_t offset = 0;
+		int count;
 		int r;
 
 		sc_format_path(openpgp_data[i].ef, &path);
 		r = sc_select_file(card, &path, &file);
-
 		if (r) {
-			fprintf(stderr, "Failed to select EF %s: %s\n",
-				openpgp_data[i].ef, sc_strerror(r));
+			fprintf(stderr, "Failed to select EF %s: %s\n", openpgp_data[i].ef, sc_strerror(r));
 			return EXIT_FAILURE;
 		}
 
 		count = file->size;
-		while (count > 0) {
-	                int c = count > sizeof(buf) ? sizeof(buf) : count;
+		if (!count)
+			continue;
 
-        	        r = sc_read_binary(card, offset, buf+offset, c, 0);
-                	if (r < 0) {
-				fprintf(stderr, "%s: read failed - %s\n",
-					openpgp_data[i].ef, sc_strerror(r));
-	                        return EXIT_FAILURE;
-        	        }
-                	if (r != c) {
-                        	fprintf(stderr, "%s: expecting %d, got only %d bytes\n",
-					openpgp_data[i].ef, c, r);
-	                        return EXIT_FAILURE;
-        	        }
-
-        	        offset += r;
-                	count -= r;
-	        }
-
-		buf[file->size] = '\0';
-
-		if (file->size > 0) {
-			display_data(openpgp_data + i, buf);
+		if (count > (int)sizeof(buf) - 1)   {
+			fprintf(stderr, "Too small buffer to read the OpenPGP data\n");
+			return EXIT_FAILURE;
 		}
+	
+        	r = sc_read_binary(card, 0, buf, count, 0);
+               	if (r < 0) {
+			fprintf(stderr, "%s: read failed - %s\n", openpgp_data[i].ef, sc_strerror(r));
+			return EXIT_FAILURE;
+        	}
+               	if (r != count) {
+                        fprintf(stderr, "%s: expecting %d, got only %d bytes\n", openpgp_data[i].ef, count, r);
+			return EXIT_FAILURE;
+        	}
+
+		buf[count] = '\0';
+
+		display_data(openpgp_data + i, (char *) buf);
 	}
 
 	return EXIT_SUCCESS;
 }
 
-
-/* Select and read a transparent EF */
-static int read_transp(sc_card_t *card, const char *pathstring, unsigned char *buf, int buflen)
-{
-	sc_path_t path;
-	int r;
-
-	sc_format_path(pathstring, &path);
-	r = sc_select_file(card, &path, NULL);
-	if (r < 0)
-		fprintf(stderr, "\nFailed to select file %s: %s\n", pathstring, sc_strerror(r));
-	else {
-		r = sc_read_binary(card, 0, buf, buflen, 0);
-		if (r < 0)
-			fprintf(stderr, "\nFailed to read %s: %s\n", pathstring, sc_strerror(r));
-	}
-
-	return r;
-}
-
-
-/* Hex-encode the buf, 2*len+1 bytes must be reserved. E.g. {'1','2'} -> {'3','1','3','2','\0'} */
-static void bintohex(char *buf, int len)
-{
-	static const char hextable[] = "0123456789ABCDEF";
-	int i;
-
-	for (i = len - 1; i >= 0; i--) {
-		unsigned char c = (unsigned char) buf[i];
-
-		buf[2 * i + 1] = hextable[c % 16];
-		buf[2 * i] = hextable[c / 16];
-	}
-}
 
 int do_genkey(sc_card_t *card, u8 key_id, unsigned int key_len)
 {
@@ -415,7 +375,7 @@ int do_genkey(sc_card_t *card, u8 key_id, unsigned int key_len)
 	return 0;
 }
 
-int do_verify(sc_card_t *card, u8 *type, u8* pin)
+int do_verify(sc_card_t *card, char *type, char *pin)
 {
 	struct sc_pin_cmd_data data;
 	int tries_left;
@@ -437,7 +397,7 @@ int do_verify(sc_card_t *card, u8 *type, u8* pin)
 	data.cmd = SC_PIN_CMD_VERIFY;
 	data.pin_type = SC_AC_CHV;
 	data.pin_reference = type[3] - '0';
-	data.pin1.data = pin;
+	data.pin1.data = (unsigned char *) pin;
 	data.pin1.len = strlen(pin);
 	r = sc_pin_cmd(card, &data, &tries_left);
 	return r;

@@ -104,6 +104,7 @@ static int do_random(int argc, char **argv);
 static int do_get_data(int argc, char **argv);
 static int do_put_data(int argc, char **argv);
 static int do_apdu(int argc, char **argv);
+static int do_sm(int argc, char **argv);
 static int do_asn1(int argc, char **argv);
 static int do_help(int argc, char **argv);
 static int do_quit(int argc, char **argv);
@@ -186,6 +187,9 @@ static struct command	cmds[] = {
 	{ do_asn1,
 		"asn1",	"[<file id>]",
 		"decode an ASN.1 file"			},
+	{ do_sm,
+		"sm",	"open|close",
+		"call SM 'open' or 'close' handlers, if available"},
 	{ do_debug,
 		"debug",	"[<value>]",
 		"get/set the debug level"		},
@@ -293,27 +297,40 @@ ambiguous_match(struct command *table, const char *cmd)
 	return last_match;
 }
 
-static void check_ret(int r, int op, const char *err, const sc_file_t *file)
+
+static void
+check_ret(int r, int op, const char *err, const sc_file_t *file)
 {
 	fprintf(stderr, "%s: %s\n", err, sc_strerror(r));
 	if (r == SC_ERROR_SECURITY_STATUS_NOT_SATISFIED)
 		fprintf(stderr, "ACL for operation: %s\n", util_acl_to_str(sc_file_get_acl_entry(file, op)));
 }
 
-static int arg_to_fid(const char *arg, u8 *fid)
-{
-    if (strlen(arg) != 4) {
-        printf("Wrong ID length.\n");
-        return -1;
-    }
-    if (sscanf(arg, "%02X%02X", &fid[0], &fid[1]) != 2) {
-        printf("Invalid ID.\n");
-        return -1;
-    }
 
-    return 0;
+static int
+arg_to_fid(const char *arg, u8 *fid)
+{
+	unsigned int fid0, fid1;
+
+	if (strlen(arg) != 4) {
+		printf("Wrong ID length.\n");
+		return -1;
+	}
+
+	if (sscanf(arg, "%02X%02X", &fid0, &fid1) != 2) {
+		printf("Invalid ID.\n");
+		return -1;
+	}
+
+	fid[0] = (unsigned char)fid0;
+	fid[1] = (unsigned char)fid1;
+
+	return 0;
 }
-static int arg_to_path(const char *arg, sc_path_t *path, int is_id)
+
+
+static int
+arg_to_path(const char *arg, sc_path_t *path, int is_id)
 {
 	memset(path, 0, sizeof(sc_path_t));
 
@@ -622,18 +639,20 @@ static int read_and_util_print_binary_file(sc_file_t *file)
 {
 	unsigned char *buf = NULL;
 	int r;
+	size_t size;
 
-	buf = malloc(file->size);
+	if (file->size) {
+		size = file->size;
+	} else {
+		size = 1024;
+	}
+	buf = malloc(size);
 	if (!buf)
 		return -1;
 
-	r = sc_read_binary(card, 0, buf, file->size, 0);
+	r = sc_read_binary(card, 0, buf, size, 0);
 	if (r < 0)   {
 		check_ret(r, SC_AC_OP_READ, "read failed", file);
-		return -1;
-	}
-	if ((r != file->size) && (card->type != SC_CARD_TYPE_BELPIC_EID))   {
-		printf("expecting %d, got only %d bytes.\n", file->size, r);
 		return -1;
 	}
 	if ((r == 0) && (card->type == SC_CARD_TYPE_BELPIC_EID))
@@ -873,13 +892,14 @@ static int do_create(int argc, char **argv)
 	unsigned int size;
 	int r, op;
 
-	if (argc != 2)
+	if (argc < 2)
 		return usage(do_create);
 	if (arg_to_path(argv[0], &path, 1) != 0)
 		return usage(do_create);
 	/* %z isn't supported everywhere */
 	if (sscanf(argv[1], "%u", &size) != 1)
 		return usage(do_create);
+
 	file = sc_file_new();
 	file->id = (path.value[0] << 8) | path.value[1];
 	file->type = SC_FILE_TYPE_WORKING_EF;
@@ -888,6 +908,11 @@ static int do_create(int argc, char **argv)
 	file->status = SC_FILE_STATUS_ACTIVATED;
 	for (op = 0; op < SC_MAX_AC_OPS; op++)
 		sc_file_add_acl_entry(file, op, SC_AC_NONE, 0);
+
+	if (argc > 2)   {
+		snprintf((char *)file->name, sizeof(file->name), "%s", argv[2]);
+		file->namelen = strlen((char *)file->name);
+	}
 
 	r = create_file(file);
 	sc_file_free(file);
@@ -994,14 +1019,15 @@ static int do_verify(int argc, char **argv)
 				printf("No PIN entered - aborting VERIFY.\n");
 				return -1;
 			}
-			if (strlcpy(buf, pin, sizeof(buf)) >= sizeof(buf)) {
+
+			if (strlcpy((char *)buf, pin, sizeof(buf)) >= sizeof(buf)) {
 				free(pin);
 				printf("PIN too long - aborting VERIFY.\n");
 				return -1;
 			}
 			free(pin);
 			data.pin1.data = buf;
-			data.pin1.len = strlen(buf);
+			data.pin1.len = strlen((char *)buf);
 		}
 	} else {
 		r = parse_string_or_hexdata(argv[1], buf, &buflen);
@@ -1182,6 +1208,7 @@ static int do_get(int argc, char **argv)
 	}
 	count = file->size;
 	while (count) {
+		/* FIXME sc_read_binary does this kind of fetching in a loop already */
 		int c = count > sizeof(buf) ? sizeof(buf) : count;
 
 		r = sc_read_binary(card, idx, buf, c, 0);
@@ -1639,6 +1666,40 @@ err:
 	return -err;
 }
 
+static int do_sm(int argc, char **argv)
+{
+	int r = SC_ERROR_NOT_SUPPORTED, ret = -1;
+
+	if (argc != 1)
+		return usage(do_sm);
+
+#ifdef ENABLE_SM
+	if (!strcmp(argv[0],"open"))   {
+		if (!card->sm_ctx.ops.open)   {
+			printf("Not supported\n");
+			return -1;
+		}
+		r = card->sm_ctx.ops.open(card);
+	}
+	else if (!strcmp(argv[0],"close"))   {
+		if (!card->sm_ctx.ops.close)   {
+			printf("Not supported\n");
+			return -1;
+		}
+		r = card->sm_ctx.ops.close(card);
+	}
+#endif
+	if (r == SC_SUCCESS)   {
+		ret = 0;
+		printf("Success!\n");
+	}
+	else   {
+		printf("Failure: %s\n", sc_strerror(r));
+	}
+
+	return ret;
+}
+
 static int do_help(int argc, char **argv)
 {
 	struct command	*cmd;
@@ -1734,7 +1795,7 @@ int main(int argc, char * const argv[])
 	char *cargv[260];
 	sc_context_param_t ctx_param;
 	int lcycle = SC_CARDCTRL_LIFECYCLE_ADMIN;
-	FILE *script;
+	FILE *script = stdin;
 
 	printf("OpenSC Explorer version %s\n", sc_get_version());
 
@@ -1772,6 +1833,8 @@ int main(int argc, char * const argv[])
 		fprintf(stderr, "Failed to establish context: %s\n", sc_strerror(r));
 		return 1;
 	}
+
+	ctx->enable_default_driver = 1;
 
 	if (verbose > 1) {
 		ctx->debug = verbose;

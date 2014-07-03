@@ -23,10 +23,6 @@
 
 #include "config.h"
 
-#ifdef HAVE_MALLOC_H
-#include <malloc.h>
-#endif
-
 #include "libopensc/opensc.h"
 #include "libopensc/pkcs15.h"
 #include "libopensc/log.h"
@@ -86,6 +82,7 @@ struct sc_pkcs11_config {
 	unsigned int create_puk_slot;
 	unsigned int zero_ckaid_for_ca_certs;
 	unsigned int create_slots_flags;
+	unsigned char ignore_pin_length;
 };
 
 /*
@@ -163,12 +160,10 @@ struct sc_pkcs11_framework_ops {
 	CK_RV (*change_pin)(struct sc_pkcs11_slot *,
 				CK_CHAR_PTR, CK_ULONG,
 				CK_CHAR_PTR, CK_ULONG);
-
 	/*
-	 * In future: functions to create new objects
-	 * (ie. certificates, private keys)
+	 * In future: functions to create new objects (ie. certificates, private keys)
 	 */
-	CK_RV (*init_token)(struct sc_pkcs11_card *, void *,
+	CK_RV (*init_token)(struct sc_pkcs11_slot *, void *,
 				CK_UTF8CHAR_PTR, CK_ULONG,
 				CK_UTF8CHAR_PTR);
 	CK_RV (*init_pin)(struct sc_pkcs11_slot *,

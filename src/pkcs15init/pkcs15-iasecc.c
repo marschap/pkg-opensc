@@ -324,7 +324,10 @@ iasecc_file_convert_acls(struct sc_context *ctx, struct sc_profile *profile, str
 	int ii;
 
 	for (ii=0; ii<SC_MAX_AC_OPS;ii++)   {
-		struct sc_acl_entry *acl = sc_file_get_acl_entry(file, ii);
+		/* FIXME the acl object must not be modified, it is only defined in
+		 * sc_file_get_acl_entry. Accessing it here means we have a race
+		 * condition. */
+		struct sc_acl_entry *acl = (struct sc_acl_entry *) sc_file_get_acl_entry(file, ii);
 
 		if (acl)   {
 			switch (acl->method)   {
@@ -415,7 +418,7 @@ iasecc_sdo_set_key_acls_from_profile(struct sc_profile *profile, struct sc_card 
 	sdo->docp.acls_contact.size = cntr + 1;
 	sdo->docp.acls_contact.value = calloc(1, sdo->docp.acls_contact.size);
 	if (!sdo->docp.acls_contact.value)
-		return SC_ERROR_MEMORY_FAILURE;
+		return SC_ERROR_OUT_OF_MEMORY;
 	*(sdo->docp.acls_contact.value + 0) = amb;
 	memcpy(sdo->docp.acls_contact.value + 1, scb, cntr);
 
@@ -438,7 +441,7 @@ iasecc_sdo_allocate_prvkey(struct sc_profile *profile, struct sc_card *card,
 
 	sdo = calloc(1, sizeof(struct iasecc_sdo));
 	if (!sdo)
-		LOG_TEST_RET(ctx, SC_ERROR_MEMORY_FAILURE, "Cannot allocate 'iasecc_sdo'");
+		LOG_TEST_RET(ctx, SC_ERROR_OUT_OF_MEMORY, "Cannot allocate 'iasecc_sdo'");
 
 	sdo->magic = SC_CARDCTL_IASECC_SDO_MAGIC;
 	sdo->sdo_ref = key_info->key_reference & 0x3F;
@@ -458,19 +461,19 @@ iasecc_sdo_allocate_prvkey(struct sc_profile *profile, struct sc_card *card,
 
 		sdo->docp.non_repudiation.value = calloc(1, 1);
 		if (!sdo->docp.non_repudiation.value)
-			LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+			LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 		sdo->docp.non_repudiation.tag = IASECC_DOCP_TAG_NON_REPUDATION;
 		sdo->docp.non_repudiation.size = 1;
 
 		sdo->data.prv_key.compulsory.value = calloc(1, 1);
 		if (!sdo->data.prv_key.compulsory.value)
-			LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+			LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 		sdo->data.prv_key.compulsory.tag = IASECC_SDO_PRVKEY_TAG_COMPULSORY;
 		sdo->data.prv_key.compulsory.size = 1;
 
 		sdo->docp.size.value = calloc(1, 2);
 		if (!sdo->docp.size.value)
-			LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+			LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 		sdo->docp.size.tag = IASECC_DOCP_TAG_SIZE;
 		sdo->docp.size.size = 2;
 		*(sdo->docp.size.value + 0) = (sz >> 8) & 0xFF;
@@ -517,7 +520,7 @@ iasecc_sdo_allocate_pubkey(struct sc_profile *profile, struct sc_card *card, str
 	LOG_FUNC_CALLED(ctx);
 	sdo = calloc(1, sizeof(struct iasecc_sdo));
 	if (!sdo)
-		return SC_ERROR_MEMORY_FAILURE;
+		return SC_ERROR_OUT_OF_MEMORY;
 
 	sdo->magic = SC_CARDCTL_IASECC_SDO_MAGIC;
 	sdo->sdo_ref = key_info->key_reference & 0x3F;
@@ -533,7 +536,7 @@ iasecc_sdo_allocate_pubkey(struct sc_profile *profile, struct sc_card *card, str
 
 		sdo->docp.size.value = calloc(1, 2);
 		if (!sdo->docp.size.value)
-			LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+			LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 		sdo->docp.size.size = 2;
 		sdo->docp.size.tag = IASECC_DOCP_TAG_SIZE;
 		*(sdo->docp.size.value + 0) = (sz >> 8) & 0xFF;
@@ -545,14 +548,14 @@ iasecc_sdo_allocate_pubkey(struct sc_profile *profile, struct sc_card *card, str
 		else   {
 			sdo->data.pub_key.cha.value = calloc(1, 2);
 			if (!sdo->data.pub_key.cha.value)
-				LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+				LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 			sdo->data.pub_key.cha.size = 2;
 			sdo->data.pub_key.cha.tag = IASECC_SDO_PUBKEY_TAG_CHA;
 		}
 
 		sdo->data.pub_key.compulsory.value = calloc(1, 1);
 		if (!sdo->data.pub_key.compulsory.value)
-			LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+			LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 		sdo->data.pub_key.compulsory.tag = IASECC_SDO_PUBKEY_TAG_COMPULSORY;
 		sdo->data.pub_key.compulsory.size = 1;
 	}
@@ -1085,6 +1088,8 @@ iasecc_pkcs15_generate_key(struct sc_profile *profile, sc_pkcs15_card_t *p15card
 	struct iasecc_sdo *sdo_prvkey = NULL;
 	struct iasecc_sdo *sdo_pubkey = NULL;
 	struct sc_file	*file = NULL;
+	unsigned char *tmp = NULL;
+	size_t tmp_len;
 	unsigned long caps;
 	int rv;
 
@@ -1137,27 +1142,28 @@ iasecc_pkcs15_generate_key(struct sc_profile *profile, sc_pkcs15_card_t *p15card
 	pubkey->u.rsa.modulus.len = sdo_pubkey->data.pub_key.n.size;
 	pubkey->u.rsa.modulus.data  = (unsigned char *) malloc(pubkey->u.rsa.modulus.len);
 	if (!pubkey->u.rsa.modulus.data)
-		LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 	memcpy(pubkey->u.rsa.modulus.data, sdo_pubkey->data.pub_key.n.value, pubkey->u.rsa.modulus.len);
 
 	pubkey->u.rsa.exponent.len = sdo_pubkey->data.pub_key.e.size;
 	pubkey->u.rsa.exponent.data = (unsigned char *) malloc(pubkey->u.rsa.exponent.len);
 	if (!pubkey->u.rsa.exponent.data)
-		LOG_FUNC_RETURN(ctx, SC_ERROR_MEMORY_FAILURE);
+		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 	memcpy(pubkey->u.rsa.exponent.data, sdo_pubkey->data.pub_key.e.value, pubkey->u.rsa.exponent.len);
 
-	rv = sc_pkcs15_encode_pubkey(ctx, pubkey, &pubkey->data.value, &pubkey->data.len);
+	rv = sc_pkcs15_encode_pubkey(ctx, pubkey, &tmp, &tmp_len);
 	LOG_TEST_RET(ctx, rv, "encode public key failed");
 
 	rv = iasecc_pkcs15_encode_supported_algos(p15card, object);
 	LOG_TEST_RET(ctx, rv, "encode private key access rules failed");
 
 	/* SDO PrvKey data replaced by public part of generated key */
-	rv = sc_pkcs15_allocate_object_content(ctx, object, pubkey->data.value, pubkey->data.len);
+	rv = sc_pkcs15_allocate_object_content(ctx, object, tmp, tmp_len);
 	LOG_TEST_RET(ctx, rv, "Failed to allocate public key as object content");
 
 	iasecc_sdo_free(card, sdo_pubkey);
 
+	free(tmp);
 	LOG_FUNC_RETURN(ctx, rv);
 }
 
@@ -1236,7 +1242,7 @@ iasecc_pkcs15_delete_sdo (struct sc_profile *profile, struct sc_pkcs15_card *p15
 
 	sdo = calloc(1, sizeof(struct iasecc_sdo));
 	if (!sdo)
-		return SC_ERROR_MEMORY_FAILURE;
+		return SC_ERROR_OUT_OF_MEMORY;
 
 	sdo->magic = SC_CARDCTL_IASECC_SDO_MAGIC;
 	sdo->sdo_class = sdo_class;
@@ -1314,8 +1320,8 @@ iasecc_pkcs15_delete_object (struct sc_profile *profile, struct sc_pkcs15_card *
 
 	switch(object->type & SC_PKCS15_TYPE_CLASS_MASK)   {
 	case SC_PKCS15_TYPE_PUBKEY:
-		sc_log(ctx, "Ignore delete of SDO-PubKey(ref:%X) '%s', path %s", key_ref, object->label, sc_print_path(path));
 		key_ref = ((struct sc_pkcs15_pubkey_info *)object->data)->key_reference;
+		sc_log(ctx, "Ignore delete of SDO-PubKey(ref:%X) '%s', path %s", key_ref, object->label, sc_print_path(path));
 		LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 	case SC_PKCS15_TYPE_PRKEY:
 		sc_log(ctx, "delete PrivKey '%s', path %s", object->label, sc_print_path(path));
@@ -1369,7 +1375,8 @@ iasecc_md_gemalto_set_default(struct sc_pkcs15_card *p15card, struct sc_profile 
 	struct sc_context *ctx = p15card->card->ctx;
 	struct sc_pkcs15_object *data_obj = NULL;
 	struct sc_pkcs15init_dataargs data_args;
-	char guid[39];
+	unsigned char guid[40];
+	size_t guid_len;
 	int rv;
 
 	LOG_FUNC_CALLED(ctx);
@@ -1378,7 +1385,10 @@ iasecc_md_gemalto_set_default(struct sc_pkcs15_card *p15card, struct sc_profile 
 	if (rv != SC_ERROR_OBJECT_NOT_FOUND)
 		LOG_TEST_RET(ctx, rv, "Find 'Default Key Container' data object error");
 
-	rv = sc_pkcs15_get_guid(p15card, key_obj, 1, guid, sizeof(guid));
+	memset(guid, 0, sizeof(guid));
+	guid_len = sizeof(guid);
+
+	rv = sc_pkcs15_get_object_guid(p15card, key_obj, 1, guid, &guid_len);
 	LOG_TEST_RET(ctx, rv, "Cannot get private key GUID");
 
 	if (!data_obj)   {
@@ -1386,8 +1396,8 @@ iasecc_md_gemalto_set_default(struct sc_pkcs15_card *p15card, struct sc_profile 
 		sc_init_oid(&data_args.app_oid);
 		data_args.label = "Default Key Container";
 		data_args.app_label = "CSP";
-		data_args.der_encoded.value = (unsigned char *)guid;
-		data_args.der_encoded.len = strlen(guid);
+		data_args.der_encoded.value = guid;
+		data_args.der_encoded.len = guid_len;
 
 		rv = sc_pkcs15init_store_data_object(p15card, profile, &data_args, NULL);
 		LOG_TEST_RET(ctx, rv, "Failed to store 'CSP'/'Default Key Container' data object");
@@ -1400,7 +1410,7 @@ iasecc_md_gemalto_set_default(struct sc_pkcs15_card *p15card, struct sc_profile 
                 rv = sc_select_file(p15card->card, &dinfo->path, &file);
                 LOG_TEST_RET(ctx, rv, "Cannot select data object file");
 
-                rv = sc_pkcs15init_update_file(profile, p15card, file, guid, strlen(guid));
+                rv = sc_pkcs15init_update_file(profile, p15card, file, guid, guid_len);
                 sc_file_free(file);
                 LOG_TEST_RET(ctx, rv, "Failed to update 'CSP'/'Default Key Container' data object");
 	}
@@ -1418,12 +1428,16 @@ iasecc_md_gemalto_unset_default(struct sc_pkcs15_card *p15card, struct sc_profil
 	struct sc_pkcs15_data *dod = NULL;
         struct sc_pkcs15_object *key_objs[32];
 	struct sc_pkcs15_prkey_info *key_info = (struct sc_pkcs15_prkey_info *)key_obj->data;
-	char guid[39];
+	unsigned char guid[40];
+	size_t guid_len;
 	int rv, ii, keys_num;
 
 	LOG_FUNC_CALLED(ctx);
 
-	rv = sc_pkcs15_get_guid(p15card, key_obj, 1, guid, sizeof(guid));
+	memset(guid, 0, sizeof(guid));
+	guid_len = sizeof(guid);
+
+	rv = sc_pkcs15_get_object_guid(p15card, key_obj, 1, guid, &guid_len);
 	LOG_TEST_RET(ctx, rv, "Cannot get private key GUID");
 
 	rv = sc_pkcs15_find_data_object_by_name(p15card, "CSP", "Default Key Container", &data_obj);
@@ -1433,7 +1447,7 @@ iasecc_md_gemalto_unset_default(struct sc_pkcs15_card *p15card, struct sc_profil
 	rv = sc_pkcs15_read_data_object(p15card, (struct sc_pkcs15_data_info *)data_obj->data, &dod);
 	LOG_TEST_RET(ctx, rv, "Cannot read from 'CSP/'Default Key Container'");
 
-	if (strlen(guid) != dod->data_len || memcmp(guid, dod->data, strlen(guid)))
+	if (guid_len != dod->data_len || memcmp(guid, dod->data, guid_len))
 		LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 
 	rv = sc_pkcs15_get_objects(p15card, SC_PKCS15_TYPE_PRKEY, key_objs, 32);
@@ -1470,17 +1484,19 @@ iasecc_md_gemalto_new_prvkey(struct sc_pkcs15_card *p15card, struct sc_profile *
 	struct sc_context *ctx = p15card->card->ctx;
 	struct sc_pkcs15_prkey_info *prkey_info = (struct sc_pkcs15_prkey_info *)key_obj->data;
 	struct sc_pkcs15init_dataargs data_args;
-	char guid[40];
 	unsigned char data[SC_PKCS15_MAX_ID_SIZE + 6];
-	size_t offs;
+	unsigned char guid[40];
+	size_t offs, guid_len;
 	int rv;
 
 	LOG_FUNC_CALLED(ctx);
 
 	memset(guid, 0, sizeof(guid));
-	rv = sc_pkcs15_get_guid(p15card, key_obj, 1, guid, sizeof(guid) - 1);
+	guid_len = sizeof(guid) - 1;
+
+	rv = sc_pkcs15_get_object_guid(p15card, key_obj, 1, guid, &guid_len);
 	LOG_TEST_RET(ctx, rv, "Cannot get private key GUID");
-	sc_log(ctx, "New key GUID: '%s'", guid);
+	sc_log(ctx, "New key GUID: '%s'", (char *)guid);
 
 	offs = 0;
 	data[offs++] = 0x01;
@@ -1493,7 +1509,7 @@ iasecc_md_gemalto_new_prvkey(struct sc_pkcs15_card *p15card, struct sc_profile *
 
 	memset(&data_args, 0, sizeof(data_args));
 	sc_init_oid(&data_args.app_oid);
-	data_args.label = guid;
+	data_args.label = (char *)guid;
 	data_args.app_label = "CSP";
         data_args.der_encoded.value = data;
 	data_args.der_encoded.len = offs;
@@ -1518,15 +1534,19 @@ iasecc_md_gemalto_delete_prvkey(struct sc_pkcs15_card *p15card, struct sc_profil
 {
 	struct sc_context *ctx = p15card->card->ctx;
 	struct sc_pkcs15_object *data_obj = NULL;
-	char guid[39];
+	unsigned char guid[40];
+	size_t guid_len;
 	int rv;
 
 	LOG_FUNC_CALLED(ctx);
 
-	rv = sc_pkcs15_get_guid(p15card, key_obj, 1, guid, sizeof(guid));
+	memset(guid, 0, sizeof(guid));
+	guid_len = sizeof(guid) - 1;
+
+	rv = sc_pkcs15_get_object_guid(p15card, key_obj, 1, guid, &guid_len);
 	LOG_TEST_RET(ctx, rv, "Cannot get private key GUID");
 
-	rv = sc_pkcs15_find_data_object_by_name(p15card, "CSP", guid, &data_obj);
+	rv = sc_pkcs15_find_data_object_by_name(p15card, "CSP", (char *)guid, &data_obj);
         if (rv == SC_ERROR_OBJECT_NOT_FOUND)
 		LOG_FUNC_RETURN(ctx, SC_SUCCESS);
 	LOG_TEST_RET(ctx, rv, "Find 'CSP'/<key> data object error");
@@ -1655,12 +1675,9 @@ iasecc_store_data_object(struct sc_pkcs15_card *p15card, struct sc_profile *prof
 	LOG_TEST_RET(ctx, nn_objs, "IasEcc get pkcs15 DATA objects error");
 
 	for(indx = 1; indx < MAX_DATA_OBJS; indx++)   {
-		struct sc_path fpath;
-
 		rv = iasecc_pkcs15_new_file(profile, card, SC_PKCS15_TYPE_DATA_OBJECT, indx, &file);
 		LOG_TEST_RET(ctx, rv, "iasecc_store_data_object() pkcs15 new DATA file error");
 
-		fpath = file->path;
 		for (ii=0; ii<nn_objs; ii++)   {
 			struct sc_pkcs15_data_info *info = (struct sc_pkcs15_data_info *)p15objects[ii]->data;
 			int file_id = info->path.value[info->path.len - 2] * 0x100 + info->path.value[info->path.len - 1];
@@ -1785,14 +1802,6 @@ iasecc_emu_store_data(struct sc_pkcs15_card *p15card, struct sc_profile *profile
 	}
 
 	LOG_FUNC_RETURN(ctx, rv);
-}
-
-
-static int
-iasecc_emu_update_tokeninfo(struct sc_profile *profile, struct sc_pkcs15_card *p15card,
-		struct sc_pkcs15_tokeninfo *tinfo)
-{
-	LOG_FUNC_RETURN(p15card->card->ctx, SC_SUCCESS);
 }
 
 

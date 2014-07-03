@@ -248,7 +248,14 @@ enum {
 	SC_CARDCTL_SC_HSM_INITIALIZE,
 	SC_CARDCTL_SC_HSM_IMPORT_DKEK_SHARE,
 	SC_CARDCTL_SC_HSM_WRAP_KEY,
-	SC_CARDCTL_SC_HSM_UNWRAP_KEY
+	SC_CARDCTL_SC_HSM_UNWRAP_KEY,
+
+	/*
+	 * DNIe specific calls
+	 */
+    SC_CARDCTL_DNIE_BASE = _CTL_PREFIX('D', 'N', 'I'),
+	SC_CARDCTL_DNIE_GENERATE_KEY,
+	SC_CARDCTL_DNIE_GET_INFO
 };
 
 enum {
@@ -273,16 +280,16 @@ struct sc_cardctl_default_key {
  * Generic cardctl - initialize token using PKCS#11 style
  */
 typedef struct sc_cardctl_pkcs11_init_token {
-	const char *	so_pin;
+	const unsigned char *	so_pin;
 	size_t			so_pin_len;
-	const char *	label;
+	const char *		label;
 } sc_cardctl_pkcs11_init_token_t;
 
 /*
  * Generic cardctl - set pin using PKCS#11 style
  */
 typedef struct sc_cardctl_pkcs11_init_pin {
-	const char *	pin;
+	const unsigned char *	pin;
 	size_t			pin_len;
 } sc_cardctl_pkcs11_init_pin_t;
 
@@ -931,8 +938,9 @@ typedef struct sc_cardctl_sc_hsm_init_param {
 	u8 *user_pin;				/* Initial user PIN */
 	size_t user_pin_len;		/* Length of user PIN */
 	u8 user_pin_retry_counter;	/* Retry counter default value */
-	u8 options[2];				/* Initilization options */
+	u8 options[2];				/* Initialization options */
 	char dkek_shares;			/* Number of DKEK shares, 0 for card generated, -1 for none */
+	char *label;				/* Token label to be set in EF.TokenInfo (2F03) */
 } sc_cardctl_sc_hsm_init_param_t;
 
 typedef struct sc_cardctl_sc_hsm_dkek {
