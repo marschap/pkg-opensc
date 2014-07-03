@@ -45,6 +45,12 @@ app default {
 	#
 	# paranoid_memory = false;
 
+        # Enable default card driver
+        # Default card driver is explicitely enabled for the 'opensc-explorer' and 'opensc-tool'.
+        #
+        # Default: false
+        # enable_default_driver = true;
+
 	# CT-API module configuration.
 	reader_driver ctapi {
 		# module @libdir@/libtowitoko.so {
@@ -244,22 +250,6 @@ app default {
 	# Digi-ID cold ATR. The same card has the same warm ATR as "Cold ATR v1" above
 	# The card is claimed to only support T=0 but in fact (sometimes) works with T=1, even if not advertised in ATR.
 	card_atr 3b:6e:00:00:45:73:74:45:49:44:20:76:65:72:20:31:2e:30 {
-		force_protocol = t0;
-	}
-	# Cold ATR v3 dev1
-	card_atr 3b:fe:18:00:00:80:31:fe:45:45:73:74:45:49:44:20:76:65:72:20:31:2e:30:a8 {
-		force_protocol = t0;
-	}
-	# Warm ATR v3 dev1
-	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:56:1b:16:83:01:90:00:86 {
-		force_protocol = t0;
-	}
-	# Warm ATR v3 dev2
-	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:16:2a:00:83:01:90:00:e1 {
-		force_protocol = t0;
-	}
-	# Warm ATR v3 (18.01.2011)
-	card_atr 3b:fe:18:00:00:80:31:fe:45:80:31:80:66:40:90:a4:16:2a:00:83:0f:90:00:ef {
 		force_protocol = t0;
 	}
 
@@ -599,26 +589,36 @@ app opensc-pkcs11 {
 		# Default: empty
 		# ignored_readers = "CardMan 1021", "SPR 532";
 
-                # Symbolic names of PINs for which slots are created
-                # Card can contain more then one PINs or more then one on-card application with
-                #   its own PINs. Normally, to access all of them with the PKCS#11 API a slot has to be
-                #   created for all of them. Many slots could be ennoying for some of widely used application,
-                #   like FireFox. This configuration parameter allows to select the PINs or on-card application
-                #   for which PKCS#11 slot will be created.
-                # Actually recognised following symbolic names:
-                #  'user', 'sign', 'application', all
-                # Only PINs initialised, non-SoPIN, non-unblocking are associated with symbolic name.
-                # 'user' is identified as first global or first local PIN.
-                # 'sign' is identified as second PIN: first local, second global or second local.
-                # 'application' slot created for each on-card application,
-                #   even if they use a common global PIN.
-                # 'all' slot created for all non-sopin, non-unblocking PINs,
-                #   optionally for PUK (see option 'create_puk_slot')
-                #
-                # Default: all
-                # create_slots_for_pins = "user,sign";
-                # create_slots_for_pins = application;
-                # create_slots_for_pins = "application,sign";
+		# Symbolic names of PINs for which slots are created
+		# Card can contain more then one PINs or more then one on-card application with
+		#   its own PINs. Normally, to access all of them with the PKCS#11 API a slot has to be
+		#   created for all of them. Many slots could be ennoying for some of widely used application,
+		#   like FireFox. This configuration parameter allows to select the PINs or on-card application
+		#   for which PKCS#11 slot will be created.
+		# Actually recognised following symbolic names:
+		#  'user', 'sign', 'application', all
+		# Only PINs initialised, non-SoPIN, non-unblocking are associated with symbolic name.
+		# 'user' is identified as first global or first local PIN.
+		# 'sign' is identified as second PIN: first local, second global or second local.
+		# 'application' slot created for each on-card application,
+		#   even if they use a common global PIN.
+		# 'all' slot created for all non-sopin, non-unblocking PINs,
+		#   optionally for PUK (see option 'create_puk_slot')
+		#
+		# Default: all
+		# create_slots_for_pins = "user,sign";
+		# create_slots_for_pins = application;
+		# create_slots_for_pins = "application,sign";
+		#
+		# For the module to simulate the opensc-onepin module behavior the following option
+		# must be set:
+		# create_slots_for_pins = "user"
+	}
+}
+
+app onepin-opensc-pkcs11 {
+	pkcs11 {
+		slots_per_card = 1;
 	}
 }
 

@@ -180,15 +180,22 @@ int sc_connect_card(sc_reader_t *reader, sc_card_t **card_out)
 				goto err;
 			}
 		}
-	} else {
-		sc_debug(ctx, SC_LOG_DEBUG_MATCH, "matching built-in ATRs");
+	}
+	else {
+		sc_log(ctx, "matching built-in ATRs");
 		for (i = 0; ctx->card_drivers[i] != NULL; i++) {
 			struct sc_card_driver *drv = ctx->card_drivers[i];
 			const struct sc_card_operations *ops = drv->ops;
 
 			sc_log(ctx, "trying driver '%s'", drv->short_name);
-			if (ops == NULL || ops->match_card == NULL)
+			if (ops == NULL || ops->match_card == NULL)   {
 				continue;
+			}
+			else if (!ctx->enable_default_driver && !strcmp("default", drv->short_name))   {
+				sc_log(ctx , "ignore 'default' card driver");
+				continue;
+			}
+
 			/* Needed if match_card() needs to talk with the card (e.g. card-muscle) */
 			*card->ops = *ops;
 			if (ops->match_card(card) != 1)
@@ -312,10 +319,11 @@ int sc_lock(sc_card_t *card)
 {
 	int r = 0, r2 = 0;
 
-	LOG_FUNC_CALLED(card->ctx);
-
 	if (card == NULL)
 		return SC_ERROR_INVALID_ARGUMENTS;
+
+	LOG_FUNC_CALLED(card->ctx);
+
 	r = sc_mutex_lock(card->ctx, card->mutex);
 	if (r != SC_SUCCESS)
 		return r;
@@ -968,31 +976,39 @@ int _sc_add_atr(sc_context_t *ctx, struct sc_card_driver *driver, struct sc_atr_
 	if (!map)
 		return SC_ERROR_OUT_OF_MEMORY;
 	driver->atr_map = map;
+
 	dst = &driver->atr_map[driver->natrs++];
 	memset(dst, 0, sizeof(*dst));
 	memset(&driver->atr_map[driver->natrs], 0, sizeof(struct sc_atr_table));
 	dst->atr = strdup(src->atr);
 	if (!dst->atr)
 		return SC_ERROR_OUT_OF_MEMORY;
+
 	if (src->atrmask) {
 		dst->atrmask = strdup(src->atrmask);
 		if (!dst->atrmask)
 			return SC_ERROR_OUT_OF_MEMORY;
-	} else {
+	}
+	else {
 		dst->atrmask = NULL;
 	}
+
 	if (src->name) {
 		dst->name = strdup(src->name);
 		if (!dst->name)
 			return SC_ERROR_OUT_OF_MEMORY;
-	} else {
+	}
+	else {
 		dst->name = NULL;
 	}
+
 	dst->type = src->type;
 	dst->flags = src->flags;
 	dst->card_atr = src->card_atr;
+
 	return SC_SUCCESS;
 }
+
 
 int _sc_free_atr(sc_context_t *ctx, struct sc_card_driver *driver)
 {
@@ -1059,6 +1075,11 @@ void sc_print_cache(struct sc_card *card)   {
 				sc_print_path(&card->cache.current_df->path));
 }
 
+scconf_block *
+sc_match_atr_block(sc_context_t *ctx, struct sc_card_driver *driver, struct sc_atr *atr)
+{
+	return _sc_match_atr_block(ctx, driver, atr);
+}
 
 #ifdef ENABLE_SM
 static int
@@ -1130,7 +1151,7 @@ sc_card_sm_load(struct sc_card *card, const char *module_path, const char *in_mo
 	}
 
 	if (!module)
-		return SC_ERROR_MEMORY_FAILURE;
+		return SC_ERROR_OUT_OF_MEMORY;
 
 	sc_log(ctx, "try to load SM module '%s'", module);
 	do  {
@@ -1197,6 +1218,7 @@ sc_card_sm_check(struct sc_card *card)
 	int rv, ii;
 
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_NORMAL);
+	sc_log(ctx, "card->sm_ctx.ops.open %p", card->sm_ctx.ops.open);
 
 	/* get the name of card specific SM configuration section */
 	atrblock = _sc_match_atr_block(ctx, card->driver, &card->atr);

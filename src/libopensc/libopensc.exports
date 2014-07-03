@@ -97,6 +97,7 @@ sc_file_new
 sc_file_set_prop_attr
 sc_file_set_sec_attr
 sc_file_set_type_attr
+sc_file_set_content
 sc_file_valid
 sc_format_apdu
 sc_bytes2apdu
@@ -123,6 +124,7 @@ sc_logout
 sc_make_cache_dir
 sc_mem_clear
 sc_mem_reverse
+sc_match_atr_block
 sc_path_print
 sc_path_set
 sc_pin_cmd
@@ -163,6 +165,7 @@ sc_pkcs15_encode_pubkey_dsa
 sc_pkcs15_encode_pubkey_rsa
 sc_pkcs15_encode_pubkey_ec
 sc_pkcs15_encode_pubkey_gostr3410
+sc_pkcs15_encode_pubkey_as_spki
 sc_pkcs15_encode_pukdf_entry
 sc_pkcs15_encode_tokeninfo
 sc_pkcs15_encode_unusedspace
@@ -195,11 +198,12 @@ sc_pkcs15_free_prkey_info
 sc_pkcs15_free_pubkey
 sc_pkcs15_free_pubkey_info
 sc_pkcs15_get_application_by_type
-sc_pkcs15_get_guid
+sc_pkcs15_get_object_guid
 sc_pkcs15_get_object_id
 sc_pkcs15_get_objects
 sc_pkcs15_get_objects_cond
 sc_pkcs15_get_lastupdate
+sc_pkcs15_serialize_guid
 sc_pkcs15_hex_string_to_id
 sc_pkcs15_is_emulation_only
 sc_pkcs15_make_absolute_path
@@ -300,13 +304,16 @@ sc_pkcs15init_verify_secret
 sc_pkcs15init_sanity_check
 sc_pkcs15init_finalize_profile
 sc_card_find_rsa_alg
+sc_check_apdu
 sc_print_cache
 sc_find_app
 sc_remote_data_init
 sc_crc32
 sc_pkcs15_convert_prkey
 sc_pkcs15_convert_pubkey
-iasecc_sdo_encode_update_field
+sc_sm_parse_answer
+sc_sm_update_apdu_response
+sc_sm_single_transmit
 iasecc_sm_create_file
 iasecc_sm_delete_file
 iasecc_sm_external_authentication
@@ -317,3 +324,4 @@ iasecc_sm_rsa_generate
 iasecc_sm_rsa_update
 iasecc_sm_update_binary
 iasecc_sm_sdo_update
+iasecc_sdo_encode_update_field

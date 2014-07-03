@@ -166,7 +166,7 @@ typedef struct sc_security_env {
 
 	unsigned int algorithm_ref;
 	struct sc_path file_ref;
-	u8 key_ref[8];
+	unsigned char key_ref[8];
 	size_t key_ref_len;
 
 	struct sc_supported_algo_info supported_algos[SC_MAX_SUPPORTED_ALGORITHMS];
@@ -276,10 +276,10 @@ struct sc_reader_driver {
 /* reader capabilities */
 #define SC_READER_CAP_DISPLAY	0x00000001
 #define SC_READER_CAP_PIN_PAD	0x00000002
-#define SC_READER_CAP_PACE_GENERIC         0x00000003
 #define SC_READER_CAP_PACE_EID             0x00000004
 #define SC_READER_CAP_PACE_ESIGN           0x00000008
 #define SC_READER_CAP_PACE_DESTROY_CHANNEL 0x00000010
+#define SC_READER_CAP_PACE_GENERIC         0x00000020
 
 typedef struct sc_reader {
 	struct sc_context *ctx;
@@ -693,6 +693,7 @@ typedef struct sc_context {
 	char *app_name;
 	int debug;
 	int paranoid_memory;
+	int enable_default_driver;
 
 	FILE *debug_file;
 	char *debug_filename;
@@ -719,10 +720,11 @@ typedef struct sc_context {
  *  @param  apdu  sc_apdu_t object of the APDU to be send
  *  @return SC_SUCCESS on succcess and an error code otherwise
  */
-int sc_transmit_apdu(struct sc_card *card, sc_apdu_t *apdu);
+int sc_transmit_apdu(struct sc_card *, struct sc_apdu *);
 
-void sc_format_apdu(struct sc_card *card, sc_apdu_t *apdu, int cse, int ins,
-		    int p1, int p2);
+void sc_format_apdu(struct sc_card *, struct sc_apdu *, int, int, int, int);
+
+int sc_check_apdu(struct sc_card *, const struct sc_apdu *);
 
 /** Transforms an APDU from binary to its @c sc_apdu_t representation
  *  @param  ctx     sc_context_t object (used for logging)
@@ -1137,6 +1139,8 @@ int sc_file_set_prop_attr(sc_file_t *file, const u8 *prop_attr,
 			  size_t prop_attr_len);
 int sc_file_set_type_attr(sc_file_t *file, const u8 *type_attr,
 			  size_t type_attr_len);
+int sc_file_set_content(sc_file_t *file, const u8 *content,
+			  size_t content_len);
 
 
 /********************************************************************/
@@ -1281,6 +1285,7 @@ struct sc_algorithm_info * sc_card_find_ec_alg(struct sc_card *card,
 struct sc_algorithm_info * sc_card_find_gostr3410_alg(struct sc_card *card,
 		unsigned int key_length);
 
+scconf_block *sc_match_atr_block(sc_context_t *ctx, struct sc_card_driver *driver, struct sc_atr *atr);
 /**
  * Get CRC-32 digest
  * @param value pointer to data used for CRC calculation

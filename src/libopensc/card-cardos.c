@@ -1,6 +1,6 @@
 /*
- * card-cardos.c: Support for Siemens CardOS based cards and tokens
- * 	(for example Aladdin eToken PRO, Eutron CryptoIdentity IT-SEC)
+ * card-cardos.c: Support for CardOS (from Siemens or Atos) based cards and
+ * tokens (for example Aladdin eToken PRO, Eutron CryptoIdentity IT-SEC)
  *
  * Copyright (c) 2005  Nils Larsch <nils@larsch.net>
  * Copyright (C) 2002  Andreas Jellinghaus <aj@dungeon.inka.de>
@@ -54,8 +54,13 @@ static struct sc_atr_table cardos_atrs[] = {
 	{ "3b:f2:18:00:ff:c1:0a:31:fe:55:c8:06:8a", "ff:ff:0f:ff:00:ff:00:ff:ff:00:00:00:00", NULL, SC_CARD_TYPE_CARDOS_M4_2, 0, NULL },
 	/* CardOS 4.4 */
 	{ "3b:d2:18:02:c1:0a:31:fe:58:c8:0d:51", NULL, NULL, SC_CARD_TYPE_CARDOS_M4_4, 0, NULL},
+	/* CardOS v5.0 */
+	{ "3b:d2:18:00:81:31:fe:58:c9:01:14", NULL, NULL, SC_CARD_TYPE_CARDOS_V5_0, 0, NULL},
 	{ NULL, NULL, NULL, 0, 0, NULL }
 };
+
+static unsigned int algorithm_ids_in_tokeninfo[SC_MAX_SUPPORTED_ALGORITHMS];
+static unsigned int algorithm_ids_in_tokeninfo_count=0;
 
 static int cardos_match_card(sc_card_t *card)
 {
@@ -72,6 +77,8 @@ static int cardos_match_card(sc_card_t *card)
 	if (card->type == SC_CARD_TYPE_CARDOS_CIE_V1)
 		return 1;
 	if (card->type == SC_CARD_TYPE_CARDOS_M4_4)
+		return 1;
+	if (card->type == SC_CARD_TYPE_CARDOS_V5_0)
 		return 1;
 	if (card->type == SC_CARD_TYPE_CARDOS_M4_2) {
 		int rv;
@@ -107,9 +114,9 @@ static int cardos_match_card(sc_card_t *card)
 		} else if (atr[11] == 0x09) {
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos v4.2b");
 			card->type = SC_CARD_TYPE_CARDOS_M4_2B;
-                } else if (atr[11] >= 0x0B) {
-                        sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos v4.2c or higher");
-                        card->type = SC_CARD_TYPE_CARDOS_M4_2C;
+		} else if (atr[11] >= 0x0B) {
+			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos v4.2c or higher");
+			card->type = SC_CARD_TYPE_CARDOS_M4_2C;
 		} else {
 			sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "found cardos m4.2");
 		}
@@ -180,7 +187,8 @@ static int cardos_init(sc_card_t *card)
 	} else if (card->type == SC_CARD_TYPE_CARDOS_M4_3 
 		|| card->type == SC_CARD_TYPE_CARDOS_M4_2B
 		|| card->type == SC_CARD_TYPE_CARDOS_M4_2C
-		|| card->type == SC_CARD_TYPE_CARDOS_M4_4) {
+		|| card->type == SC_CARD_TYPE_CARDOS_M4_4
+		|| card->type == SC_CARD_TYPE_CARDOS_V5_0) {
 		rsa_2048 = 1;
 		card->caps |= SC_CARD_CAP_APDU_EXT;
 	}
@@ -727,9 +735,8 @@ cardos_set_security_env(sc_card_t *card,
 
 	assert(card != NULL && env != NULL);
 
-	if (!(env->flags & SC_SEC_ENV_KEY_REF_PRESENT)
-	 || env->key_ref_len != 1) {
-		sc_debug(card->ctx, SC_LOG_DEBUG_NORMAL, "No or invalid key reference\n");
+	if (!(env->flags & SC_SEC_ENV_KEY_REF_PRESENT) || env->key_ref_len != 1) {
+		sc_log(card->ctx, "No or invalid key reference\n");
 		return SC_ERROR_INVALID_ARGUMENTS;
 	}
 	key_id = env->key_ref[0];
@@ -764,7 +771,28 @@ cardos_set_security_env(sc_card_t *card,
 	r = sc_check_sw(card, apdu.sw1, apdu.sw2);
 	SC_TEST_RET(card->ctx, SC_LOG_DEBUG_NORMAL, r, "Card returned error");
 
-	SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_NORMAL, r);
+	do   {
+		const struct sc_supported_algo_info* algorithm_info = env->supported_algos;
+		int i=0;
+		int algorithm_id_count = 0;
+
+		for(i=0;i<SC_MAX_SUPPORTED_ALGORITHMS;++i)  {
+			struct sc_supported_algo_info alg = algorithm_info[i];
+
+			if(alg.operations & SC_PKCS15_ALGO_OP_COMPUTE_SIGNATURE)  {
+				unsigned int algorithm_id = alg.algo_ref;
+
+				sc_log(card->ctx, "is signature");
+				sc_log(card->ctx, "Adding ID %d at index %d", algorithm_id, algorithm_id_count);
+				algorithm_ids_in_tokeninfo[algorithm_id_count++] = algorithm_id;
+			}
+			sc_log(card->ctx, "reference=%d, mechanism=%d, operations=%d, algo_ref=%d",
+					alg.reference, alg.mechanism, alg.operations, alg.algo_ref);
+		}
+		algorithm_ids_in_tokeninfo_count = algorithm_id_count;
+	} while (0);
+
+	LOG_FUNC_RETURN(card->ctx, r);
 }
 
 /*
@@ -807,71 +835,104 @@ cardos_compute_signature(sc_card_t *card, const u8 *data, size_t datalen,
 	u8     buf[SC_MAX_APDU_BUFFER_SIZE];
 	size_t buf_len = sizeof(buf), tmp_len = buf_len;
 	sc_context_t *ctx;
+	int do_rsa_pure_sig = 0;
+	int do_rsa_sig = 0;
 
-	assert(card != NULL && data != NULL && out != NULL);	
+
+	assert(card != NULL && data != NULL && out != NULL);
 	ctx = card->ctx;
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_VERBOSE);
 
 	if (datalen > SC_MAX_APDU_BUFFER_SIZE)
-		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_INVALID_ARGUMENTS);
+		LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);
 	if (outlen < datalen)
-		SC_FUNC_RETURN(card->ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_BUFFER_TOO_SMALL);
+		LOG_FUNC_RETURN(ctx, SC_ERROR_BUFFER_TOO_SMALL);
 	outlen = datalen;
 
-	/* XXX As we don't know what operations are allowed with a
-	 * certain key, let's try RSA_PURE etc. and see which operation
-	 * succeeds (this is not really beautiful, but currently the
-	 * only way I see) -- Nils
+	/* There are two ways to create a signature, depending on the way,
+	 * the key was created: RSA_SIG and RSA_PURE_SIG.
+	 * We can use the following reasoning, to determine the correct operation:
+	 * 1. We check for several caps flags (as set in card->caps), to pervent generating
+	 *    invalid signatures with duplicated hash prefixes with some cards
+	 * 2. Use the information from AlgorithmInfo of the TokenInfo file.
+	 *    This information is parsed in set_security_env and stored in a static variable.
+	 *    The problem is, that that information is only available for the whole token and not
+	      for a specific key, so if both operations are present, we can only do trial and error
 	 *
-	 * We also check for several caps flags here to pervent generating
-	 * invalid signatures with duplicated hash prefixes with some cards
+	 * The Algorithm IDs for RSA_SIG are 0x86 and 0x88, those for RSA_PURE_SIG 0x8c and 0x8a
+	 * (According to http://www.opensc-project.org/pipermail/opensc-devel/2010-September/014912.html
+	 *   and www.crysys.hu/infsec/M40_Manual_E_2001_10.pdf)
 	 */
 
-        if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED)
-            sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Forcing RAW_HASH_STRIPPED\n");        	 
-        if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH)
-            sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Forcing RAW_HASH\n");
+	if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED){
+		sc_log(ctx, "Forcing RAW_HASH_STRIPPED");
+		do_rsa_sig = 1;
+	}
+	else if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH){
+		sc_log(ctx, "Forcing RAW_HASH");
+		do_rsa_sig = 1;
+	}
+	else  {
+		/* check the the algorithmIDs from the AlgorithmInfo */
+		size_t i;
+		for(i=0; i<algorithm_ids_in_tokeninfo_count;++i){
+			unsigned int id = algorithm_ids_in_tokeninfo[i];
+			if(id == 0x86 || id == 0x88)
+				do_rsa_sig = 1;
+			else if(id == 0x8C || id == 0x8A)
+				do_rsa_pure_sig = 1;
+		}
+	}
 
-	if (!(card->caps & (SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED | SC_CARD_CAP_ONLY_RAW_HASH))) {
-		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying RSA_PURE_SIG (padded DigestInfo)\n");
+	/* check if any operation was selected */
+	if(do_rsa_sig == 0 && do_rsa_pure_sig == 0)  {
+		/* no operation selected. we just have to try both, for the lack of any better reasoning */
+		sc_log(ctx, "I was unable to determine, whether this key can be used with RSA_SIG or RSA_PURE_SIG. I will just try both.");
+		do_rsa_sig = 1;
+		do_rsa_pure_sig = 1;
+	}
+
+	if(do_rsa_pure_sig == 1){
+		sc_log(ctx, "trying RSA_PURE_SIG (padded DigestInfo)");
 		r = do_compute_signature(card, data, datalen, out, outlen);
 		if (r >= SC_SUCCESS)
-			SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_VERBOSE, r);
-	}		
-		
-	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying RSA_SIG (just the DigestInfo)\n");
-	/* remove padding: first try pkcs1 bt01 padding */
-	r = sc_pkcs1_strip_01_padding(data, datalen, buf, &tmp_len);
-	if (r != SC_SUCCESS) {
-		const u8 *p = data;
-		/* no pkcs1 bt01 padding => let's try zero padding
-		 * This can only work if the data tbs doesn't have a
-		 * leading 0 byte.  */
-		tmp_len = buf_len;
-		while (*p == 0 && tmp_len != 0) {
-			++p;
-			--tmp_len;
+			LOG_FUNC_RETURN(ctx, r);
+	}
+
+	if(do_rsa_sig == 1){
+		sc_log(ctx, "trying RSA_SIG (just the DigestInfo)");
+		/* remove padding: first try pkcs1 bt01 padding */
+		r = sc_pkcs1_strip_01_padding(ctx, data, datalen, buf, &tmp_len);
+		if (r != SC_SUCCESS) {
+			const u8 *p = data;
+			/* no pkcs1 bt01 padding => let's try zero padding
+			 * This can only work if the data tbs doesn't have a
+			 * leading 0 byte.  */
+			tmp_len = buf_len;
+			while (*p == 0 && tmp_len != 0) {
+				++p;
+				--tmp_len;
+			}
+			memcpy(buf, p, tmp_len);
 		}
-		memcpy(buf, p, tmp_len);
+		if (!(card->caps & (SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED | SC_CARD_CAP_ONLY_RAW_HASH)) || card->caps & SC_CARD_CAP_ONLY_RAW_HASH ) {
+			sc_log(ctx, "trying to sign raw hash value with prefix");
+			r = do_compute_signature(card, buf, tmp_len, out, outlen);
+			if (r >= SC_SUCCESS)
+				LOG_FUNC_RETURN(ctx, r);
+		}
+		if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH) {
+			sc_log(ctx, "Failed to sign raw hash value with prefix when forcing");
+			LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);
+		}
+		sc_log(ctx, "trying to sign stripped raw hash value (card is responsible for prefix)");
+		r = sc_pkcs1_strip_digest_info_prefix(NULL,buf,tmp_len,buf,&buf_len);
+		if (r != SC_SUCCESS)
+			LOG_FUNC_RETURN(ctx, r);
+		return do_compute_signature(card, buf, buf_len, out, outlen);
 	}
 
-	if (!(card->caps & (SC_CARD_CAP_ONLY_RAW_HASH_STRIPPED | SC_CARD_CAP_ONLY_RAW_HASH)) || card->caps & SC_CARD_CAP_ONLY_RAW_HASH ) {
-		sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying to sign raw hash value with prefix\n");	
-		r = do_compute_signature(card, buf, tmp_len, out, outlen);
-		if (r >= SC_SUCCESS)	
-			SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_VERBOSE, r);
-	}
-
-	if (card->caps & SC_CARD_CAP_ONLY_RAW_HASH) {
-	    sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "Failed to sign raw hash value with prefix when forcing\n");
-	    SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_VERBOSE, SC_ERROR_INVALID_ARGUMENTS);
-	}
-	   
-	sc_debug(ctx, SC_LOG_DEBUG_NORMAL, "trying to sign stripped raw hash value (card is responsible for prefix)\n");
-	r = sc_pkcs1_strip_digest_info_prefix(NULL,buf,tmp_len,buf,&buf_len);
-	if (r != SC_SUCCESS)
-		SC_FUNC_RETURN(ctx, SC_LOG_DEBUG_VERBOSE, r);
-	return do_compute_signature(card, buf, buf_len, out, outlen);
+	LOG_FUNC_RETURN(ctx, SC_ERROR_INTERNAL);
 }
 
 static int
@@ -1102,21 +1163,35 @@ cardos_card_ctl(sc_card_t *card, unsigned long cmd, void *ptr)
  * Unfortunately, it doesn't seem to work without this flag :-/
  */
 static int
-cardos_pin_cmd(sc_card_t *card, struct sc_pin_cmd_data *data,
+cardos_pin_cmd(struct sc_card *card, struct sc_pin_cmd_data *data,
 		 int *tries_left)
 {
+	struct sc_context *ctx = card->ctx;
+	int rv;
+
+	LOG_FUNC_CALLED(card->ctx);
+
 	data->flags |= SC_PIN_CMD_NEED_PADDING;
 	data->pin_reference |= 0x80;
+
+	sc_log(ctx, "PIN_CMD(cmd:%i, ref:%i)", data->cmd, data->pin_reference);
+	sc_log(ctx, "PIN1(max:%i, min:%i)", data->pin1.max_length, data->pin1.min_length);
+	sc_log(ctx, "PIN2(max:%i, min:%i)", data->pin2.max_length, data->pin2.min_length);
+
 	/* FIXME: the following values depend on what pin length was
 	 * used when creating the BS objects */
 	if (data->pin1.max_length == 0)
 		data->pin1.max_length = 8;
 	if (data->pin2.max_length == 0)
 		data->pin2.max_length = 8;
-	return iso_ops->pin_cmd(card, data, tries_left);
+
+	rv = iso_ops->pin_cmd(card, data, tries_left);
+	LOG_FUNC_RETURN(ctx, rv);
 }
 
-static int cardos_logout(sc_card_t *card)
+
+static int
+cardos_logout(sc_card_t *card)
 {
 	if (card->type == SC_CARD_TYPE_CARDOS_M4_01 ||
 	    card->type == SC_CARD_TYPE_CARDOS_M4_2) {

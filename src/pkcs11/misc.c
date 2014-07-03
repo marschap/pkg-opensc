@@ -75,6 +75,8 @@ static CK_RV sc_to_cryptoki_error_common(int rc)
 	case SC_ERROR_CARD_NOT_PRESENT:
 		return CKR_TOKEN_NOT_PRESENT;
 	case SC_ERROR_INVALID_CARD:
+	case SC_ERROR_WRONG_CARD:
+	case SC_ERROR_NO_CARD_SUPPORT:
 		return CKR_TOKEN_NOT_RECOGNIZED;
 	case SC_ERROR_WRONG_LENGTH:
 		return CKR_DATA_LEN_RANGE;
@@ -110,8 +112,7 @@ static CK_RV sc_to_cryptoki_error_common(int rc)
 
 CK_RV sc_to_cryptoki_error(int rc, const char *ctx)
 {
-	if (ctx)
-	{
+	if (ctx)   {
 		int ii;
 
 		for (ii = 0; sc_to_cryptoki_error_map[ii].context; ii++) {
@@ -292,13 +293,17 @@ void load_pkcs11_parameters(struct sc_pkcs11_config *conf, sc_context_t * ctx)
 	/* Set defaults */
 	conf->plug_and_play = 1;
 	conf->max_virtual_slots = 16;
-	conf->slots_per_card = 4;
+	if (strcmp(ctx->app_name, "onepin-opensc-pkcs11") == 0) {
+		conf->slots_per_card = 1;
+	} else {
+		conf->slots_per_card = 4;
+	}
 	conf->hide_empty_tokens = 1;
 	conf->lock_login = 0;
 	conf->pin_unblock_style = SC_PKCS11_PIN_UNBLOCK_NOT_ALLOWED;
 	conf->create_puk_slot = 0;
 	conf->zero_ckaid_for_ca_certs = 0;
-	conf->create_slots_flags = 0;
+	conf->create_slots_flags = SC_PKCS11_SLOT_CREATE_ALL;
 
 	conf_block = sc_get_conf_block(ctx, "pkcs11", NULL, 1);
 	if (!conf_block)
@@ -323,6 +328,7 @@ void load_pkcs11_parameters(struct sc_pkcs11_config *conf, sc_context_t * ctx)
 	conf->zero_ckaid_for_ca_certs = scconf_get_bool(conf_block, "zero_ckaid_for_ca_certs", conf->zero_ckaid_for_ca_certs);
 
 	create_slots_for_pins = (char *)scconf_get_str(conf_block, "create_slots_for_pins", "all");
+	conf->create_slots_flags = 0;
 	tmp = strdup(create_slots_for_pins);
 	op = strtok(tmp, " ,");
 	while (op) {
