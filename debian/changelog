@@ -7,6 +7,7 @@ opensc (0.14.0-1) unstable; urgency=medium
     patches.
   * debian/opensc.install: Install new dnie-tool.
   * debian/control: Fix Vcs-Git path.
+  * debian/control: Use new GitHub homepage.
 
  -- Eric Dorland <eric@debian.org>  Sat, 05 Jul 2014 15:34:04 -0400
 
