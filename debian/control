@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 9), dh-autoreconf, docbook-xsl, flex,
  libssl-dev (>= 0.9.7d-3), pkg-config, xsltproc, zlib1g-dev
 Standards-Version: 3.9.5
 Homepage: http://www.opensc-project.org/
-Vcs-Git: git://anonscm.debian.org/git/pkg-opensc/opensc.git
+Vcs-Git: git://anonscm.debian.org/pkg-opensc/opensc.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-opensc/opensc.git
 
 Package: opensc

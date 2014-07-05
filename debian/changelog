@@ -6,8 +6,9 @@ opensc (0.14.0-1) unstable; urgency=medium
     debian/patches/0002-fix-for-aventra-myeid.diff: Drop upstreamed
     patches.
   * debian/opensc.install: Install new dnie-tool.
+  * debian/control: Fix Vcs-Git path.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 05 Jul 2014 15:34:04 -0400
 
 opensc (0.13.0-5) unstable; urgency=medium
 
