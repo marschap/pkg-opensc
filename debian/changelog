@@ -2,6 +2,9 @@ opensc (0.14.0-1) unstable; urgency=medium
 
   * New upstream release. (Closes: #746694, #731235)
   * debian/watch: Update to new GitHub location.
+  * debian/patches/0001-pkcs15_compute_cert_length.diff,
+    debian/patches/0002-fix-for-aventra-myeid.diff: Drop upstreamed
+    patches.
 
  --
 
