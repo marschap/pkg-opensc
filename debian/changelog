@@ -1,5 +1,6 @@
-opensc (0.13.0-6) unstable; urgency=medium
+opensc (0.14.0-1) unstable; urgency=medium
 
+  * New upstream release. (Closes: #746694, #731235)
   * debian/watch: Update to new GitHub location.
 
  --
