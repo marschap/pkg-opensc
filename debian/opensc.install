@@ -1,6 +1,6 @@
 debian/tmp/usr/bin/cardos-tool
 debian/tmp/usr/bin/cryptoflex-tool
-debian/tmp/usr/bin/dnie-tool.c
+debian/tmp/usr/bin/dnie-tool
 debian/tmp/usr/bin/eidenv
 debian/tmp/usr/bin/iasecc-tool
 debian/tmp/usr/bin/netkey-tool
