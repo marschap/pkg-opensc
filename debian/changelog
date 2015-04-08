@@ -1,3 +1,10 @@
+opensc (0.14.0-2) unstable; urgency=medium
+
+  * debian/patches/0001-belpic_Support_2k_cards.patch: Add patch for new
+    belpic card. (Closes: #781221)
+
+ -- Eric Dorland <eric@debian.org>  Wed, 08 Apr 2015 00:32:32 -0400
+
 opensc (0.14.0-1) unstable; urgency=medium
 
   * New upstream release. (Closes: #746694, #731235, #746663)
