@@ -4,7 +4,7 @@ Upstream-Contact: opensc-devel@lists.sourceforge.net
 Source: https://github.com/OpenSC/OpenSC
 
 Files: *
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
 License: LGPL-2.1+
 
 Files: src/libopensc/authentic.h
@@ -63,7 +63,7 @@ Files: src/pkcs11/framework-pkcs15.c
  src/pkcs11/pkcs11-object.c
  src/pkcs11/pkcs11-session.c
  src/pkcs11/sc-pkcs11.h
-Copyright: 2001-2002, Timo Teräs <timo.teras@iki.fi>
+Copyright: 2001-2002, Timo TerÃ¤s <timo.teras@iki.fi>
 License: LGPL-2.1+
 
 Files: src/scconf/*
@@ -98,7 +98,7 @@ Files: src/tests/lottery.c
  src/tests/print.c
  src/tests/prngtest.c
  src/tests/sc-test.c
-Copyright:  2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright:  2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-westcos.c
@@ -118,7 +118,7 @@ License: LGPL-2.1+
 Files: src/libopensc/ef-atr.c
  src/pkcs15init/pkcs15-authentic.c
  src/pkcs15init/pkcs15-iasecc.c
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2010, Viktor Tarasov <vtarasov@opentrust.com>
 License: LGPL-2.1+
 
@@ -164,7 +164,7 @@ License: LGPL-2.1+
 
 Files: src/libopensc/log.c
  src/libopensc/log.h
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2003, Antti Tapaninen <aet@cc.hut.fi>
 License: LGPL-2.1+
 
@@ -191,7 +191,7 @@ License: LGPL-2.1+
 
 Files: src/libopensc/pkcs15-skey.c
  src/pkcs15init/pkcs15-oberthur.c
-Copyright: 2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2009, 2011, Viktor Tarasov <viktor.tarasov@opentrust.com>
 License: LGPL-2.1+
 
@@ -266,31 +266,31 @@ Copyright: 2003, Olaf Kirch <okir@suse.de>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-itacns.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2002, Andreas Jellinghaus <aj@dungeon.inka.de>
   2005, ST Incard srl, Giuseppe Amato <giuseppe.amato@st.com>, <midori3@gmail.com>
   2008-2010, Emanuele Pucciarelli <ep@acm.org>
 License: LGPL-2.1+
 
 Files: src/tools/cardos-tool.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2003, 2008, Andreas Jellinghaus <aj@dungeon.inka.de>
   2007, Jean-Pierre Szikora <jean-pierre.szikora@uclouvain.be>
 License: LGPL-2.1+
 
 Files: src/tools/pkcs15-tool.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2008, Andreas Jellinghaus <aj@dungeon.inka.de>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-cardos.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2002, Andreas Jellinghaus <aj@dungeon.inka.de>
   2005, Nils Larsch <nils@larsch.net>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-incrypto34.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2002, Andreas Jellinghaus <aj@dungeon.inka.de>
   2005, ST Incard srl, Giuseppe Amato <giuseppe.amato@st.com>, <midori3@gmail.com>
 License: LGPL-2.1+
@@ -322,7 +322,7 @@ Copyright: 2005, Antti Tapaninen <aet@cc.hut.fi>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-setcos.c
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2005, Antti Tapaninen <aet@cc.hut.fi>
   2005, Zetes
 License: LGPL-2.1+
@@ -345,14 +345,14 @@ Copyright: 2005, Douglas E. Engert <deengert@anl.gov>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-piv.c
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2005-2010, Douglas E. Engert <deengert@anl.gov>
   2006, Identity Alliance, Thomas Harning <thomas.harning@identityalliance.com>
   2007, EMC, Russell Larner <rlarner@rsa.com>
 License: LGPL-2.1+
 
 Files: src/tools/piv-tool.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2005,2010, Douglas E. Engert <deengert@anl.gov>
 License: LGPL-2.1+
 
@@ -379,7 +379,7 @@ Copyright: 2002, Juha Yrjola <juha.yrjola@iki.fi>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-mcrd.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2002, g10 Code GmbH
   2003, Marie Fischer <marie@vtl.ee>
   2004, Martin Paljak <martin@martinpaljak.net>
@@ -387,47 +387,47 @@ Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
 License: LGPL-2.1+
 
 Files: src/libopensc/reader-pcsc.c
-Copyright: 2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2009-2010, Martin Paljak <martin@martinpaljak.net>
 License: LGPL-2.1+
 
 Files: src/libopensc/padding.c
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2003, - 2007, Nils Larsch <larsch@trustcenter.de>
 License: LGPL-2.1+
 
 Files: src/libopensc/pkcs15-sec.c
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2007, Nils Larsch <nils@larsch.net>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-tcos.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2002, g10 Code GmbH
   2011, Peter Koch <pk@opensc-project.org>
 License: LGPL-2.1+
 
 Files: src/tools/iasecc-tool.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2011, Viktor TARASOV <viktor.tarasov@gmail.com>
 License: LGPL-2.1+
 
 Files: src/libopensc/card-oberthur.c
-Copyright: 2001-2002, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001-2002, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2009, Viktor Tarasov <viktor.tarasov@opentrust.com>
 License: LGPL-2.1+
 
 Files: src/tools/sc-hsm-tool.c
-Copyright: 2001, Juha Yrjölä <juha.yrjola@iki.fi>
+Copyright: 2001, Juha YrjÃ¶lÃ¤ <juha.yrjola@iki.fi>
   2012, www.CardContact.de, Andreas Schwier, Minden, Germany
 License: LGPL-2.1+
 
 Files: src/libopensc/card-starcos.c
-Copyright: 2003, Jörn Zukowski <zukowski@trustcenter.de> and
+Copyright: 2003, JÃ¶rn Zukowski <zukowski@trustcenter.de> and
 License: LGPL-2.1+
 
 Files: src/pkcs11/slot.c
-Copyright: 2002, Timo Teräs <timo.teras@iki.fi>
+Copyright: 2002, Timo TerÃ¤s <timo.teras@iki.fi>
   2009, Martin Paljak <martin@martinpaljak.net>
 License: LGPL-2.1+
 
@@ -479,7 +479,7 @@ Copyright: 2003, Zetes Belgium
 License: LGPL-2.1+
 
 Files: src/common/compat_getopt_main.c
-Copyright: 
+Copyright:
 License: Public domain
 
 Files: src/common/compat_strlcpy.h
@@ -530,4 +530,3 @@ License: ISC
  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-

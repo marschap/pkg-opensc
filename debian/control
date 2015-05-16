@@ -3,9 +3,17 @@ Priority: extra
 Section: utils
 Maintainer: Debian OpenSC Maintainers <pkg-opensc-maint@lists.alioth.debian.org>
 Uploaders: Eric Dorland <eric@debian.org>
-Build-Depends: debhelper (>= 9), dh-autoreconf, docbook-xsl, flex,
- libltdl3-dev, libpcsclite-dev (>= 1.2.9-beta1), libreadline-dev,
- libssl-dev (>= 0.9.7d-3), pkg-config, xsltproc, zlib1g-dev
+Build-Depends: debhelper (>= 9),
+               dh-autoreconf,
+               docbook-xsl,
+               flex,
+               libltdl3-dev,
+               libpcsclite-dev (>= 1.2.9-beta1),
+               libreadline-dev,
+               libssl-dev (>= 0.9.7d-3),
+               pkg-config,
+               xsltproc,
+               zlib1g-dev
 Standards-Version: 3.9.6
 Homepage: https://github.com/OpenSC/OpenSC/wiki
 Vcs-Git: git://anonscm.debian.org/pkg-opensc/opensc.git
@@ -16,7 +24,9 @@ Section: utils
 Architecture: any
 Multi-Arch: foreign
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, opensc-pkcs11 (= ${binary:Version})
+Depends: opensc-pkcs11 (= ${binary:Version}),
+         ${misc:Depends},
+         ${shlibs:Depends}
 Conflicts: mozilla-opensc
 Description: Smart card utilities with support for PKCS#15 compatible cards
  OpenSC provides a set of libraries and utilities to access smart
@@ -42,9 +52,9 @@ Section: utils
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Replaces: opensc (<< 0.13.0-5~), libopensc2 (<< 0.12.0)
-Breaks: opensc (<< 0.13.0-5~), libopensc2 (<< 0.12.0)
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Replaces: libopensc2 (<< 0.12.0), opensc (<< 0.13.0-5~)
+Breaks: libopensc2 (<< 0.12.0), opensc (<< 0.13.0-5~)
 Description: Smart card utilities with support for PKCS#15 compatible cards
  OpenSC provides a set of libraries and utilities to access smart
  cards.  It mainly focuses on cards that support cryptographic
