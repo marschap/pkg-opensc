@@ -1,5 +1,6 @@
-opensc (0.14.0-3) unstable; urgency=medium
+opensc (0.15.0-1) unstable; urgency=medium
 
+  * New upstream release.
   * debian/copyright: Update to DEP5 format.
   * debian/control: Switch maintainer to
     pkg-opensc-maint@lists.alioth.debian.org and mark myself as uploader.
