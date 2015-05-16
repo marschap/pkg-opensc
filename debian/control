@@ -6,7 +6,7 @@ Uploaders: Eric Dorland <eric@debian.org>
 Build-Depends: debhelper (>= 9), dh-autoreconf, docbook-xsl, flex,
  libltdl3-dev, libpcsclite-dev (>= 1.2.9-beta1), libreadline-dev,
  libssl-dev (>= 0.9.7d-3), pkg-config, xsltproc, zlib1g-dev
-Standards-Version: 3.9.5
+Standards-Version: 3.9.6
 Homepage: https://github.com/OpenSC/OpenSC/wiki
 Vcs-Git: git://anonscm.debian.org/pkg-opensc/opensc.git
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=pkg-opensc/opensc.git
