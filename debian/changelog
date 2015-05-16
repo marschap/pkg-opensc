@@ -1,3 +1,9 @@
+opensc (0.14.0-3) unstable; urgency=medium
+
+  * debian/copyright: Update to DEP5 format.
+
+ --
+
 opensc (0.14.0-2) unstable; urgency=medium
 
   * debian/patches/0001-belpic_Support_2k_cards.patch: Add patch for new
