@@ -6,6 +6,7 @@ opensc (0.14.0-3) unstable; urgency=medium
   * debian/control: Standards-Version to 3.9.6.
   * debian/control, debian/copyright, debian/opensc-pkcs11.install,
     debian/opensc.docs, debian/opensc.install: Run wrap-and-sort.
+  * debian/gbp.conf: Use pristine-tar.
 
  --
 
