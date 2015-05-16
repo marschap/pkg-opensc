@@ -10,8 +10,9 @@ opensc (0.15.0-1) unstable; urgency=medium
   * debian/gbp.conf: Use pristine-tar.
   * debian/patches/0001-belpic_Support_2k_cards.patch: Remove upstreamed
     patch.
+  * debian/gbp.conf: Use upstream-vcs-tag.
 
- --
+ -- Eric Dorland <eric@debian.org>  Sat, 16 May 2015 19:34:20 -0400
 
 opensc (0.14.0-2) unstable; urgency=medium
 
