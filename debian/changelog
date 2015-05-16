@@ -8,6 +8,8 @@ opensc (0.15.0-1) unstable; urgency=medium
   * debian/control, debian/copyright, debian/opensc-pkcs11.install,
     debian/opensc.docs, debian/opensc.install: Run wrap-and-sort.
   * debian/gbp.conf: Use pristine-tar.
+  * debian/patches/0001-belpic_Support_2k_cards.patch: Remove upstreamed
+    patch.
 
  --
 
