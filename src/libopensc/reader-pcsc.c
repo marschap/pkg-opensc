@@ -19,7 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#if HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #ifdef ENABLE_PCSC	/* empty file without pcsc */
 #include <assert.h>
@@ -762,15 +764,15 @@ static int pcsc_finish(sc_context_t *ctx)
  *
  * @return Bitmask of \c SC_READER_CAP_PACE_GENERIC, \c SC_READER_CAP_PACE_EID and \c * SC_READER_CAP_PACE_ESIGN logically OR'ed if supported
  */
-static unsigned long part10_detect_pace_capabilities(sc_reader_t *reader)
+static unsigned long part10_detect_pace_capabilities(sc_reader_t *reader, SCARDHANDLE card_handle)
 {
     u8 pace_capabilities_buf[] = {
         PACE_FUNCTION_GetReaderPACECapabilities, /* idxFunction */
         0, 0,                                    /* lengthInputData */
     };
-    u8 rbuf[6];
+    u8 rbuf[7];
     u8 *p = rbuf;
-    size_t rcount = sizeof rbuf;
+    DWORD rcount = sizeof rbuf;
     struct pcsc_private_data *priv;
     unsigned long flags = 0;
 
@@ -780,10 +782,15 @@ static unsigned long part10_detect_pace_capabilities(sc_reader_t *reader)
     if (!priv)
         goto err;
 
-    if (priv->pace_ioctl) {
-        pcsc_internal_transmit(reader, pace_capabilities_buf,
-                sizeof pace_capabilities_buf, rbuf, &rcount,
-                priv->pace_ioctl);
+    if (priv->pace_ioctl && priv->gpriv) {
+		if (SCARD_S_SUCCESS != priv->gpriv->SCardControl(card_handle,
+					priv->pace_ioctl, pace_capabilities_buf,
+					sizeof pace_capabilities_buf, rbuf, sizeof(rbuf),
+					&rcount)) {
+			sc_debug(reader->ctx, SC_LOG_DEBUG_NORMAL,
+				   	"PC/SC v2 part 10 amd1: Get PACE properties failed!");
+			goto err;
+		}
 
         if (rcount != 7)
             goto err;
@@ -925,7 +932,7 @@ static void detect_reader_features(sc_reader_t *reader, SCARDHANDLE card_handle)
 	if (priv->pace_ioctl) {
 		const char *log_text = "Reader supports PACE";
 		if (priv->gpriv->enable_pace) {
-			reader->capabilities |= part10_detect_pace_capabilities(reader);
+			reader->capabilities |= part10_detect_pace_capabilities(reader, card_handle);
 
 			if (reader->capabilities & SC_READER_CAP_PACE_GENERIC)
 				sc_log(ctx, log_text);
@@ -944,6 +951,7 @@ static int pcsc_detect_readers(sc_context_t *ctx)
 	char *reader_buf = NULL, *reader_name;
 	const char *mszGroups = NULL;
 	int ret = SC_ERROR_INTERNAL;
+	size_t i;
 
 	SC_FUNC_CALLED(ctx, SC_LOG_DEBUG_NORMAL);
 
@@ -953,7 +961,13 @@ static int pcsc_detect_readers(sc_context_t *ctx)
 		goto out;
 	}
 
-	sc_log(ctx, "Probing pcsc readers");
+	/* temporarily mark all readers as removed */
+	for (i=0;i < sc_ctx_get_reader_count(ctx);i++) {
+		sc_reader_t *reader = sc_ctx_get_reader(ctx, i);
+		reader->flags |= SC_READER_REMOVED;
+	}
+
+	sc_log(ctx, "Probing PC/SC readers");
 
 	do {
 		if (gpriv->pcsc_ctx == -1) {
@@ -967,6 +981,13 @@ static int pcsc_detect_readers(sc_context_t *ctx)
 		else {
 			rv = gpriv->SCardListReaders(gpriv->pcsc_ctx, NULL, NULL,
 					      (LPDWORD) &reader_buf_size);
+			if (rv == SCARD_E_NO_SERVICE) {
+				gpriv->SCardReleaseContext(gpriv->pcsc_ctx);
+				gpriv->pcsc_ctx = -1;
+				gpriv->pcsc_wait_ctx = -1;
+				/* reconnecting below may may restart PC/SC service */
+				rv = SCARD_E_INVALID_HANDLE;
+			}
 		}
 		if (rv != SCARD_S_SUCCESS) {
 			if (rv != (LONG)SCARD_E_INVALID_HANDLE) {
@@ -975,7 +996,7 @@ static int pcsc_detect_readers(sc_context_t *ctx)
 				goto out;
 			}
 
-			sc_log(ctx, "Establish pcsc context");
+			sc_log(ctx, "Establish PC/SC context");
 
 			rv = gpriv->SCardEstablishContext(SCARD_SCOPE_USER,
 					      NULL, NULL, &gpriv->pcsc_ctx);
@@ -1002,28 +1023,28 @@ static int pcsc_detect_readers(sc_context_t *ctx)
 		goto out;
 	}
 	for (reader_name = reader_buf; *reader_name != '\x0'; reader_name += strlen(reader_name) + 1) {
-		sc_reader_t *reader = NULL;
+		sc_reader_t *reader = NULL, *old_reader;
 		struct pcsc_private_data *priv = NULL;
-		unsigned int i;
 		int found = 0;
 
 		for (i=0;i < sc_ctx_get_reader_count(ctx) && !found;i++) {
-			sc_reader_t *reader2 = sc_ctx_get_reader(ctx, i);
-			if (reader2 == NULL) {
+			old_reader = sc_ctx_get_reader(ctx, i);
+			if (old_reader == NULL) {
 				ret = SC_ERROR_INTERNAL;
 				goto err1;
 			}
-			if (!strcmp(reader2->name, reader_name)) {
+			if (!strcmp(old_reader->name, reader_name)) {
 				found = 1;
 			}
 		}
 
 		/* Reader already available, skip */
 		if (found) {
+			old_reader->flags &= ~SC_READER_REMOVED;
 			continue;
 		}
 
-		sc_log(ctx, "Found new pcsc reader '%s'", reader_name);
+		sc_log(ctx, "Found new PC/SC reader '%s'", reader_name);
 
 		if ((reader = calloc(1, sizeof(sc_reader_t))) == NULL) {
 			ret = SC_ERROR_OUT_OF_MEMORY;
@@ -1490,8 +1511,8 @@ static int part10_build_modify_pin_block(struct sc_reader *reader, u8 * buf, siz
 
 	/* Ignore language and T=1 parameters. */
 	pin_modify->wLangId = HOST_TO_CCID_16(0x0000);
-	pin_modify->bMsgIndex1 = 0x00; /* Default message indexes */
-	pin_modify->bMsgIndex2 = 0x01;
+	pin_modify->bMsgIndex1 = (data->flags & SC_PIN_CMD_IMPLICIT_CHANGE ? 0x01: 0x00); /* Default message indexes */
+	pin_modify->bMsgIndex2 = (data->flags & SC_PIN_CMD_IMPLICIT_CHANGE ? 0x02: 0x01);
 	pin_modify->bMsgIndex3 = 0x02;
 	pin_modify->bTeoPrologue[0] = 0x00;
 	pin_modify->bTeoPrologue[1] = 0x00;
@@ -1797,7 +1818,7 @@ static int transform_pace_output(u8 *rbuf, size_t rbuflen,
     if (parsed+2 > rbuflen)
         return SC_ERROR_UNKNOWN_DATA_RECEIVED;
     pace_output->mse_set_at_sw1 = rbuf[parsed+0];
-    pace_output->mse_set_at_sw1 = rbuf[parsed+1];
+    pace_output->mse_set_at_sw2 = rbuf[parsed+1];
     parsed += 2;
 
     /* length_CardAccess */

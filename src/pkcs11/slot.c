@@ -20,6 +20,7 @@
  */
 
 #include "config.h"
+#include "libopensc/opensc.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -100,6 +101,15 @@ CK_RV create_slot(sc_reader_t *reader)
 	return CKR_OK;
 }
 
+void delete_slot(struct sc_pkcs11_slot *slot)
+{
+	if (slot) {
+		list_destroy(&slot->objects);
+		list_delete(&virtual_slots, slot);
+		free(slot);
+	}
+}
+
 
 /* create slots associated with a reader, called whenever a reader is seen. */
 CK_RV initialize_reader(sc_reader_t *reader)
@@ -160,18 +170,12 @@ CK_RV card_removed(sc_reader_t * reader)
 	if (card) {
 		card->framework->unbind(card);
 		sc_disconnect_card(card->card);
-		/* FIXME: free mechanisms
-		 * spaces allocated by the
-		 * sc_pkcs11_register_sign_and_hash_mechanism
-		 * and sc_pkcs11_new_fw_mechanism.
-		 * but see sc_pkcs11_register_generic_mechanisms
 		for (i=0; i < card->nmechanisms; ++i) {
-			// if 'mech_data' is a pointer earlier returned by the ?alloc
-			free(card->mechanisms[i]->mech_data);
-			// if 'mechanisms[i]' is a pointer earlier returned by the ?alloc
+			if (card->mechanisms[i]->free_mech_data) {
+				card->mechanisms[i]->free_mech_data(card->mechanisms[i]->mech_data);
+			}
 			free(card->mechanisms[i]);
 		}
-		*/
 		free(card->mechanisms);
 		free(card);
 	}
@@ -330,9 +334,19 @@ card_detect_all(void)
 	/* Detect cards in all initialized readers */
 	for (i=0; i< sc_ctx_get_reader_count(context); i++) {
 		sc_reader_t *reader = sc_ctx_get_reader(context, i);
-		if (!reader_get_slot(reader))
-			initialize_reader(reader);
-		card_detect(sc_ctx_get_reader(context, i));
+		if (reader->flags & SC_READER_REMOVED) {
+			struct sc_pkcs11_slot *slot;
+			card_removed(reader);
+			while ((slot = reader_get_slot(reader))) {
+				delete_slot(slot);
+			}
+			_sc_delete_reader(context, reader);
+			i--;
+		} else {
+			if (!reader_get_slot(reader))
+				initialize_reader(reader);
+			card_detect(sc_ctx_get_reader(context, i));
+		}
 	}
 	sc_log(context, "All cards detected");
 	return CKR_OK;
@@ -420,7 +434,7 @@ CK_RV slot_token_removed(CK_SLOT_ID id)
 	/* Release framework stuff */
 	if (slot->card != NULL) {
 		if (slot->fw_data != NULL &&
-		    slot->card->framework != NULL && slot->card->framework->release_token != NULL)
+				slot->card->framework != NULL && slot->card->framework->release_token != NULL)
 			slot->card->framework->release_token(slot->card, slot->fw_data);
 	}
 
@@ -446,7 +460,7 @@ CK_RV slot_find_changed(CK_SLOT_ID_PTR idp, int mask)
 		sc_pkcs11_slot_t *slot = (sc_pkcs11_slot_t *) list_get_at(&virtual_slots, i);
 		sc_log(context, "slot 0x%lx token: %d events: 0x%02X",slot->id, (slot->slot_info.flags & CKF_TOKEN_PRESENT), slot->events);
 		if ((slot->events & SC_EVENT_CARD_INSERTED)
-		    && !(slot->slot_info.flags & CKF_TOKEN_PRESENT)) {
+				&& !(slot->slot_info.flags & CKF_TOKEN_PRESENT)) {
 			/* If a token has not been initialized, clear the inserted event */
 			slot->events &= ~SC_EVENT_CARD_INSERTED;
 		}

@@ -43,6 +43,23 @@
 
 #include "cwa14890.h"
 
+/**
+ * Structure used to compose BER-TLV encoded data
+ * according to iso7816-4 sect 5.2.2.
+ *
+ * Notice that current implementation does not handle properly
+ * multibyte tag id. Just asume that tag is 1-byte length
+ * Also, encodings for data length longer than 0x01000000 bytes
+ * are not supported (tag 0x84)
+ */
+typedef struct cwa_tlv_st {
+        u8 *buf;                /** local copy of TLV byte array */
+        size_t buflen;          /** lengt of buffer */
+        unsigned int tag;       /** tag ID */
+        size_t len;             /** length of data field */
+        u8 *data;               /** pointer to start of data in buf buffer */
+} cwa_tlv_t;
+
 /*********************** utility functions ************************/
 
 /**
@@ -242,13 +259,13 @@ static int cwa_compose_tlv(sc_card_t * card,
  * @return SC_SUCCESS if OK; else error code
  */
 static int cwa_parse_tlv(sc_card_t * card,
-			 u8 * data, size_t datalen, cwa_tlv_t tlv_array[]
+			 u8 * buffer, size_t datalen,
+			 cwa_tlv_t tlv_array[]
     )
 {
 	size_t n = 0;
 	size_t next = 0;
 	sc_context_t *ctx = NULL;
-	u8 *buffer = NULL;
 
 	/* preliminary checks */
 	if (!card || !card->ctx)
@@ -257,14 +274,9 @@ static int cwa_parse_tlv(sc_card_t * card,
 	ctx = card->ctx;
 
 	LOG_FUNC_CALLED(ctx);
-	if (!data || !tlv_array)
+	if (!tlv_array)
 		LOG_FUNC_RETURN(ctx, SC_ERROR_INVALID_ARGUMENTS);
 
-	/* create buffer and copy data into */
-	buffer = calloc(datalen, sizeof(u8));
-	if (!buffer)
-		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
-	memcpy(buffer, data, datalen);
 	for (n = 0; n < datalen; n += next) {
 		cwa_tlv_t *tlv = NULL;	/* pointer to TLV structure to store info */
 		size_t j = 2;	/* TLV has at least two bytes */
@@ -1418,9 +1430,9 @@ int cwa_create_secure_channel(sc_card_t * card,
 int cwa_encode_apdu(sc_card_t * card,
 		    cwa_provider_t * provider, sc_apdu_t * from, sc_apdu_t * to)
 {
-	u8 *apdubuf;		/* to store resulting apdu */
+	u8 *apdubuf = NULL;		/* to store resulting apdu */
 	size_t apdulen;
-	u8 *ccbuf;		/* where to store data to eval cryptographic checksum CC */
+	u8 *ccbuf = NULL;		/* where to store data to eval cryptographic checksum CC */
 	size_t cclen = 0;
 	u8 macbuf[8];		/* to store and compute CC */
 	DES_key_schedule k1;
@@ -1434,10 +1446,6 @@ int cwa_encode_apdu(sc_card_t * card,
 	u8 *msgbuf = NULL;	/* to encrypt apdu data */
 	u8 *cryptbuf = NULL;
 
-	/* reserve extra bytes for padding and tlv header */
-	msgbuf = calloc(12 + from->lc, sizeof(u8));	/* to encrypt apdu data */
-	cryptbuf = calloc(12 + from->lc, sizeof(u8));
-
 	/* mandatory check */
 	if (!card || !card->ctx || !provider)
 		return SC_ERROR_INVALID_ARGUMENTS;
@@ -1450,6 +1458,10 @@ int cwa_encode_apdu(sc_card_t * card,
 		LOG_FUNC_RETURN(ctx, SC_ERROR_SM_NOT_INITIALIZED);
 	if (sm_session->state != CWA_SM_ACTIVE)
 		LOG_FUNC_RETURN(ctx, SC_ERROR_SM_INVALID_LEVEL);
+
+	/* reserve extra bytes for padding and tlv header */
+	msgbuf = calloc(12 + from->lc, sizeof(u8));	/* to encrypt apdu data */
+	cryptbuf = calloc(12 + from->lc, sizeof(u8));
 	if (!msgbuf || !cryptbuf)
 		LOG_FUNC_RETURN(ctx, SC_ERROR_OUT_OF_MEMORY);
 
@@ -1462,21 +1474,6 @@ int cwa_encode_apdu(sc_card_t * card,
 		memcpy(to, from, sizeof(sc_apdu_t));
 		return SC_SUCCESS;	/* dont encode GET Response cmd */
 	}
-#if 0
-	/* For testing results according DNIe manual */
-	u8 kenc[16] =
-	    { 0x59, 0x8f, 0x26, 0xe3, 0x6e, 0x11, 0xa8, 0xec, 0x14, 0xb8, 0x1e,
-	  0x19, 0xbd, 0xa2, 0x23, 0xca };
-	u8 kmac[16] =
-	    { 0x5d, 0xe2, 0x93, 0x9a, 0x1e, 0xa0, 0x3a, 0x93, 0x0b, 0x88, 0x20,
-	  0x6d, 0x8f, 0x73, 0xe8, 0xa7 };
-	u8 ssc[8] = { 0xd3, 0x1a, 0xc8, 0xec, 0x7b, 0xa0, 0xfe, 0x74 };
-	memcpy(sm->kenc, kenc, 16);
-	memcpy(sm->kmac, kmac, 16);
-	memcpy(sm->ssc, ssc, 16);
-	from->le = 0;
-	/* para debugging end */
-#endif
 
 	/* call provider pre-operation method */
 	if (provider->cwa_encode_pre_ops) {
@@ -1492,6 +1489,7 @@ int cwa_encode_apdu(sc_card_t * card,
 
 	/* reserve enougth space for apdulen+tlv bytes 
 	 * to-be-crypted buffer and result apdu buffer */
+	 /* TODO DEE add 4 more bytes for testing.... */
 	apdubuf =
 	    calloc(MAX(SC_MAX_APDU_BUFFER_SIZE, 20 + from->datalen),
 		   sizeof(u8));
@@ -1547,14 +1545,16 @@ int cwa_encode_apdu(sc_card_t * card,
 	}
 
 	/* if le byte is declared, compose and add Le TLV */
-	/* TODO: study why original driver checks for le>=256? */
-	if (from->le > 0) {
-		u8 le = 0xff & from->le;
-		res = cwa_compose_tlv(card, 0x97, 1, &le, &ccbuf, &cclen);
-		if (res != SC_SUCCESS) {
-			msg = "Encode APDU compose_tlv(0x97) failed";
-			goto encode_end;
-		}
+	/* FIXME: For DNIe we must not send the le bytes
+	  when le == 256 but this goes against the standard
+	  and might break other cards reusing this code */
+	if ((0xff & from->le) > 0) {
+	    u8 le = 0xff & from->le;
+	    res = cwa_compose_tlv(card, 0x97, 1, &le, &ccbuf, &cclen);
+	    if (res != SC_SUCCESS) {
+		msg = "Encode APDU compose_tlv(0x97) failed";
+		goto encode_end;
+	    }
 	}
 	/* copy current data to apdu buffer (skip header and header padding) */
 	memcpy(apdubuf, ccbuf + 8, cclen - 8);
@@ -1606,12 +1606,20 @@ int cwa_encode_apdu(sc_card_t * card,
 			goto encode_end;
 		}
 	}
+
 	/* that's all folks */
 	res = SC_SUCCESS;
+	goto encode_end_apdu_valid;
 
- encode_end:
+encode_end:
+	if (apdubuf)
+		free(apdubuf);
+encode_end_apdu_valid:
 	if (msg)
 		sc_log(ctx, msg);
+	free(msgbuf);
+	free(cryptbuf);
+	free(ccbuf);
 	LOG_FUNC_RETURN(ctx, res);
 }
 
@@ -1639,6 +1647,7 @@ int cwa_decode_response(sc_card_t * card,
 	cwa_tlv_t *e_tlv = &tlv_array[1];	/* to store pad encoded data (Tag 0x87) */
 	cwa_tlv_t *m_tlv = &tlv_array[2];	/* to store mac CC (Tag 0x8E) */
 	cwa_tlv_t *s_tlv = &tlv_array[3];	/* to store sw1-sw2 status (Tag 0x99) */
+	u8 *buffer = NULL;	/* buffer for data. pointers to this buffer are in tlv_array */
 	u8 *ccbuf = NULL;	/* buffer for mac CC calculation */
 	size_t cclen = 0;	/* ccbuf len */
 	u8 macbuf[8];		/* where to calculate mac */
@@ -1702,8 +1711,16 @@ int cwa_decode_response(sc_card_t * card,
 
 	/* parse response to find TLV's data and check results */
 	memset(tlv_array, 0, 4 * sizeof(cwa_tlv_t));
+	/* create buffer and copy data into */
+	buffer = calloc(from->resplen, sizeof(u8));
+	if (!buffer) {
+		msg = "Cannot allocate space for response buffer";
+		res = SC_ERROR_OUT_OF_MEMORY;
+		goto response_decode_end;
+	}
+	memcpy(buffer, from->resp, from->resplen);
 
-	res = cwa_parse_tlv(card, from->resp, from->resplen, tlv_array);
+	res = cwa_parse_tlv(card, buffer, from->resplen, tlv_array);
 	if (res != SC_SUCCESS) {
 		msg = "Error in TLV parsing";
 		goto response_decode_end;
@@ -1804,7 +1821,7 @@ int cwa_decode_response(sc_card_t * card,
 	if (to->resp) {		/* if response apdu provides buffer, try to use it */
 		if (to->resplen < resplen) {
 			msg =
-			    "Provided buffer has not enought size to store response";
+			    "Provided buffer has not enough size to store response";
 			res = SC_ERROR_OUT_OF_MEMORY;
 			goto response_decode_end;
 		}
@@ -1872,7 +1889,7 @@ int cwa_decode_response(sc_card_t * card,
 		res = provider->cwa_decode_post_ops(card, provider, from, to);
 		if (res != SC_SUCCESS) {
 			sc_log(ctx, "Decode APDU: provider post_ops() failed");
-			LOG_FUNC_RETURN(ctx, res);
+			goto response_decode_end;
 		}
 	}
 
@@ -1880,6 +1897,8 @@ int cwa_decode_response(sc_card_t * card,
 	res = SC_SUCCESS;
 
  response_decode_end:
+	if (buffer)
+		free(buffer);
 	if (ccbuf)
 		free(ccbuf);
 	if (msg) {

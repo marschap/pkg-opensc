@@ -18,7 +18,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+#if HAVE_CONFIG_H
 #include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +72,6 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 #endif
 	{ "gemsafeV1",	(void *(*)(void)) sc_get_gemsafeV1_driver },
 	{ "miocos",	(void *(*)(void)) sc_get_miocos_driver },
-	{ "mcrd",	(void *(*)(void)) sc_get_mcrd_driver },
 	{ "asepcos",	(void *(*)(void)) sc_get_asepcos_driver },
 	{ "starcos",	(void *(*)(void)) sc_get_starcos_driver },
 	{ "tcos",	(void *(*)(void)) sc_get_tcos_driver },
@@ -100,14 +101,17 @@ static const struct _sc_driver_entry internal_card_drivers[] = {
 #ifdef ENABLE_OPENSSL
 	{ "dnie",       (void *(*)(void)) sc_get_dnie_driver },
 #endif
+	{ "masktech",	(void *(*)(void)) sc_get_masktech_driver },
 
 /* Here should be placed drivers that need some APDU transactions to
  * recognise its cards. */
+	{ "mcrd",	(void *(*)(void)) sc_get_mcrd_driver },
 	{ "setcos",	(void *(*)(void)) sc_get_setcos_driver },
 	{ "muscle",	(void *(*)(void)) sc_get_muscle_driver },
 	{ "atrust-acos",(void *(*)(void)) sc_get_atrust_acos_driver },
 	{ "PIV-II",	(void *(*)(void)) sc_get_piv_driver },
 	{ "itacns",	(void *(*)(void)) sc_get_itacns_driver },
+	{ "isoApplet",	(void *(*)(void)) sc_get_isoApplet_driver },
 	/* The default driver should be last, as it handles all the
 	 * unrecognized cards. */
 	{ "default",	(void *(*)(void)) sc_get_default_driver },
@@ -244,7 +248,7 @@ load_parameters(sc_context_t *ctx, scconf_block *block, struct _sc_ctx_options *
 	if (val)   {
 #ifdef _WIN32
 		expanded_len = PATH_MAX;
-		expanded_len = ExpandEnvironmentStrings(val, expanded_val, expanded_len);
+		expanded_len = ExpandEnvironmentStringsA(val, expanded_val, expanded_len);
 		if (expanded_len > 0)
 			val = expanded_val;
 #endif
@@ -551,7 +555,7 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 #ifdef _WIN32
 	conf_path = getenv("OPENSC_CONF");
 	if (!conf_path) {
-		rc = RegOpenKeyEx(HKEY_CURRENT_USER, "Software\\OpenSC Project\\OpenSC", 0, KEY_QUERY_VALUE, &hKey);
+		rc = RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\OpenSC Project\\OpenSC", 0, KEY_QUERY_VALUE, &hKey);
 		if (rc == ERROR_SUCCESS) {
 			temp_len = PATH_MAX;
 			rc = RegQueryValueEx( hKey, "ConfigFile", NULL, NULL, (LPBYTE) temp_path, &temp_len);
@@ -562,7 +566,7 @@ static void process_config_file(sc_context_t *ctx, struct _sc_ctx_options *opts)
 	}
 
 	if (!conf_path) {
-		rc = RegOpenKeyEx( HKEY_LOCAL_MACHINE, "Software\\OpenSC Project\\OpenSC", 0, KEY_QUERY_VALUE, &hKey );
+		rc = RegOpenKeyExA( HKEY_LOCAL_MACHINE, "Software\\OpenSC Project\\OpenSC", 0, KEY_QUERY_VALUE, &hKey );
 		if (rc == ERROR_SUCCESS) {
 			temp_len = PATH_MAX;
 			rc = RegQueryValueEx( hKey, "ConfigFile", NULL, NULL, (LPBYTE) temp_path, &temp_len);
@@ -840,7 +844,7 @@ int sc_set_card_driver(sc_context_t *ctx, const char *short_name)
 	if (short_name == NULL) {
 		ctx->forced_driver = NULL;
 		match = 1;
-	} else while (ctx->card_drivers[i] != NULL && i < SC_MAX_CARD_DRIVERS) {
+	} else while (i < SC_MAX_CARD_DRIVERS && ctx->card_drivers[i] != NULL) {
 		struct sc_card_driver *drv = ctx->card_drivers[i];
 
 		if (strcmp(short_name, drv->short_name) == 0) {
@@ -873,7 +877,7 @@ int sc_get_cache_dir(sc_context_t *ctx, char *buf, size_t bufsize)
 	/* If USERPROFILE isn't defined, assume it's a single-user OS
 	 * and put the cache dir in the Windows dir (usually C:\\WINDOWS) */
 	if (homedir == NULL || homedir[0] == '\0') {
-		GetWindowsDirectory(temp_path, sizeof(temp_path));
+		GetWindowsDirectoryA(temp_path, sizeof(temp_path));
 		homedir = temp_path;
 	}
 #endif
